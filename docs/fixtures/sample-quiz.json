@@ -1,0 +1,255 @@
+{
+  "title": "Ep 1 — Quiz",
+  "questions": [
+    {
+      "question": "According to the distinction made in 'Software Engineering at Google', what is the primary factor that differentiates software engineering from programming?",
+      "answerOptions": [
+        {
+          "text": "The integration of programming over time",
+          "isCorrect": true,
+          "rationale": "Software engineering is defined as programming integrated over the dimensions of time and scale, emphasizing the eventual need for modification and maintenance."
+        },
+        {
+          "text": "The total number of lines of code written",
+          "isCorrect": false,
+          "rationale": "While volume is a factor, the source material explicitly defines the distinction based on the passage of time rather than raw code volume."
+        },
+        {
+          "text": "The use of advanced integrated development environments",
+          "isCorrect": false,
+          "rationale": "Tooling is part of the developer workflow, but it does not represent the fundamental conceptual difference regarding code lifespan and sustainability."
+        },
+        {
+          "text": "The complexity of the algorithms used",
+          "isCorrect": false,
+          "rationale": "Algorithmic complexity can exist in both programming and software engineering; the key difference is the management of that code over decades."
+        }
+      ],
+      "hint": "Consider the dimension that turns a one-off script into a long-lived system."
+    },
+    {
+      "question": "Which axiom states that with a sufficient number of users, every observable behavior of a system—regardless of the API contract—will be depended on by someone?",
+      "answerOptions": [
+        {
+          "text": "The Beyoncé Rule",
+          "isCorrect": false,
+          "rationale": "The Beyoncé Rule refers to the policy that if you liked it, you should have put a CI test on it, rather than general API dependency."
+        },
+        {
+          "text": "Jevons Paradox",
+          "isCorrect": false,
+          "rationale": "Jevons Paradox describes how increasing efficiency in a resource leads to an increase in the total consumption of that resource."
+        },
+        {
+          "text": "Hyrum's Law",
+          "isCorrect": true,
+          "rationale": "Hyrum's Law highlights that undocumented or accidental behaviors become part of the de facto contract once a system reaches a certain scale of usage."
+        },
+        {
+          "text": "The Churn Rule",
+          "isCorrect": false,
+          "rationale": "The Churn Rule is an organizational policy about who carries the cost of infrastructure migrations, not a law about API behavior."
+        }
+      ],
+      "hint": "This law behaves similarly to entropy in a software system."
+    },
+    {
+      "question": "In the context of software engineering, why is 'clever' often considered an accusation rather than a compliment?",
+      "answerOptions": [
+        {
+          "text": "Clever code is typically too slow for production environments",
+          "isCorrect": false,
+          "rationale": "Clever code might actually be very fast; the issue in software engineering is maintainability, not necessarily raw execution speed."
+        },
+        {
+          "text": "Clever code often relies on brittle or obscure implementation details",
+          "isCorrect": true,
+          "rationale": "Software engineering prioritizes clean, maintainable patterns over the complex or non-obvious logic that characterizes 'clever' programming."
+        },
+        {
+          "text": "Cleverness implies the use of third-party libraries",
+          "isCorrect": false,
+          "rationale": "The use of external dependencies is a matter of scale and reuse, whereas 'cleverness' refers to the internal logic of the code itself."
+        },
+        {
+          "text": "Clever code is usually written by AI agents",
+          "isCorrect": false,
+          "rationale": "The source material contrasts 'clever' programming with 'clean' software engineering as a human design choice related to code lifespan."
+        }
+      ],
+      "hint": "Think about how a future maintainer would feel when trying to read and modify that code."
+    },
+    {
+      "question": "Which of the following best describes 'sustainability' in a codebase as defined by Google's engineering standards?",
+      "answerOptions": [
+        {
+          "text": "The ability of the code to run without any hardware upgrades",
+          "isCorrect": false,
+          "rationale": "Sustainability is not about hardware longevity but about the software's internal capability to be modified for technical or business reasons."
+        },
+        {
+          "text": "The capability to react to any valuable change throughout the software's lifespan",
+          "isCorrect": true,
+          "rationale": "Sustainability is defined by the organization's ability to safely adapt to changing externalities, even if they choose not to perform a specific upgrade."
+        },
+        {
+          "text": "The practice of never changing the code once it is in production",
+          "isCorrect": false,
+          "rationale": "Stagnation is an alternative to sustainability, but it risks security and efficiency over the long term."
+        },
+        {
+          "text": "Writing code that uses minimal energy and compute resources",
+          "isCorrect": false,
+          "rationale": "While related to environmental sustainability, in this context, it refers to the maintenance and evolution of the codebase itself."
+        }
+      ],
+      "hint": "Sustainability focuses on the capability to adapt to changing requirements or technology."
+    },
+    {
+      "question": "How does the Jevons Paradox apply to the rise of AI-powered code generation?",
+      "answerOptions": [
+        {
+          "text": "Increased coding efficiency results in fewer software engineers being needed",
+          "isCorrect": false,
+          "rationale": "The paradox suggests that as a resource becomes more efficient, we consume more of it, rather than reducing the need for it."
+        },
+        {
+          "text": "As the cost of generating code drops, the volume and complexity of software increases",
+          "isCorrect": true,
+          "rationale": "Lowering the 'price' of code generation leads to higher consumption, resulting in larger codebases and more complex systemic dependencies."
+        },
+        {
+          "text": "AI models eventually run out of training data due to high consumption",
+          "isCorrect": false,
+          "rationale": "Jevons Paradox refers to the consumption of the output (code/software) by the organization, not the consumption of raw data by the model."
+        },
+        {
+          "text": "The efficiency of AI code reduces the total amount of technical debt",
+          "isCorrect": false,
+          "rationale": "Increased consumption of cheap code can actually lead to more technical debt if architectural judgment is not exercised."
+        }
+      ],
+      "hint": "Think about what happens to the demand for software when it becomes much cheaper to produce."
+    },
+    {
+      "question": "What are the three primary dimensions or 'themes' of software engineering that Google identifies as critical for decision-making?",
+      "answerOptions": [
+        {
+          "text": "Efficiency, Security, and Quality",
+          "isCorrect": false,
+          "rationale": "While these are goals, they are not the foundational themes used to distinguish software engineering from programming."
+        },
+        {
+          "text": "Time, Scale, and Trade-offs",
+          "isCorrect": true,
+          "rationale": "The source material organizes all software engineering concerns around the passage of time, the challenges of scale, and the science of weighing costs."
+        },
+        {
+          "text": "Algorithms, Data Structures, and Hardware",
+          "isCorrect": false,
+          "rationale": "These are technical components of computer science but do not capture the systemic nature of the engineering discipline."
+        },
+        {
+          "text": "Java, Python, and C++",
+          "isCorrect": false,
+          "rationale": "Specific languages are tools used within the process, but the three themes represent broader organizational challenges."
+        }
+      ],
+      "hint": "One relates to lifespan, one to organizational size, and one to evaluating different paths."
+    },
+    {
+      "question": "In an 'AI-Native' engineering team, how does the engineer's role change during the build phase according to the OpenAI guide?",
+      "answerOptions": [
+        {
+          "text": "They focus primarily on generating the maximum number of lines per hour",
+          "isCorrect": false,
+          "rationale": "The mechanical work is delegated to agents; the engineer moves away from raw implementation volume."
+        },
+        {
+          "text": "They shift from being the primary implementer to being the reviewer and editor",
+          "isCorrect": true,
+          "rationale": "Engineers focus on high-level correctness, architectural alignment, and system-level reasoning while AI agents handle the mechanical build tasks."
+        },
+        {
+          "text": "They spend more time debugging line-level syntax errors manually",
+          "isCorrect": false,
+          "rationale": "Syntax and mechanical debugging are identified as tasks to delegate to agents in an agentic workflow."
+        },
+        {
+          "text": "They no longer need to understand the underlying architecture of the system",
+          "isCorrect": false,
+          "rationale": "Engineering judgment and architectural oversight become more critical as the volume of generated code increases."
+        }
+      ],
+      "hint": "The engineer moves 'up' the stack to focus on oversight and intent."
+    },
+    {
+      "question": "What is the primary danger for a software project that has an expected lifespan ($T$) measured in decades but behaves as if it were a short-term project?",
+      "answerOptions": [
+        {
+          "text": "The project will be too expensive to run in the cloud",
+          "isCorrect": false,
+          "rationale": "Cloud costs are a resource trade-off, but the fundamental risk is the inability to maintain and evolve the system over time."
+        },
+        {
+          "text": "The project will eventually be unable to adapt to critical security or infrastructure changes",
+          "isCorrect": true,
+          "rationale": "Without planning for sustainability, the transition to new versions of libraries or OS becomes too painful and risky to execute."
+        },
+        {
+          "text": "The code will become too fast for the hardware to handle",
+          "isCorrect": false,
+          "rationale": "This is logically inconsistent; software engineering aims for efficiency, which is usually a benefit, not a danger."
+        },
+        {
+          "text": "There will be no 'Hyrum's Law' effects in the codebase",
+          "isCorrect": false,
+          "rationale": "Hyrum's Law is inevitable in long-lived systems with many users; it is not something that is avoided by ignoring time."
+        }
+      ],
+      "hint": "Consider the long-term impact of 'dependency rot' and security vulnerabilities."
+    },
+    {
+      "question": "Why does the shift toward AI code generation increase the value of human engineering judgment?",
+      "answerOptions": [
+        {
+          "text": "Because AI agents cannot write code in typed languages like TypeScript",
+          "isCorrect": false,
+          "rationale": "AI agents are proficient in many languages; the value of judgment is related to system integration and correctness, not language limitations."
+        },
+        {
+          "text": "Because raw code is now a commodity, making the 'why' and the 'how it fits' more important",
+          "isCorrect": true,
+          "rationale": "As the cost of generating syntax approaches zero, the strategic decisions regarding architecture, security, and product intent remain the human engineer's responsibility."
+        },
+        {
+          "text": "Because human engineers are faster at typing boilerplate code than AI",
+          "isCorrect": false,
+          "rationale": "AI agents are significantly faster at generating boilerplate, which is precisely why that specific skill is being devalued."
+        },
+        {
+          "text": "Because AI agents are unable to follow style guides or conventions",
+          "isCorrect": false,
+          "rationale": "Agents can be directed to follow style guides; judgment is required for cases where conventions must be balanced against systemic trade-offs."
+        }
+      ],
+      "hint": "When the 'what' (code) becomes easy to get, the 'should we' and 'where' become the bottleneck."
+    },
+    {
+      "question": "True or False: According to the 'Software Engineering at Google' text, most software is unsustainable if its costs grow superlinearly with the size of the codebase or the organization.",
+      "answerOptions": [
+        {
+          "text": "True",
+          "isCorrect": true,
+          "rationale": "If maintenance costs grow faster than the system itself (superlinearly), the organization will eventually run out of resources to keep the system running."
+        },
+        {
+          "text": "False",
+          "isCorrect": false,
+          "rationale": "Superlinear growth in costs is specifically cited as a sign of an unsustainable and unscalable engineering process."
+        }
+      ],
+      "hint": "Consider the math of hiring more engineers to manage an ever-increasing complexity overhead."
+    }
+  ]
+}

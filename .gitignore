@@ -1,0 +1,36 @@
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Secrets / env ---
+.env
+.env.*
+!.env.example
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.local
+
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- App data / caches (local only, never commit) ---
+# SQLite progress store
+*.sqlite
+*.sqlite3
+*.db
+# Cached nlm artifact downloads (quizzes, reports, etc.)
+.cache/
+data/cache/
+
+# Keep the curated reference fixtures (docs/fixtures/*) tracked.
