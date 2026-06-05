@@ -80,6 +80,13 @@ learning-hub/
 
 Don't build ahead — but make Phase-1 choices that don't box later phases in.
 
+## Execution mode per phase — gate the foundations, automate the rest
+"Execution mode" here means *how much you stop for my approval* — not the `nlm batch` CLI or any docs-batch tool, which are unrelated to building this app.
+
+- **Phases 1–2 — GATED.** Run these through the full **explore → plan → confirm-with-me → build → verify** rhythm. They set the architecture (repo wiring, catalog model, SQLite schema) and the **quiz-grading contract** — costly to reverse, so I want eyes on the plan before large code generation.
+- **Phases 3–5 — may run more autonomously.** Once Phase 1 locks the structure and schema, progress charts/streaks, the mastery-decay + spaced-repetition engine, and custom topics are largely mechanical. You may run them with fewer gates (e.g. "do Phase 3 end-to-end, then show me") — but **always still end each phase with adversarial verification against its acceptance criteria**, and **still branch + never push to `main` without my per-commit go-ahead.** If I want a hands-off build of these, I'll hand them to the `autonomous-milestone` skill explicitly.
+- **Default when unsure:** gate it. Ask before generating a large amount of code around a decision I haven't seen.
+
 ## How to proceed — explore → plan → confirm, THEN build
 
 **1. Explore (no app code).** Read the five docs. Then ground your plan in the real data:
