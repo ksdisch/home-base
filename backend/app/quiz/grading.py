@@ -1,10 +1,12 @@
 """Quiz model + grading, locked to the verified nlm quiz JSON contract.
 
-Verified invariants (docs/nlm-capabilities.md), enforced here:
-  * each question has ``answerOptions`` with **exactly one** ``isCorrect: true``;
-  * option counts vary per question (do NOT assume 4);
-  * every option has a ``rationale`` (shown on review / misses);
-  * every question has a ``hint`` (offered on demand).
+Verified invariants (docs/nlm-capabilities.md). The structural ones are HARD-enforced in
+``load_quiz`` (a violation raises ``QuizValidationError``):
+  * each question has ``answerOptions`` (>= 2; option counts vary — do NOT assume 4);
+  * ``isCorrect`` is a real boolean and **exactly one** option per question is ``True``.
+Content fields are surfaced when present but not required to grade:
+  * each option's ``rationale`` (shown on review / misses) and each question's ``hint``
+    (offered on demand) — a missing/blank one degrades to "no rationale/hint", never a crash.
 
 Everything is pure and offline — no network, no nlm. The Phase-2 player renders these models;
 grading is auto against ``isCorrect``. Built and tested now so the contract can't drift.
@@ -74,7 +76,15 @@ def load_quiz(data: Mapping[str, Any]) -> Quiz:
         for oi, ro in enumerate(raw_opts):
             if not isinstance(ro, Mapping):
                 raise QuizValidationError(f"Question {qi} option {oi} is not an object.")
-            is_correct = bool(ro.get("isCorrect", False))
+            raw_correct = ro.get("isCorrect", False)
+            if not isinstance(raw_correct, bool):
+                # Reject truthy non-bools (e.g. the string "false") that would silently flip
+                # the answer key under bool() coercion.
+                raise QuizValidationError(
+                    f"Question {qi} option {oi} isCorrect must be a boolean "
+                    f"(got {type(raw_correct).__name__})."
+                )
+            is_correct = raw_correct
             correct_count += int(is_correct)
             options.append(
                 QuizOption(
@@ -138,7 +148,12 @@ def grade_quiz(
     for q in quiz.questions:
         chosen = answers.get(q.index)
         correct_index = q.correct_index
-        in_range = chosen is not None and 0 <= chosen < len(q.options)
+        # bool is an int subclass; exclude it so True/False can't act as an index.
+        in_range = (
+            isinstance(chosen, int)
+            and not isinstance(chosen, bool)
+            and 0 <= chosen < len(q.options)
+        )
         is_correct = bool(in_range and chosen == correct_index)
         score += int(is_correct)
         graded.append(

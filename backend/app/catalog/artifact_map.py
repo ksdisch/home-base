@@ -26,8 +26,15 @@ def _type_from_keypath(keys: List[str]) -> str:
     return "unknown"
 
 
-# Map keys whose UUID value is metadata, not an artifact (the notebook's own id, etc.).
-_IGNORE_KEYS = {"notebook_id", "notebookid", "nb", "nb_id"}
+# Identifier-shaped keys (snake_case, no spaces) whose name signals metadata, not an artifact —
+# e.g. notebook_id, parent_notebook, source_notebook, migrated_from, deleted_original. Titled
+# standalone keys ("A Philosophy of Software Design") have spaces/caps and are never matched.
+_METADATA_KEY_WORD = re.compile(r"notebook|parent|origin|deleted|migrat|source|prev|nb", re.I)
+
+
+def _is_metadata_key(key: str) -> bool:
+    k = str(key)
+    return bool(re.fullmatch(r"[a-z][a-z0-9_]*", k)) and bool(_METADATA_KEY_WORD.search(k))
 
 
 def _episode_from_key(key: str) -> int | None:
@@ -59,8 +66,8 @@ def parse_artifact_map(data: Any) -> List[RawArtifact]:
                 )
                 return
             for k, v in node.items():
-                if str(k).lower() in _IGNORE_KEYS:
-                    continue
+                if _is_metadata_key(k):
+                    continue  # skip metadata subtrees (notebook_id, source_notebook, ...) entirely
                 # {"<title>": "<uuid>"} or {"<ep>": "<uuid>"} leaf.
                 if isinstance(v, str) and UUID_RE.fullmatch(v):
                     ty = _type_from_keypath(keys + [str(k)])

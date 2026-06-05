@@ -9,9 +9,10 @@ CLI (or network) is touched.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Optional, Sequence
 
 from ..config import get_settings
@@ -26,9 +27,17 @@ from .errors import (
 # (notebook/source/note/studio-create/share/import/...) is absent by construction.
 _ALLOWED_TOP = frozenset({"studio", "download", "doctor"})
 _ALLOWED_STUDIO_SUB = frozenset({"status"})
-_VERSION_TOKENS = frozenset({"--version", "-v", "version"})
+# All read-only artifact types `nlm download <type>` accepts (every one just fetches).
+_ALLOWED_DOWNLOAD_SUB = frozenset(
+    {
+        "quiz", "report", "flashcards", "mind-map", "mind_map", "mindmap",
+        "audio", "video", "slide-deck", "slide_deck", "slides",
+        "infographic", "data-table", "data_table", "study-guide", "study_guide",
+    }
+)
+_VERSION_TOKENS = frozenset({"--version", "-v"})
 
-# Substrings (lowercased) in stderr/stdout that indicate an auth failure.
+# Substrings (in an underscore-normalized, lowercased blob) that indicate an auth failure.
 _AUTH_SIGNATURES = (
     "unauthenticated",
     "unauthorized",
@@ -37,13 +46,23 @@ _AUTH_SIGNATURES = (
     "login required",
     "nlm login",
     "permission denied",
-    "401",
-    "403",
     "invalid credentials",
+    "invalid grant",
     "expired token",
+    "token has been expired",
+    "token expired",
     "no refresh token",
+    "could not refresh",
     "reauth",
+    "re authenticate",
+    "sign in",
+    "oauth",
+    "consent",
+    "profile not found",
 )
+# HTTP auth codes matched only as standalone tokens (so a UUID containing "401" is not auth).
+_AUTH_CODE_RE = re.compile(r"\b(401|403)\b")
+_NOTFOUND_CODE_RE = re.compile(r"\b404\b")
 
 
 @dataclass
@@ -63,6 +82,11 @@ def _assert_readonly(args: Sequence[str]) -> None:
         raise DisallowedCommandError("Refusing to run nlm with no arguments.")
     head = args[0]
     if head in _VERSION_TOKENS:
+        if len(args) != 1:  # never forward trailing tokens past a version flag
+            raise DisallowedCommandError(
+                f"nlm version flag does not take arguments: {' '.join(args)}",
+                detail=" ".join(args),
+            )
         return
     if head not in _ALLOWED_TOP:
         raise DisallowedCommandError(
@@ -74,6 +98,13 @@ def _assert_readonly(args: Sequence[str]) -> None:
         if sub not in _ALLOWED_STUDIO_SUB:
             raise DisallowedCommandError(
                 f"nlm studio '{sub or '<none>'}' is not read-only (only 'status' is allowed).",
+                detail=" ".join(args),
+            )
+    elif head == "download":
+        sub = args[1] if len(args) > 1 else ""
+        if sub not in _ALLOWED_DOWNLOAD_SUB:
+            raise DisallowedCommandError(
+                f"nlm download '{sub or '<none>'}' is not on the read-only download allowlist.",
                 detail=" ".join(args),
             )
 
@@ -110,12 +141,14 @@ class NlmClient:
 
     @staticmethod
     def _raise_for_error(res: NlmResult) -> None:
-        blob = f"{res.stderr}\n{res.stdout}".lower()
-        if any(sig in blob for sig in _AUTH_SIGNATURES):
-            raise NlmAuthError(detail=(res.stderr or res.stdout).strip())
-        if "not found" in blob or "notfound" in blob or "404" in blob:
-            raise NlmNotFoundError(detail=(res.stderr or res.stdout).strip())
-        raise NlmExecError(detail=(res.stderr or res.stdout).strip() or f"exit {res.returncode}")
+        # Normalize underscores->spaces so gRPC-style PERMISSION_DENIED / invalid_grant match.
+        blob = f"{res.stderr}\n{res.stdout}".lower().replace("_", " ")
+        detail = (res.stderr or res.stdout).strip()
+        if any(sig in blob for sig in _AUTH_SIGNATURES) or _AUTH_CODE_RE.search(blob):
+            raise NlmAuthError(detail=detail)
+        if "not found" in blob or "notfound" in blob or _NOTFOUND_CODE_RE.search(blob):
+            raise NlmNotFoundError(detail=detail)
+        raise NlmExecError(detail=detail or f"exit {res.returncode}")
 
     # -- read-only operations --------------------------------------------------
     def version(self) -> str:

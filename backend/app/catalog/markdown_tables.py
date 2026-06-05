@@ -82,7 +82,9 @@ TYPE_LABELS = {
 }
 
 
-_SHORT_ID_RE = re.compile(r"\b[0-9a-f]{8,32}\b")
+# A truncated/display id in a trusted id column: a hex run that must contain at least one
+# a–f letter, so pure-decimal values (dates, counts) are treated as placeholders, not ids.
+_SHORT_ID_RE = re.compile(r"\b(?=[0-9a-f]*[a-f])[0-9a-f]{8,64}\b")
 
 
 @dataclass
@@ -113,6 +115,14 @@ def classify_type(text: Optional[str]) -> Optional[str]:
         if kw in t:
             return val
     return None
+
+
+# Section headings that never describe artifacts (sources + migration/rebuild prose).
+_NON_ARTIFACT_SECTION = ("source", "migration", "rebuild", "deleted", "failed import")
+
+
+def _is_source_section(section: str) -> bool:
+    return any(k in (section or "").lower() for k in _NON_ARTIFACT_SECTION)
 
 
 def _type_from_section(section: str) -> Optional[str]:
@@ -171,11 +181,12 @@ def _clean_title(text: str) -> str:
 # --------------------------------------------------------------------------- table parsing
 def _split_row(line: str) -> List[str]:
     s = line.strip()
+    s = s.replace("\\|", "\x00")  # protect escaped pipes so a literal "|" in a cell stays put
     if s.startswith("|"):
         s = s[1:]
     if s.endswith("|"):
         s = s[:-1]
-    return [c.strip() for c in s.split("|")]
+    return [c.replace("\x00", "|").strip() for c in s.split("|")]
 
 
 def _is_separator(cells: List[str]) -> bool:
@@ -245,6 +256,8 @@ def _find_col(headers: List[str], *names: str) -> Optional[int]:
 
 
 def classify_table_artifacts(table: Table) -> List[RawArtifact]:
+    if _is_source_section(table.section):
+        return []  # a Sources table is never artifacts, whatever its id column is named
     headers = table.headers
     id_cols = [(i, _id_header_type(h)) for i, h in enumerate(headers) if _is_id_header(h)]
     if not id_cols:
@@ -335,6 +348,8 @@ _BULLET_RE = re.compile(r"^\s*[-*]\s+(.*\S)\s*$")
 
 def _is_artifact_section(section: str) -> bool:
     s = (section or "").lower()
+    if _is_source_section(section):  # excludes sources + migration/rebuild/deleted prose
+        return False
     return _type_from_section(section) is not None or any(
         k in s for k in ("artifact", "library", "standalone", "episode", "season")
     )
@@ -367,8 +382,15 @@ def extract_bullet_artifacts(markdown: str) -> List[RawArtifact]:
         artifact_id = um.group(0).lower()
 
         segs = [s.strip() for s in re.split(r"\s+[—–-]\s+", content)]
-        if not segs or not UUID_RE.search(segs[-1]):
+        tail = segs[-1] if segs else ""
+        tm = UUID_RE.search(tail)
+        if not tm:
             continue  # UUID must be the trailing field, not buried in prose
+        # The trailing segment must be essentially JUST the UUID (a real artifact line),
+        # not prose that happens to end with a notebook id.
+        remainder = (tail[: tm.start()] + tail[tm.end() :]).strip()
+        if any(ch.isalnum() for ch in remainder):
+            continue
         title_seg = segs[0] if segs else content
         title = _clean_title(title_seg)
         fmt = None

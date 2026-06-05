@@ -40,34 +40,49 @@ def _norm_type(t: str) -> str:
     return _NLM_TYPE_ALIASES.get(t, t or "unknown")
 
 
+def _canon(value: Any) -> str:
+    return str(value).strip().lower() if value is not None else ""
+
+
 def reconcile(
     sidecar_artifacts: List[RawArtifact], studio_artifacts: List[Dict[str, Any]]
 ) -> ReconcileResult:
-    by_id: Dict[str, RawArtifact] = {a.artifact_id: a for a in sidecar_artifacts}
+    # Canonicalize ids on BOTH sides so case/whitespace never splits one artifact into two.
+    by_canon: Dict[str, RawArtifact] = {}
+    sidecar_ids = set()
+    for a in sidecar_artifacts:
+        c = _canon(a.artifact_id)
+        sidecar_ids.add(c)
+        by_canon[c] = a
+
     live_ids = set()
     live_status: Dict[str, str] = {}
 
     for raw in studio_artifacts or []:
-        aid = str(raw.get("id", "")).lower()
-        if not aid:
+        if not isinstance(raw, dict):
+            continue  # nlm should return objects; ignore anything else rather than crash
+        aid = _canon(raw.get("id"))
+        if not aid:  # null / empty / whitespace-only id -> not an artifact
             continue
         live_ids.add(aid)
-        status = str(raw.get("status", "")) or None
+
+        raw_status = raw.get("status")
+        status = (str(raw_status).strip() or None) if raw_status is not None else None
         ntype = _norm_type(str(raw.get("type", "")))
         if status:
             live_status[aid] = status
 
-        if aid in by_id:
-            existing = by_id[aid]
+        if aid in by_canon:
+            existing = by_canon[aid]
             new_type = existing.type if existing.type != "unknown" else ntype
-            by_id[aid] = replace(
+            by_canon[aid] = replace(
                 existing,
                 type=new_type,
                 status=status or existing.status,
                 source=(existing.source + "+nlm") if "nlm" not in existing.source else existing.source,
             )
         else:
-            by_id[aid] = RawArtifact(
+            by_canon[aid] = RawArtifact(
                 artifact_id=aid,
                 type=ntype,
                 title="",  # nlm has no title; UI renders "Untitled <type>"
@@ -75,16 +90,13 @@ def reconcile(
                 source="nlm",
             )
 
-    nlm_only = sorted(aid for aid in live_ids if all(
-        aid != a.artifact_id for a in sidecar_artifacts))
-    sidecar_ids = {a.artifact_id for a in sidecar_artifacts}
+    nlm_only = sorted(aid for aid in live_ids if aid not in sidecar_ids)
     sidecar_only = sorted(sidecar_ids - live_ids)
-    live_missing = sidecar_only  # in sidecar but not live
 
     return ReconcileResult(
-        artifacts=list(by_id.values()),
+        artifacts=list(by_canon.values()),
         nlm_only_ids=nlm_only,
-        sidecar_only_ids=sorted(sidecar_ids - live_ids),
+        sidecar_only_ids=sidecar_only,
         live_status=live_status,
-        live_missing_ids=live_missing,
+        live_missing_ids=sidecar_only,  # in sidecar but not live
     )
