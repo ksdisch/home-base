@@ -5,9 +5,40 @@ See every topic you're learning in one place, take your NotebookLM-generated qui
 *inside the hub* with real score tracking, and get nudged on what to review next — a UI
 you actually enjoy, with links back to NotebookLM where useful.
 
-> **Status:** 🌱 Scaffold only. No application code yet. This repo currently holds the
-> spec, the verified capability/data notes, and a kickoff prompt for the build.
-> Start the build from [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md).
+> **Status:** ✅ **Phase 1 shipped** — catalog + hub home + topic detail, read-only, runnable
+> with one command. The headline quiz player (Phase 2) is next; its grading oracle is already
+> built and tested offline. See [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md).
+
+---
+
+## Run it locally
+
+One command boots both processes:
+
+```bash
+make dev          # or: ./dev.sh
+```
+
+It bootstraps a Python 3.12 backend venv + frontend deps on first run, then starts:
+
+| Process | URL | Notes |
+|---|---|---|
+| **Frontend (Vite)** | **http://localhost:5173** | ← open this |
+| Backend (FastAPI) | http://localhost:8000 | API under `/api`; the Vite dev server proxies `/api` → here |
+
+Then open **http://localhost:5173**. The home screen lists your real notebooks (read live from
+`~/Projects/NotebookLMs/`), grouped Learning / Interview prep. Click a card to see its episodes,
+study guides, and quizzes.
+
+```bash
+make test         # backend test suite (parsing robustness, read-only, auth, quiz oracle)
+make build        # production frontend build
+make setup        # bootstrap deps without running
+```
+
+**Requirements:** Python 3.12 (falls back to system `python3`), Node 18+, and the `nlm` CLI on
+your PATH (only needed for the optional "Refresh (live)" reconcile — the catalog works offline
+without it). If `nlm` auth lapses, the hub shows a calm "run `nlm login`" banner, never a crash.
 
 ---
 
@@ -52,7 +83,8 @@ PWA-installable web app.
 - [`docs/nlm-capabilities.md`](docs/nlm-capabilities.md) — **verified** `nlm` capabilities + quiz JSON shape.
 - [`docs/data-sources.md`](docs/data-sources.md) — where the catalog data lives, with examples.
 - [`docs/fixtures/sample-quiz.json`](docs/fixtures/sample-quiz.json) — a real downloaded quiz to build the player against offline.
-- [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md) — paste this into a fresh Claude Code session to begin the build.
+- [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md) — the Phase 1 implementation plan + fork decisions.
+- [`docs/KICKOFF_PROMPT.md`](docs/KICKOFF_PROMPT.md) — the original build kickoff prompt.
 
 ## Honest limitations
 
