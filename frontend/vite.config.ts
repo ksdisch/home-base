@@ -8,6 +8,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true, // expose on LAN so a phone on the same network can reach the hub
+    // Local dev tool: accept any Host header (LAN IP, host.docker.internal, etc.).
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: "http://localhost:8000",
