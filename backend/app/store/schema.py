@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -46,6 +46,18 @@ STATEMENTS = [
         correct        INTEGER NOT NULL DEFAULT 0,
         used_hint      INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (attempt_id, question_index)
+    )
+    """,
+    # Post-episode reflections (the `/episode-review` skill's "how well did it land?" step).
+    # Saved-and-resurfaced so they can feed the future "Review next" / study-planner work.
+    """
+    CREATE TABLE IF NOT EXISTS reflections (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        notebook_id         TEXT NOT NULL,
+        episode_artifact_id TEXT,
+        body                TEXT NOT NULL DEFAULT '',
+        grasp_rating        INTEGER,
+        created_at          TEXT NOT NULL DEFAULT (datetime('now'))
     )
     """,
     # Free-form notes per notebook.

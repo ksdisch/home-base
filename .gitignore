@@ -29,8 +29,11 @@ venv/
 *.sqlite
 *.sqlite3
 *.db
-# Cached nlm artifact downloads (quizzes, reports, etc.)
+# Cached nlm artifact downloads (quizzes, reports, etc.) + review-session scratch.
+# The runtime data dir defaults to backend/data (see app/config.py), so ignore it wherever
+# it lands — these patterns are unanchored on purpose.
 .cache/
-data/cache/
+**/data/cache/
+backend/data/
 
 # Keep the curated reference fixtures (docs/fixtures/*) tracked.
