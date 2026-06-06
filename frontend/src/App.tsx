@@ -1,5 +1,6 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
+import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
 import TopicDetail from "./pages/TopicDetail";
 
@@ -12,15 +13,36 @@ export default function App() {
             <img src="/icon.svg" alt="" className="h-7 w-7 rounded-lg" />
             Learning Hub
           </Link>
-          <p className="hidden text-sm text-muted sm:block">
-            a calm window over your NotebookLM notebooks
-          </p>
+          <nav className="flex items-center gap-1 text-sm">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-1.5 font-medium transition ${
+                  isActive ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+                }`
+              }
+            >
+              Topics
+            </NavLink>
+            <NavLink
+              to="/progress"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-1.5 font-medium transition ${
+                  isActive ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+                }`
+              }
+            >
+              Progress
+            </NavLink>
+          </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
         </Routes>

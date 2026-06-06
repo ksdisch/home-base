@@ -3,6 +3,7 @@
 import type {
   CatalogResponse,
   HealthResponse,
+  ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
   QuizPrepareResponse,
@@ -58,6 +59,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 export const api = {
   health: () => get<HealthResponse>("/health"),
   catalog: () => get<CatalogResponse>("/catalog"),
+  progress: () => get<ProgressResponse>("/progress"),
   topic: (id: string, live = false) =>
     get<TopicDetail>(`/topics/${encodeURIComponent(id)}${live ? "?live=true" : ""}`),
   setEpisodeListened: async (

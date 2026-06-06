@@ -135,6 +135,59 @@ export interface QuizGradeResponse {
   review: QuizReviewItem[];
 }
 
+// Mirrors backend ProgressResponse + friends.
+export interface AttemptPoint {
+  finished_at?: string | null;
+  pct: number;
+}
+
+export interface TopicProgress {
+  notebook_id: string;
+  title: string;
+  group?: string | null;
+  group_label?: string | null;
+  topic_url?: string | null;
+  attempts: number;
+  last_pct: number;
+  best_pct: number;
+  avg_pct: number;
+  last_practiced?: string | null;
+  points: AttemptPoint[];
+}
+
+export interface ShakyQuiz {
+  notebook_id: string;
+  title: string;
+  topic_url?: string | null;
+  quiz_artifact_id: string;
+  total_misses: number;
+  shaky_questions: number;
+  last_review_at?: string | null;
+}
+
+export interface ActivityDay {
+  day: string;
+  count: number;
+}
+
+export interface ProgressSummary {
+  attempts_total: number;
+  topics_practiced: number;
+  avg_pct: number;
+  current_streak: number;
+  longest_streak: number;
+  last_activity?: string | null;
+}
+
+export interface ProgressResponse {
+  generated_at: string;
+  has_data: boolean;
+  summary: ProgressSummary;
+  topics: TopicProgress[];
+  shaky: ShakyQuiz[];
+  activity: ActivityDay[];
+}
+
 export interface HealthResponse {
   ok: boolean;
   nlm_available: boolean;
