@@ -34,5 +34,20 @@ session only if `nlm`/MCP is configured there).
 | ⚠️ `notebook-assist` | Refine / brainstorm / manage sources for an existing NotebookLM notebook. |
 | ⚠️ `audio-series` | Generate an episodic NotebookLM audio series for a notebook. |
 
-> Vendored via `/claudify-repo`. To refresh a tool to its latest global version, re-run that
-> command and re-port it.
+#### Repo-specific skills (scaffolded via `/claudify-repo` brainstorm)
+
+| Skill | What it does |
+|---|---|
+| ⚠️ `youtube-breakdown` | Turn a YouTube transcript/URL into a 4-mode breakdown (Study Notes / Quick Reference / Critique / Actionable Insights), then save it as a local note, register it as a hub custom topic, or add it to a notebook as an `nlm` source. The breakdown works anywhere; saving + the `nlm` bridge are local. |
+| 💻 `review-next` | Read the hub's SQLite store (attempts, mastery, reflections) and rank "what to review next." Read-only; needs the local store (or the `learning-hub-db` MCP). |
+| 💻 `catalog-doctor` | Reconcile the parsed catalog ↔ sidecars ↔ live `nlm studio status` and report drift. Read-only; needs the sidecars, `nlm`, and the running backend. |
+
+### MCP servers (`.mcp.json`)
+
+| Server | What it does |
+|---|---|
+| 💻 `learning-hub-db` | SQLite MCP (`uvx mcp-server-sqlite`) over the hub's store at `backend/data/learning-hub.sqlite`, so Claude can inspect attempts/mastery/custom_topics. Requires `uv`/`uvx`; the DB file is created on first `make dev`. The store is local, so it won't connect in cloud sessions. |
+
+> Vendored / scaffolded via `/claudify-repo`. To refresh a vendored tool to its latest global
+> version, re-run that command and re-port it. Pending follow-up: the `custom_topics` CLI writer
+> that `youtube-breakdown` registers topics through (see `BACKLOG.md`).

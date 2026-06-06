@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "learning-hub-db": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-sqlite",
+        "--db-path",
+        "backend/data/learning-hub.sqlite"
+      ]
+    }
+  }
+}
