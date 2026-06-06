@@ -49,5 +49,6 @@ session only if `nlm`/MCP is configured there).
 | 💻 `learning-hub-db` | SQLite MCP (`uvx mcp-server-sqlite`) over the hub's store at `backend/data/learning-hub.sqlite`, so Claude can inspect attempts/mastery/custom_topics. Requires `uv`/`uvx`; the DB file is created on first `make dev`. The store is local, so it won't connect in cloud sessions. |
 
 > Vendored / scaffolded via `/claudify-repo`. To refresh a vendored tool to its latest global
-> version, re-run that command and re-port it. Pending follow-up: the `custom_topics` CLI writer
-> that `youtube-breakdown` registers topics through (see `BACKLOG.md`).
+> version, re-run that command and re-port it. The `custom_topics` CLI writer that
+> `youtube-breakdown` uses is built (`backend/app/topics/custom.py`); surfacing custom topics on
+> the hub home remains Phase-5 UI work (see `BACKLOG.md`).

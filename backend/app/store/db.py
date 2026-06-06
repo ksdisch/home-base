@@ -201,3 +201,134 @@ def get_episode_progress(notebook_id: str, db_path: Optional[Path] = None) -> Di
     finally:
         conn.close()
     return {r["artifact_id"]: bool(r["listened"]) for r in rows}
+
+
+# -- custom topics -------------------------------------------------------------
+# Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
+# manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all
+# hub state it lives here in SQLite, never in the NotebookLM sidecars.
+
+def _row_to_topic(r: sqlite3.Row) -> Dict[str, Any]:
+    return {
+        "id": int(r["id"]),
+        "title": r["title"],
+        "notes": r["notes"],
+        "progress_pct": int(r["progress_pct"]),
+        "created_at": r["created_at"],
+        "updated_at": r["updated_at"],
+    }
+
+
+def _validate_progress(progress_pct: int) -> int:
+    if not isinstance(progress_pct, int) or isinstance(progress_pct, bool):
+        raise ValueError("progress_pct must be an integer")
+    if not 0 <= progress_pct <= 100:
+        raise ValueError("progress_pct must be between 0 and 100")
+    return progress_pct
+
+
+def add_custom_topic(
+    title: str,
+    *,
+    notes: str = "",
+    progress_pct: int = 0,
+    db_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Create a custom topic (+ an activity row for streaks). Returns the new row as a dict."""
+    if not title or not title.strip():
+        raise ValueError("title must be a non-empty string")
+    _validate_progress(progress_pct)
+    conn = connect(db_path)
+    try:
+        cur = conn.execute(
+            "INSERT INTO custom_topics (title, notes, progress_pct) VALUES (?, ?, ?)",
+            (title.strip(), notes, progress_pct),
+        )
+        topic_id = int(cur.lastrowid)
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            ("custom_topic_added",),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM custom_topics WHERE id = ?", (topic_id,)
+        ).fetchone()
+        return _row_to_topic(row)
+    finally:
+        conn.close()
+
+
+def list_custom_topics(db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM custom_topics ORDER BY updated_at DESC, id DESC"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [_row_to_topic(r) for r in rows]
+
+
+def get_custom_topic(
+    topic_id: int, db_path: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM custom_topics WHERE id = ?", (topic_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+    return _row_to_topic(row) if row else None
+
+
+def update_custom_topic(
+    topic_id: int,
+    *,
+    title: Optional[str] = None,
+    notes: Optional[str] = None,
+    progress_pct: Optional[int] = None,
+    db_path: Optional[Path] = None,
+) -> Optional[Dict[str, Any]]:
+    """Patch the provided fields (+ an activity row if anything changed). Returns the updated
+    row, or ``None`` if no topic has that id. A call with nothing to change is a no-op that
+    returns the current row."""
+    sets: List[str] = []
+    params: List[Any] = []
+    if title is not None:
+        if not title.strip():
+            raise ValueError("title must be a non-empty string")
+        sets.append("title = ?")
+        params.append(title.strip())
+    if notes is not None:
+        sets.append("notes = ?")
+        params.append(notes)
+    if progress_pct is not None:
+        _validate_progress(progress_pct)
+        sets.append("progress_pct = ?")
+        params.append(progress_pct)
+
+    if not sets:  # nothing to change — return current row (None if it doesn't exist)
+        return get_custom_topic(topic_id, db_path)
+
+    sets.append("updated_at = datetime('now')")
+    conn = connect(db_path)
+    try:
+        cur = conn.execute(
+            f"UPDATE custom_topics SET {', '.join(sets)} WHERE id = ?",
+            (*params, topic_id),
+        )
+        if cur.rowcount == 0:  # no such topic
+            conn.rollback()
+            return None
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            ("custom_topic_updated",),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM custom_topics WHERE id = ?", (topic_id,)
+        ).fetchone()
+        return _row_to_topic(row)
+    finally:
+        conn.close()

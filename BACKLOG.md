@@ -53,19 +53,12 @@ study-planner subagent (which would read it as context). Stub now, populate as t
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
 - **Hosted phone access** — remove the "Mac must be running on the same LAN" constraint.
 
-### Idea: `custom_topics` CLI writer (follow-up to the `youtube-breakdown` skill)
+### ✅ Shipped: `custom_topics` CLI writer
 
-The `custom_topics` table exists in the schema (Phase 5) but has **no writer**. The
-`/claudify-repo`-scaffolded `youtube-breakdown` skill wants to register a processed video as a
-custom topic, and there's no path to do it. Build a small CLI in the **exact style of
-`app.quiz.session`** — runs from `backend/`, prints JSON, writes through `app.store.db`:
+Built `app.topics.custom` (`add` / `list` / `update`, JSON out) + `app.store.db` helpers
+(`add_custom_topic` / `list_custom_topics` / `get_custom_topic` / `update_custom_topic`) +
+`tests/test_custom_topics.py`. The `youtube-breakdown` skill registers topics through it.
 
-```
-python -m app.topics.custom add  --title … --notes/--notes-file … --progress 0   # -> {id, …}
-python -m app.topics.custom list                                                  # -> [{id, title, progress_pct, …}]
-python -m app.topics.custom update --id … [--progress …] [--notes …]
-```
-
-Add a matching `app.store.db.add_custom_topic(...)` helper + tests (mirror `test_session.py`).
-Once it lands, wire the skill's "register as custom topic" step to it and surface custom topics
-in the hub home (Phase 5). Until then the skill saves a local note only.
+**Remaining (Phase 5 UI):** surface custom topics on the hub **home screen** — a
+`GET /api/custom-topics` route + a frontend card group. The writer + store are done; only the
+read API and UI are left.
