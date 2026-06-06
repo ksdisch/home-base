@@ -31,3 +31,11 @@ export function countSummary(card: NotebookCard): string {
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
+
+// "Jun 6" style short date from an ISO timestamp/date. Empty input → "—".
+export function shortDate(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
