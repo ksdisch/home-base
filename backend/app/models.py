@@ -152,6 +152,63 @@ class QuizGradeResponse(BaseModel):
     review: List[QuizReviewItem] = []
 
 
+class AttemptPoint(BaseModel):
+    """One graded attempt in a topic's trend line."""
+
+    finished_at: Optional[str] = None
+    pct: float = 0.0
+
+
+class TopicProgress(BaseModel):
+    notebook_id: str
+    title: str
+    group: Optional[str] = None
+    group_label: Optional[str] = None
+    topic_url: Optional[str] = None
+    attempts: int = 0
+    last_pct: float = 0.0
+    best_pct: float = 0.0
+    avg_pct: float = 0.0
+    last_practiced: Optional[str] = None
+    points: List[AttemptPoint] = []
+
+
+class ShakyQuiz(BaseModel):
+    """A quiz with accumulated misses. The question text isn't stored (read-only hub), so we
+    surface the miss tally + how many distinct questions are shaky — enough to nudge a retake."""
+
+    notebook_id: str
+    title: str
+    topic_url: Optional[str] = None
+    quiz_artifact_id: str
+    total_misses: int = 0
+    shaky_questions: int = 0
+    last_review_at: Optional[str] = None
+
+
+class ActivityDay(BaseModel):
+    day: str
+    count: int = 0
+
+
+class ProgressSummary(BaseModel):
+    attempts_total: int = 0
+    topics_practiced: int = 0
+    avg_pct: float = 0.0
+    current_streak: int = 0
+    longest_streak: int = 0
+    last_activity: Optional[str] = None
+
+
+class ProgressResponse(BaseModel):
+    generated_at: str
+    has_data: bool = False
+    summary: ProgressSummary = ProgressSummary()
+    topics: List[TopicProgress] = []
+    shaky: List[ShakyQuiz] = []
+    activity: List[ActivityDay] = []
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     nlm_available: bool = False
