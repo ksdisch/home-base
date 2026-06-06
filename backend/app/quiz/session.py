@@ -53,12 +53,17 @@ def cmd_prepare(
     *,
     episode_artifact_id: Optional[str] = None,
     from_file: Optional[str] = None,
+    client: Optional[NlmClient] = None,
 ) -> Dict[str, Any]:
-    """Fetch + validate the quiz, stash the keyed copy, return an answer-key-free player view."""
+    """Fetch + validate the quiz, stash the keyed copy, return an answer-key-free player view.
+
+    ``client`` lets the HTTP layer inject a DI-overridable ``NlmClient`` (and tests a fake one);
+    the CLI leaves it ``None`` and gets a fresh real client.
+    """
     if from_file:  # offline / tests — no nlm, no network
         raw = json.loads(Path(from_file).read_text(encoding="utf-8"))
     else:
-        raw = NlmClient().download_quiz(notebook_id, quiz_artifact_id)
+        raw = (client or NlmClient()).download_quiz(notebook_id, quiz_artifact_id)
 
     quiz = load_quiz(raw)  # raises QuizValidationError on a contract violation
 
