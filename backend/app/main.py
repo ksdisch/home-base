@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
-from .api import catalog, episodes, health, topics
+from .api import catalog, episodes, health, quiz, topics
 from .config import get_settings
 from .store import init_db
 
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(catalog.router, prefix="/api", tags=["catalog"])
     app.include_router(topics.router, prefix="/api", tags=["topics"])
     app.include_router(episodes.router, prefix="/api", tags=["episodes"])
+    app.include_router(quiz.router, prefix="/api", tags=["quiz"])
 
     @app.get("/api")
     def api_root() -> dict:

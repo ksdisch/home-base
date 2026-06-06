@@ -3,6 +3,9 @@
 import type {
   CatalogResponse,
   HealthResponse,
+  QuizGradeRequest,
+  QuizGradeResponse,
+  QuizPrepareResponse,
   TopicDetail,
 } from "./types";
 
@@ -25,6 +28,25 @@ async function get<T>(path: string): Promise<T> {
     try {
       const body = await res.json();
       detail = body.detail ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const data = await res.json();
+      detail = data.detail ?? detail;
     } catch {
       /* ignore */
     }
@@ -57,4 +79,9 @@ export const api = {
     const body = await res.json();
     return Boolean(body.listened);
   },
+  prepareQuiz: (notebookId: string, quizId: string) =>
+    post<QuizPrepareResponse>(
+      `/topics/${encodeURIComponent(notebookId)}/quizzes/${encodeURIComponent(quizId)}/prepare`,
+    ),
+  gradeQuiz: (body: QuizGradeRequest) => post<QuizGradeResponse>("/quiz/grade", body),
 };

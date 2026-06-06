@@ -84,6 +84,57 @@ export interface TopicDetail {
   warnings: string[];
 }
 
+// Answer-key-FREE by construction — mirrors backend QuizPlayerQuestion.
+export interface QuizPlayerQuestion {
+  index: number;
+  question: string;
+  options: string[];
+  hint?: string | null;
+}
+
+export interface QuizPrepareResponse {
+  notebook_id: string;
+  quiz_artifact_id: string;
+  episode_artifact_id?: string | null;
+  ok: boolean;
+  auth: AuthState;
+  session_id?: string | null;
+  title?: string | null;
+  total: number;
+  questions: QuizPlayerQuestion[];
+  error?: string | null;
+}
+
+export interface QuizGradeRequest {
+  session_id: string;
+  answers: Record<number, number | null>;
+  hints?: Record<number, boolean>;
+  mark_listened?: boolean;
+}
+
+export interface QuizReviewItem {
+  index: number;
+  question: string;
+  options: string[];
+  chosen_index?: number | null;
+  chosen_text?: string | null;
+  correct_index: number;
+  correct_text: string;
+  is_correct: boolean;
+  used_hint: boolean;
+  chosen_rationale?: string | null;
+  correct_rationale: string;
+}
+
+export interface QuizGradeResponse {
+  attempt_id: number;
+  score: number;
+  total: number;
+  pct: number;
+  episode_marked_listened: boolean;
+  review: QuizReviewItem[];
+}
+
 export interface HealthResponse {
   ok: boolean;
   nlm_available: boolean;

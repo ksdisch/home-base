@@ -116,7 +116,9 @@ def to_topic_detail(
             study_guides.append(_artifact_ref(a))
         elif a.type == "quiz":
             ref = _artifact_ref(a)
-            quizzes.append(QuizRef(**ref.model_dump(), takeable=False))
+            # Phase 2: the in-hub player is live, so every parsed quiz is takeable. The actual
+            # downloadability is proven at prepare-time (and any nlm failure degrades gracefully).
+            quizzes.append(QuizRef(**ref.model_dump(), takeable=True))
         else:
             other.append(_artifact_ref(a))
 
