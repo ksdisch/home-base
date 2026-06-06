@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
+import QuizPlayer from "./pages/QuizPlayer";
 import TopicDetail from "./pages/TopicDetail";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
+          <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
         </Routes>
       </main>
     </div>

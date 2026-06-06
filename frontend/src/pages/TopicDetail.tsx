@@ -148,18 +148,32 @@ export default function TopicDetail() {
 
       <Section title="Quizzes" count={detail.quizzes.length} empty="No quizzes found.">
         <ul className="divide-y divide-stone-100">
-          {detail.quizzes.map((q) => (
-            <li key={q.artifact_id} className="flex items-center justify-between gap-3 py-2.5">
-              <span className="text-sm text-ink">{q.title}</span>
-              <button
-                disabled
-                title="The in-hub quiz player arrives in Phase 2"
-                className="cursor-not-allowed rounded-lg border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-muted"
-              >
-                Take ▸ soon
-              </button>
-            </li>
-          ))}
+          {detail.quizzes.map((q) =>
+            q.takeable ? (
+              <li key={q.artifact_id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-ink">{q.title}</span>
+                <Link
+                  to={`/topics/${encodeURIComponent(detail.notebook_id)}/quiz/${encodeURIComponent(
+                    q.artifact_id,
+                  )}`}
+                  className="rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90"
+                >
+                  Take ▸
+                </Link>
+              </li>
+            ) : (
+              <li key={q.artifact_id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-sm text-ink">{q.title}</span>
+                <button
+                  disabled
+                  title="This quiz can't be taken in the hub yet"
+                  className="cursor-not-allowed rounded-lg border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-muted"
+                >
+                  Take ▸ soon
+                </button>
+              </li>
+            ),
+          )}
         </ul>
       </Section>
 
