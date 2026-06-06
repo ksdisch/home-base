@@ -104,19 +104,19 @@ After generating the breakdown:
    Register "[title]" as a custom topic in the hub so it shows on the home screen?
    ```
 
-   > **Status — needs a small backend writer.** The `custom_topics` table exists
-   > (`backend/app/store/schema.py`) but has **no writer yet** (Phase 5). When the
-   > `custom_topics` CLI lands (see BACKLOG.md → "custom_topics writer"), this step will run:
-   >
-   > ```
-   > cd backend && .venv/bin/python -m app.topics.custom add \
-   >   --title "<title>" --notes-file backend/data/youtube-notes/<slug>.md \
-   >   --progress 0
-   > ```
-   >
-   > It should follow the `app.quiz.session` convention exactly: run from `backend/` via the
-   > project venv, print JSON, write through `app.store.db`. Until it exists, **don't fake it**
-   > — save the local note (step 2) and tell the user registration is a pending follow-up.
+   Run the custom-topics writer (`app.topics.custom`) from `backend/` via the project venv —
+   same convention as `app.quiz.session` (prints JSON, writes through `app.store.db`):
+
+   ```
+   cd backend && .venv/bin/python -m app.topics.custom add \
+     --title "<title>" --notes-file data/youtube-notes/<slug>.md --progress 0
+   ```
+
+   It returns `{id, title, notes, progress_pct, created_at, updated_at}` — record the `id` in
+   the note's frontmatter as `custom_topic_id`. `--progress` is 0–100; later bumps use
+   `… update --id <id> --progress N`. (The note path is relative to `backend/`, i.e.
+   `data/youtube-notes/…` = `backend/data/youtube-notes/…` from the repo root.) Surfacing custom
+   topics on the hub **home screen** is still Phase-5 UI work — the writer + store are done.
 
 4. **Optional bridge → NotebookLM (gated).** If the user wants this video to become a tracked
    NotebookLM topic (so `audio-series` / `episode-review` can build on it), offer to add the
@@ -264,8 +264,8 @@ into individual actions and adoptable frameworks.
 **After this mode**, append:
 
 ```
-💡 Want me to capture this video as a hub custom topic with these action items as its notes?
-(Once the custom_topics writer lands — see BACKLOG.md — this becomes a one-step save.)
+💡 Want me to capture this video as a hub custom topic (via `app.topics.custom`) with these
+action items as its notes?
 ```
 
 ---
