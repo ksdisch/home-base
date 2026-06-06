@@ -5,9 +5,12 @@ See every topic you're learning in one place, take your NotebookLM-generated qui
 *inside the hub* with real score tracking, and get nudged on what to review next — a UI
 you actually enjoy, with links back to NotebookLM where useful.
 
-> **Status:** ✅ **Phase 1 shipped** — catalog + hub home + topic detail, read-only, runnable
-> with one command. The headline quiz player (Phase 2) is next; its grading oracle is already
-> built and tested offline. See [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md).
+> **Status:** ✅ **Phases 1–3 shipped** — catalog + hub home + topic detail (Phase 1), the
+> in-hub quiz player with auto-grading + attempt storage (Phase 2), and the progress dashboard
+> with per-topic score trends, an activity streak, and "shaky spots" (Phase 3) — all read-only
+> and runnable with one command. Next: mastery decay + the spaced-repetition "Review next" queue
+> (Phase 4). See [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md),
+> [`docs/PHASE2_PLAN.md`](docs/PHASE2_PLAN.md), and [`docs/PHASE3_PLAN.md`](docs/PHASE3_PLAN.md).
 
 ---
 
