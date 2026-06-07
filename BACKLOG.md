@@ -53,12 +53,13 @@ study-planner subagent (which would read it as context). Stub now, populate as t
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
 - **Hosted phone access** — remove the "Mac must be running on the same LAN" constraint.
 
-### ✅ Shipped: `custom_topics` CLI writer
+### ✅ Shipped: `custom_topics` CLI writer + Phase-5 UI
 
 Built `app.topics.custom` (`add` / `list` / `update`, JSON out) + `app.store.db` helpers
 (`add_custom_topic` / `list_custom_topics` / `get_custom_topic` / `update_custom_topic`) +
 `tests/test_custom_topics.py`. The `youtube-breakdown` skill registers topics through it.
 
-**Remaining (Phase 5 UI):** surface custom topics on the hub **home screen** — a
-`GET /api/custom-topics` route + a frontend card group. The writer + store are done; only the
-read API and UI are left.
+**✅ Phase 5 done:** custom topics are now surfaced on the hub **home screen** — a
+`GET /api/custom-topics` route (+ `POST` / `PATCH` to add/track from the UI) and a dedicated
+"Custom" section with add + inline-edit. See `docs/PHASE5_PLAN.md`. This completes the SPEC
+build order (Phases 1–5).

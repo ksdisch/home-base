@@ -5,14 +5,16 @@ See every topic you're learning in one place, take your NotebookLM-generated qui
 *inside the hub* with real score tracking, and get nudged on what to review next — a UI
 you actually enjoy, with links back to NotebookLM where useful.
 
-> **Status:** ✅ **Phases 1–4 shipped** — catalog + hub home + topic detail (Phase 1), the
-> in-hub quiz player with auto-grading + attempt storage (Phase 2), the progress dashboard
-> with per-topic score trends, an activity streak, and "shaky spots" (Phase 3), and the
-> mastery-decay engine + spaced-repetition **"Review next"** queue — with a "🔁 due for review"
-> badge + decayed-mastery chip on the home cards (Phase 4) — all read-only and runnable with one
-> command. Next: custom non-NotebookLM topics on the home screen (Phase 5). See
+> **Status:** ✅ **Phases 1–5 shipped — the full SPEC build order is done.** Catalog + hub home +
+> topic detail (Phase 1), the in-hub quiz player with auto-grading + attempt storage (Phase 2),
+> the progress dashboard with per-topic score trends, an activity streak, and "shaky spots"
+> (Phase 3), the mastery-decay engine + spaced-repetition **"Review next"** queue — with a
+> "🔁 due for review" badge + decayed-mastery chip on the home cards (Phase 4), and **custom
+> (non-NotebookLM) topics** on the home screen — add/track a book, a YouTube series, or a loose
+> interest with manual progress + notes (Phase 5). All runnable with one command. See
 > [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md), [`docs/PHASE2_PLAN.md`](docs/PHASE2_PLAN.md),
-> [`docs/PHASE3_PLAN.md`](docs/PHASE3_PLAN.md), and [`docs/PHASE4_PLAN.md`](docs/PHASE4_PLAN.md).
+> [`docs/PHASE3_PLAN.md`](docs/PHASE3_PLAN.md), [`docs/PHASE4_PLAN.md`](docs/PHASE4_PLAN.md), and
+> [`docs/PHASE5_PLAN.md`](docs/PHASE5_PLAN.md).
 
 ---
 
