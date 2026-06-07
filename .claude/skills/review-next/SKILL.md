@@ -25,9 +25,16 @@ Relevant tables (see `backend/app/store/schema.py`):
 - `reflections` — post-episode reflections with optional `grasp_rating` (1–5).
 - `episode_progress` — which episodes are marked listened.
 
-## How to read it (two ways, prefer whichever is available)
+## How to read it (prefer the Phase-4 engine, then fall back)
 
-1. **SQLite MCP (preferred when present).** This repo ships a `learning-hub-db` MCP server
+0. **The Phase-4 mastery engine (preferred when the backend is running).** Phase 4 shipped the
+   real decay model + ranked queue this skill was a stopgap for. If the hub backend is up, just
+   `GET localhost:8000/api/review` — it returns the decayed-mastery "Review next" queue already
+   ranked due-first (`items[]` with `decayed`, `due`, `priority`, `total_misses`, and a human
+   `reason`), titles resolved. Present that directly; the hand-rolled heuristic below is only the
+   offline fallback. (The pure model lives in `backend/app/store/mastery.py` if you need the math.)
+
+1. **SQLite MCP (when the backend isn't running).** This repo ships a `learning-hub-db` MCP server
    (`.mcp.json`) pointed at the store. Use its read/query tools to run the SELECTs below. If the
    server isn't connected (e.g., a cloud session, or the DB hasn't been created yet), fall back.
 
@@ -48,9 +55,10 @@ Relevant tables (see `backend/app/store/schema.py`):
 If the DB file doesn't exist yet, there's nothing logged — say so and suggest running an
 `/episode-review` quiz first.
 
-## Ranking heuristic (until Phase 4)
+## Ranking heuristic (offline fallback)
 
-Pull these signals and weave them into one ranked list (highest priority first):
+_Only when `/api/review` isn't reachable._ Pull these signals and weave them into one ranked list
+(highest priority first):
 
 1. **Most-missed questions** — the sharpest signal:
    `SELECT notebook_id, quiz_artifact_id, question_key, score, miss_count, last_review_at
@@ -84,4 +92,5 @@ End by offering to kick off the highest-leverage item via `/episode-review`.
 - This is a personal learning loop — keep it encouraging, not a scoreboard.
 - **Local-only in practice:** the store lives on the user's machine, so this won't return data
   in a cloud session without the DB present.
-- When the Phase-4 mastery-decay scoring function exists, prefer it over this heuristic.
+- The Phase-4 mastery-decay engine now exists (`GET /api/review`); prefer it over this heuristic
+  whenever the backend is running, and only fall back to the raw SELECTs offline.

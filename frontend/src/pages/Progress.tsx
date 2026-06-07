@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { ProgressResponse, TopicProgress } from "../api/types";
+import type { ProgressResponse, ReviewItem, ReviewResponse, TopicProgress } from "../api/types";
 import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
+import { MasteryBar } from "../components/MasteryBar";
 import { Sparkline } from "../components/Sparkline";
 import { cx, shortDate } from "../lib/format";
 
@@ -42,6 +43,69 @@ function pctTone(pct: number): "accent" | "amber" | "stone" {
   return "stone";
 }
 
+// The Phase-4 spaced-repetition queue: one row per practiced topic, due-first, with the decay
+// model's "why this surfaced" reason and a retention bar. Actionable, not a scoreboard.
+function ReviewRow({ item }: { item: ReviewItem }) {
+  const inner = (
+    <div className="flex items-center gap-4">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-semibold text-ink">{item.title}</span>
+          {item.due && <Badge tone="amber">🔁 due</Badge>}
+        </div>
+        <div className="mt-0.5 text-xs text-muted">{item.reason}</div>
+        <MasteryBar mastery={item.decayed} className="mt-2 max-w-xs" />
+      </div>
+      {item.topic_url && (
+        <span className="shrink-0 text-sm font-medium text-accent group-hover:underline">Review →</span>
+      )}
+    </div>
+  );
+  return (
+    <div className="group rounded-2xl border border-stone-200 bg-white p-4 shadow-card transition hover:shadow-cardHover">
+      {item.topic_url ? (
+        <Link to={item.topic_url} className="block">
+          {inner}
+        </Link>
+      ) : (
+        inner
+      )}
+    </div>
+  );
+}
+
+function ReviewNext({ review }: { review: ReviewResponse | null }) {
+  if (!review || !review.has_data) return null;
+  const due = review.items.filter((i) => i.due);
+  const shown = due.length > 0 ? due : review.items.slice(0, 3);
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-ink">Review next</h2>
+        {review.due_count > 0 && (
+          <span className="text-xs text-muted">
+            {review.due_count} {review.due_count === 1 ? "topic" : "topics"} due
+          </span>
+        )}
+      </div>
+      {due.length === 0 ? (
+        <Banner tone="info" title="Nothing due — you're current">
+          Mastery on every topic you've practiced is still fresh. Keep the streak going.
+        </Banner>
+      ) : (
+        <p className="mb-3 text-xs text-muted">
+          Mastery decays over time since your last review — these have faded most.
+        </p>
+      )}
+      <div className="space-y-3">
+        {shown.map((i) => (
+          <ReviewRow key={i.notebook_id} item={i} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TopicRow({ t }: { t: TopicProgress }) {
   const trend = t.points.map((p) => p.pct);
   const inner = (
@@ -78,14 +142,18 @@ function TopicRow({ t }: { t: TopicProgress }) {
 
 export default function Progress() {
   const [data, setData] = useState<ProgressResponse | null>(null);
+  const [review, setReview] = useState<ReviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    api
-      .progress()
-      .then((p) => alive && setData(p))
+    Promise.all([api.progress(), api.review()])
+      .then(([p, r]) => {
+        if (!alive) return;
+        setData(p);
+        setReview(r);
+      })
       .catch((e) => alive && setError(e.message ?? "Failed to load progress"))
       .finally(() => alive && setLoading(false));
     return () => {
@@ -129,6 +197,9 @@ export default function Progress() {
 
       {data && data.has_data && (
         <div className="space-y-8">
+          {/* Review next — the actionable headline */}
+          <ReviewNext review={review} />
+
           {/* Summary band */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <Stat label="Attempts" value={String(data.summary.attempts_total)} />

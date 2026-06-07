@@ -209,6 +209,37 @@ class ProgressResponse(BaseModel):
     activity: List[ActivityDay] = []
 
 
+class ReviewItem(BaseModel):
+    """One topic in the Phase-4 spaced-repetition "Review next" queue.
+
+    ``mastery`` is the stored fraction; ``decayed`` is that score faded by time since last
+    review (the estimated *current* retention). ``due`` / ``priority`` / ``reason`` come from the
+    decay model — never invented question prose, just the miss tally + how stale it is.
+    """
+
+    notebook_id: str
+    title: str
+    group: Optional[str] = None
+    group_label: Optional[str] = None
+    topic_url: Optional[str] = None
+    mastery: float = 0.0
+    decayed: float = 0.0
+    due: bool = False
+    priority: float = 0.0
+    days_since_review: Optional[float] = None
+    total_misses: int = 0
+    shaky_questions: int = 0
+    last_review_at: Optional[str] = None
+    reason: str = ""
+
+
+class ReviewResponse(BaseModel):
+    generated_at: str
+    has_data: bool = False
+    due_count: int = 0
+    items: List[ReviewItem] = []
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     nlm_available: bool = False
