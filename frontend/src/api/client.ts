@@ -2,6 +2,10 @@
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
   CatalogResponse,
+  CustomTopic,
+  CustomTopicCreate,
+  CustomTopicsResponse,
+  CustomTopicUpdate,
   HealthResponse,
   ProgressResponse,
   QuizGradeRequest,
@@ -57,6 +61,25 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function patch<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const data = await res.json();
+      detail = data.detail ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const api = {
   health: () => get<HealthResponse>("/health"),
   catalog: () => get<CatalogResponse>("/catalog"),
@@ -88,4 +111,8 @@ export const api = {
       `/topics/${encodeURIComponent(notebookId)}/quizzes/${encodeURIComponent(quizId)}/prepare`,
     ),
   gradeQuiz: (body: QuizGradeRequest) => post<QuizGradeResponse>("/quiz/grade", body),
+  customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
+  addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
+  updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
+    patch<CustomTopic>(`/custom-topics/${id}`, body),
 };

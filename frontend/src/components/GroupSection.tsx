@@ -11,9 +11,7 @@ export function GroupSection({ group }: { group: Group }) {
 
       {group.notebooks.length === 0 ? (
         <p className="rounded-xl border border-dashed border-stone-200 bg-white/50 px-4 py-6 text-sm text-muted">
-          {group.key === "custom"
-            ? "Custom (non-NotebookLM) topics will live here — coming in a later phase."
-            : "Nothing here yet."}
+          Nothing here yet.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

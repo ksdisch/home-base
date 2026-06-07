@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { CatalogResponse } from "../api/types";
 import { Banner } from "../components/Banner";
+import { CustomTopicsSection } from "../components/CustomTopicsSection";
 import { GroupSection } from "../components/GroupSection";
 
 export default function Home() {
@@ -63,6 +64,9 @@ export default function Home() {
       )}
 
       {catalog && catalog.groups.map((g) => <GroupSection key={g.key} group={g} />)}
+
+      {/* Custom (non-NotebookLM) topics — their own section, fed by /api/custom-topics. */}
+      {catalog && <CustomTopicsSection />}
     </div>
   );
 }
