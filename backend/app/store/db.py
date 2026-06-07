@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from ..config import get_settings
-from .schema import SCHEMA_VERSION, STATEMENTS
+from . import scheduler
+from .schema import MIGRATIONS, SCHEMA_VERSION, STATEMENTS
 
 
 def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
@@ -19,11 +21,34 @@ def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
     return conn
 
 
+def _safe_alter(conn: sqlite3.Connection, stmt: str) -> None:
+    """Run an additive ``ALTER TABLE ADD COLUMN``, treating "already there" as success.
+
+    Fresh DBs already have the column (it's in STATEMENTS), so the ALTER would raise a duplicate-
+    column error — that's the idempotent no-op case, not a failure. Anything else re-raises.
+    """
+    try:
+        conn.execute(stmt)
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e).lower():
+            raise
+
+
 def init_db(db_path: Optional[Path] = None) -> None:
     conn = connect(db_path)
     try:
         for stmt in STATEMENTS:
             conn.execute(stmt)
+        # Apply forward migrations not yet recorded for this store (idempotent ALTERs).
+        applied = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations")}
+        for version in sorted(MIGRATIONS):
+            if version in applied:
+                continue
+            for alter in MIGRATIONS[version]:
+                _safe_alter(conn, alter)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)", (version,)
+            )
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
             (SCHEMA_VERSION,),
@@ -85,6 +110,47 @@ def save_reflection(
         conn.close()
 
 
+def list_reflections(
+    notebook_id: Optional[str] = None,
+    *,
+    limit: int = 50,
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """Most-recent-first reflections (optionally for one notebook).
+
+    The `/episode-review` skill *writes* these via :func:`save_reflection`; until Phase 6 nothing
+    read them back. This is that read path — newest first, capped by ``limit``.
+    """
+    limit = max(1, min(500, int(limit)))
+    conn = connect(db_path)
+    try:
+        if notebook_id is not None:
+            rows = conn.execute(
+                "SELECT id, notebook_id, episode_artifact_id, body, grasp_rating, created_at "
+                "FROM reflections WHERE notebook_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+                (notebook_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, notebook_id, episode_artifact_id, body, grasp_rating, created_at "
+                "FROM reflections ORDER BY created_at DESC, id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+    finally:
+        conn.close()
+    return [
+        {
+            "id": int(r["id"]),
+            "notebook_id": r["notebook_id"],
+            "episode_artifact_id": r["episode_artifact_id"],
+            "body": r["body"],
+            "grasp_rating": r["grasp_rating"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
 def record_attempt(
     notebook_id: str,
     quiz_artifact_id: str,
@@ -94,19 +160,24 @@ def record_attempt(
     answers: List[Mapping[str, Any]],
     episode_artifact_id: Optional[str] = None,
     mark_listened: bool = False,
+    now: Optional[datetime] = None,
     db_path: Optional[Path] = None,
 ) -> int:
-    """Persist a graded quiz attempt and the raw signal the Phase-4 mastery engine reads.
+    """Persist a graded quiz attempt and the raw signal the mastery engines read.
 
     ``answers`` is one mapping per question with keys: ``question_index`` (int),
     ``question_key`` (str|None — stable per-question identity for mastery), ``chosen_index``
     (int|None), ``correct`` (bool), ``used_hint`` (bool).
 
-    Writes ``attempts`` + ``attempt_answers``, a raw per-question/topic mastery signal
-    (latest score + ``last_review_at`` + miss counts — the decay/ranking is Phase 4's job,
-    not ours), and an ``activity`` row. If ``mark_listened`` and an ``episode_artifact_id`` is
-    given, also marks that episode listened in the same transaction. Returns the attempt id.
+    Writes ``attempts`` + ``attempt_answers``, the per-question/topic mastery signal (latest
+    score + ``last_review_at`` + miss counts that Phase 4's topic decay ranks on) **and** the
+    per-question SM-2 state (ease/interval/reps/lapses/``due_at``) that Phase 6's scheduler
+    advances, and an ``activity`` row. If ``mark_listened`` and an ``episode_artifact_id`` is
+    given, also marks that episode listened in the same transaction. ``now`` is injected for
+    deterministic SM-2 scheduling (defaults to UTC now). Returns the attempt id.
     """
+    now_dt = now or scheduler.now_utc()
+    now_str = scheduler.fmt_ts(now_dt)
     conn = connect(db_path)
     try:
         cur = conn.execute(
@@ -141,18 +212,41 @@ def record_attempt(
                 # Raw mastery signal: clean-correct=1.0, hinted-correct=0.5, miss=0.0.
                 qscore = (0.5 if used_hint else 1.0) if correct else 0.0
                 miss = 0 if correct else 1
+                # Advance this question's SM-2 state off whatever it was before.
+                prev = conn.execute(
+                    "SELECT ease, interval_days, reps, lapses FROM question_mastery "
+                    "WHERE notebook_id = ? AND quiz_artifact_id = ? AND question_key = ?",
+                    (notebook_id, quiz_artifact_id, qkey),
+                ).fetchone()
+                state = scheduler.next_state(
+                    ease=prev["ease"] if prev else scheduler.INITIAL_EASE,
+                    interval_days=prev["interval_days"] if prev else 0.0,
+                    reps=prev["reps"] if prev else 0,
+                    lapses=prev["lapses"] if prev else 0,
+                    quality=scheduler.quality_from_signal(correct, used_hint),
+                    now=now_dt,
+                )
                 conn.execute(
                     """
                     INSERT INTO question_mastery
                         (notebook_id, quiz_artifact_id, question_key, score, miss_count,
-                         last_review_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                         last_review_at, ease, interval_days, reps, lapses, due_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(notebook_id, quiz_artifact_id, question_key)
                     DO UPDATE SET score = excluded.score,
                                   miss_count = question_mastery.miss_count + ?,
-                                  last_review_at = datetime('now')
+                                  last_review_at = excluded.last_review_at,
+                                  ease = excluded.ease,
+                                  interval_days = excluded.interval_days,
+                                  reps = excluded.reps,
+                                  lapses = excluded.lapses,
+                                  due_at = excluded.due_at
                     """,
-                    (notebook_id, quiz_artifact_id, qkey, qscore, miss, miss),
+                    (
+                        notebook_id, quiz_artifact_id, qkey, qscore, miss, now_str,
+                        state.ease, state.interval_days, state.reps, state.lapses,
+                        scheduler.fmt_ts(state.due_at), miss,
+                    ),
                 )
 
         frac = (score / total) if total else 0.0

@@ -213,6 +213,49 @@ export interface ReviewResponse {
   items: ReviewItem[];
 }
 
+// Mirrors backend StudyPlan* — the Phase-6 daily, time-boxed, interleaved review session.
+export interface StudyPlanSegment {
+  notebook_id: string;
+  title: string;
+  quiz_artifact_id: string;
+  topic_url?: string | null;
+  item_count: number;
+  due_count: number;
+  minutes: number;
+  priority: number;
+}
+
+export interface StudyPlanResponse {
+  generated_at: string;
+  has_data: boolean;
+  has_due: boolean;
+  requested_minutes: number;
+  total_minutes: number;
+  total_items: number;
+  due_items: number;
+  segments: StudyPlanSegment[];
+}
+
+// Mirrors backend Reflection* — the post-episode reflection journal (Phase 6).
+export interface ReflectionItem {
+  id: number;
+  notebook_id: string;
+  title: string;
+  episode_artifact_id?: string | null;
+  body: string;
+  grasp_rating?: number | null;
+  created_at?: string | null;
+  topic_url?: string | null;
+}
+
+export interface ReflectionsResponse {
+  generated_at: string;
+  has_data: boolean;
+  count: number;
+  avg_grasp?: number | null;
+  items: ReflectionItem[];
+}
+
 // Mirrors backend CustomTopic + friends — non-NotebookLM interests (Phase 5).
 export interface CustomTopic {
   id: number;

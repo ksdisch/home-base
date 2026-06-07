@@ -9,43 +9,20 @@ unknown notebook falls back to its id. Never a 500: an empty store degrades to `
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Dict
 
 from fastapi import APIRouter, Depends
 
-from ..catalog.build import to_groups
-from ..catalog.ingest import load_sidecars
 from ..deps import get_app_settings
 from ..models import ReviewItem, ReviewResponse
 from ..store import mastery as store_mastery
+from .labels import label_map
 
 router = APIRouter()
 
 
-def _label_map(settings) -> Dict[str, Dict[str, str]]:
-    """``notebook_id → {title, group, group_label, topic_url}`` from the sidecar catalog.
-
-    Best-effort and offline; if the catalog can't be read we just label by id downstream.
-    """
-    out: Dict[str, Dict[str, str]] = {}
-    try:
-        groups = to_groups(load_sidecars(settings.notebooklm_root).sidecars)
-    except Exception:  # the queue must never 500 over a catalog hiccup
-        return out
-    for g in groups:
-        for nb in g.notebooks:
-            out[nb.notebook_id] = {
-                "title": nb.title,
-                "group": nb.group,
-                "group_label": nb.group_label,
-                "topic_url": nb.topic_url,
-            }
-    return out
-
-
 @router.get("/review", response_model=ReviewResponse)
 def get_review(settings=Depends(get_app_settings)) -> ReviewResponse:
-    labels = _label_map(settings)
+    labels = label_map(settings)
     queue = store_mastery.review_queue()
 
     items = [
