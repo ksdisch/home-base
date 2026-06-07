@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -118,19 +119,24 @@ def record_attempt(
     answers: List[Mapping[str, Any]],
     episode_artifact_id: Optional[str] = None,
     mark_listened: bool = False,
+    now: Optional[datetime] = None,
     db_path: Optional[Path] = None,
 ) -> int:
-    """Persist a graded quiz attempt and the raw signal the Phase-4 mastery engine reads.
+    """Persist a graded quiz attempt and the raw signal the mastery engines read.
 
     ``answers`` is one mapping per question with keys: ``question_index`` (int),
     ``question_key`` (str|None — stable per-question identity for mastery), ``chosen_index``
     (int|None), ``correct`` (bool), ``used_hint`` (bool).
 
-    Writes ``attempts`` + ``attempt_answers``, a raw per-question/topic mastery signal
-    (latest score + ``last_review_at`` + miss counts — the decay/ranking is Phase 4's job,
-    not ours), and an ``activity`` row. If ``mark_listened`` and an ``episode_artifact_id`` is
-    given, also marks that episode listened in the same transaction. Returns the attempt id.
+    Writes ``attempts`` + ``attempt_answers``, the per-question/topic mastery signal (latest
+    score + ``last_review_at`` + miss counts that Phase 4's topic decay ranks on) **and** the
+    per-question SM-2 state (ease/interval/reps/lapses/``due_at``) that Phase 6's scheduler
+    advances, and an ``activity`` row. If ``mark_listened`` and an ``episode_artifact_id`` is
+    given, also marks that episode listened in the same transaction. ``now`` is injected for
+    deterministic SM-2 scheduling (defaults to UTC now). Returns the attempt id.
     """
+    now_dt = now or scheduler.now_utc()
+    now_str = scheduler.fmt_ts(now_dt)
     conn = connect(db_path)
     try:
         cur = conn.execute(
@@ -165,18 +171,41 @@ def record_attempt(
                 # Raw mastery signal: clean-correct=1.0, hinted-correct=0.5, miss=0.0.
                 qscore = (0.5 if used_hint else 1.0) if correct else 0.0
                 miss = 0 if correct else 1
+                # Advance this question's SM-2 state off whatever it was before.
+                prev = conn.execute(
+                    "SELECT ease, interval_days, reps, lapses FROM question_mastery "
+                    "WHERE notebook_id = ? AND quiz_artifact_id = ? AND question_key = ?",
+                    (notebook_id, quiz_artifact_id, qkey),
+                ).fetchone()
+                state = scheduler.next_state(
+                    ease=prev["ease"] if prev else scheduler.INITIAL_EASE,
+                    interval_days=prev["interval_days"] if prev else 0.0,
+                    reps=prev["reps"] if prev else 0,
+                    lapses=prev["lapses"] if prev else 0,
+                    quality=scheduler.quality_from_signal(correct, used_hint),
+                    now=now_dt,
+                )
                 conn.execute(
                     """
                     INSERT INTO question_mastery
                         (notebook_id, quiz_artifact_id, question_key, score, miss_count,
-                         last_review_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                         last_review_at, ease, interval_days, reps, lapses, due_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(notebook_id, quiz_artifact_id, question_key)
                     DO UPDATE SET score = excluded.score,
                                   miss_count = question_mastery.miss_count + ?,
-                                  last_review_at = datetime('now')
+                                  last_review_at = excluded.last_review_at,
+                                  ease = excluded.ease,
+                                  interval_days = excluded.interval_days,
+                                  reps = excluded.reps,
+                                  lapses = excluded.lapses,
+                                  due_at = excluded.due_at
                     """,
-                    (notebook_id, quiz_artifact_id, qkey, qscore, miss, miss),
+                    (
+                        notebook_id, quiz_artifact_id, qkey, qscore, miss, now_str,
+                        state.ease, state.interval_days, state.reps, state.lapses,
+                        scheduler.fmt_ts(state.due_at), miss,
+                    ),
                 )
 
         frac = (score / total) if total else 0.0
