@@ -2,6 +2,7 @@ import { Link, NavLink, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
+import StudyPlan from "./pages/StudyPlan";
 import TopicDetail from "./pages/TopicDetail";
 
 export default function App() {
@@ -26,6 +27,16 @@ export default function App() {
               Topics
             </NavLink>
             <NavLink
+              to="/plan"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-1.5 font-medium transition ${
+                  isActive ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+                }`
+              }
+            >
+              Plan
+            </NavLink>
+            <NavLink
               to="/progress"
               className={({ isActive }) =>
                 `rounded-lg px-3 py-1.5 font-medium transition ${
@@ -42,6 +53,7 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/plan" element={<StudyPlan />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />

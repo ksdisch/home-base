@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { ProgressResponse, ReviewItem, ReviewResponse, TopicProgress } from "../api/types";
+import type {
+  ProgressResponse,
+  ReflectionItem,
+  ReflectionsResponse,
+  ReviewItem,
+  ReviewResponse,
+  TopicProgress,
+} from "../api/types";
 import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
 import { MasteryBar } from "../components/MasteryBar";
@@ -140,19 +147,80 @@ function TopicRow({ t }: { t: TopicProgress }) {
   );
 }
 
+// The reflection journal — the `/episode-review` skill's "how well did it land?" notes, finally
+// surfaced. Read-only, newest first, with the self-rated grasp where present.
+function GraspChip({ rating }: { rating?: number | null }) {
+  if (rating == null) return null;
+  const tone = rating >= 4 ? "accent" : rating >= 3 ? "amber" : "stone";
+  return (
+    <Badge tone={tone} title="Self-rated grasp (1–5)">
+      grasp {rating}/5
+    </Badge>
+  );
+}
+
+function ReflectionsJournal({ reflections }: { reflections: ReflectionsResponse | null }) {
+  if (!reflections || !reflections.has_data) return null;
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-ink">Reflections</h2>
+        {reflections.avg_grasp != null && (
+          <span className="text-xs text-muted">avg grasp {reflections.avg_grasp}/5</span>
+        )}
+      </div>
+      <p className="mb-3 text-xs text-muted">
+        Your post-episode notes — what landed and what didn't.
+      </p>
+      <div className="space-y-3">
+        {reflections.items.map((r: ReflectionItem) => {
+          const body = (
+            <div className="flex items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-sm font-semibold text-ink">{r.title}</span>
+                  <GraspChip rating={r.grasp_rating} />
+                </div>
+                {r.body && <p className="mt-1 whitespace-pre-wrap text-sm text-ink/80">{r.body}</p>}
+                <div className="mt-1 text-xs text-muted">{shortDate(r.created_at)}</div>
+              </div>
+            </div>
+          );
+          return (
+            <div
+              key={r.id}
+              className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card"
+            >
+              {r.topic_url ? (
+                <Link to={r.topic_url} className="block hover:[&_.text-ink]:text-accent">
+                  {body}
+                </Link>
+              ) : (
+                body
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function Progress() {
   const [data, setData] = useState<ProgressResponse | null>(null);
   const [review, setReview] = useState<ReviewResponse | null>(null);
+  const [reflections, setReflections] = useState<ReflectionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([api.progress(), api.review()])
-      .then(([p, r]) => {
+    Promise.all([api.progress(), api.review(), api.reflections()])
+      .then(([p, r, refl]) => {
         if (!alive) return;
         setData(p);
         setReview(r);
+        setReflections(refl);
       })
       .catch((e) => alive && setError(e.message ?? "Failed to load progress"))
       .finally(() => alive && setLoading(false));
@@ -262,6 +330,9 @@ export default function Progress() {
               </div>
             </section>
           )}
+
+          {/* Reflection journal — surfacing the captured-but-previously-hidden notes */}
+          <ReflectionsJournal reflections={reflections} />
         </div>
       )}
     </div>

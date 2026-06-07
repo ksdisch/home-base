@@ -11,7 +11,9 @@ import type {
   QuizGradeRequest,
   QuizGradeResponse,
   QuizPrepareResponse,
+  ReflectionsResponse,
   ReviewResponse,
+  StudyPlanResponse,
   TopicDetail,
 } from "./types";
 
@@ -85,6 +87,11 @@ export const api = {
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),
+  studyPlan: (minutes: number) => get<StudyPlanResponse>(`/study-plan?minutes=${minutes}`),
+  reflections: (notebookId?: string) =>
+    get<ReflectionsResponse>(
+      `/reflections${notebookId ? `?notebook_id=${encodeURIComponent(notebookId)}` : ""}`,
+    ),
   topic: (id: string, live = false) =>
     get<TopicDetail>(`/topics/${encodeURIComponent(id)}${live ? "?live=true" : ""}`),
   setEpisodeListened: async (
