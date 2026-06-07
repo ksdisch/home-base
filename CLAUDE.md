@@ -20,6 +20,7 @@ session only if `nlm`/MCP is configured there).
 | ✅ `/handoff` | Generate a paste-ready handoff prompt for a fresh Claude Code session. |
 | ✅ `/trim-context` | Find/fix CLAUDE.md + memory "token bloat" in the repo. |
 | ✅ `/autonomous-milestone` | Autonomously plan/build/test a milestone, or triage the backlog (ultracode multi-agent). |
+| ✅ `/build-course` | Plan-then-autonomous course creation — propose a syllabus, then author lessons/diagrams/flashcards/quizzes into a hub course (thin entry to `course-builder`). |
 
 ### Skills (`.claude/skills/`)
 
@@ -41,6 +42,7 @@ session only if `nlm`/MCP is configured there).
 | ⚠️ `youtube-breakdown` | Turn a YouTube transcript/URL into a 4-mode breakdown (Study Notes / Quick Reference / Critique / Actionable Insights), then save it as a local note, register it as a hub custom topic, or add it to a notebook as an `nlm` source. The breakdown works anywhere; saving + the `nlm` bridge are local. |
 | 💻 `review-next` | Read the hub's SQLite store (attempts, mastery, reflections) and rank "what to review next." Read-only; needs the local store (or the `learning-hub-db` MCP). |
 | 💻 `catalog-doctor` | Reconcile the parsed catalog ↔ sidecars ↔ live `nlm studio status` and report drift. Read-only; needs the sidecars, `nlm`, and the running backend. |
+| ✅ `course-builder` | Plan-then-autonomous **course** creation: propose a syllabus, then author written lessons + mermaid diagrams + flashcards + hub-shaped quizzes + reading as a course sidecar the hub reads (`app.courses`). Authoring is cloud-safe; saving to disk + optional NotebookLM enrichment are local. See `docs/COURSE_PIPELINE_SPEC.md`. |
 
 ### MCP servers (`.mcp.json`)
 

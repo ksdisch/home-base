@@ -5,16 +5,18 @@ See every topic you're learning in one place, take your NotebookLM-generated qui
 *inside the hub* with real score tracking, and get nudged on what to review next — a UI
 you actually enjoy, with links back to NotebookLM where useful.
 
-> **Status:** ✅ **Phases 1–5 shipped — the full SPEC build order is done.** Catalog + hub home +
-> topic detail (Phase 1), the in-hub quiz player with auto-grading + attempt storage (Phase 2),
-> the progress dashboard with per-topic score trends, an activity streak, and "shaky spots"
-> (Phase 3), the mastery-decay engine + spaced-repetition **"Review next"** queue — with a
-> "🔁 due for review" badge + decayed-mastery chip on the home cards (Phase 4), and **custom
-> (non-NotebookLM) topics** on the home screen — add/track a book, a YouTube series, or a loose
-> interest with manual progress + notes (Phase 5). All runnable with one command. See
-> [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md), [`docs/PHASE2_PLAN.md`](docs/PHASE2_PLAN.md),
-> [`docs/PHASE3_PLAN.md`](docs/PHASE3_PLAN.md), [`docs/PHASE4_PLAN.md`](docs/PHASE4_PLAN.md), and
-> [`docs/PHASE5_PLAN.md`](docs/PHASE5_PLAN.md).
+> **Status:** ✅ **Phases 1–5 shipped — the full SPEC build order is done**, and Phase 6 adds the
+> first slice of the **course pipeline**. Catalog + hub home + topic detail (Phase 1), the in-hub
+> quiz player with auto-grading + attempt storage (Phase 2), the progress dashboard with
+> per-topic score trends, an activity streak, and "shaky spots" (Phase 3), the mastery-decay
+> engine + spaced-repetition **"Review next"** queue — with a "🔁 due for review" badge +
+> decayed-mastery chip on the home cards (Phase 4), **custom (non-NotebookLM) topics** on the
+> home screen (Phase 5), and **Courses** — plan-then-autonomous course creation: a Claude
+> pipeline (`/build-course` / the `course-builder` skill) authors a full multi-format course
+> (lessons, diagrams, flashcards, quizzes, reading) that the hub surfaces & tracks (Phase 6). All
+> runnable with one command. See [`docs/PHASE1_PLAN.md`](docs/PHASE1_PLAN.md) … through
+> [`docs/PHASE5_PLAN.md`](docs/PHASE5_PLAN.md), [`docs/PHASE6_PLAN.md`](docs/PHASE6_PLAN.md), and
+> the [`docs/COURSE_PIPELINE_SPEC.md`](docs/COURSE_PIPELINE_SPEC.md) vision.
 
 ---
 
@@ -68,6 +70,10 @@ taking quizzes and tracking learning across all your topics.
   "Review next" queue, mastery that decays over time.
 - **Custom topics** — track non-NotebookLM interests (a book, a YouTube series, an idea)
   loosely, with manual progress + notes.
+- **Courses** — full, multi-format learning paths (modules → lessons → objectives) with written
+  lessons, diagrams, flashcards, quizzes, and curated reading. A Claude pipeline
+  (`/build-course` / the `course-builder` skill) authors them; the hub surfaces & tracks them.
+  Ships with a bundled example course ("Learning How to Learn").
 - **Read-only toward NotebookLM** — the hub never writes to your notebooks; generating new
   series stays in the `audio-series` skill.
 
@@ -77,7 +83,8 @@ taking quizzes and tracking learning across all your topics.
 |---|---|
 | Topic catalog | NotebookLM **sidecars** (`~/Projects/NotebookLMs/<alias>/`) + `nlm studio status` |
 | Quiz / study-guide content | `nlm download …` on demand, cached locally |
-| Your progress (attempts, ✓s, mastery, streaks, notes, custom topics) | The hub's **own** local SQLite store — kept *out* of the sidecars |
+| Course content (lessons, diagrams, flashcards, quizzes) | **Course sidecars** on disk (`course.json` + material files) — a bundled example in `backend/app/courses/examples/`; generated ones under `COURSES_DIR`. Read-only. |
+| Your progress (attempts, ✓s, mastery, streaks, notes, custom topics, course lessons) | The hub's **own** local SQLite store — kept *out* of the sidecars |
 
 **Proposed stack (swappable):** Vite + React + TypeScript + Tailwind frontend; thin
 FastAPI (Python) backend that parses sidecars, shells out to `nlm`, and persists to SQLite.
