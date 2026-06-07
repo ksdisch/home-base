@@ -26,9 +26,17 @@ from ..config import get_settings
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 
 _VALID_LEVELS = {"beginner", "intermediate", "advanced"}
-# Material types the manifest understands. Unknown types are kept (forward-compatible) but the
-# UI/loader treat them generically.
-_FILE_MATERIALS = {"lesson", "diagram", "flashcards", "quiz"}
+# Material types backed by a file under the course dir (so `validate` checks the file exists).
+# Unknown types are kept (forward-compatible) but the UI/loader treat them generically.
+_FILE_MATERIALS = {"lesson", "diagram", "flashcards", "quiz", "exercise"}
+# Expected folder/extension per file-backed type (a soft convention; mismatch -> warning).
+_PATH_CONVENTION = {
+    "lesson": ("lessons/", ".md"),
+    "exercise": ("exercises/", ".md"),
+    "diagram": ("diagrams/", ".mmd"),
+    "flashcards": ("flashcards/", ".json"),
+    "quiz": ("quizzes/", ".json"),
+}
 
 
 class CourseError(ValueError):
@@ -98,14 +106,21 @@ def _validate_modules(modules: Any, path: Path) -> List[Dict[str, Any]]:
         raise CourseError(f"{path}: 'modules' must be a list")
     out: List[Dict[str, Any]] = []
     seen_lessons: set[str] = set()
+    seen_modules: set[str] = set()
     for mi, m in enumerate(modules):
         if not isinstance(m, dict):
             raise CourseError(f"{path}: module #{mi} must be an object")
         mid = m.get("id") or f"m{mi + 1}"
+        if mid in seen_modules:
+            raise CourseError(f"{path}: duplicate module id '{mid}'")
+        seen_modules.add(mid)
         if not isinstance(m.get("title"), str) or not m["title"].strip():
             raise CourseError(f"{path}: module '{mid}' needs a title")
+        lessons_raw = m.get("lessons", []) or []
+        if not isinstance(lessons_raw, list):
+            raise CourseError(f"{path}: module '{mid}' lessons must be a list")
         lessons: List[Dict[str, Any]] = []
-        for li, lsn in enumerate(m.get("lessons", []) or []):
+        for li, lsn in enumerate(lessons_raw):
             if not isinstance(lsn, dict):
                 raise CourseError(f"{path}: lesson #{li} in '{mid}' must be an object")
             lid = lsn.get("id") or f"{mid}l{li + 1}"
@@ -219,10 +234,69 @@ def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
     return {"path": rel_path, "kind": "text", "text": text}
 
 
+def _validate_quiz_file(path: Path) -> List[str]:
+    """A course quiz must match the hub quiz shape *and* the grader's invariant: exactly one
+    correct option per question, with a rationale on every option. ``validate`` checking this is
+    what makes the skill's 'one correct answer' promise real."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        return [f"{path.name}: invalid JSON ({e})"]
+    qs = data.get("questions") if isinstance(data, dict) else None
+    if not isinstance(qs, list) or not qs:
+        return [f"{path.name}: must be an object with a non-empty 'questions' list"]
+    errors: List[str] = []
+    for i, q in enumerate(qs, 1):
+        if not isinstance(q, dict) or not str(q.get("question", "")).strip():
+            errors.append(f"{path.name} Q{i}: missing 'question' text")
+            continue
+        opts = q.get("answerOptions")
+        if not isinstance(opts, list) or len(opts) < 2:
+            errors.append(f"{path.name} Q{i}: needs >=2 'answerOptions'")
+            continue
+        n_correct = sum(1 for o in opts if isinstance(o, dict) and o.get("isCorrect") is True)
+        if n_correct != 1:
+            errors.append(
+                f"{path.name} Q{i}: exactly one option must have isCorrect:true (found {n_correct})"
+            )
+        if any(not (isinstance(o, dict) and str(o.get("rationale", "")).strip()) for o in opts):
+            errors.append(f"{path.name} Q{i}: every option needs a non-empty 'rationale'")
+    return errors
+
+
+def _validate_flashcards_file(path: Path) -> List[str]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        return [f"{path.name}: invalid JSON ({e})"]
+    if not isinstance(data, list) or not data:
+        return [f"{path.name}: must be a non-empty JSON array of {{front, back}}"]
+    errors: List[str] = []
+    for i, c in enumerate(data, 1):
+        if not isinstance(c, dict) or not str(c.get("front", "")).strip() or not str(
+            c.get("back", "")
+        ).strip():
+            errors.append(f"{path.name} card {i}: needs non-empty 'front' and 'back'")
+    return errors
+
+
+def _json_len(path: Path) -> Optional[int]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if isinstance(data, list):
+        return len(data)
+    if isinstance(data, dict) and isinstance(data.get("questions"), list):
+        return len(data["questions"])
+    return None
+
+
 def validate_dir(course_dir: Path) -> Dict[str, Any]:
-    """Validate a course dir end-to-end (manifest + that every file-backed material exists).
-    Returns a report ``{ok, slug, errors, warnings, ...counts}``. Used by the CLI bridge so the
-    ``course-builder`` skill can verify its output before the hub reads it."""
+    """Validate a course dir end-to-end: manifest shape, that every file-backed material exists,
+    and — crucially — that quiz/flashcard JSON is structurally sound (so a broken course can't
+    reach the hub). Returns ``{ok, slug, errors, warnings, ...counts}``. Errors block; warnings
+    are advisory (the loader stays defensive). Used by the CLI bridge + the course-builder skill."""
     errors: List[str] = []
     warnings: List[str] = []
     try:
@@ -230,17 +304,59 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
     except CourseError as e:
         return {"ok": False, "errors": [str(e)], "warnings": []}
 
+    # `load_manifest` silently coerces an invalid level to "beginner"; surface that from the raw.
+    try:
+        raw = json.loads((course_dir / "course.json").read_text(encoding="utf-8"))
+        raw_level = raw.get("level") if isinstance(raw, dict) else None
+        if raw_level is not None and raw_level not in _VALID_LEVELS:
+            warnings.append(f"level '{raw_level}' is invalid; treated as 'beginner'")
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    if not manifest["modules"]:
+        warnings.append("course has no modules")
+
     for m in manifest["modules"]:
+        if not m["lessons"]:
+            warnings.append(f"module '{m['id']}' has no lessons")
         for lsn in m["lessons"]:
             if not lsn["objectives"]:
                 warnings.append(f"lesson '{lsn['id']}' has no objectives")
             for material in lsn["materials"]:
+                mtype = material["type"]
                 p = material.get("path")
-                if material["type"] in _FILE_MATERIALS:
+                if mtype in _FILE_MATERIALS:
                     if not p:
-                        errors.append(f"{material['type']} in '{lsn['id']}' has no 'path'")
-                    elif not (course_dir / p).is_file():
+                        errors.append(f"{mtype} in '{lsn['id']}' has no 'path'")
+                        continue
+                    target = course_dir / p
+                    if not target.is_file():
                         errors.append(f"missing material file: {p}")
+                        continue
+                    # Soft path convention (folder + extension).
+                    folder, ext = _PATH_CONVENTION.get(mtype, ("", ""))
+                    if (folder and not p.startswith(folder)) or (ext and not p.endswith(ext)):
+                        warnings.append(f"{p}: a '{mtype}' usually lives in {folder}*{ext}")
+                    # Deep content checks for the JSON material types.
+                    if mtype == "quiz":
+                        errors.extend(_validate_quiz_file(target))
+                    elif mtype == "flashcards":
+                        errors.extend(_validate_flashcards_file(target))
+                    # 'count' is informational — warn if it disagrees with the file.
+                    if mtype in {"quiz", "flashcards"} and isinstance(material.get("count"), int):
+                        actual = _json_len(target)
+                        if actual is not None and actual != material["count"]:
+                            warnings.append(
+                                f"{p}: manifest count={material['count']} but file has {actual}"
+                            )
+                elif mtype == "reading":
+                    if not material.get("url"):
+                        warnings.append(f"reading in '{lsn['id']}' has no 'url'")
+                elif mtype == "notebooklm":
+                    pass  # optional local enrichment; nothing to check on disk
+                else:
+                    warnings.append(f"unknown material type '{mtype}' in '{lsn['id']}'")
+
     report = {"ok": not errors, "slug": manifest["slug"], "errors": errors,
               "warnings": warnings}
     report.update(_counts(manifest))
