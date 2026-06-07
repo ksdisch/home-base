@@ -12,7 +12,19 @@ branch `claude/episode-review-quiz-workflow`. The skill (the interactive tutor) 
 main Claude Code session; durable memory lives in the SQLite store (`attempts`,
 `question_mastery`, `topic_mastery`, `reflections`) — not in any agent's internal state.
 
-### Idea: a "study planner" subagent (deferred)
+### ✅ Shipped (Phase 6): the study planner — as deterministic backend code, not a subagent
+
+The "what do I do right now" planner is built (`backend/app/study/planner.py` +
+`GET /api/study-plan` + the **Today's plan** page). As predicted below, a subagent was the wrong
+primitive: the planner is a pure, deterministic function over the store (ranked SR items → a
+bounded, interleaved session), not a one-shot LLM call. It now sits on top of a real per-question
+**SM-2 scheduler** (`backend/app/store/scheduler.py`) that supersedes the old uniform half-life
+for per-item scheduling. The captured-but-hidden **reflections** are also now surfaced
+(`GET /api/reflections` + a journal on the Progress page). See `docs/PHASE6_PLAN.md`.
+
+The two ideas below are kept for the historical reasoning; the planner half is now done.
+
+### Idea: a "study planner" subagent (deferred — superseded by Phase 6 backend code)
 
 A subagent is the **wrong** primitive for the tutoring conversation itself — a Claude Code
 subagent runs in an isolated context, does one task, and returns a single message; it can't
