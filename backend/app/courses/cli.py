@@ -6,7 +6,7 @@ the hub reads it. Like ``app.topics.custom`` it prints JSON on stdout and follow
 Subcommands (all JSON on stdout):
   list                                              -> [course summary, ...]
   validate  --path DIR                              -> {ok, slug, errors, warnings, ...counts}
-  write     --slug S [--from-file PATH]             -> {written, ok, errors, warnings, ...}
+  write     --slug S [--from-file PATH]             -> {written, rolled_back, ok, errors, ...}
   scaffold  --slug S --title T [--topic ..] [--level ..] [--summary ..] [--estimated-hours N]
 
 Authoring the actual lessons/diagrams/flashcards/quizzes is Claude's job (it writes the files);
@@ -27,13 +27,18 @@ from ..config import get_settings
 from .manifest import CourseError, list_courses, validate_dir
 
 _VALID_LEVELS = ("beginner", "intermediate", "advanced")
-_SLUG_RE = re.compile(r"^[a-z0-9-]+$")
+# Kebab-case with alphanumeric boundaries — rejects '-', '--', '-x', 'x-' so a slug always names
+# a sane directory.
+_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 def _check_slug(slug: str) -> str:
     slug = slug.strip()
     if not _SLUG_RE.match(slug):
-        raise ValueError("slug must be kebab-case: lowercase letters, digits, and '-' only")
+        raise ValueError(
+            "slug must be kebab-case: lowercase alphanumerics in '-'-separated words "
+            "(e.g. 'intro-to-x'), no leading/trailing/double '-'"
+        )
     return slug
 
 
@@ -85,7 +90,12 @@ def cmd_write(slug: str, manifest_file: Optional[str]) -> Dict[str, Any]:
     """Write a full ``course.json`` (from a file or stdin) under ``COURSES_DIR/<slug>/`` and
     validate it in one step. The manifest's ``slug`` is forced to ``<slug>`` (the dir is the
     source of identity). Returns the validate report + the path written, so the authoring loop is
-    validated-by-construction instead of relying on a hand-edited, separately-checked file."""
+    validated-by-construction instead of relying on a hand-edited, separately-checked file.
+
+    The write is transactional: if validation fails, the prior ``course.json`` (or nothing, on a
+    first write) is restored, so a failed write never leaves a broken manifest where a good one
+    was. ``validate`` must run against the real dir (alongside the authored material files), so we
+    write-then-validate-then-maybe-rollback rather than validating in isolation."""
     slug = _check_slug(slug)
     text = Path(manifest_file).read_text(encoding="utf-8") if manifest_file else sys.stdin.read()
     try:
@@ -98,9 +108,18 @@ def cmd_write(slug: str, manifest_file: Optional[str]) -> Dict[str, Any]:
 
     base = get_settings().courses_dir / slug
     base.mkdir(parents=True, exist_ok=True)
-    (base / "course.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    target = base / "course.json"
+    backup = target.read_bytes() if target.exists() else None
+    target.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     report = validate_dir(base)
-    return {"written": str(base / "course.json"), **report}
+    if not report.get("ok"):
+        # Roll back so a failed write doesn't clobber a previously-valid manifest.
+        if backup is not None:
+            target.write_bytes(backup)
+        else:
+            target.unlink(missing_ok=True)
+        return {"written": None, "rolled_back": True, **report}
+    return {"written": str(target), "rolled_back": False, **report}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -149,6 +168,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(json.dumps({"error": str(e), "kind": type(e).__name__}), file=sys.stderr)
         return 2
     print(json.dumps(out, indent=2))
+    # A validation failure (write/validate with ok:false) is a nonzero exit, so shell `&&` chains
+    # and the skill's authoring loop can branch on the exit code, not just parse the JSON.
+    if isinstance(out, dict) and out.get("ok") is False:
+        return 1
     return 0
 
 

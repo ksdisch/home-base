@@ -326,6 +326,7 @@ class CourseSummary(BaseModel):
     topic: str = ""
     level: str = "beginner"
     summary: str = ""
+    prerequisites: List[str] = []
     estimated_hours: Optional[float] = None
     created_at: str = ""
     generator: str = ""

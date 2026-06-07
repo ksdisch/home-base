@@ -59,8 +59,19 @@ def test_bundled_example_validates_clean():
     report = validate_dir(EXAMPLES_DIR / EXAMPLE_SLUG)
     assert report["ok"], report["errors"]
     assert report["errors"] == []
+    # Zero warnings too — locks in the Round-4 example fixes (no leading `# Title`, no markdown
+    # table, no xychart-beta diagram, no vague-verb objectives, no empty files).
+    assert report["warnings"] == [], report["warnings"]
     assert report["module_count"] == 2
     assert report["lesson_count"] == 4
+
+
+def test_bundled_example_lessons_have_no_leading_h1():
+    # The hub renders the lesson title above the body, so a leading `# Title` would show twice.
+    lessons_dir = EXAMPLES_DIR / EXAMPLE_SLUG / "lessons"
+    for md in lessons_dir.glob("*.md"):
+        first = md.read_text(encoding="utf-8").lstrip().splitlines()[0]
+        assert not first.startswith("# "), f"{md.name} starts with an H1"
 
 
 def test_bundled_example_quiz_matches_hub_shape():
@@ -367,3 +378,171 @@ def test_cli_list_speaks_json(courses_dir, capsys):
     assert cli.main(["list"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert any(c["slug"] == EXAMPLE_SLUG for c in data)
+
+
+# -- Round 4: "validate passes but the hub 500s / crashes" hardening ------------
+
+def _min_manifest(**over) -> dict:
+    m = {
+        "title": "T",
+        "modules": [
+            {"id": "m1", "title": "M", "lessons": [
+                {"id": "m1l1", "title": "L", "objectives": ["Apply X"], "materials": []},
+            ]},
+        ],
+    }
+    m.update(over)
+    return m
+
+
+def test_non_utf8_course_json_is_skipped_not_fatal(courses_dir):
+    # A single bad byte in one course's manifest must not take down the whole list.
+    (courses_dir / "bad").mkdir()
+    (courses_dir / "bad" / "course.json").write_bytes(b"\xff\xfe not utf8")
+    # list_courses must not raise (the bad dir is skipped)...
+    assert all(c["slug"] != "bad" for c in list_courses())
+    # ...and validate reports it cleanly instead of crashing.
+    report = validate_dir(courses_dir / "bad")
+    assert report["ok"] is False and report["errors"]
+
+
+def test_non_string_material_type_is_rejected(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "materials": [{"type": 123, "path": "x"}]},
+        ]},
+    ]))
+    with pytest.raises(CourseError):
+        load_manifest(cdir)
+    assert validate_dir(cdir)["ok"] is False
+
+
+@pytest.mark.parametrize("bad_id", ["a/b", 5, "has space"])
+def test_url_unsafe_or_nonstring_lesson_id_is_rejected(courses_dir, bad_id):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": bad_id, "title": "L", "materials": []},
+        ]},
+    ]))
+    with pytest.raises(CourseError):
+        load_manifest(cdir)
+
+
+def test_non_numeric_estimated_fields_coerce_to_none(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(
+        estimated_hours="lots",
+        modules=[{"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "estimated_minutes": "soon", "materials": []},
+        ]}],
+    ))
+    manifest = load_manifest(cdir)  # must not raise / must be model-serveable
+    assert manifest["estimated_hours"] is None
+    assert manifest["modules"][0]["lessons"][0]["estimated_minutes"] is None
+
+
+def test_fractional_estimated_minutes_is_rounded(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "estimated_minutes": 25.6, "materials": []},
+        ]},
+    ]))
+    assert load_manifest(cdir)["modules"][0]["lessons"][0]["estimated_minutes"] == 26
+
+
+def test_objectives_as_string_does_not_explode(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "objectives": "hello", "materials": []},
+        ]},
+    ]))
+    assert load_manifest(cdir)["modules"][0]["lessons"][0]["objectives"] == []
+
+
+def test_material_path_escape_is_blocked_by_validate(courses_dir):
+    (courses_dir / "evil.md").write_text("pwned", encoding="utf-8")  # exists, but outside the dir
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "materials": [{"type": "lesson", "path": "../evil.md"}]},
+        ]},
+    ]))
+    report = validate_dir(cdir)
+    assert report["ok"] is False
+    assert any("escape" in e for e in report["errors"])
+
+
+def test_vague_objective_verb_warns(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "objectives": ["Understand X"],
+             "materials": [{"type": "lesson", "path": "lessons/m1l1.md"}]},
+        ]},
+    ]), files={"lessons/m1l1.md": "Body.\n"})
+    report = validate_dir(cdir)
+    assert report["ok"] is True  # advisory, not blocking
+    assert any("vague verb" in w for w in report["warnings"])
+
+
+def test_empty_lesson_file_warns(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "objectives": ["Apply X"],
+             "materials": [{"type": "lesson", "path": "lessons/m1l1.md"}]},
+        ]},
+    ]), files={"lessons/m1l1.md": "   \n"})
+    assert any("empty" in w for w in validate_dir(cdir)["warnings"])
+
+
+def test_prerequisites_surfaced_by_loader(courses_dir):
+    cdir = _write_course(courses_dir, "c", _min_manifest(prerequisites=["Algebra", "Patience"]))
+    assert load_manifest(cdir)["prerequisites"] == ["Algebra", "Patience"]
+
+
+# -- Round 4: CLI write transactional behavior + slug boundaries ---------------
+
+def test_cli_write_rolls_back_and_exits_nonzero_on_invalid(courses_dir, capsys):
+    from app.courses import cli
+
+    # References a material file that doesn't exist -> validate fails.
+    manifest = _min_manifest(modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "objectives": ["Apply X"],
+             "materials": [{"type": "lesson", "path": "lessons/missing.md"}]},
+        ]},
+    ])
+    mf = courses_dir / "m.json"
+    mf.write_text(json.dumps(manifest), encoding="utf-8")
+    rc = cli.main(["write", "--slug", "bad-course", "--from-file", str(mf)])
+    assert rc == 1  # ok:false -> nonzero exit
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] is False and out["rolled_back"] is True and out["written"] is None
+    # First write rolled back -> no broken course.json left on disk.
+    assert not (courses_dir / "bad-course" / "course.json").exists()
+
+
+def test_cli_write_rollback_preserves_prior_good_manifest(courses_dir, capsys):
+    from app.courses import cli
+
+    good = courses_dir / "good.json"
+    good.write_text(json.dumps(_min_manifest(title="Good")), encoding="utf-8")
+    assert cli.main(["write", "--slug", "c", "--from-file", str(good)]) == 0
+    capsys.readouterr()
+
+    bad = courses_dir / "bad.json"
+    bad.write_text(json.dumps(_min_manifest(title="Bad", modules=[
+        {"id": "m1", "title": "M", "lessons": [
+            {"id": "m1l1", "title": "L", "materials": [{"type": "lesson", "path": "lessons/x.md"}]},
+        ]},
+    ])), encoding="utf-8")
+    assert cli.main(["write", "--slug", "c", "--from-file", str(bad)]) == 1
+    capsys.readouterr()
+    # The prior good manifest survives the failed re-write.
+    assert load_manifest(courses_dir / "c")["title"] == "Good"
+
+
+@pytest.mark.parametrize("slug", ["-bad", "bad-", "a--b", "-"])
+def test_cli_scaffold_rejects_dash_boundary_slugs(courses_dir, capsys, slug):
+    from app.courses import cli
+
+    # `--slug=<v>` form so argparse doesn't treat a leading-dash slug as a flag.
+    assert cli.main(["scaffold", f"--slug={slug}", "--title", "X"]) == 2
+    assert json.loads(capsys.readouterr().err)["kind"] == "ValueError"

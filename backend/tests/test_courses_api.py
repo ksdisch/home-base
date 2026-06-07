@@ -68,6 +68,12 @@ def test_detail_unknown_course_is_404(client):
     assert client.get("/api/courses/does-not-exist").status_code == 404
 
 
+def test_detail_surfaces_prerequisites(client):
+    # The bundled example authors course-level prerequisites; they must reach the API.
+    course = client.get(f"/api/courses/{EXAMPLE_SLUG}").json()
+    assert isinstance(course["prerequisites"], list) and course["prerequisites"]
+
+
 # -- complete a lesson ---------------------------------------------------------
 
 def test_complete_lesson_moves_progress(client):

@@ -18,6 +18,7 @@ This module is **read-only**; it never writes under a course dir."""
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,6 +27,15 @@ from ..config import get_settings
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 
 _VALID_LEVELS = {"beginner", "intermediate", "advanced"}
+# Module/lesson ids land in URLs (e.g. POST …/lessons/<id>/complete) and SQLite keys, so they
+# must be URL-safe — a '/' or space silently makes a lesson un-completable.
+_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+# Objectives should be *assessable*; these opening verbs name internal states you can't observe.
+# Flagged as a warning so the pedagogy the skill preaches is backed by the validator.
+_VAGUE_OBJECTIVE_VERBS = {
+    "understand", "know", "learn", "appreciate", "grasp", "comprehend", "familiarize",
+    "realize", "internalize",
+}
 # Material types backed by a file under the course dir (so `validate` checks the file exists).
 # Unknown types are kept (forward-compatible) but the UI/loader treat them generically.
 _FILE_MATERIALS = {"lesson", "diagram", "flashcards", "quiz", "exercise"}
@@ -41,6 +51,28 @@ _PATH_CONVENTION = {
 
 class CourseError(ValueError):
     """A course dir / manifest is malformed."""
+
+
+def _opt_num(value: Any) -> Optional[float]:
+    """A number for an optional float field (``estimated_hours``), else None (bools aren't numbers
+    here). Keeps a stray string/list out of the field where it would 500 the pydantic response
+    model instead of being caught at load time."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def _opt_int(value: Any) -> Optional[int]:
+    """Like ``_opt_num`` but rounds to an int for ``estimated_minutes`` (typed ``Optional[int]``),
+    so a fractional float can't slip through to the model and 500."""
+    num = _opt_num(value)
+    return None if num is None else round(num)
+
+
+def _str_list(value: Any) -> List[str]:
+    """A list-of-strings for an optional list field, else []. Guards the per-character explosion
+    when an author passes a bare string where a list is expected (e.g. ``objectives: "foo"``)."""
+    return [str(v) for v in value] if isinstance(value, list) else []
 
 
 # -- discovery -----------------------------------------------------------------
@@ -73,8 +105,8 @@ def load_manifest(course_dir: Path) -> Dict[str, Any]:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as e:
         raise CourseError(f"no course.json in {course_dir}") from e
-    except json.JSONDecodeError as e:
-        raise CourseError(f"invalid JSON in {path}: {e}") from e
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise CourseError(f"invalid JSON/encoding in {path}: {e}") from e
     if not isinstance(raw, dict):
         raise CourseError(f"{path}: top level must be an object")
 
@@ -94,11 +126,26 @@ def load_manifest(course_dir: Path) -> Dict[str, Any]:
         "topic": raw.get("topic", "") or "",
         "level": level,
         "summary": raw.get("summary", "") or "",
-        "estimated_hours": raw.get("estimated_hours"),
+        "prerequisites": _str_list(raw.get("prerequisites")),
+        "estimated_hours": _opt_num(raw.get("estimated_hours")),
         "created_at": raw.get("created_at", "") or "",
         "generator": raw.get("generator", "") or "",
         "modules": modules,
     }
+
+
+def _resolve_id(raw_id: Any, fallback: str, kind: str, path: Path) -> str:
+    """An explicit id must be a URL-safe string (it lands in URLs + SQLite keys); a missing/blank
+    one falls back to a generated id. A non-string or URL-unsafe id is a hard error so it can't
+    pass `validate` and then 404 the complete endpoint or break progress."""
+    if raw_id is None or (isinstance(raw_id, str) and not raw_id.strip()):
+        return fallback
+    if not isinstance(raw_id, str):
+        raise CourseError(f"{path}: {kind} 'id' must be a string, got {type(raw_id).__name__}")
+    rid = raw_id.strip()
+    if not _ID_RE.match(rid):
+        raise CourseError(f"{path}: {kind} id '{rid}' must be URL-safe ([A-Za-z0-9._-])")
+    return rid
 
 
 def _validate_modules(modules: Any, path: Path) -> List[Dict[str, Any]]:
@@ -110,7 +157,7 @@ def _validate_modules(modules: Any, path: Path) -> List[Dict[str, Any]]:
     for mi, m in enumerate(modules):
         if not isinstance(m, dict):
             raise CourseError(f"{path}: module #{mi} must be an object")
-        mid = m.get("id") or f"m{mi + 1}"
+        mid = _resolve_id(m.get("id"), f"m{mi + 1}", f"module #{mi}", path)
         if mid in seen_modules:
             raise CourseError(f"{path}: duplicate module id '{mid}'")
         seen_modules.add(mid)
@@ -123,7 +170,7 @@ def _validate_modules(modules: Any, path: Path) -> List[Dict[str, Any]]:
         for li, lsn in enumerate(lessons_raw):
             if not isinstance(lsn, dict):
                 raise CourseError(f"{path}: lesson #{li} in '{mid}' must be an object")
-            lid = lsn.get("id") or f"{mid}l{li + 1}"
+            lid = _resolve_id(lsn.get("id"), f"{mid}l{li + 1}", f"lesson #{li} in '{mid}'", path)
             if lid in seen_lessons:
                 raise CourseError(f"{path}: duplicate lesson id '{lid}'")
             seen_lessons.add(lid)
@@ -133,8 +180,8 @@ def _validate_modules(modules: Any, path: Path) -> List[Dict[str, Any]]:
                 {
                     "id": lid,
                     "title": lsn["title"].strip(),
-                    "objectives": [str(o) for o in (lsn.get("objectives") or [])],
-                    "estimated_minutes": lsn.get("estimated_minutes"),
+                    "objectives": _str_list(lsn.get("objectives")),
+                    "estimated_minutes": _opt_int(lsn.get("estimated_minutes")),
                     "materials": _validate_materials(lsn.get("materials", []), lid, path),
                 }
             )
@@ -154,8 +201,11 @@ def _validate_materials(materials: Any, lesson_id: str, path: Path) -> List[Dict
         raise CourseError(f"{path}: materials for '{lesson_id}' must be a list")
     out: List[Dict[str, Any]] = []
     for material in materials:
-        if not isinstance(material, dict) or not material.get("type"):
-            raise CourseError(f"{path}: a material in '{lesson_id}' is missing 'type'")
+        if not isinstance(material, dict):
+            raise CourseError(f"{path}: a material in '{lesson_id}' must be an object")
+        mtype = material.get("type")
+        if not isinstance(mtype, str) or not mtype.strip():
+            raise CourseError(f"{path}: a material in '{lesson_id}' needs a string 'type'")
         out.append(material)  # kept as-authored; file existence is checked lazily on read
     return out
 
@@ -182,6 +232,7 @@ def _summary(manifest: Dict[str, Any]) -> Dict[str, Any]:
         "topic": manifest["topic"],
         "level": manifest["level"],
         "summary": manifest["summary"],
+        "prerequisites": manifest["prerequisites"],
         "estimated_hours": manifest["estimated_hours"],
         "created_at": manifest["created_at"],
         "generator": manifest["generator"],
@@ -225,7 +276,10 @@ def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
         raise CourseError("material path escapes the course directory")
     if not target.is_file():
         raise CourseError(f"no such material: {rel_path}")
-    text = target.read_text(encoding="utf-8")
+    try:
+        text = target.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise CourseError(f"unreadable material {rel_path}: {e}") from e
     if target.suffix == ".json":
         try:
             return {"path": rel_path, "kind": "json", "data": json.loads(text)}
@@ -240,7 +294,7 @@ def _validate_quiz_file(path: Path) -> List[str]:
     what makes the skill's 'one correct answer' promise real."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
         return [f"{path.name}: invalid JSON ({e})"]
     qs = data.get("questions") if isinstance(data, dict) else None
     if not isinstance(qs, list) or not qs:
@@ -267,7 +321,7 @@ def _validate_quiz_file(path: Path) -> List[str]:
 def _validate_flashcards_file(path: Path) -> List[str]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
         return [f"{path.name}: invalid JSON ({e})"]
     if not isinstance(data, list) or not data:
         return [f"{path.name}: must be a non-empty JSON array of {{front, back}}"]
@@ -283,7 +337,7 @@ def _validate_flashcards_file(path: Path) -> List[str]:
 def _json_len(path: Path) -> Optional[int]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
         return None
     if isinstance(data, list):
         return len(data)
@@ -310,7 +364,7 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
         raw_level = raw.get("level") if isinstance(raw, dict) else None
         if raw_level is not None and raw_level not in _VALID_LEVELS:
             warnings.append(f"level '{raw_level}' is invalid; treated as 'beginner'")
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
         pass
 
     if not manifest["modules"]:
@@ -322,14 +376,27 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
         for lsn in m["lessons"]:
             if not lsn["objectives"]:
                 warnings.append(f"lesson '{lsn['id']}' has no objectives")
+            for obj in lsn["objectives"]:
+                first = obj.strip().split(" ", 1)[0].lower().rstrip(":")
+                if first in _VAGUE_OBJECTIVE_VERBS:
+                    warnings.append(
+                        f"lesson '{lsn['id']}' objective starts with the vague verb '{first}' — "
+                        f"use an assessable verb (apply, explain, build, compare, …)"
+                    )
             for material in lsn["materials"]:
                 mtype = material["type"]
                 p = material.get("path")
                 if mtype in _FILE_MATERIALS:
-                    if not p:
-                        errors.append(f"{mtype} in '{lsn['id']}' has no 'path'")
+                    if not isinstance(p, str) or not p:
+                        errors.append(f"{mtype} in '{lsn['id']}' has no string 'path'")
                         continue
-                    target = course_dir / p
+                    # Confine to the course dir (parity with read_material) — a '../' or absolute
+                    # path may exist on disk and pass is_file() here but 404 at serve time.
+                    base = course_dir.resolve()
+                    target = (base / p).resolve()
+                    if base != target and base not in target.parents:
+                        errors.append(f"material path escapes the course dir: {p}")
+                        continue
                     if not target.is_file():
                         errors.append(f"missing material file: {p}")
                         continue
@@ -337,6 +404,12 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
                     folder, ext = _PATH_CONVENTION.get(mtype, ("", ""))
                     if (folder and not p.startswith(folder)) or (ext and not p.endswith(ext)):
                         warnings.append(f"{p}: a '{mtype}' usually lives in {folder}*{ext}")
+                    # A blank lesson/diagram/exercise renders as an empty page (JSON types get
+                    # their own content checks below).
+                    if mtype in {"lesson", "diagram", "exercise"} and not target.read_text(
+                        encoding="utf-8", errors="ignore"
+                    ).strip():
+                        warnings.append(f"{p}: file is empty")
                     # Deep content checks for the JSON material types.
                     if mtype == "quiz":
                         errors.extend(_validate_quiz_file(target))
@@ -350,8 +423,13 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
                                 f"{p}: manifest count={material['count']} but file has {actual}"
                             )
                 elif mtype == "reading":
-                    if not material.get("url"):
+                    url = material.get("url")
+                    if not url:
                         warnings.append(f"reading in '{lsn['id']}' has no 'url'")
+                    elif not isinstance(url, str) or not url.startswith(("http://", "https://")):
+                        warnings.append(
+                            f"reading in '{lsn['id']}' has a non-http(s) url — the hub links it"
+                        )
                 elif mtype == "notebooklm":
                     pass  # optional local enrichment; nothing to check on disk
                 else:
