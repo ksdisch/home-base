@@ -6,7 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
-from .api import catalog, episodes, health, progress, quiz, review, topics
+from .api import (
+    catalog,
+    custom_topics,
+    episodes,
+    health,
+    progress,
+    quiz,
+    review,
+    topics,
+)
 from .config import get_settings
 from .store import init_db
 
@@ -38,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(quiz.router, prefix="/api", tags=["quiz"])
     app.include_router(progress.router, prefix="/api", tags=["progress"])
     app.include_router(review.router, prefix="/api", tags=["review"])
+    app.include_router(custom_topics.router, prefix="/api", tags=["custom-topics"])
 
     @app.get("/api")
     def api_root() -> dict:

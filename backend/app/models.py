@@ -250,3 +250,34 @@ class HealthResponse(BaseModel):
 
 class EpisodeToggle(BaseModel):
     listened: bool
+
+
+class CustomTopic(BaseModel):
+    """A non-NotebookLM interest (a book, a YouTube series, a loose thread) tracked loosely with
+    manual progress + notes. Mirrors the ``custom_topics`` store row."""
+
+    id: int
+    title: str
+    notes: str = ""
+    progress_pct: int = 0
+    created_at: str
+    updated_at: str
+
+
+class CustomTopicsResponse(BaseModel):
+    generated_at: str
+    topics: List[CustomTopic] = []
+
+
+class CustomTopicCreate(BaseModel):
+    title: str
+    notes: str = ""
+    progress_pct: int = 0
+
+
+class CustomTopicUpdate(BaseModel):
+    """All fields optional — only the provided ones are patched (an empty body is a no-op)."""
+
+    title: Optional[str] = None
+    notes: Optional[str] = None
+    progress_pct: Optional[int] = None

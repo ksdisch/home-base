@@ -41,7 +41,9 @@ def test_catalog_groups_and_links(crafted_root):
         assert r.status_code == 200
         data = r.json()
         keys = [g["key"] for g in data["groups"]]
-        assert keys == ["learning", "interview-prep", "custom"]
+        # Custom (non-NotebookLM) topics are served by /api/custom-topics (Phase 5), not as an
+        # empty catalog group.
+        assert keys == ["learning", "interview-prep"]
         cards = [c for g in data["groups"] for c in g["notebooks"]]
         assert cards, "expected real notebooks"
         for c in cards:
