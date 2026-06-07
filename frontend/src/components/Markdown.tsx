@@ -11,8 +11,10 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
   // Order matters: code first (so ** inside code isn't bolded), then links, then bold, then
   // italic. Italic is `*…*` only (NOT `_…_`, which would mangle snake_case identifiers) and
   // requires non-space at both inner edges, so literal math like "3 * 4 * 5" isn't italicized.
+  // The link URL allows one level of balanced parens — Wikipedia/DOI links the skill recommends
+  // (e.g. ".../Foo_(disambiguation)") would otherwise truncate at the first ')'.
   const pattern =
-    /(`[^`]+`)|(\[[^\]]+\]\([^)]+\))|(\*\*[^*]+\*\*)|(\*(?:\S[^*]*?\S|\S)\*)/g;
+    /(`[^`]+`)|(\[[^\]]+\]\((?:[^()]|\([^()]*\))*\))|(\*\*[^*]+\*\*)|(\*(?:\S[^*]*?\S|\S)\*)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -27,7 +29,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
         </code>,
       );
     } else if (tok.startsWith("[")) {
-      const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(tok)!;
+      const mm = /\[([^\]]+)\]\(((?:[^()]|\([^()]*\))*)\)/.exec(tok)!;
       nodes.push(
         <a key={key} href={mm[2]} target="_blank" rel="noreferrer" className="text-accent hover:underline">
           {mm[1]}
@@ -49,7 +51,22 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
   return nodes;
 }
 
-export function Markdown({ source, className }: { source: string; className?: string }) {
+export function Markdown({
+  source,
+  className,
+  inline = false,
+}: {
+  source: string;
+  className?: string;
+  inline?: boolean;
+}) {
+  // Inline mode: render only inline formatting into a single <span> — no block elements. Used for
+  // flashcard backs, which live inside a <button> where a <div>/<p>/<ul> would be invalid HTML.
+  if (inline) {
+    const text = source.replace(/\r\n/g, "\n").replace(/\s*\n\s*/g, " ").trim();
+    return <span className={className}>{renderInline(text, "inl")}</span>;
+  }
+
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   let para: string[] = [];

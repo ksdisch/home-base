@@ -283,6 +283,7 @@ export interface CourseSummary {
   topic: string;
   level: string;
   summary: string;
+  prerequisites: string[];
   estimated_hours?: number | null;
   created_at: string;
   generator: string;

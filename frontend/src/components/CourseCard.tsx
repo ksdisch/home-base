@@ -9,7 +9,7 @@ const LEVEL_TONE = {
 } as const;
 
 export function CourseCard({ course }: { course: CourseSummary }) {
-  const pct = course.progress_pct;
+  const pct = Math.max(0, Math.min(100, course.progress_pct));
   return (
     <div className="group relative flex flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-card transition hover:shadow-cardHover">
       <div className="flex items-start justify-between gap-3">

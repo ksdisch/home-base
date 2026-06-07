@@ -11,11 +11,30 @@ import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
 import { Markdown } from "../components/Markdown";
 
+const clampPct = (n: number) => Math.max(0, Math.min(100, n));
+
+// Set one lesson's completion and re-derive course progress locally. Progress is a pure function
+// of which lessons are done, so deriving it here (rather than trusting each POST's response)
+// keeps the bar correct even when concurrent toggles resolve out of order.
+function setLessonDone(c: Detail, lessonId: string, done: boolean): Detail {
+  const modules = c.modules.map((m) => ({
+    ...m,
+    lessons: m.lessons.map((l) => (l.id === lessonId ? { ...l, completed: done } : l)),
+  }));
+  const completed = modules.reduce(
+    (n, m) => n + m.lessons.filter((l) => l.completed).length,
+    0,
+  );
+  const pct = c.lesson_count ? Math.round((completed / c.lesson_count) * 100) : 0;
+  return { ...c, modules, completed_lessons: completed, progress_pct: pct };
+}
+
 export default function CourseDetail() {
   const { slug = "" } = useParams();
   const [course, setCourse] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let alive = true;
@@ -30,28 +49,20 @@ export default function CourseDetail() {
   }, [slug]);
 
   const onToggle = async (lesson: CourseLesson) => {
-    if (!course) return;
+    if (pending.has(lesson.id)) return; // ignore a re-click while this lesson's POST is in flight
     const next = !lesson.completed;
-    const apply = (done: boolean) =>
-      setCourse((c) =>
-        c
-          ? {
-              ...c,
-              modules: c.modules.map((m) => ({
-                ...m,
-                lessons: m.lessons.map((l) =>
-                  l.id === lesson.id ? { ...l, completed: done } : l,
-                ),
-              })),
-            }
-          : c,
-      );
-    apply(next); // optimistic
+    setPending((p) => new Set(p).add(lesson.id));
+    setCourse((c) => (c ? setLessonDone(c, lesson.id, next) : c)); // optimistic + derived progress
     try {
-      const res = await api.setLessonComplete(slug, lesson.id, next);
-      setCourse((c) => (c ? { ...c, progress_pct: res.progress_pct, completed_lessons: res.completed_lessons } : c));
+      await api.setLessonComplete(slug, lesson.id, next);
     } catch {
-      apply(!next); // revert
+      setCourse((c) => (c ? setLessonDone(c, lesson.id, !next) : c)); // revert this lesson
+    } finally {
+      setPending((p) => {
+        const n = new Set(p);
+        n.delete(lesson.id);
+        return n;
+      });
     }
   };
 
@@ -88,13 +99,19 @@ export default function CourseDetail() {
             ) : null}
           </div>
           {course.summary && <p className="mt-3 max-w-2xl text-sm text-muted">{course.summary}</p>}
+          {course.prerequisites.length > 0 && (
+            <p className="mt-2 max-w-2xl text-xs text-muted">
+              <span className="font-semibold text-stone-500">Prerequisites:</span>{" "}
+              {course.prerequisites.join("; ")}
+            </p>
+          )}
           <div className="mt-4 max-w-md">
             <div className="mb-1 flex items-center justify-between text-xs text-muted">
               <span>{course.completed_lessons}/{course.lesson_count} lessons done</span>
               <span>{course.progress_pct}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
-              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${course.progress_pct}%` }} />
+              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${clampPct(course.progress_pct)}%` }} />
             </div>
           </div>
         </div>
@@ -110,7 +127,13 @@ export default function CourseDetail() {
           </div>
           <div className="space-y-3">
             {m.lessons.map((l) => (
-              <LessonCard key={l.id} slug={slug} lesson={l} onToggle={() => onToggle(l)} />
+              <LessonCard
+                key={l.id}
+                slug={slug}
+                lesson={l}
+                pending={pending.has(l.id)}
+                onToggle={() => onToggle(l)}
+              />
             ))}
           </div>
         </section>
@@ -122,10 +145,12 @@ export default function CourseDetail() {
 function LessonCard({
   slug,
   lesson,
+  pending,
   onToggle,
 }: {
   slug: string;
   lesson: CourseLesson;
+  pending: boolean;
   onToggle: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -136,12 +161,14 @@ function LessonCard({
           type="checkbox"
           checked={lesson.completed}
           onChange={onToggle}
-          className="mt-1 h-4 w-4 rounded border-stone-300 text-accent focus:ring-accent"
+          disabled={pending}
+          className="mt-1 h-4 w-4 rounded border-stone-300 text-accent focus:ring-accent disabled:opacity-50"
           aria-label={`Mark "${lesson.title}" complete`}
         />
         <div className="min-w-0 flex-1">
           <button
             onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
             className="flex w-full items-center justify-between gap-2 text-left"
           >
             <span className={lesson.completed ? "font-medium text-muted line-through" : "font-medium text-ink"}>
@@ -149,7 +176,7 @@ function LessonCard({
             </span>
             <span className="shrink-0 text-xs text-muted">
               {lesson.estimated_minutes ? `${lesson.estimated_minutes} min · ` : ""}
-              {open ? "Hide ▴" : "Open ▾"}
+              {open ? "Hide" : "Open"} <span aria-hidden>{open ? "▴" : "▾"}</span>
             </span>
           </button>
 
@@ -234,7 +261,17 @@ function FileMaterial({
     };
   }, [slug, material.path]);
 
-  if (err) return <Banner tone="warning">{err}</Banner>;
+  if (err) {
+    return (
+      <div>
+        <MaterialHeader type={material.type} label={label} />
+        <Banner tone="warning">
+          Couldn't load this {material.type}
+          {material.path ? ` (${material.path})` : ""}: {err}
+        </Banner>
+      </div>
+    );
+  }
 
   if (material.type === "lesson" || material.type === "exercise") {
     return (
@@ -319,7 +356,7 @@ function FlashcardItem({ card }: { card: Flashcard }) {
       className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-left text-sm transition hover:border-accent"
     >
       {flipped ? (
-        <span className="text-ink/90"><Markdown source={card.back} /></span>
+        <Markdown source={card.back} inline className="text-ink/90" />
       ) : (
         <span className="font-medium text-ink">{card.front}</span>
       )}
