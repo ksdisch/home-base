@@ -49,27 +49,40 @@ material** the user approved (note any change in the final report).
 1. From the approved syllabus, the main thread finalizes the **full id map** (every `mXlY` id and
    every material path) and scaffolds the dir (`… cli scaffold …`).
 2. Dispatch **one subagent per module** (not per lesson — so the single module quiz has one clear
-   owner). Each receives, verbatim: `topic`, `level`, the **full syllabus** (for cross-references),
-   **its module spec only** (lessons + objectives + the exact id/path of every material to write),
-   and the shapes from `references/contract.md`. Each subagent **writes only its module's files**
-   to the given paths and returns a JSON list of `{path, type, lesson_id}`. Subagents **must use
-   only the assigned ids/paths — never mint new ones**, and must **not** touch `course.json`.
+   owner). Hand each subagent a **copy-paste-complete payload** so it never has to infer authoring
+   rules — verbatim: (a) `topic` + `level`; (b) the **full syllabus** (for cross-references);
+   (c) **its module spec only** — every lesson id, its objectives, and the **exact id + path of
+   every file-backed material to write**; (d) the entire **Pedagogy** section of this skill; and
+   (e) the entire `references/contract.md` **including the Markdown SUBSET**. Each subagent **writes
+   only its module's file-backed materials** (lessons/exercises/diagrams/flashcards/quizzes) to the
+   given paths and returns a JSON list of `{path, type, lesson_id}`. Subagents **must use only the
+   assigned ids/paths — never mint new ones**, and must **not** touch `course.json`.
 3. The main thread assembles `course.json` from the approved id map (never from subagent-invented
-   ids), backfilling `created_at` (today) and `estimated_hours` (≈ Σ lesson minutes / 60).
+   ids), backfilling `created_at` (today) and `estimated_hours` (≈ Σ lesson minutes / 60, rounded
+   to a whole hour, min 1). **File-less materials (`reading`, `notebooklm`) have no subagent and no
+   file — the main thread owns them**: place them in the manifest itself and do any `reading`-URL
+   verification here (subagents return only file paths, so a `reading` is invisible to them).
 4. **Validate, then self-check** (see §4). For a small course (1–2 modules) authoring inline on
    the main thread is fine — fan-out is for speed at scale.
 
 ### 4. Validate → self-check → save
 - Commit the manifest with `… cli write --slug <slug> --from-file <manifest.json>` — it writes
-  `course.json` **and** validates in one step (preferred; validated-by-construction). Or write
-  `course.json` with your file tools and run `… cli validate --path data/courses/<slug>`. Get
-  `ok: true`. `validate` checks structure, that files exist, and that **quizzes have exactly one
-  correct option + a rationale on every option** and flashcards are `{front, back}`; it also
-  *warns* on unknown material types, empty modules, count mismatches, and bad levels — clear those
-  too. Loop **at most 3 times**; map errors to fixes
-  (`missing material file` → the owning module subagent didn't write it / wrong path → re-dispatch
-  just that module; `duplicate lesson id` → a subagent minted its own id → use the assigned map).
-  If still failing after 3 passes, **stop and report the residual errors** — don't ship broken.
+  `course.json` **and** validates atomically, **rolls back** on failure (a broken write never
+  clobbers a good manifest), and **exits non-zero** when `ok:false`, so you can branch on the exit
+  code. This is the preferred path (validated-by-construction). *Fallback:* write `course.json`
+  with your file tools, then validate the **dir the `scaffold` step reported** —
+  `… cli validate --path "<the `path` from scaffold's JSON output>"`. Don't hardcode
+  `data/courses/<slug>`: courses live under `COURSES_DIR` (default `backend/data/courses`, but the
+  user may override it), and `scaffold`/`write` return the real path — use that.
+- Get `ok: true`. `validate` checks structure, that files exist + stay inside the course dir, and
+  that **quizzes have exactly one correct option + a rationale on every option** and flashcards are
+  `{front, back}`; it also *warns* on unknown material types, empty modules, count mismatches, bad
+  levels, **vague (non-Bloom's) objective verbs, empty lesson/diagram files, and non-http(s)
+  `reading` URLs** — clear those too. Loop **at most 3 times**; map errors to fixes (`missing
+  material file` → the owning subagent didn't write it / wrong path → re-dispatch just that module,
+  **unless** the file exists at the convention path and the manifest just points elsewhere → fix the
+  manifest path; `duplicate lesson id` → a subagent minted its own id → use the assigned map). If
+  still failing after 3 passes, **stop and report the residual errors** — don't ship broken.
 - Once `ok`, the course appears at `/courses/<slug>` immediately (the hub reads disk per request).
 
 ### 5. (Optional, gated, ⚠️ local) NotebookLM enrichment
@@ -121,17 +134,22 @@ tell the user to run `nlm login` — don't retry. The course is complete without
   the user to set a writable `COURSES_DIR` and re-run to persist. If `.venv` is missing →
   `make setup`; if that fails, report it.
 - **Slug already exists** (`scaffold` → `FileExistsError`): stop and ask via `AskUserQuestion` —
-  *new slug* (suffix `-2`) / *update the existing course in place* / *cancel*. **Never** hand-create
+  *new slug* (suffix `-2`) / *update the existing course in place* / *cancel*. To **update in
+  place**, skip `scaffold` (the dir exists): re-author the changed material files, then
+  `… cli write --slug <existing> --from-file <manifest.json>` — it overwrites `course.json` and
+  re-validates. ⚠️ Stale material files from the prior version are **not** auto-removed; delete any
+  file the new manifest no longer references so the dir matches the manifest. **Never** hand-create
   the dir to route around the bridge.
 - **Partial fan-out:** reconcile returned `{path,…}` lists against the id map; re-dispatch only the
   modules whose files are missing — never re-run completed ones.
 
 ## Guardrails
 
-- **Never invent facts, quotes, or citations.** `reading` URLs render as live links with no
-  validation — only include a URL you can attribute to a real, stable source (prefer canonical
-  pages / DOIs); if unsure, **verify with `WebFetch`/`WebSearch` or omit the `url`** and put the
-  citation in `note`.
+- **Never invent facts, quotes, or citations.** `reading` URLs render as live links (`validate`
+  only checks the scheme is http(s), not that the page exists) — only include a URL you can
+  attribute to a real, stable source (prefer canonical pages / DOIs; the renderer now keeps
+  balanced parens like `…_(disambiguation)`); if unsure, **verify with `WebFetch`/`WebSearch` or
+  omit the `url`** and put the citation in `note`.
 - **One approval gate** (the syllabus); after it, generate without per-file prompts (propose
   defaults, proceed) but surface what you built.
 - **Validate AND self-check before done.** A course that fails `validate` (or has a quiz with ≠1

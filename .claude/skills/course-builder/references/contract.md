@@ -16,9 +16,9 @@ course "just works."
   quizzes/<id>.json      # hub quiz shape (below)
 ```
 
-Slug rules (the CLI enforces): `^[a-z0-9-]+$` — lowercase, kebab-case, no `/`, no leading `.`.
-Derive from the topic: lowercase, non-alphanumerics → `-`, collapse repeats, trim (`C++ templates`
-→ `c-templates`).
+Slug rules (the CLI enforces): `^[a-z0-9]+(?:-[a-z0-9]+)*$` — lowercase kebab-case, no leading/
+trailing/double `-`, no `/`, no `.`. Derive from the topic: lowercase, non-alphanumerics → `-`,
+collapse repeats, trim (`C++ templates` → `c-templates`).
 
 ## `course.json`
 
@@ -29,7 +29,7 @@ Derive from the topic: lowercase, non-alphanumerics → `-`, collapse repeats, t
   "topic": "…",
   "level": "beginner|intermediate|advanced",
   "summary": "one paragraph",
-  "prerequisites": ["assumed prior knowledge, prose"],   // optional, course-level
+  "prerequisites": ["assumed prior knowledge, prose"],   // optional; shown on the course page
   "estimated_hours": 3,                                    // ≈ sum of lesson minutes / 60
   "created_at": "YYYY-MM-DD",                              // today
   "generator": "course-builder v1",
@@ -42,7 +42,7 @@ Derive from the topic: lowercase, non-alphanumerics → `-`, collapse repeats, t
           "id": "m1l1",                                    // UNIQUE across the whole course
           "title": "…",
           "objectives": ["Observable verb …", "…"],        // see Bloom's verbs in SKILL.md
-          "prereq_lessons": ["…"],                          // optional, lesson ids in THIS course
+          "prereq_lessons": ["…"],                          // optional; informational, not yet rendered
           "estimated_minutes": 20,
           "materials": [ /* see per-type fields below */ ]
         }
@@ -64,7 +64,10 @@ Derive from the topic: lowercase, non-alphanumerics → `-`, collapse repeats, t
 | `reading` | `type`, `url` | `title`, `note` | external link |
 | `notebooklm` | `type` | `title`, `artifact`, `notebook_id`, `note` | note (⚠️ local enrichment) |
 
-`count` must match the file's length (validate warns otherwise).
+`count` must match the file's length (validate warns otherwise). `format` (on `diagram`) and
+`purpose` (on `quiz`) are preserved metadata — author them for intent, but they're not yet shown
+in the UI. Every file material's `path` must stay **inside the course dir** (no `../` / absolute) —
+validate blocks an escaping path.
 
 ## Quiz shape (`quizzes/<id>.json`)
 
@@ -131,8 +134,9 @@ list item must be **indented** to continue the bullet; put a **blank line** betw
 following prose or the prose is treated as more of the list.
 
 **Rendering reality to author around:**
-- **Don't start a lesson with `# Title`** — the hub already shows the lesson title above the body;
-  begin with prose, use `##`/`###` for sections.
+- **Don't start a lesson *or exercise* with `# Title`** — the hub already shows the material title
+  above the body, so a leading `# Title` renders it twice. Begin with prose (or `##` for the first
+  section, e.g. an exercise's `## Problem`); use `##`/`###` for sections.
 - **Diagrams show as raw mermaid SOURCE**, not a rendered graph (M2). Keep diagrams short and
   human-legible (`flowchart`/`mindmap`/`sequenceDiagram` read better as source than
   `xychart-beta`), and **always** convey the same idea in the lesson prose too.
@@ -149,18 +153,22 @@ cd backend && .venv/bin/python -m app.courses.cli scaffold \
   --summary "<summary>" --estimated-hours <n>
 # After authoring the material files, commit the full manifest + validate in one step:
 cd backend && .venv/bin/python -m app.courses.cli write --slug <slug> --from-file <manifest.json>
-# (or validate a dir whose course.json you wrote directly:)
-cd backend && .venv/bin/python -m app.courses.cli validate --path data/courses/<slug>
+# (or validate a dir whose course.json you wrote directly — use the PATH scaffold reported,
+#  NOT a hardcoded data/courses/<slug>; COURSES_DIR may be overridden:)
+cd backend && .venv/bin/python -m app.courses.cli validate --path "<path from scaffold output>"
 cd backend && .venv/bin/python -m app.courses.cli list
 ```
 
 - `scaffold` makes the dir + subfolders (`lessons/ exercises/ diagrams/ flashcards/ quizzes/`) +
   a skeleton `course.json` (sets `created_at` to today); it **errors if the slug exists** (never
-  overwrites). Slug must be kebab-case `^[a-z0-9-]+$` (the CLI rejects anything else).
+  overwrites) and **prints the real `path`** it wrote — capture it for the fallback `validate`.
+  Slug must be kebab-case `^[a-z0-9]+(?:-[a-z0-9]+)*$` (the CLI rejects anything else).
 - **Preferred:** after authoring the material files, build the full manifest and `write` it — that
-  writes `course.json` **and** validates atomically, so the manifest is validated-by-construction.
-  (You may also write `course.json` directly with your file tools, then `validate`.)
+  writes `course.json` **and** validates atomically; on `ok:false` it **rolls back** (restoring the
+  prior manifest, or removing a first write) so a bad write never clobbers a good course. (You may
+  also write `course.json` directly with your file tools, then `validate`.)
 - `validate`/`write` return `{ok, slug, errors, warnings, module_count, lesson_count,
-  material_counts}`. **`ok` must be true** (errors block; warnings are advisory but worth
-  clearing). If `.venv` is missing, run `make setup` from the repo root; if that fails, report it
-  and ask the user to check Python/deps.
+  material_counts}` (`write` also returns `written` + `rolled_back`). **`ok` must be true** (errors
+  block; warnings are advisory but worth clearing) — and both commands **exit non-zero when
+  `ok:false`**, so a shell `&&` / exit-code check is enough. If `.venv` is missing, run
+  `make setup` from the repo root; if that fails, report it and ask the user to check Python/deps.
