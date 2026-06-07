@@ -8,8 +8,11 @@ import { Fragment, type ReactNode } from "react";
 // -- inline: **bold**, `code`, [text](url) -------------------------------------
 function renderInline(text: string, keyBase: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  // Order matters: code first (so ** inside code isn't bolded), then links, then bold.
-  const pattern = /(`[^`]+`)|(\[[^\]]+\]\([^)]+\))|(\*\*[^*]+\*\*)/g;
+  // Order matters: code first (so ** inside code isn't bolded), then links, then bold, then
+  // italic. Italic is `*…*` only (NOT `_…_`, which would mangle snake_case identifiers) and
+  // requires non-space at both inner edges, so literal math like "3 * 4 * 5" isn't italicized.
+  const pattern =
+    /(`[^`]+`)|(\[[^\]]+\]\([^)]+\))|(\*\*[^*]+\*\*)|(\*(?:\S[^*]*?\S|\S)\*)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -30,12 +33,15 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
           {mm[1]}
         </a>,
       );
-    } else {
+    } else if (tok.startsWith("**")) {
       nodes.push(
         <strong key={key} className="font-semibold text-ink">
           {tok.slice(2, -2)}
         </strong>,
       );
+    } else {
+      // *italic*
+      nodes.push(<em key={key}>{tok.slice(1, -1)}</em>);
     }
     last = m.index + tok.length;
   }
@@ -110,6 +116,13 @@ export function Markdown({ source, className }: { source: string; className?: st
       continue;
     }
 
+    // Horizontal rule: a line of only ---, ***, or ___ (3+).
+    if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
+      flushPara(); flushList(); flushQuote();
+      blocks.push(<hr key={`hr${k++}`} className="border-stone-200" />);
+      continue;
+    }
+
     const heading = /^(#{1,4})\s+(.*)$/.exec(line);
     const bullet = /^[-*]\s+(.*)$/.exec(line);
     const ordered = /^\d+\.\s+(.*)$/.exec(line);
@@ -139,6 +152,10 @@ export function Markdown({ source, className }: { source: string; className?: st
       quote.push(blockquote[1]);
     } else if (line.trim() === "") {
       flushPara(); flushList(); flushQuote();
+    } else if (list && /^\s+\S/.test(raw)) {
+      // Lazy continuation: only an INDENTED wrapped line joins the last item. An unindented
+      // line ends the list (so prose right after a list isn't swallowed into the last bullet).
+      list.items[list.items.length - 1] += " " + line.trim();
     } else {
       flushList(); flushQuote();
       para.push(line);
