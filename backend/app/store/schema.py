@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -105,6 +105,19 @@ STATEMENTS = [
         notebook_id TEXT,
         kind        TEXT NOT NULL,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    # Phase 6: per-lesson "I finished this lesson" checkbox for generated courses. Course
+    # *content* lives on disk (a course sidecar: course.json + material files); only progress
+    # lives here — mirrors how ``episode_progress`` tracks NotebookLM episodes. Course progress %
+    # is derived from these rows against the manifest's lesson count.
+    """
+    CREATE TABLE IF NOT EXISTS course_lesson_progress (
+        course_slug TEXT NOT NULL,
+        lesson_id   TEXT NOT NULL,
+        completed   INTEGER NOT NULL DEFAULT 0,
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (course_slug, lesson_id)
     )
     """,
 ]
