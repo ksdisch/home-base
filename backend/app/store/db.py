@@ -110,6 +110,47 @@ def save_reflection(
         conn.close()
 
 
+def list_reflections(
+    notebook_id: Optional[str] = None,
+    *,
+    limit: int = 50,
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """Most-recent-first reflections (optionally for one notebook).
+
+    The `/episode-review` skill *writes* these via :func:`save_reflection`; until Phase 6 nothing
+    read them back. This is that read path — newest first, capped by ``limit``.
+    """
+    limit = max(1, min(500, int(limit)))
+    conn = connect(db_path)
+    try:
+        if notebook_id is not None:
+            rows = conn.execute(
+                "SELECT id, notebook_id, episode_artifact_id, body, grasp_rating, created_at "
+                "FROM reflections WHERE notebook_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+                (notebook_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, notebook_id, episode_artifact_id, body, grasp_rating, created_at "
+                "FROM reflections ORDER BY created_at DESC, id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+    finally:
+        conn.close()
+    return [
+        {
+            "id": int(r["id"]),
+            "notebook_id": r["notebook_id"],
+            "episode_artifact_id": r["episode_artifact_id"],
+            "body": r["body"],
+            "grasp_rating": r["grasp_rating"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
 def record_attempt(
     notebook_id: str,
     quiz_artifact_id: str,

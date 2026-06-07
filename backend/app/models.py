@@ -240,6 +240,58 @@ class ReviewResponse(BaseModel):
     items: List[ReviewItem] = []
 
 
+class StudyPlanSegment(BaseModel):
+    """One quiz to retake in a study session, sized by how many of its questions are due."""
+
+    notebook_id: str
+    title: str
+    quiz_artifact_id: str
+    topic_url: Optional[str] = None
+    item_count: int = 0
+    due_count: int = 0
+    minutes: float = 0.0
+    priority: float = 0.0
+
+
+class StudyPlanResponse(BaseModel):
+    """A bounded, interleaved review session built from the per-item SM-2 queue (Phase 6).
+
+    ``segments`` are ordered so the same topic isn't back-to-back. ``has_data`` is false when no
+    questions have been answered yet; ``has_due`` distinguishes "nothing due" from "nothing at all".
+    """
+
+    generated_at: str
+    has_data: bool = False
+    has_due: bool = False
+    requested_minutes: int = 0
+    total_minutes: float = 0.0
+    total_items: int = 0
+    due_items: int = 0
+    segments: List[StudyPlanSegment] = []
+
+
+class ReflectionItem(BaseModel):
+    """One saved post-episode reflection — captured by the `/episode-review` skill, surfaced
+    (finally) in the hub as of Phase 6."""
+
+    id: int
+    notebook_id: str
+    title: str
+    episode_artifact_id: Optional[str] = None
+    body: str = ""
+    grasp_rating: Optional[int] = None
+    created_at: Optional[str] = None
+    topic_url: Optional[str] = None
+
+
+class ReflectionsResponse(BaseModel):
+    generated_at: str
+    has_data: bool = False
+    count: int = 0
+    avg_grasp: Optional[float] = None
+    items: List[ReflectionItem] = []
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     nlm_available: bool = False

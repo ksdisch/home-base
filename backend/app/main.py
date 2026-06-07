@@ -13,7 +13,9 @@ from .api import (
     health,
     progress,
     quiz,
+    reflections,
     review,
+    study_plan,
     topics,
 )
 from .config import get_settings
@@ -47,6 +49,8 @@ def create_app() -> FastAPI:
     app.include_router(quiz.router, prefix="/api", tags=["quiz"])
     app.include_router(progress.router, prefix="/api", tags=["progress"])
     app.include_router(review.router, prefix="/api", tags=["review"])
+    app.include_router(study_plan.router, prefix="/api", tags=["study-plan"])
+    app.include_router(reflections.router, prefix="/api", tags=["reflections"])
     app.include_router(custom_topics.router, prefix="/api", tags=["custom-topics"])
 
     @app.get("/api")
