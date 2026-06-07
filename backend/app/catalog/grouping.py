@@ -9,7 +9,9 @@ GROUP_LABELS = {
     "interview-prep": "Interview prep",
     "custom": "Custom",
 }
-GROUP_ORDER = ["learning", "interview-prep", "custom"]
+# Custom (non-NotebookLM) topics aren't notebooks — they're served by /api/custom-topics and
+# rendered as their own home section (Phase 5), so they're intentionally not a catalog group.
+GROUP_ORDER = ["learning", "interview-prep"]
 
 
 def group_for(

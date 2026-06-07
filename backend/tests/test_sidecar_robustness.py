@@ -25,8 +25,9 @@ def test_groups_are_correct(crafted_root):
     interview_titles = {c.title for c in groups["interview-prep"].notebooks}
     assert "Alpha Learning Topic" in learning_titles
     assert "Acme Interview Prep" in interview_titles
-    assert "custom" in groups  # placeholder group exists even when empty
-    assert groups["custom"].notebooks == []
+    # Custom topics moved to their own /api/custom-topics surface (Phase 5) — the catalog no
+    # longer emits an empty "custom" notebook group.
+    assert "custom" not in groups
 
 
 def test_map_and_readme_merge_without_dropping(crafted_root):

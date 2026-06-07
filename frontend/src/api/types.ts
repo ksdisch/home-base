@@ -213,6 +213,33 @@ export interface ReviewResponse {
   items: ReviewItem[];
 }
 
+// Mirrors backend CustomTopic + friends — non-NotebookLM interests (Phase 5).
+export interface CustomTopic {
+  id: number;
+  title: string;
+  notes: string;
+  progress_pct: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomTopicsResponse {
+  generated_at: string;
+  topics: CustomTopic[];
+}
+
+export interface CustomTopicCreate {
+  title: string;
+  notes?: string;
+  progress_pct?: number;
+}
+
+export interface CustomTopicUpdate {
+  title?: string;
+  notes?: string;
+  progress_pct?: number;
+}
+
 export interface HealthResponse {
   ok: boolean;
   nlm_available: boolean;
