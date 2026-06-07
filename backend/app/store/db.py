@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from ..config import get_settings
-from .schema import SCHEMA_VERSION, STATEMENTS
+from . import scheduler
+from .schema import MIGRATIONS, SCHEMA_VERSION, STATEMENTS
 
 
 def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
@@ -19,11 +20,34 @@ def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
     return conn
 
 
+def _safe_alter(conn: sqlite3.Connection, stmt: str) -> None:
+    """Run an additive ``ALTER TABLE ADD COLUMN``, treating "already there" as success.
+
+    Fresh DBs already have the column (it's in STATEMENTS), so the ALTER would raise a duplicate-
+    column error — that's the idempotent no-op case, not a failure. Anything else re-raises.
+    """
+    try:
+        conn.execute(stmt)
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e).lower():
+            raise
+
+
 def init_db(db_path: Optional[Path] = None) -> None:
     conn = connect(db_path)
     try:
         for stmt in STATEMENTS:
             conn.execute(stmt)
+        # Apply forward migrations not yet recorded for this store (idempotent ALTERs).
+        applied = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations")}
+        for version in sorted(MIGRATIONS):
+            if version in applied:
+                continue
+            for alter in MIGRATIONS[version]:
+                _safe_alter(conn, alter)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)", (version,)
+            )
         conn.execute(
             "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
             (SCHEMA_VERSION,),

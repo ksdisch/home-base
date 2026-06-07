@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -87,6 +87,8 @@ STATEMENTS = [
         last_review_at TEXT
     )
     """,
+    # Phase 6 adds the per-item SM-2 columns (ease/interval/reps/lapses/due_at). Fresh DBs get
+    # them here; existing v2 stores get them via the ALTER migration below.
     """
     CREATE TABLE IF NOT EXISTS question_mastery (
         notebook_id      TEXT NOT NULL,
@@ -95,6 +97,11 @@ STATEMENTS = [
         score            REAL NOT NULL DEFAULT 0,
         miss_count       INTEGER NOT NULL DEFAULT 0,
         last_review_at   TEXT,
+        ease             REAL NOT NULL DEFAULT 2.5,
+        interval_days    REAL NOT NULL DEFAULT 0,
+        reps             INTEGER NOT NULL DEFAULT 0,
+        lapses           INTEGER NOT NULL DEFAULT 0,
+        due_at           TEXT,
         PRIMARY KEY (notebook_id, quiz_artifact_id, question_key)
     )
     """,
@@ -108,3 +115,17 @@ STATEMENTS = [
     )
     """,
 ]
+
+# Forward migrations for stores created before a given SCHEMA_VERSION. Each value is a list of
+# additive ``ALTER TABLE`` statements applied in order when upgrading *past* that version. They
+# run idempotently — :func:`app.store.db.init_db` ignores "duplicate column" so a fresh DB (which
+# already has the columns from STATEMENTS) and a re-run are both safe.
+MIGRATIONS = {
+    3: [
+        "ALTER TABLE question_mastery ADD COLUMN ease REAL NOT NULL DEFAULT 2.5",
+        "ALTER TABLE question_mastery ADD COLUMN interval_days REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE question_mastery ADD COLUMN reps INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE question_mastery ADD COLUMN lapses INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE question_mastery ADD COLUMN due_at TEXT",
+    ],
+}
