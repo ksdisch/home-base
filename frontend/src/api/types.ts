@@ -188,6 +188,31 @@ export interface ProgressResponse {
   activity: ActivityDay[];
 }
 
+// Mirrors backend ReviewItem + ReviewResponse — the Phase-4 "Review next" queue.
+export interface ReviewItem {
+  notebook_id: string;
+  title: string;
+  group?: string | null;
+  group_label?: string | null;
+  topic_url?: string | null;
+  mastery: number;
+  decayed: number;
+  due: boolean;
+  priority: number;
+  days_since_review?: number | null;
+  total_misses: number;
+  shaky_questions: number;
+  last_review_at?: string | null;
+  reason: string;
+}
+
+export interface ReviewResponse {
+  generated_at: string;
+  has_data: boolean;
+  due_count: number;
+  items: ReviewItem[];
+}
+
 export interface HealthResponse {
   ok: boolean;
   nlm_available: boolean;

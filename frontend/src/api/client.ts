@@ -7,6 +7,7 @@ import type {
   QuizGradeRequest,
   QuizGradeResponse,
   QuizPrepareResponse,
+  ReviewResponse,
   TopicDetail,
 } from "./types";
 
@@ -60,6 +61,7 @@ export const api = {
   health: () => get<HealthResponse>("/health"),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
+  review: () => get<ReviewResponse>("/review"),
   topic: (id: string, live = false) =>
     get<TopicDetail>(`/topics/${encodeURIComponent(id)}${live ? "?live=true" : ""}`),
   setEpisodeListened: async (
