@@ -236,10 +236,10 @@ function FileMaterial({
 
   if (err) return <Banner tone="warning">{err}</Banner>;
 
-  if (material.type === "lesson") {
+  if (material.type === "lesson" || material.type === "exercise") {
     return (
       <div>
-        <MaterialHeader type="lesson" label={label} />
+        <MaterialHeader type={material.type} label={label} />
         {text === null ? <Skeleton /> : <Markdown source={text} />}
       </div>
     );
@@ -285,6 +285,7 @@ function FileMaterial({
 function MaterialHeader({ type, label }: { type: string; label: string }) {
   const icon: Record<string, string> = {
     lesson: "📖",
+    exercise: "✏️",
     diagram: "📊",
     flashcards: "🃏",
     quiz: "❓",
