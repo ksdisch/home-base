@@ -290,3 +290,99 @@ export interface HealthResponse {
   notebooklm_root: string;
   root_exists: boolean;
 }
+
+// Mirrors backend Course* models (Phase 6) — generated courses read from on-disk sidecars.
+export interface CourseMaterial {
+  type: string;
+  title?: string | null;
+  path?: string | null;
+  url?: string | null;
+  note?: string | null;
+  format?: string | null;
+  count?: number | null;
+  notebook_id?: string | null;
+  artifact?: string | null;
+}
+
+export interface CourseLesson {
+  id: string;
+  title: string;
+  objectives: string[];
+  estimated_minutes?: number | null;
+  materials: CourseMaterial[];
+  completed: boolean;
+}
+
+export interface CourseModule {
+  id: string;
+  title: string;
+  summary: string;
+  lessons: CourseLesson[];
+}
+
+export interface CourseSummary {
+  slug: string;
+  title: string;
+  topic: string;
+  level: string;
+  summary: string;
+  prerequisites: string[];
+  estimated_hours?: number | null;
+  created_at: string;
+  generator: string;
+  module_count: number;
+  lesson_count: number;
+  material_counts: Record<string, number>;
+  completed_lessons: number;
+  progress_pct: number;
+}
+
+export interface CourseDetail extends CourseSummary {
+  modules: CourseModule[];
+}
+
+export interface CoursesResponse {
+  generated_at: string;
+  courses: CourseSummary[];
+}
+
+export interface CourseMaterialResponse {
+  path: string;
+  kind: string; // "text" | "json"
+  text?: string | null;
+  data?: unknown;
+}
+
+export interface LessonCompleteResponse {
+  lesson_id: string;
+  completed: boolean;
+  progress_pct: number;
+  completed_lessons: number;
+}
+
+// Course quiz + the learner's attempt/SM-2 state (M2). Mirrors backend CourseQuizState.
+export interface CourseQuizState {
+  path: string; // also the quiz id
+  lesson_id: string;
+  module_id: string;
+  title: string;
+  question_count: number;
+  attempts: number;
+  last_score?: number | null;
+  last_total?: number | null;
+  last_pct?: number | null;
+  last_attempt_at?: string | null;
+  tracked_questions: number;
+  due_questions: number;
+}
+
+export interface CourseQuizzesResponse {
+  slug: string;
+  generated_at: string;
+  quizzes: CourseQuizState[];
+}
+
+export interface Flashcard {
+  front: string;
+  back: string;
+}

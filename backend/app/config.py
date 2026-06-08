@@ -23,6 +23,13 @@ class Settings:
         self.db_path = self.data_dir / "learning-hub.sqlite"
         self.cache_dir = self.data_dir / "cache"
 
+        # Where the user's *generated* courses live (a course = a sidecar dir: course.json +
+        # material files). Bundled example courses ship in the package and are always read too
+        # (see ``app.courses.manifest``); this dir overlays/adds the user's own. Gitignored.
+        self.courses_dir = Path(
+            os.environ.get("COURSES_DIR", str(self.data_dir / "courses"))
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 
@@ -35,6 +42,7 @@ class Settings:
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.courses_dir.mkdir(parents=True, exist_ok=True)
 
 
 @lru_cache(maxsize=1)

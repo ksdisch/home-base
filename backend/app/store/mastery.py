@@ -156,6 +156,10 @@ def review_queue(
                 FROM question_mastery
                 GROUP BY notebook_id
             ) AS qm ON qm.notebook_id = tm.notebook_id
+            -- Courses namespace their attempts as 'course:<slug>' in these shared tables; the
+            -- notebook-facing "Review next" queue + home badges exclude them (courses have their
+            -- own review surface). See app.courses.COURSE_NB_PREFIX.
+            WHERE tm.notebook_id NOT LIKE 'course:%'
             """
         ).fetchall()
     finally:
@@ -248,6 +252,9 @@ def sr_plan_items(
             SELECT notebook_id, quiz_artifact_id, question_key,
                    miss_count, ease, interval_days, reps, lapses, due_at, last_review_at
             FROM question_mastery
+            -- Exclude course-namespaced SR rows from the cross-notebook study plan (courses are
+            -- reviewed from their own page in M2; interleaving them is M3). See COURSE_NB_PREFIX.
+            WHERE notebook_id NOT LIKE 'course:%'
             """
         ).fetchall()
     finally:

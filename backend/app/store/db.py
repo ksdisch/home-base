@@ -297,6 +297,99 @@ def get_episode_progress(notebook_id: str, db_path: Optional[Path] = None) -> Di
     return {r["artifact_id"]: bool(r["listened"]) for r in rows}
 
 
+# -- course lesson progress ----------------------------------------------------
+# Course content lives on disk (see ``app.courses.manifest``); only the "I finished this
+# lesson" checkbox lives here. Mirrors ``episode_progress`` for NotebookLM episodes.
+
+def get_course_progress(course_slug: str, db_path: Optional[Path] = None) -> Dict[str, bool]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT lesson_id, completed FROM course_lesson_progress WHERE course_slug = ?",
+            (course_slug,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {r["lesson_id"]: bool(r["completed"]) for r in rows}
+
+
+def set_lesson_completed(
+    course_slug: str, lesson_id: str, completed: bool, db_path: Optional[Path] = None
+) -> bool:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO course_lesson_progress (course_slug, lesson_id, completed, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(course_slug, lesson_id)
+            DO UPDATE SET completed = excluded.completed, updated_at = datetime('now')
+            """,
+            (course_slug, lesson_id, 1 if completed else 0),
+        )
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            ("lesson_completed" if completed else "lesson_uncompleted",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return completed
+
+
+def course_quiz_progress(
+    course_slug: str, *, now: Optional[datetime] = None, db_path: Optional[Path] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Per-quiz attempt + SM-2 stats for a course, keyed by ``quiz_artifact_id`` (the material
+    path). Reads the shared store under the course's ``notebook_id`` namespace (``course:<slug>``,
+    see ``app.courses.COURSE_NB_PREFIX``): the latest attempt's score/total + attempt count, plus
+    how many of the quiz's tracked questions are due now (per the SM-2 ``due_at``). ``now`` is
+    injectable for deterministic tests. Pure read — never writes."""
+    from . import mastery  # local import: mastery imports db, so defer to avoid a load-time cycle
+
+    notebook_id = f"course:{course_slug}"
+    now_dt = now or scheduler.now_utc()
+
+    def _slot() -> Dict[str, Any]:
+        return {
+            "attempts": 0, "last_score": None, "last_total": None, "last_pct": None,
+            "last_attempt_at": None, "tracked_questions": 0, "due_questions": 0,
+        }
+
+    conn = connect(db_path)
+    try:
+        attempt_rows = conn.execute(
+            """
+            SELECT quiz_artifact_id, score, total, finished_at
+            FROM attempts
+            WHERE notebook_id = ? AND finished_at IS NOT NULL
+            ORDER BY quiz_artifact_id, finished_at, id
+            """,
+            (notebook_id,),
+        ).fetchall()
+        qm_rows = conn.execute(
+            "SELECT quiz_artifact_id, due_at FROM question_mastery WHERE notebook_id = ?",
+            (notebook_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    out: Dict[str, Dict[str, Any]] = {}
+    for r in attempt_rows:  # ascending by finished_at → the last seen per quiz is the latest
+        slot = out.setdefault(r["quiz_artifact_id"], _slot())
+        slot["attempts"] += 1
+        slot["last_score"] = r["score"]
+        slot["last_total"] = r["total"]
+        slot["last_pct"] = round(r["score"] / r["total"] * 100, 1) if r["total"] else 0.0
+        slot["last_attempt_at"] = r["finished_at"]
+    for r in qm_rows:
+        slot = out.setdefault(r["quiz_artifact_id"], _slot())
+        slot["tracked_questions"] += 1
+        if mastery.item_is_due(r["due_at"], now_dt):
+            slot["due_questions"] += 1
+    return out
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

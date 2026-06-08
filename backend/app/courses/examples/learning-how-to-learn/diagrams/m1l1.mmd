@@ -1,0 +1,8 @@
+%% Each successful recall flattens the next forgetting drop and lets the interval grow.
+flowchart LR
+    learn[Learn it] --> r1[Review · same day]
+    r1 --> r2[Review · +2 days]
+    r2 --> r3[Review · +1 week]
+    r3 --> r4[Review · +1 month]
+    r4 --> durable[Durable memory]
+    learn -.->|no review| gone[Mostly gone within a week]

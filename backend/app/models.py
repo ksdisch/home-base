@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AuthState(BaseModel):
@@ -333,3 +333,103 @@ class CustomTopicUpdate(BaseModel):
     title: Optional[str] = None
     notes: Optional[str] = None
     progress_pct: Optional[int] = None
+
+
+# -- Courses (Phase 6) ---------------------------------------------------------
+# A course is a sidecar dir on disk (course.json + material files); these models mirror the
+# manifest read by ``app.courses.manifest``. Progress is merged in from the SQLite store.
+
+class CourseMaterial(BaseModel):
+    """One material attached to a lesson. ``type`` drives rendering; the other fields vary by
+    type (file-backed ones carry ``path``; ``reading`` carries ``url``; ``notebooklm`` carries
+    ``notebook_id``). Extra fields are preserved so the format can grow without a model change."""
+
+    model_config = ConfigDict(extra="allow")
+    type: str
+    title: Optional[str] = None
+    path: Optional[str] = None
+    url: Optional[str] = None
+    note: Optional[str] = None
+    format: Optional[str] = None
+    count: Optional[int] = None
+    notebook_id: Optional[str] = None
+    artifact: Optional[str] = None
+
+
+class CourseLesson(BaseModel):
+    id: str
+    title: str
+    objectives: List[str] = []
+    estimated_minutes: Optional[int] = None
+    materials: List[CourseMaterial] = []
+    completed: bool = False  # merged from course_lesson_progress
+
+
+class CourseModule(BaseModel):
+    id: str
+    title: str
+    summary: str = ""
+    lessons: List[CourseLesson] = []
+
+
+class CourseSummary(BaseModel):
+    slug: str
+    title: str
+    topic: str = ""
+    level: str = "beginner"
+    summary: str = ""
+    prerequisites: List[str] = []
+    estimated_hours: Optional[float] = None
+    created_at: str = ""
+    generator: str = ""
+    module_count: int = 0
+    lesson_count: int = 0
+    material_counts: Dict[str, int] = {}
+    completed_lessons: int = 0
+    progress_pct: int = 0
+
+
+class CourseDetail(CourseSummary):
+    modules: List[CourseModule] = []
+
+
+class CoursesResponse(BaseModel):
+    generated_at: str
+    courses: List[CourseSummary] = []
+
+
+class CourseMaterialResponse(BaseModel):
+    """One material file's content: markdown/mermaid as ``text``, JSON decks/quizzes as ``data``."""
+
+    path: str
+    kind: str  # "text" | "json"
+    text: Optional[str] = None
+    data: Optional[Any] = None
+
+
+class LessonComplete(BaseModel):
+    completed: bool
+
+
+class CourseQuizState(BaseModel):
+    """A course quiz material + the learner's attempt/SM-2 state (read-only, derived from the
+    shared store under the ``course:<slug>`` namespace). ``path`` doubles as the quiz id."""
+
+    path: str
+    lesson_id: str
+    module_id: str
+    title: str
+    question_count: int = 0
+    attempts: int = 0
+    last_score: Optional[int] = None
+    last_total: Optional[int] = None
+    last_pct: Optional[float] = None
+    last_attempt_at: Optional[str] = None
+    tracked_questions: int = 0   # questions with SM-2 state (answered at least once)
+    due_questions: int = 0       # of those, how many are due for review now
+
+
+class CourseQuizzesResponse(BaseModel):
+    slug: str
+    generated_at: str
+    quizzes: List[CourseQuizState] = []

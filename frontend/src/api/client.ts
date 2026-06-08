@@ -2,11 +2,16 @@
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
   CatalogResponse,
+  CourseDetail,
+  CourseMaterialResponse,
+  CourseQuizzesResponse,
+  CoursesResponse,
   CustomTopic,
   CustomTopicCreate,
   CustomTopicsResponse,
   CustomTopicUpdate,
   HealthResponse,
+  LessonCompleteResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -122,4 +127,23 @@ export const api = {
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
     patch<CustomTopic>(`/custom-topics/${id}`, body),
+  courses: () => get<CoursesResponse>("/courses"),
+  course: (slug: string) => get<CourseDetail>(`/courses/${encodeURIComponent(slug)}`),
+  courseMaterial: (slug: string, path: string) =>
+    get<CourseMaterialResponse>(
+      `/courses/${encodeURIComponent(slug)}/materials?path=${encodeURIComponent(path)}`,
+    ),
+  setLessonComplete: (slug: string, lessonId: string, completed: boolean) =>
+    post<LessonCompleteResponse>(
+      `/courses/${encodeURIComponent(slug)}/lessons/${encodeURIComponent(lessonId)}/complete`,
+      { completed },
+    ),
+  courseQuizzes: (slug: string) =>
+    get<CourseQuizzesResponse>(`/courses/${encodeURIComponent(slug)}/quizzes`),
+  // Course quizzes live on disk; prepare stashes a keyed copy server-side and returns the same
+  // answer-key-free player view as a NotebookLM quiz. Graded via the shared gradeQuiz().
+  prepareCourseQuiz: (slug: string, path: string) =>
+    post<QuizPrepareResponse>(
+      `/courses/${encodeURIComponent(slug)}/quiz/prepare?path=${encodeURIComponent(path)}`,
+    ),
 };

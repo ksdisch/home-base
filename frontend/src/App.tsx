@@ -1,4 +1,6 @@
 import { Link, NavLink, Route, Routes } from "react-router-dom";
+import CourseDetail from "./pages/CourseDetail";
+import Courses from "./pages/Courses";
 import Home from "./pages/Home";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
@@ -37,6 +39,16 @@ export default function App() {
               Plan
             </NavLink>
             <NavLink
+              to="/courses"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-1.5 font-medium transition ${
+                  isActive ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
+                }`
+              }
+            >
+              Courses
+            </NavLink>
+            <NavLink
               to="/progress"
               className={({ isActive }) =>
                 `rounded-lg px-3 py-1.5 font-medium transition ${
@@ -54,6 +66,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/plan" element={<StudyPlan />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:slug" element={<CourseDetail />} />
+          <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />

@@ -75,3 +75,17 @@ Built `app.topics.custom` (`add` / `list` / `update`, JSON out) + `app.store.db`
 `GET /api/custom-topics` route (+ `POST` / `PATCH` to add/track from the UI) and a dedicated
 "Custom" section with add + inline-edit. See `docs/PHASE5_PLAN.md`. This completes the SPEC
 build order (Phases 1–5).
+
+### ✅ Shipped: Phase 7 — Courses (course-pipeline vertical slice, M1)
+
+Plan-then-autonomous **course creation**. A course is a hub-native sidecar (content on disk,
+progress in SQLite). Shipped: the manifest format + `app.courses` loader/CLI bridge, the
+`/api/courses` read+track surface, the **Courses** UI (list + detail/player with inline lessons,
+flashcards, diagrams, lesson-complete progress), the `course-builder` skill + `/build-course`
+command, and a bundled example course. See `docs/PHASE7_PLAN.md` + `docs/COURSE_PIPELINE_SPEC.md`.
+(Renumbered from "Phase 6" on the course branch — the SR work shipped as Phase 6 first.)
+
+**Next on the course epic (M2+):** take a course quiz *in the existing quiz player* + flashcard
+review UI (the quiz JSON is already hub-shaped); live Mermaid rendering; exercises/projects/
+capstone with rubrics; NotebookLM enrichment folded into the automated pipeline; in-hub
+regenerate/edit. The full roadmap is in `docs/COURSE_PIPELINE_SPEC.md`.
