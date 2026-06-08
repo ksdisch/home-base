@@ -5,6 +5,7 @@ import type {
   CourseDetail as Detail,
   CourseLesson,
   CourseMaterial,
+  CourseQuizState,
   Flashcard,
 } from "../api/types";
 import { Badge } from "../components/Badge";
@@ -35,6 +36,9 @@ export default function CourseDetail() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Set<string>>(new Set());
+  // Per-quiz attempt/SM-2 state keyed by material path. Re-fetched on mount, so returning from a
+  // quiz attempt (a separate route → this remounts) shows the fresh score + due count.
+  const [quizzes, setQuizzes] = useState<Record<string, CourseQuizState>>({});
 
   useEffect(() => {
     let alive = true;
@@ -43,6 +47,15 @@ export default function CourseDetail() {
       .then((c) => alive && setCourse(c))
       .catch((e) => alive && setError(e.message ?? "Failed to load course"))
       .finally(() => alive && setLoading(false));
+    api
+      .courseQuizzes(slug)
+      .then((r) => {
+        if (!alive) return;
+        setQuizzes(Object.fromEntries(r.quizzes.map((q) => [q.path, q])));
+      })
+      .catch(() => {
+        /* quiz stats are non-critical; the lessons still render without them */
+      });
     return () => {
       alive = false;
     };
@@ -131,6 +144,7 @@ export default function CourseDetail() {
                 key={l.id}
                 slug={slug}
                 lesson={l}
+                quizzes={quizzes}
                 pending={pending.has(l.id)}
                 onToggle={() => onToggle(l)}
               />
@@ -145,11 +159,13 @@ export default function CourseDetail() {
 function LessonCard({
   slug,
   lesson,
+  quizzes,
   pending,
   onToggle,
 }: {
   slug: string;
   lesson: CourseLesson;
+  quizzes: Record<string, CourseQuizState>;
   pending: boolean;
   onToggle: () => void;
 }) {
@@ -193,7 +209,12 @@ function LessonCard({
           {open && (
             <div className="mt-4 space-y-5 border-t border-stone-100 pt-4">
               {lesson.materials.map((mat, i) => (
-                <MaterialView key={i} slug={slug} material={mat} />
+                <MaterialView
+                  key={i}
+                  slug={slug}
+                  material={mat}
+                  quizState={mat.path ? quizzes[mat.path] : undefined}
+                />
               ))}
             </div>
           )}
@@ -203,8 +224,21 @@ function LessonCard({
   );
 }
 
-function MaterialView({ slug, material }: { slug: string; material: CourseMaterial }) {
+function MaterialView({
+  slug,
+  material,
+  quizState,
+}: {
+  slug: string;
+  material: CourseMaterial;
+  quizState?: CourseQuizState;
+}) {
   const label = material.title || material.type;
+
+  // A quiz is launched into the answer-key-free in-hub player — never fetch its keyed JSON here.
+  if (material.type === "quiz") {
+    return <QuizMaterial slug={slug} material={material} label={label} state={quizState} />;
+  }
 
   // Materials with no file body — render from manifest metadata directly.
   if (material.type === "reading") {
@@ -292,7 +326,9 @@ function FileMaterial({
             <code>{text}</code>
           </pre>
         )}
-        <p className="mt-1 text-xs text-stone-400">Mermaid source — renders as a graph in M2.</p>
+        <p className="mt-1 text-xs text-stone-400">
+          Mermaid source — graph rendering is a later enhancement.
+        </p>
       </div>
     );
   }
@@ -304,19 +340,50 @@ function FileMaterial({
       </div>
     );
   }
-  if (material.type === "quiz") {
-    const quiz = data as { questions?: unknown[] } | null;
-    return (
-      <div>
-        <MaterialHeader type="quiz" label={label} />
-        <p className="text-sm text-muted">
-          {quiz?.questions ? `${quiz.questions.length} questions` : "Quiz"} — taking it in the
-          in-hub quiz player lands in M2.
-        </p>
-      </div>
-    );
-  }
   return null;
+}
+
+// A quiz card: launches the in-hub player (answer-key-free) and surfaces the learner's last score
+// + how many questions are due for review (from the per-course SM-2 state). No keyed JSON is
+// fetched here — the player's prepare step stashes the key server-side.
+function QuizMaterial({
+  slug,
+  material,
+  label,
+  state,
+}: {
+  slug: string;
+  material: CourseMaterial;
+  label: string;
+  state?: CourseQuizState;
+}) {
+  const path = material.path ?? "";
+  const count = state?.question_count ?? material.count ?? null;
+  const taken = (state?.attempts ?? 0) > 0;
+  const pct = state?.last_pct ?? null;
+  const scoreTone = pct == null ? "neutral" : pct >= 80 ? "accent" : pct >= 50 ? "amber" : "stone";
+  return (
+    <div>
+      <MaterialHeader type="quiz" label={label} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          to={`/courses/${encodeURIComponent(slug)}/quiz?path=${encodeURIComponent(path)}`}
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+        >
+          {taken ? "Retake quiz" : "Take quiz"}
+        </Link>
+        {count != null && <span className="text-xs text-muted">{count} questions</span>}
+        {taken && state?.last_score != null && (
+          <Badge tone={scoreTone}>
+            Last: {state.last_score}/{state.last_total}
+          </Badge>
+        )}
+        {state && state.due_questions > 0 && (
+          <Badge tone="amber">🔁 {state.due_questions} due for review</Badge>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function MaterialHeader({ type, label }: { type: string; label: string }) {

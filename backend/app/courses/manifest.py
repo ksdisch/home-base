@@ -26,6 +26,16 @@ from ..config import get_settings
 
 EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
 
+# A course's quiz attempts + per-question SM-2 state live in the *shared* store tables under this
+# synthetic ``notebook_id`` namespace, so the existing grader/scheduler need no course-specific
+# path. Every notebook-facing aggregate filters ``notebook_id LIKE 'course:%'`` back out.
+COURSE_NB_PREFIX = "course:"
+
+
+def course_notebook_id(slug: str) -> str:
+    """The synthetic ``notebook_id`` that namespaces a course's attempts/SR in the shared store."""
+    return f"{COURSE_NB_PREFIX}{slug}"
+
 _VALID_LEVELS = {"beginner", "intermediate", "advanced"}
 # Module/lesson ids land in URLs (e.g. POST …/lessons/<id>/complete) and SQLite keys, so they
 # must be URL-safe — a '/' or space silently makes a lesson un-completable.
@@ -262,11 +272,10 @@ def get_course(slug: str) -> Optional[Dict[str, Any]]:
     return {**manifest, **_counts(manifest)}
 
 
-def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
-    """Return one material file's content. Markdown/mermaid come back as ``text``; JSON
-    (flashcards/quizzes) as parsed ``data``. The path is confined to the course dir to reject
-    traversal (``../``). Raises ``CourseError`` for a missing course / escaping / unreadable
-    path."""
+def material_path(slug: str, rel_path: str) -> Path:
+    """Resolve a material file to an absolute ``Path``, confined to the course dir (rejects
+    ``../`` traversal). For callers that need the file itself — e.g. the quiz session's
+    ``from_file``. Raises ``CourseError`` for a missing course / an escaping path / no such file."""
     course_dir = _dir_for(slug)
     if course_dir is None:
         raise CourseError(f"no course '{slug}'")
@@ -276,6 +285,15 @@ def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
         raise CourseError("material path escapes the course directory")
     if not target.is_file():
         raise CourseError(f"no such material: {rel_path}")
+    return target
+
+
+def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
+    """Return one material file's content. Markdown/mermaid come back as ``text``; JSON
+    (flashcards/quizzes) as parsed ``data``. The path is confined to the course dir to reject
+    traversal (``../``). Raises ``CourseError`` for a missing course / escaping / unreadable
+    path."""
+    target = material_path(slug, rel_path)
     try:
         text = target.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:

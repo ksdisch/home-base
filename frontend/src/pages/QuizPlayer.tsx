@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type {
   QuizGradeResponse,
@@ -12,8 +12,12 @@ import { cx } from "../lib/format";
 
 type Phase = "loading" | "auth" | "error" | "playing" | "grading" | "done";
 
-export default function QuizPlayer() {
-  const { id = "", quizId = "" } = useParams();
+export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "course" }) {
+  // Topic quizzes route as /topics/:id/quiz/:quizId; course quizzes as /courses/:slug/quiz?path=…
+  // (the material path can contain a slash, so it rides in the query string).
+  const { id = "", quizId = "", slug = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const coursePath = searchParams.get("path") ?? "";
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [prep, setPrep] = useState<QuizPrepareResponse | null>(null);
@@ -31,8 +35,11 @@ export default function QuizPlayer() {
     setAnswers({});
     setHints({});
     setResult(null);
-    api
-      .prepareQuiz(id, quizId)
+    const prepare =
+      source === "course"
+        ? api.prepareCourseQuiz(slug, coursePath)
+        : api.prepareQuiz(id, quizId);
+    prepare
       .then((p) => {
         if (p.ok && p.session_id) {
           setPrep(p);
@@ -49,7 +56,7 @@ export default function QuizPlayer() {
         setMessage(e.message ?? "Couldn't load this quiz.");
         setPhase("error");
       });
-  }, [id, quizId]);
+  }, [source, id, quizId, slug, coursePath]);
 
   useEffect(() => start(), [start]);
 
@@ -68,11 +75,19 @@ export default function QuizPlayer() {
       });
   };
 
-  const backLink = (
-    <Link to={`/topics/${encodeURIComponent(id)}`} className="text-sm text-accent hover:underline">
-      ← Back to topic
-    </Link>
-  );
+  const backLink =
+    source === "course" ? (
+      <Link
+        to={`/courses/${encodeURIComponent(slug)}`}
+        className="text-sm text-accent hover:underline"
+      >
+        ← Back to course
+      </Link>
+    ) : (
+      <Link to={`/topics/${encodeURIComponent(id)}`} className="text-sm text-accent hover:underline">
+        ← Back to topic
+      </Link>
+    );
 
   if (phase === "loading") {
     return (

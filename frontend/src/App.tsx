@@ -68,6 +68,7 @@ export default function App() {
           <Route path="/plan" element={<StudyPlan />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
+          <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />

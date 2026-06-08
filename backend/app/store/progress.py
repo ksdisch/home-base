@@ -63,6 +63,10 @@ def overall_summary(db_path: Optional[Path] = None) -> Dict[str, Any]:
                    COALESCE(SUM(total), 0)          AS sum_total
             FROM attempts
             WHERE finished_at IS NOT NULL
+              -- Course attempts are namespaced 'course:<slug>' and excluded from the notebook
+              -- progress headline (they're surfaced per-course). The activity streak below stays
+              -- source-agnostic. See app.courses.COURSE_NB_PREFIX.
+              AND notebook_id NOT LIKE 'course:%'
             """
         ).fetchone()
         last = conn.execute("SELECT MAX(day) AS d FROM activity").fetchone()
@@ -123,6 +127,7 @@ def topic_breakdowns(db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
             SELECT notebook_id, score, total, finished_at
             FROM attempts
             WHERE finished_at IS NOT NULL
+              AND notebook_id NOT LIKE 'course:%'   -- per-notebook trends; courses excluded
             ORDER BY notebook_id, finished_at, id
             """
         ).fetchall()
@@ -172,6 +177,7 @@ def shaky_quizzes(limit: int = 8, db_path: Optional[Path] = None) -> List[Dict[s
                    SUM(CASE WHEN miss_count > 0 THEN 1 END) AS shaky_questions,
                    MAX(last_review_at)                     AS last_review_at
             FROM question_mastery
+            WHERE notebook_id NOT LIKE 'course:%'   -- per-notebook shaky quizzes; courses excluded
             GROUP BY notebook_id, quiz_artifact_id
             HAVING total_misses > 0
             ORDER BY total_misses DESC, last_review_at DESC

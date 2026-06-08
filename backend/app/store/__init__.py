@@ -3,6 +3,7 @@
 from .db import (
     add_custom_topic,
     connect,
+    course_quiz_progress,
     get_course_progress,
     get_custom_topic,
     get_episode_progress,
@@ -30,4 +31,5 @@ __all__ = [
     "update_custom_topic",
     "get_course_progress",
     "set_lesson_completed",
+    "course_quiz_progress",
 ]

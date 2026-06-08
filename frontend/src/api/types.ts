@@ -360,6 +360,28 @@ export interface LessonCompleteResponse {
   completed_lessons: number;
 }
 
+// Course quiz + the learner's attempt/SM-2 state (M2). Mirrors backend CourseQuizState.
+export interface CourseQuizState {
+  path: string; // also the quiz id
+  lesson_id: string;
+  module_id: string;
+  title: string;
+  question_count: number;
+  attempts: number;
+  last_score?: number | null;
+  last_total?: number | null;
+  last_pct?: number | null;
+  last_attempt_at?: string | null;
+  tracked_questions: number;
+  due_questions: number;
+}
+
+export interface CourseQuizzesResponse {
+  slug: string;
+  generated_at: string;
+  quizzes: CourseQuizState[];
+}
+
 export interface Flashcard {
   front: string;
   back: string;

@@ -409,3 +409,27 @@ class CourseMaterialResponse(BaseModel):
 
 class LessonComplete(BaseModel):
     completed: bool
+
+
+class CourseQuizState(BaseModel):
+    """A course quiz material + the learner's attempt/SM-2 state (read-only, derived from the
+    shared store under the ``course:<slug>`` namespace). ``path`` doubles as the quiz id."""
+
+    path: str
+    lesson_id: str
+    module_id: str
+    title: str
+    question_count: int = 0
+    attempts: int = 0
+    last_score: Optional[int] = None
+    last_total: Optional[int] = None
+    last_pct: Optional[float] = None
+    last_attempt_at: Optional[str] = None
+    tracked_questions: int = 0   # questions with SM-2 state (answered at least once)
+    due_questions: int = 0       # of those, how many are due for review now
+
+
+class CourseQuizzesResponse(BaseModel):
+    slug: str
+    generated_at: str
+    quizzes: List[CourseQuizState] = []

@@ -4,6 +4,7 @@ import type {
   CatalogResponse,
   CourseDetail,
   CourseMaterialResponse,
+  CourseQuizzesResponse,
   CoursesResponse,
   CustomTopic,
   CustomTopicCreate,
@@ -136,5 +137,13 @@ export const api = {
     post<LessonCompleteResponse>(
       `/courses/${encodeURIComponent(slug)}/lessons/${encodeURIComponent(lessonId)}/complete`,
       { completed },
+    ),
+  courseQuizzes: (slug: string) =>
+    get<CourseQuizzesResponse>(`/courses/${encodeURIComponent(slug)}/quizzes`),
+  // Course quizzes live on disk; prepare stashes a keyed copy server-side and returns the same
+  // answer-key-free player view as a NotebookLM quiz. Graded via the shared gradeQuiz().
+  prepareCourseQuiz: (slug: string, path: string) =>
+    post<QuizPrepareResponse>(
+      `/courses/${encodeURIComponent(slug)}/quiz/prepare?path=${encodeURIComponent(path)}`,
     ),
 };

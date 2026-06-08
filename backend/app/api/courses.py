@@ -13,17 +13,40 @@ from typing import Any, Dict, List, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..courses import CourseError, get_course, list_courses, read_material
+from ..courses import (
+    CourseError,
+    course_notebook_id,
+    get_course,
+    list_courses,
+    material_path,
+    read_material,
+)
 from ..models import (
     CourseDetail,
     CourseMaterialResponse,
+    CourseQuizState,
+    CourseQuizzesResponse,
     CoursesResponse,
     CourseSummary,
     LessonComplete,
+    QuizPrepareResponse,
 )
-from ..store import get_course_progress, set_lesson_completed
+from ..quiz.grading import QuizValidationError
+from ..quiz.session import cmd_prepare
+from ..store import course_quiz_progress, get_course_progress, set_lesson_completed
 
 router = APIRouter()
+
+
+def _quiz_materials(course: Dict[str, Any]) -> List[Tuple[str, str, Dict[str, Any]]]:
+    """Every ``type == 'quiz'`` material in the course, as ``(module_id, lesson_id, material)``."""
+    out: List[Tuple[str, str, Dict[str, Any]]] = []
+    for m in course["modules"]:
+        for lsn in m["lessons"]:
+            for mat in lsn["materials"]:
+                if mat.get("type") == "quiz" and isinstance(mat.get("path"), str):
+                    out.append((m["id"], lsn["id"], mat))
+    return out
 
 
 def _lesson_ids(course: Dict[str, Any]) -> List[str]:
@@ -92,3 +115,93 @@ def complete_lesson(slug: str, lesson_id: str, body: LessonComplete) -> Dict[str
     completed, pct = _progress(ids, get_course_progress(slug))
     return {"lesson_id": lesson_id, "completed": body.completed, "progress_pct": pct,
             "completed_lessons": completed}
+
+
+@router.post("/courses/{slug}/quiz/prepare", response_model=QuizPrepareResponse)
+def prepare_course_quiz(
+    slug: str, path: str = Query(..., description="quiz material path relative to the course dir")
+) -> QuizPrepareResponse:
+    """Stash a course quiz server-side and return an answer-key-free player view.
+
+    The course quiz lives on disk, so this reuses the same session machinery as the NotebookLM
+    player via ``from_file`` (no ``nlm``); the attempt is namespaced ``notebook_id='course:<slug>'``
+    so the existing grader + SM-2 scheduler record it per course with no schema change. Never a
+    500: a missing/escaping path or a file that isn't a valid hub quiz degrades to a calm error.
+    """
+    try:
+        quiz_file = material_path(slug, path)  # path-confined; rejects traversal / missing file
+    except CourseError:
+        # Don't leak whether it's a missing course vs. a traversal attempt.
+        return QuizPrepareResponse(
+            notebook_id=course_notebook_id(slug), quiz_artifact_id=path, ok=False,
+            error="Couldn't load this quiz.",
+        )
+    try:
+        out = cmd_prepare(
+            course_notebook_id(slug), path, from_file=str(quiz_file),
+        )
+    except (QuizValidationError, ValueError, OSError) as e:
+        msg = getattr(e, "user_message", None) or str(e)
+        return QuizPrepareResponse(
+            notebook_id=course_notebook_id(slug), quiz_artifact_id=path, ok=False,
+            error=f"Couldn't load this quiz: {msg}",
+        )
+    return QuizPrepareResponse(ok=True, **out)
+
+
+@router.get("/courses/{slug}/quizzes", response_model=CourseQuizzesResponse)
+def get_course_quizzes(slug: str) -> CourseQuizzesResponse:
+    """The course's quizzes + the learner's attempt/SM-2 state (last score, due-for-review count).
+
+    Powers the course detail's Quizzes section. Read-only: merges the manifest's quiz materials
+    with the shared store's ``course:<slug>`` attempt/mastery rows.
+    """
+    try:
+        course = get_course(slug)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if course is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+
+    stats = course_quiz_progress(slug)
+    quizzes: List[CourseQuizState] = []
+    for module_id, lesson_id, mat in _quiz_materials(course):
+        path = mat["path"]
+        count = mat.get("count")
+        if not isinstance(count, int):
+            try:  # fall back to the file's actual length if the manifest omits/!=int count
+                data = read_material(slug, path).get("data") or {}
+                qs = data.get("questions") if isinstance(data, dict) else None
+                count = len(qs) if isinstance(qs, list) else 0
+            except CourseError:
+                count = 0
+        s = stats.get(path, {})
+        quizzes.append(
+            CourseQuizState(
+                path=path,
+                lesson_id=lesson_id,
+                module_id=module_id,
+                title=mat.get("title") or _lesson_title(course, lesson_id) or path,
+                question_count=count or 0,
+                attempts=s.get("attempts", 0),
+                last_score=s.get("last_score"),
+                last_total=s.get("last_total"),
+                last_pct=s.get("last_pct"),
+                last_attempt_at=s.get("last_attempt_at"),
+                tracked_questions=s.get("tracked_questions", 0),
+                due_questions=s.get("due_questions", 0),
+            )
+        )
+    return CourseQuizzesResponse(
+        slug=slug,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        quizzes=quizzes,
+    )
+
+
+def _lesson_title(course: Dict[str, Any], lesson_id: str) -> str:
+    for m in course["modules"]:
+        for lsn in m["lessons"]:
+            if lsn["id"] == lesson_id:
+                return lsn["title"]
+    return ""
