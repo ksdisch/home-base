@@ -1,0 +1,18 @@
+# Ruff config for the Learning Hub backend — LINT ONLY.
+#
+# We deliberately do NOT run `ruff format`: the code is hand-wrapped for readability and a
+# reformat would churn ~30 files to fight intentional line breaks. This config exists purely
+# to catch real defects (unused imports, undefined names, etc.) locally (`make lint`) and in CI.
+#
+# line-length documents the project's target width (~100). It is inert for linting because we
+# leave E501 (line-too-long) OFF — see the select list below.
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+# Ruff's sensible defaults: pyflakes (F) + the error-level pycodestyle subset (E4/E7/E9).
+# Intentionally excluded to avoid churn on already-clean, hand-formatted code:
+#   - E501  line-too-long  (a couple of lines run just past 100 on purpose)
+#   - I     isort          (would reorder imports across the tree)
+select = ["E4", "E7", "E9", "F"]

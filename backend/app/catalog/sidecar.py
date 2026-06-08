@@ -118,7 +118,7 @@ def parse_sidecar(readme_path: Path) -> Optional[ParsedSidecar]:
     warnings: List[str] = []
     try:
         text = readme_path.read_text(encoding="utf-8", errors="replace")
-    except OSError as e:
+    except OSError:
         return None
     fm, body = parse_frontmatter(text)
 
