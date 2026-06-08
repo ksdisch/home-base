@@ -1,0 +1,55 @@
+{
+  "title": "Module 2 check — Evidence-Based Techniques",
+  "questions": [
+    {
+      "question": "What does the 'testing effect' claim about retrieval practice?",
+      "answerOptions": [
+        { "text": "Trying to recall information is itself a powerful way to learn it, often beating re-studying", "isCorrect": true, "rationale": "Retrieval is a learning event, not just measurement — producing an answer from memory strengthens it." },
+        { "text": "Tests are only useful for grading, not for learning", "isCorrect": false, "rationale": "This is the misconception the testing effect overturns; low-stakes testing is a study technique." },
+        { "text": "You should only test yourself right before an exam", "isCorrect": false, "rationale": "Retrieval works best distributed over time, not crammed at the end." },
+        { "text": "Recognizing the answer is as effective as recalling it", "isCorrect": false, "rationale": "Recognition is weaker than producing the answer from memory; the effort is what helps." }
+      ],
+      "hint": "Think about why a quiz can teach, not just measure."
+    },
+    {
+      "question": "Which schedule best reflects spaced practice with expanding intervals?",
+      "answerOptions": [
+        { "text": "Same day, then ~2 days, then ~1 week, then ~2–4 weeks", "isCorrect": true, "rationale": "Each successful recall lets you push the next interval further out." },
+        { "text": "Five reviews back-to-back in one evening", "isCorrect": false, "rationale": "That's massed practice (cramming) — it feels productive but decays fast." },
+        { "text": "One review, only on the night before the test", "isCorrect": false, "rationale": "A single late review can't flatten the forgetting curve over time." },
+        { "text": "Review every hour, forever, at a fixed interval", "isCorrect": false, "rationale": "Intervals should expand as recall succeeds, not stay fixed and tiny." }
+      ],
+      "hint": "The gaps should grow as you succeed."
+    },
+    {
+      "question": "Why does interleaving (ABCABC) often beat blocked practice (AAABBBCCC) for retention?",
+      "answerOptions": [
+        { "text": "It forces you to repeatedly choose which approach applies, building the real skill", "isCorrect": true, "rationale": "Discriminating between problem types is the skill you need later; blocking lets you autopilot." },
+        { "text": "It lets you avoid the harder topics", "isCorrect": false, "rationale": "Interleaving doesn't skip difficulty; it adds desirable difficulty." },
+        { "text": "It always produces better immediate performance", "isCorrect": false, "rationale": "Blocked practice usually gives better *immediate* performance; interleaving wins on retention/transfer." },
+        { "text": "It removes the need for spacing", "isCorrect": false, "rationale": "Interleaving and spacing are complementary, not substitutes." }
+      ],
+      "hint": "What do you have to decide every time the topic switches?"
+    },
+    {
+      "question": "What is elaborative interrogation?",
+      "answerOptions": [
+        { "text": "Asking 'why' a fact is true and how it connects to what you already know", "isCorrect": true, "rationale": "Building explanatory links creates more retrieval routes to the memory." },
+        { "text": "Re-copying your notes in neater handwriting", "isCorrect": false, "rationale": "That's an encoding activity with little retrieval or elaboration." },
+        { "text": "Highlighting every important sentence", "isCorrect": false, "rationale": "Highlighting is passive encoding and rated low-utility by the research." },
+        { "text": "Memorizing definitions word-for-word", "isCorrect": false, "rationale": "Rote memorization lacks the explanatory connections elaboration builds." }
+      ],
+      "hint": "It starts with a one-word question."
+    },
+    {
+      "question": "Why does re-reading feel effective but often isn't?",
+      "answerOptions": [
+        { "text": "It builds familiarity (fluency illusion), which we mistake for real knowledge", "isCorrect": true, "rationale": "Recognizing text isn't the same as being able to produce the idea on demand." },
+        { "text": "It is a form of retrieval practice", "isCorrect": false, "rationale": "Re-reading is encoding, not retrieval — nothing is recalled from memory." },
+        { "text": "It creates desirable difficulty", "isCorrect": false, "rationale": "Re-reading is easy and smooth — the opposite of desirable difficulty." },
+        { "text": "It spaces your practice automatically", "isCorrect": false, "rationale": "Re-reading in one sitting is massed, not spaced." }
+      ],
+      "hint": "Smooth and familiar is not the same as known."
+    }
+  ]
+}

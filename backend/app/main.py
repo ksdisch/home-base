@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .api import (
     catalog,
+    courses,
     custom_topics,
     episodes,
     health,
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(study_plan.router, prefix="/api", tags=["study-plan"])
     app.include_router(reflections.router, prefix="/api", tags=["reflections"])
     app.include_router(custom_topics.router, prefix="/api", tags=["custom-topics"])
+    app.include_router(courses.router, prefix="/api", tags=["courses"])
 
     @app.get("/api")
     def api_root() -> dict:

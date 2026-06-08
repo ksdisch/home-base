@@ -2,11 +2,15 @@
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
   CatalogResponse,
+  CourseDetail,
+  CourseMaterialResponse,
+  CoursesResponse,
   CustomTopic,
   CustomTopicCreate,
   CustomTopicsResponse,
   CustomTopicUpdate,
   HealthResponse,
+  LessonCompleteResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -122,4 +126,15 @@ export const api = {
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
     patch<CustomTopic>(`/custom-topics/${id}`, body),
+  courses: () => get<CoursesResponse>("/courses"),
+  course: (slug: string) => get<CourseDetail>(`/courses/${encodeURIComponent(slug)}`),
+  courseMaterial: (slug: string, path: string) =>
+    get<CourseMaterialResponse>(
+      `/courses/${encodeURIComponent(slug)}/materials?path=${encodeURIComponent(path)}`,
+    ),
+  setLessonComplete: (slug: string, lessonId: string, completed: boolean) =>
+    post<LessonCompleteResponse>(
+      `/courses/${encodeURIComponent(slug)}/lessons/${encodeURIComponent(lessonId)}/complete`,
+      { completed },
+    ),
 };

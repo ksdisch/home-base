@@ -297,6 +297,46 @@ def get_episode_progress(notebook_id: str, db_path: Optional[Path] = None) -> Di
     return {r["artifact_id"]: bool(r["listened"]) for r in rows}
 
 
+# -- course lesson progress ----------------------------------------------------
+# Course content lives on disk (see ``app.courses.manifest``); only the "I finished this
+# lesson" checkbox lives here. Mirrors ``episode_progress`` for NotebookLM episodes.
+
+def get_course_progress(course_slug: str, db_path: Optional[Path] = None) -> Dict[str, bool]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT lesson_id, completed FROM course_lesson_progress WHERE course_slug = ?",
+            (course_slug,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {r["lesson_id"]: bool(r["completed"]) for r in rows}
+
+
+def set_lesson_completed(
+    course_slug: str, lesson_id: str, completed: bool, db_path: Optional[Path] = None
+) -> bool:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO course_lesson_progress (course_slug, lesson_id, completed, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(course_slug, lesson_id)
+            DO UPDATE SET completed = excluded.completed, updated_at = datetime('now')
+            """,
+            (course_slug, lesson_id, 1 if completed else 0),
+        )
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            ("lesson_completed" if completed else "lesson_uncompleted",),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return completed
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

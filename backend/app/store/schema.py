@@ -114,6 +114,19 @@ STATEMENTS = [
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     )
     """,
+    # Phase 6: per-lesson "I finished this lesson" checkbox for generated courses. Course
+    # *content* lives on disk (a course sidecar: course.json + material files); only progress
+    # lives here — mirrors how ``episode_progress`` tracks NotebookLM episodes. Course progress %
+    # is derived from these rows against the manifest's lesson count.
+    """
+    CREATE TABLE IF NOT EXISTS course_lesson_progress (
+        course_slug TEXT NOT NULL,
+        lesson_id   TEXT NOT NULL,
+        completed   INTEGER NOT NULL DEFAULT 0,
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (course_slug, lesson_id)
+    )
+    """,
 ]
 
 # Forward migrations for stores created before a given SCHEMA_VERSION. Each value is a list of
