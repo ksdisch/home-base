@@ -43,6 +43,20 @@ session only if `nlm`/MCP is configured there).
 | 💻 `review-next` | Read the hub's SQLite store (attempts, mastery, reflections) and rank "what to review next." Read-only; needs the local store (or the `learning-hub-db` MCP). |
 | 💻 `catalog-doctor` | Reconcile the parsed catalog ↔ sidecars ↔ live `nlm studio status` and report drift. Read-only; needs the sidecars, `nlm`, and the running backend. |
 | ✅ `course-builder` | Plan-then-autonomous **course** creation: propose a syllabus, then author written lessons + mermaid diagrams + flashcards + hub-shaped quizzes + reading as a course sidecar the hub reads (`app.courses`). Authoring is cloud-safe; saving to disk + optional NotebookLM enrichment are local. See `docs/COURSE_PIPELINE_SPEC.md`. |
+| ✅ `api-types-sync` | Reconcile `frontend/src/api/types.ts` (+ `client.ts`) with the backend Pydantic models in `backend/app/models.py` + the routers — fix the hand-synced contract after a model change. Frontend-only edits; ends with `make typecheck`. The read-only `contract-reviewer` agent finds the drift; this skill fixes it. |
+
+### Subagents (`.claude/agents/`)
+
+| Agent | What it does |
+|---|---|
+| ✅ `test-writer` | Write/extend `backend/tests/` pytest in the house style — `TestClient(app.main)`, per-test isolated SQLite via env, synthetic sidecars via `conftest.write_notebook`, never the real `nlm`/sidecar root. Favours the suite's adversarial + answer-key-free-oracle edge cases. |
+| ✅ `contract-reviewer` | Read-only review for backend↔frontend contract drift (`models.py`/routers ↔ `types.ts`/`client.ts`) — field presence, type mapping, optionality, router wiring, and the quiz answer-key-free invariant. Reports findings; `api-types-sync` applies them. |
+
+### Hooks (`.claude/settings.json`)
+
+| Hook | What it does |
+|---|---|
+| ✅ `guard-sidecars` | PreToolUse on Edit/Write/MultiEdit/NotebookEdit — **blocks** any write under `$NOTEBOOKLM_ROOT` (default `~/Projects/NotebookLMs`), enforcing the read-only-sidecar invariant (`backend/tests/test_no_sidecar_writes.py`) at the agent layer. Script: `.claude/hooks/guard-sidecars.sh`; fails open (allows) on any parse error so it never breaks normal edits. |
 
 ### MCP servers (`.mcp.json`)
 
