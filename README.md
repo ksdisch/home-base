@@ -40,6 +40,8 @@ study guides, and quizzes.
 
 ```bash
 make test         # backend test suite (parsing robustness, read-only, auth, quiz oracle)
+make lint         # lint the backend with ruff (no formatting — see backend/ruff.toml)
+make typecheck    # type-check the frontend (tsc --noEmit, strict)
 make build        # production frontend build
 make setup        # bootstrap deps without running
 ```

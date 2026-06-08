@@ -7,8 +7,6 @@ Reuses the `test_review_api` harness (same fake-nlm quiz fixture) so the plan re
 
 from __future__ import annotations
 
-import pytest
-
 from .test_review_api import _client, _fresh_store, _take_quiz
 
 

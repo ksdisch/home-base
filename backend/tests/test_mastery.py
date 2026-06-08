@@ -6,7 +6,7 @@ threshold, priority ordering, and timestamp parsing are all deterministic to ass
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import pytest
 
