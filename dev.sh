@@ -27,9 +27,21 @@ bootstrap() {
   "$BACKEND/.venv/bin/python" -m pip install -q --upgrade pip >/dev/null 2>&1 || true
   "$BACKEND/.venv/bin/python" -m pip install -q -r "$BACKEND/requirements.txt"
 
-  if [ ! -d "$FRONTEND/node_modules" ]; then
+  # Reinstall frontend deps when node_modules is missing OR stale. We stamp a
+  # marker after a successful install and compare the manifest/lockfile against
+  # it — comparing against node_modules itself is unreliable because npm rewrites
+  # package-lock.json a moment AFTER populating node_modules, which would force a
+  # reinstall on every boot. Without this, a dep added to package.json after the
+  # last install silently never installs and the dev server crashes (e.g.
+  # vite.config.ts importing an uninstalled 'vitest').
+  local stamp="$FRONTEND/node_modules/.deps-stamp"
+  if [ ! -d "$FRONTEND/node_modules" ] \
+     || [ ! -f "$stamp" ] \
+     || [ "$FRONTEND/package.json" -nt "$stamp" ] \
+     || [ "$FRONTEND/package-lock.json" -nt "$stamp" ]; then
     echo "› installing frontend deps"
     (cd "$FRONTEND" && npm install --no-fund --no-audit)
+    touch "$stamp"
   fi
 }
 
