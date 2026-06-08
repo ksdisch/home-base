@@ -15,7 +15,7 @@ grading is auto against ``isCorrect``. Built and tested now so the contract can'
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 
 class QuizValidationError(ValueError):

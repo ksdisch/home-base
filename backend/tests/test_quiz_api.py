@@ -7,8 +7,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 SAMPLE_QUIZ = Path(__file__).resolve().parents[2] / "docs" / "fixtures" / "sample-quiz.json"
 
 
