@@ -65,6 +65,8 @@ _AUTH_SIGNATURES = (
 # HTTP auth codes matched only as standalone tokens (so a UUID containing "401" is not auth).
 _AUTH_CODE_RE = re.compile(r"\b(401|403)\b")
 _NOTFOUND_CODE_RE = re.compile(r"\b404\b")
+# nlm ≥0.5's entire stdout on a successful download — a confirmation line, not the artifact.
+_DOWNLOAD_CONFIRMATION_RE = re.compile(r"\s*✓ Downloaded \S+ to: .+\s*$")
 
 
 @dataclass
@@ -187,14 +189,23 @@ class NlmClient:
 
         nlm ≥0.5 writes the artifact to a FILE (`-o`, default ./{notebook_id}_…) and prints only
         a "✓ Downloaded …" line to stdout — so we point `-o` at a temp path and read that back.
-        Older versions printed the body to stdout (and injected test runners still do), so stdout
-        is the fallback when nothing lands at the temp path.
+        Stdout is the fallback when nothing lands there: it serves injected test runners and any
+        CLI that prints the body. (A pre-0.5 CLI that rejects `-o` exits non-zero and surfaces as
+        the calm NlmExecError banner — acceptable, since the hub tracks the installed CLI.)
         """
         with tempfile.TemporaryDirectory(prefix="nlm-download-") as td:
             out_path = Path(td) / f"artifact{suffix}"
             res = self._run([*args, "-o", str(out_path)])
             if out_path.exists():
                 return out_path.read_text(encoding="utf-8")
+        # A bare ✓-confirmation with no file at the temp path means the body landed somewhere we
+        # can't see — fail loudly (stdout kept as detail) rather than hand the confirmation line
+        # itself downstream as the artifact.
+        if _DOWNLOAD_CONFIRMATION_RE.match(res.stdout or ""):
+            raise NlmExecError(
+                "nlm reported a download but wrote nothing at the requested output path.",
+                detail=res.stdout.strip()[:200],
+            )
         return res.stdout
 
 

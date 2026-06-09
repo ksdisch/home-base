@@ -80,7 +80,12 @@ def get_study_guide(
 
     # The sidecar's title (the doc's own H1 often differs); an id the sidecar doesn't know is
     # tolerated — downloadability is proven by the fetch itself, exactly like quiz prepare.
-    known = next((a for a in sidecar.artifacts if a.artifact_id == artifact_id), None)
+    # The lookup is case/whitespace-insensitive so an id VARIANT of a known quiz can't slip
+    # past the type guard below while still resolving to the same artifact at nlm.
+    wanted = artifact_id.strip().lower()
+    known = next(
+        (a for a in sidecar.artifacts if a.artifact_id.strip().lower() == wanted), None
+    )
     title = known.title.strip() or None if known else None
     base = dict(
         notebook_id=notebook_id,

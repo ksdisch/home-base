@@ -153,6 +153,38 @@ def test_known_quiz_artifact_is_refused_before_any_download(tmp_path):
         client.app.dependency_overrides.clear()
 
 
+def test_case_and_whitespace_variants_of_a_known_quiz_id_are_still_refused(tmp_path):
+    # The guard lookup is case/whitespace-insensitive: an id VARIANT of a known quiz must not
+    # slip past the type check while still resolving to the same artifact at nlm.
+    client = _make_client(tmp_path, _runner_writing(MARKDOWN))
+    try:
+        for variant in (QUIZ.upper(), f" {QUIZ} "):
+            body = client.get(f"/api/topics/{NB}/study-guides/{variant}").json()
+            assert body["ok"] is False, variant
+            assert "not a study guide" in (body["error"] or ""), variant
+    finally:
+        client.app.dependency_overrides.clear()
+
+
+def test_confirmation_only_stdout_with_no_file_is_not_served_as_markdown(tmp_path):
+    # A CLI that exits 0, writes nothing at -o, and prints only its ✓ line must NOT have that
+    # line rendered as the guide — it degrades to the calm error banner instead.
+    def runner(args):
+        from app.nlm import NlmResult
+
+        return NlmResult(args=list(args), stdout="✓ Downloaded report to: elsewhere.md\n",
+                         stderr="", returncode=0)
+
+    client = _make_client(tmp_path, runner)
+    try:
+        body = client.get(f"/api/topics/{NB}/study-guides/{GUIDE}").json()
+        assert body["ok"] is False
+        assert body["markdown"] is None
+        assert (body["error"] or "").startswith("Couldn't load this study guide:")
+    finally:
+        client.app.dependency_overrides.clear()
+
+
 def test_auth_failure_is_a_calm_banner_not_a_500(tmp_path):
     client = _make_client(tmp_path, _runner_not_logged_in)
     try:

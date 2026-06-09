@@ -67,10 +67,12 @@ def test_download_quiz_falls_back_to_stdout_for_the_old_cli():
 
 def test_download_quiz_confirmation_line_only_raises_typed_error_not_jsondecode():
     # Regression: a ✓ line with no file used to bubble json.JSONDecodeError out of the client.
+    # It now fails at the transport layer (the body never landed anywhere we can read), uniform
+    # across quiz and study-guide downloads.
     client = NlmClient(runner=_stdout_only("✓ Downloaded quiz to: somewhere.json\n"))
     with pytest.raises(NlmExecError) as ei:
         client.download_quiz("nb", "art")
-    assert "quiz json" in str(ei.value).lower()
+    assert "wrote nothing" in str(ei.value).lower()
     assert "somewhere.json" in ei.value.detail  # the raw text rides along for diagnosis
 
 
