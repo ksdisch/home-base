@@ -12,7 +12,9 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
 from ..config import get_settings
@@ -161,10 +163,39 @@ class NlmClient:
 
     def download_quiz(self, notebook_id: str, artifact_id: str) -> dict[str, Any]:
         """Download a quiz artifact as JSON (Phase-2 quiz player feeds on this)."""
-        res = self._run(
-            ["download", "quiz", notebook_id, "--id", artifact_id, "-f", "json"]
+        text = self._download_to_text(
+            ["download", "quiz", notebook_id, "--id", artifact_id, "-f", "json"],
+            suffix=".json",
         )
-        return json.loads(res.stdout)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            raise NlmExecError(
+                "nlm returned no parseable quiz JSON.", detail=text[:200]
+            ) from e
+
+    def download_study_guide(self, notebook_id: str, artifact_id: str) -> str:
+        """Download a study guide as Markdown. NotebookLM stores study guides as report-type
+        artifacts, so this rides `nlm download report --id` (markdown is its only format)."""
+        return self._download_to_text(
+            ["download", "report", notebook_id, "--id", artifact_id],
+            suffix=".md",
+        )
+
+    def _download_to_text(self, args: list[str], *, suffix: str) -> str:
+        """Run an `nlm download …` and return the artifact body as text.
+
+        nlm ≥0.5 writes the artifact to a FILE (`-o`, default ./{notebook_id}_…) and prints only
+        a "✓ Downloaded …" line to stdout — so we point `-o` at a temp path and read that back.
+        Older versions printed the body to stdout (and injected test runners still do), so stdout
+        is the fallback when nothing lands at the temp path.
+        """
+        with tempfile.TemporaryDirectory(prefix="nlm-download-") as td:
+            out_path = Path(td) / f"artifact{suffix}"
+            res = self._run([*args, "-o", str(out_path)])
+            if out_path.exists():
+                return out_path.read_text(encoding="utf-8")
+        return res.stdout
 
 
 def _parse_json_array(text: str) -> list[dict]:

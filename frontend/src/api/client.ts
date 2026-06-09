@@ -18,6 +18,7 @@ import type {
   QuizPrepareResponse,
   ReflectionsResponse,
   ReviewResponse,
+  StudyGuideResponse,
   StudyPlanResponse,
   TopicDetail,
 } from "./types";
@@ -118,6 +119,10 @@ export const api = {
     const body = await res.json();
     return Boolean(body.listened);
   },
+  studyGuide: (notebookId: string, artifactId: string) =>
+    get<StudyGuideResponse>(
+      `/topics/${encodeURIComponent(notebookId)}/study-guides/${encodeURIComponent(artifactId)}`,
+    ),
   prepareQuiz: (notebookId: string, quizId: string) =>
     post<QuizPrepareResponse>(
       `/topics/${encodeURIComponent(notebookId)}/quizzes/${encodeURIComponent(quizId)}/prepare`,
