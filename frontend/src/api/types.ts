@@ -84,6 +84,19 @@ export interface TopicDetail {
   warnings: string[];
 }
 
+// Mirrors backend StudyGuideResponse — the in-hub study guide reader. Like QuizPrepareResponse,
+// auth/download failures arrive as ok=false + a banner-ready message, never an HTTP error.
+export interface StudyGuideResponse {
+  notebook_id: string;
+  artifact_id: string;
+  ok: boolean;
+  auth: AuthState;
+  title?: string | null;
+  notebooklm_url: string;
+  markdown?: string | null;
+  error?: string | null;
+}
+
 // Answer-key-FREE by construction — mirrors backend QuizPlayerQuestion.
 export interface QuizPlayerQuestion {
   index: number;

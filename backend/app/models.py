@@ -92,6 +92,20 @@ class TopicDetail(BaseModel):
     warnings: List[str] = []
 
 
+class StudyGuideResponse(BaseModel):
+    """A study guide fetched for the in-hub reader. Like QuizPrepareResponse, never a 500:
+    an auth lapse or download failure degrades to ok=False + a banner-ready message."""
+
+    notebook_id: str
+    artifact_id: str
+    ok: bool = True
+    auth: AuthState = AuthState()
+    title: Optional[str] = None
+    notebooklm_url: str
+    markdown: Optional[str] = None
+    error: Optional[str] = None
+
+
 class QuizPlayerQuestion(BaseModel):
     """A single question as the player sees it — answer-key-FREE by construction.
 

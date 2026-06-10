@@ -4,6 +4,7 @@ import Courses from "./pages/Courses";
 import Home from "./pages/Home";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
+import StudyGuide from "./pages/StudyGuide";
 import StudyPlan from "./pages/StudyPlan";
 import TopicDetail from "./pages/TopicDetail";
 
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
+          <Route path="/topics/:id/guide/:artifactId" element={<StudyGuide />} />
         </Routes>
       </main>
     </div>

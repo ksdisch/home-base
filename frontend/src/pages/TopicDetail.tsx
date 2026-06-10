@@ -137,12 +137,24 @@ export default function TopicDetail() {
 
       <Section title="Study guides" count={detail.study_guides.length} empty="No study guides found.">
         <ul className="divide-y divide-stone-100">
-          {detail.study_guides.map((g) => (
-            <li key={g.artifact_id} className="flex items-center justify-between py-2.5">
-              <span className="text-sm text-ink">{g.title}</span>
-              <span className="font-mono text-xs text-stone-300">{g.artifact_id.slice(0, 8)}</span>
-            </li>
-          ))}
+          {detail.study_guides.map((g) => {
+            const guideUrl = `/topics/${encodeURIComponent(detail.notebook_id)}/guide/${encodeURIComponent(
+              g.artifact_id,
+            )}`;
+            return (
+              <li key={g.artifact_id} className="flex items-center justify-between gap-3 py-2.5">
+                <Link to={guideUrl} className="text-sm text-ink hover:text-accent hover:underline">
+                  {g.title}
+                </Link>
+                <Link
+                  to={guideUrl}
+                  className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-white hover:opacity-90"
+                >
+                  Read ▸
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </Section>
 

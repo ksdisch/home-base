@@ -12,7 +12,9 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
 from ..config import get_settings
@@ -63,6 +65,8 @@ _AUTH_SIGNATURES = (
 # HTTP auth codes matched only as standalone tokens (so a UUID containing "401" is not auth).
 _AUTH_CODE_RE = re.compile(r"\b(401|403)\b")
 _NOTFOUND_CODE_RE = re.compile(r"\b404\b")
+# nlm ≥0.5's entire stdout on a successful download — a confirmation line, not the artifact.
+_DOWNLOAD_CONFIRMATION_RE = re.compile(r"\s*✓ Downloaded \S+ to: .+\s*$")
 
 
 @dataclass
@@ -161,10 +165,48 @@ class NlmClient:
 
     def download_quiz(self, notebook_id: str, artifact_id: str) -> dict[str, Any]:
         """Download a quiz artifact as JSON (Phase-2 quiz player feeds on this)."""
-        res = self._run(
-            ["download", "quiz", notebook_id, "--id", artifact_id, "-f", "json"]
+        text = self._download_to_text(
+            ["download", "quiz", notebook_id, "--id", artifact_id, "-f", "json"],
+            suffix=".json",
         )
-        return json.loads(res.stdout)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            raise NlmExecError(
+                "nlm returned no parseable quiz JSON.", detail=text[:200]
+            ) from e
+
+    def download_study_guide(self, notebook_id: str, artifact_id: str) -> str:
+        """Download a study guide as Markdown. NotebookLM stores study guides as report-type
+        artifacts, so this rides `nlm download report --id` (markdown is its only format)."""
+        return self._download_to_text(
+            ["download", "report", notebook_id, "--id", artifact_id],
+            suffix=".md",
+        )
+
+    def _download_to_text(self, args: list[str], *, suffix: str) -> str:
+        """Run an `nlm download …` and return the artifact body as text.
+
+        nlm ≥0.5 writes the artifact to a FILE (`-o`, default ./{notebook_id}_…) and prints only
+        a "✓ Downloaded …" line to stdout — so we point `-o` at a temp path and read that back.
+        Stdout is the fallback when nothing lands there: it serves injected test runners and any
+        CLI that prints the body. (A pre-0.5 CLI that rejects `-o` exits non-zero and surfaces as
+        the calm NlmExecError banner — acceptable, since the hub tracks the installed CLI.)
+        """
+        with tempfile.TemporaryDirectory(prefix="nlm-download-") as td:
+            out_path = Path(td) / f"artifact{suffix}"
+            res = self._run([*args, "-o", str(out_path)])
+            if out_path.exists():
+                return out_path.read_text(encoding="utf-8")
+        # A bare ✓-confirmation with no file at the temp path means the body landed somewhere we
+        # can't see — fail loudly (stdout kept as detail) rather than hand the confirmation line
+        # itself downstream as the artifact.
+        if _DOWNLOAD_CONFIRMATION_RE.match(res.stdout or ""):
+            raise NlmExecError(
+                "nlm reported a download but wrote nothing at the requested output path.",
+                detail=res.stdout.strip()[:200],
+            )
+        return res.stdout
 
 
 def _parse_json_array(text: str) -> list[dict]:

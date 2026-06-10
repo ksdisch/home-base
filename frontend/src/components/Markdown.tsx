@@ -30,11 +30,20 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
       );
     } else if (tok.startsWith("[")) {
       const mm = /\[([^\]]+)\]\(((?:[^()]|\([^()]*\))*)\)/.exec(tok)!;
-      nodes.push(
-        <a key={key} href={mm[2]} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-          {mm[1]}
-        </a>,
-      );
+      // Scheme allowlist: the renderer also gets NotebookLM-generated content (study guides),
+      // so a javascript:/data: URL renders as plain text instead of a clickable anchor.
+      // Scheme-less (relative/anchor) hrefs stay clickable.
+      const href = mm[2].trim();
+      const scheme = /^[a-z][a-z0-9+.-]*:/i.exec(href)?.[0].toLowerCase();
+      if (!scheme || scheme === "http:" || scheme === "https:" || scheme === "mailto:") {
+        nodes.push(
+          <a key={key} href={href} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            {mm[1]}
+          </a>,
+        );
+      } else {
+        nodes.push(tok);
+      }
     } else if (tok.startsWith("**")) {
       nodes.push(
         <strong key={key} className="font-semibold text-ink">

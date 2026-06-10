@@ -24,6 +24,25 @@ def _runner_not_logged_in(args):
     return NlmResult(args=list(args), stdout="", stderr="Error: not logged in", returncode=1)
 
 
+def _runner_v05_writes_quiz_file(args):
+    """A fake `nlm` ≥0.5: writes the quiz JSON to the injected `-o` path and prints only the
+    "✓ Downloaded …" confirmation line to stdout (the shape that used to 500 prepare)."""
+    from app.nlm import NlmResult
+
+    out = Path(args[args.index("-o") + 1])
+    out.write_text(SAMPLE_QUIZ.read_text(encoding="utf-8"), encoding="utf-8")
+    return NlmResult(args=list(args), stdout=f"✓ Downloaded quiz to: {out}\n",
+                     stderr="", returncode=0)
+
+
+def _runner_v05_confirmation_but_no_file(args):
+    """Worst case: the ✓ line on stdout and nothing written at the `-o` path."""
+    from app.nlm import NlmResult
+
+    return NlmResult(args=list(args), stdout="✓ Downloaded quiz to: somewhere.json\n",
+                     stderr="", returncode=0)
+
+
 def _make_client(runner):
     from fastapi.testclient import TestClient
 
@@ -120,6 +139,46 @@ def test_prepare_auth_failure_is_a_calm_banner_not_a_500():
         assert body["auth"]["ok"] is False
         assert "nlm login" in (body["auth"]["message"] or "").lower()
         assert body["session_id"] is None
+    finally:
+        client.app.dependency_overrides.clear()
+
+
+# -- nlm ≥0.5 writes the quiz to a file, not stdout (regression: prepare 500'd) ----
+
+
+def test_prepare_with_file_writing_nlm_is_playable_end_to_end():
+    """nlm ≥0.5 puts the quiz in a file at `-o` and only a ✓ line on stdout; prepare must read
+    the file and yield a fully playable (and still answer-key-free) session — not a 500."""
+    client = _make_client(_runner_v05_writes_quiz_file)
+    try:
+        r = client.post("/api/topics/nb-1/quizzes/quiz-1/prepare")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["ok"] is True
+        key = _answer_key()
+        assert body["total"] == len(key)
+        assert "isCorrect" not in json.dumps(body)  # the integrity guard still holds
+        # The session built from the downloaded file grades like any other.
+        graded = client.post(
+            "/api/quiz/grade", json={"session_id": body["session_id"], "answers": key}
+        ).json()
+        assert graded["pct"] == 100.0
+    finally:
+        client.app.dependency_overrides.clear()
+
+
+def test_prepare_with_confirmation_only_stdout_degrades_not_500():
+    """If the file never lands and stdout is just the ✓ line, prepare must degrade calmly
+    (ok=false + error string) instead of bubbling json.JSONDecodeError into a 500."""
+    client = _make_client(_runner_v05_confirmation_but_no_file)
+    try:
+        r = client.post("/api/topics/nb-1/quizzes/quiz-1/prepare")
+        assert r.status_code == 200  # degraded, not a crash
+        body = r.json()
+        assert body["ok"] is False
+        assert body["error"].startswith("Couldn't load this quiz:")
+        assert body["session_id"] is None
+        assert body["auth"]["ok"] is True  # a parse failure is not an auth failure
     finally:
         client.app.dependency_overrides.clear()
 
