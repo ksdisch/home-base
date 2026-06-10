@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type {
   CourseDetail as Detail,
+  CourseFlashcardDeckState,
   CourseLesson,
   CourseMaterial,
   CourseQuizState,
@@ -11,6 +12,7 @@ import type {
 import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
 import { Markdown } from "../components/Markdown";
+import { MermaidDiagram } from "../components/MermaidDiagram";
 
 const clampPct = (n: number) => Math.max(0, Math.min(100, n));
 
@@ -39,6 +41,8 @@ export default function CourseDetail() {
   // Per-quiz attempt/SM-2 state keyed by material path. Re-fetched on mount, so returning from a
   // quiz attempt (a separate route → this remounts) shows the fresh score + due count.
   const [quizzes, setQuizzes] = useState<Record<string, CourseQuizState>>({});
+  // Per-deck flashcard review state, same lifecycle (M3).
+  const [decks, setDecks] = useState<Record<string, CourseFlashcardDeckState>>({});
 
   useEffect(() => {
     let alive = true;
@@ -55,6 +59,15 @@ export default function CourseDetail() {
       })
       .catch(() => {
         /* quiz stats are non-critical; the lessons still render without them */
+      });
+    api
+      .courseFlashcards(slug)
+      .then((r) => {
+        if (!alive) return;
+        setDecks(Object.fromEntries(r.decks.map((d) => [d.path, d])));
+      })
+      .catch(() => {
+        /* deck stats are non-critical; cards still browse without them */
       });
     return () => {
       alive = false;
@@ -145,6 +158,7 @@ export default function CourseDetail() {
                 slug={slug}
                 lesson={l}
                 quizzes={quizzes}
+                decks={decks}
                 pending={pending.has(l.id)}
                 onToggle={() => onToggle(l)}
               />
@@ -160,12 +174,14 @@ function LessonCard({
   slug,
   lesson,
   quizzes,
+  decks,
   pending,
   onToggle,
 }: {
   slug: string;
   lesson: CourseLesson;
   quizzes: Record<string, CourseQuizState>;
+  decks: Record<string, CourseFlashcardDeckState>;
   pending: boolean;
   onToggle: () => void;
 }) {
@@ -214,6 +230,7 @@ function LessonCard({
                   slug={slug}
                   material={mat}
                   quizState={mat.path ? quizzes[mat.path] : undefined}
+                  deckState={mat.path ? decks[mat.path] : undefined}
                 />
               ))}
             </div>
@@ -228,10 +245,12 @@ function MaterialView({
   slug,
   material,
   quizState,
+  deckState,
 }: {
   slug: string;
   material: CourseMaterial;
   quizState?: CourseQuizState;
+  deckState?: CourseFlashcardDeckState;
 }) {
   const label = material.title || material.type;
 
@@ -263,17 +282,19 @@ function MaterialView({
     );
   }
 
-  return <FileMaterial slug={slug} material={material} label={label} />;
+  return <FileMaterial slug={slug} material={material} label={label} deckState={deckState} />;
 }
 
 function FileMaterial({
   slug,
   material,
   label,
+  deckState,
 }: {
   slug: string;
   material: CourseMaterial;
   label: string;
+  deckState?: CourseFlashcardDeckState;
 }) {
   const [data, setData] = useState<unknown>(null);
   const [text, setText] = useState<string | null>(null);
@@ -322,13 +343,18 @@ function FileMaterial({
         {text === null ? (
           <Skeleton />
         ) : (
-          <pre className="overflow-x-auto rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-ink/80">
-            <code>{text}</code>
-          </pre>
+          <>
+            <MermaidDiagram source={text} />
+            <details className="mt-1">
+              <summary className="cursor-pointer text-xs text-stone-400 hover:text-stone-600">
+                Mermaid source
+              </summary>
+              <pre className="mt-1 overflow-x-auto rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-ink/80">
+                <code>{text}</code>
+              </pre>
+            </details>
+          </>
         )}
-        <p className="mt-1 text-xs text-stone-400">
-          Mermaid source — graph rendering is a later enhancement.
-        </p>
       </div>
     );
   }
@@ -336,6 +362,25 @@ function FileMaterial({
     return (
       <div>
         <MaterialHeader type="flashcards" label={label} />
+        {material.path && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Link
+              to={`/courses/${encodeURIComponent(slug)}/flashcards?path=${encodeURIComponent(material.path)}`}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            >
+              Review deck
+            </Link>
+            {deckState && (
+              <span className="text-xs text-muted">{deckState.card_count} cards</span>
+            )}
+            {deckState && deckState.due_cards > 0 && (
+              <Badge tone="amber">🔁 {deckState.due_cards} due</Badge>
+            )}
+            {deckState && deckState.tracked_cards > 0 && deckState.due_cards === 0 && (
+              <Badge tone="neutral">all scheduled</Badge>
+            )}
+          </div>
+        )}
         {data === null ? <Skeleton /> : <Flashcards cards={data as Flashcard[]} />}
       </div>
     );

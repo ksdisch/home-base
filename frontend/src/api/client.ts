@@ -3,6 +3,7 @@
 import type {
   CatalogResponse,
   CourseDetail,
+  CourseFlashcardsResponse,
   CourseMaterialResponse,
   CourseQuizzesResponse,
   CoursesResponse,
@@ -10,6 +11,9 @@ import type {
   CustomTopicCreate,
   CustomTopicsResponse,
   CustomTopicUpdate,
+  FlashcardGradeRequest,
+  FlashcardGradeResponse,
+  FlashcardSessionResponse,
   HealthResponse,
   LessonCompleteResponse,
   ProgressResponse,
@@ -150,5 +154,19 @@ export const api = {
   prepareCourseQuiz: (slug: string, path: string) =>
     post<QuizPrepareResponse>(
       `/courses/${encodeURIComponent(slug)}/quiz/prepare?path=${encodeURIComponent(path)}`,
+    ),
+  // Flashcards are self-graded, so the session fetch is a pure read (nothing stashed
+  // server-side) and each card's grade is POSTed as it happens — abandoning a session loses
+  // nothing.
+  courseFlashcards: (slug: string) =>
+    get<CourseFlashcardsResponse>(`/courses/${encodeURIComponent(slug)}/flashcards`),
+  flashcardSession: (slug: string, path: string) =>
+    get<FlashcardSessionResponse>(
+      `/courses/${encodeURIComponent(slug)}/flashcards/session?path=${encodeURIComponent(path)}`,
+    ),
+  gradeFlashcard: (slug: string, body: FlashcardGradeRequest) =>
+    post<FlashcardGradeResponse>(
+      `/courses/${encodeURIComponent(slug)}/flashcards/grade`,
+      body,
     ),
 };

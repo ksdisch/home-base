@@ -399,3 +399,64 @@ export interface Flashcard {
   front: string;
   back: string;
 }
+
+// -- Course flashcard review (M3) — mirrors backend CourseFlashcard* / Flashcard* models. -------
+// Self-graded Anki-style (again/hard/good/easy → SM-2 quality 2/3/4/5); per-card state lives in
+// the hub's flashcard_mastery table. No answer-key invariant: front+back both belong here.
+
+export type FlashcardGrade = "again" | "hard" | "good" | "easy";
+
+export interface CourseFlashcardDeckState {
+  path: string; // also the deck id
+  lesson_id: string;
+  module_id: string;
+  title: string;
+  card_count: number;
+  tracked_cards: number; // cards reviewed at least once
+  due_cards: number; // of those, due for review now
+  last_review_at?: string | null;
+}
+
+export interface CourseFlashcardsResponse {
+  slug: string;
+  generated_at: string;
+  decks: CourseFlashcardDeckState[];
+}
+
+export interface FlashcardSessionCard {
+  card_key: string;
+  front: string;
+  back: string;
+  new: boolean; // never reviewed (always due)
+  due: boolean; // new OR due_at has arrived
+  reps: number;
+  due_at?: string | null;
+}
+
+export interface FlashcardSessionResponse {
+  slug: string;
+  path: string;
+  ok: boolean;
+  title?: string | null;
+  total: number;
+  due_count: number;
+  cards: FlashcardSessionCard[];
+  error?: string | null;
+}
+
+export interface FlashcardGradeRequest {
+  path: string;
+  card_key: string;
+  grade: FlashcardGrade;
+}
+
+export interface FlashcardGradeResponse {
+  card_key: string;
+  grade: string;
+  ease: number;
+  interval_days: number;
+  reps: number;
+  lapses: number;
+  last_review_at?: string | null;
+  due_at?: string | null;
+}
