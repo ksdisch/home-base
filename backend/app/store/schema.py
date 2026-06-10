@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -125,6 +125,25 @@ STATEMENTS = [
         completed   INTEGER NOT NULL DEFAULT 0,
         updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (course_slug, lesson_id)
+    )
+    """,
+    # Phase 7 M3 (v4): per-card SM-2 state for course flashcard decks. Self-graded reviews —
+    # not quiz attempts — so this lives apart from question_mastery and the quiz-side aggregates
+    # never need a flashcard guard. Deck content stays on disk; card_key = sha1(front)[:16]
+    # (the question_key recipe), so state survives reordering and an edited front is a new card.
+    """
+    CREATE TABLE IF NOT EXISTS flashcard_mastery (
+        course_slug    TEXT NOT NULL,
+        deck_path      TEXT NOT NULL,
+        card_key       TEXT NOT NULL,
+        last_grade     TEXT,
+        ease           REAL NOT NULL DEFAULT 2.5,
+        interval_days  REAL NOT NULL DEFAULT 0,
+        reps           INTEGER NOT NULL DEFAULT 0,
+        lapses         INTEGER NOT NULL DEFAULT 0,
+        last_review_at TEXT,
+        due_at         TEXT,
+        PRIMARY KEY (course_slug, deck_path, card_key)
     )
     """,
 ]

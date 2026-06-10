@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -447,3 +447,74 @@ class CourseQuizzesResponse(BaseModel):
     slug: str
     generated_at: str
     quizzes: List[CourseQuizState] = []
+
+
+# -- Course flashcards (Phase 7 M3) ---------------------------------------------
+# A deck is reviewed card-by-card, self-graded Anki-style (again/hard/good/easy → SM-2 quality
+# 2/3/4/5). Unlike quizzes there is NO answer-key invariant: front + back both belong on the
+# client — the learner grades themselves. State lives in the hub's ``flashcard_mastery`` table.
+
+class CourseFlashcardDeckState(BaseModel):
+    """A course flashcard deck + the learner's review state (derived from ``flashcard_mastery``;
+    due counts computed on read, nothing stored). ``path`` doubles as the deck id."""
+
+    path: str
+    lesson_id: str
+    module_id: str
+    title: str
+    card_count: int = 0
+    tracked_cards: int = 0   # cards with SM-2 state (reviewed at least once)
+    due_cards: int = 0       # of those, how many are due for review now
+    last_review_at: Optional[str] = None
+
+
+class CourseFlashcardsResponse(BaseModel):
+    slug: str
+    generated_at: str
+    decks: List[CourseFlashcardDeckState] = []
+
+
+class FlashcardSessionCard(BaseModel):
+    """One card in a review session, with the state the player orders/queues by. ``new`` means
+    never reviewed (always due); ``due`` means new OR ``due_at`` has arrived."""
+
+    card_key: str
+    front: str
+    back: str
+    new: bool = True
+    due: bool = True
+    reps: int = 0
+    due_at: Optional[str] = None
+
+
+class FlashcardSessionResponse(BaseModel):
+    """A deck fetched for review, ordered most-overdue → new → not-yet-due. Like
+    QuizPrepareResponse, never a 500: a missing/escaping/non-deck path degrades to ok=False."""
+
+    slug: str
+    path: str
+    ok: bool = True
+    title: Optional[str] = None
+    total: int = 0
+    due_count: int = 0
+    cards: List[FlashcardSessionCard] = []
+    error: Optional[str] = None
+
+
+class FlashcardGradeRequest(BaseModel):
+    path: str
+    card_key: str
+    grade: Literal["again", "hard", "good", "easy"]  # junk grades 422 before reaching the store
+
+
+class FlashcardGradeResponse(BaseModel):
+    """The card's advanced SM-2 state, echoed back so the player can show "next due"."""
+
+    card_key: str
+    grade: str
+    ease: float
+    interval_days: float
+    reps: int
+    lapses: int
+    last_review_at: Optional[str] = None
+    due_at: Optional[str] = None

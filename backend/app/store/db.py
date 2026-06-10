@@ -390,6 +390,136 @@ def course_quiz_progress(
     return out
 
 
+# -- course flashcard review (Phase 7 M3) ---------------------------------------
+# Deck content lives on disk; per-card SM-2 state lives here in ``flashcard_mastery``. A review
+# is self-graded (again/hard/good/easy), not a quiz attempt — so none of the quiz-side tables
+# (attempts / question_mastery / topic_mastery) are touched.
+
+def record_flashcard_review(
+    course_slug: str,
+    deck_path: str,
+    card_key: str,
+    grade: str,
+    *,
+    now: Optional[datetime] = None,
+    db_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Advance one card's SM-2 state from a self-grade and return the new state.
+
+    Maps the grade through :func:`scheduler.quality_from_grade` (``ValueError`` on junk — the
+    API validates first), advances off the card's previous row exactly like
+    :func:`record_attempt` does for questions, and writes an ``activity`` row
+    (``kind='flashcard_review'`` under the course's ``course:<slug>`` namespace) so the
+    source-agnostic streak counts the study. ``now`` is injectable for deterministic tests.
+    """
+    quality = scheduler.quality_from_grade(grade)
+    now_dt = now or scheduler.now_utc()
+    conn = connect(db_path)
+    try:
+        prev = conn.execute(
+            "SELECT ease, interval_days, reps, lapses FROM flashcard_mastery "
+            "WHERE course_slug = ? AND deck_path = ? AND card_key = ?",
+            (course_slug, deck_path, card_key),
+        ).fetchone()
+        state = scheduler.next_state(
+            ease=prev["ease"] if prev else scheduler.INITIAL_EASE,
+            interval_days=prev["interval_days"] if prev else 0.0,
+            reps=prev["reps"] if prev else 0,
+            lapses=prev["lapses"] if prev else 0,
+            quality=quality,
+            now=now_dt,
+        )
+        conn.execute(
+            """
+            INSERT INTO flashcard_mastery
+                (course_slug, deck_path, card_key, last_grade,
+                 ease, interval_days, reps, lapses, last_review_at, due_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(course_slug, deck_path, card_key)
+            DO UPDATE SET last_grade = excluded.last_grade,
+                          ease = excluded.ease,
+                          interval_days = excluded.interval_days,
+                          reps = excluded.reps,
+                          lapses = excluded.lapses,
+                          last_review_at = excluded.last_review_at,
+                          due_at = excluded.due_at
+            """,
+            (
+                course_slug, deck_path, card_key, grade,
+                state.ease, state.interval_days, state.reps, state.lapses,
+                scheduler.fmt_ts(state.last_review_at), scheduler.fmt_ts(state.due_at),
+            ),
+        )
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), ?, ?)",
+            (f"course:{course_slug}", "flashcard_review"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {
+        "card_key": card_key,
+        "grade": grade,
+        "ease": state.ease,
+        "interval_days": state.interval_days,
+        "reps": state.reps,
+        "lapses": state.lapses,
+        "last_review_at": scheduler.fmt_ts(state.last_review_at),
+        "due_at": scheduler.fmt_ts(state.due_at),
+    }
+
+
+def flashcard_card_states(
+    course_slug: str, deck_path: str, *, db_path: Optional[Path] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Per-card SM-2 state for one deck, keyed by ``card_key``. Pure read."""
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT card_key, last_grade, ease, interval_days, reps, lapses, "
+            "last_review_at, due_at FROM flashcard_mastery "
+            "WHERE course_slug = ? AND deck_path = ?",
+            (course_slug, deck_path),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {r["card_key"]: dict(r) for r in rows}
+
+
+def course_flashcard_progress(
+    course_slug: str, *, now: Optional[datetime] = None, db_path: Optional[Path] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Per-deck review stats for a course, keyed by ``deck_path``: how many cards have SM-2
+    state (``tracked_cards``), how many of those are due now (``due_cards``, per ``due_at``
+    against the injectable ``now``), and the most recent review. Mirrors
+    :func:`course_quiz_progress`. Pure read — never writes."""
+    from . import mastery  # local import: mastery imports db, so defer to avoid a load-time cycle
+
+    now_dt = now or scheduler.now_utc()
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT deck_path, due_at, last_review_at FROM flashcard_mastery "
+            "WHERE course_slug = ?",
+            (course_slug,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    out: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        slot = out.setdefault(
+            r["deck_path"], {"tracked_cards": 0, "due_cards": 0, "last_review_at": None}
+        )
+        slot["tracked_cards"] += 1
+        if mastery.item_is_due(r["due_at"], now_dt):
+            slot["due_cards"] += 1
+        last = slot["last_review_at"]
+        if last is None or (r["last_review_at"] or "") > last:
+            slot["last_review_at"] = r["last_review_at"]
+    return out
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

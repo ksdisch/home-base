@@ -17,6 +17,7 @@ This module is **read-only**; it never writes under a course dir."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -304,6 +305,35 @@ def read_material(slug: str, rel_path: str) -> Dict[str, Any]:
         except json.JSONDecodeError as e:
             raise CourseError(f"invalid JSON in {rel_path}: {e}") from e
     return {"path": rel_path, "kind": "text", "text": text}
+
+
+def card_key(front: str) -> str:
+    """Stable per-card identity for SM-2 tracking — the ``question_key`` recipe (sha1[:16]),
+    so state survives deck reordering and an edited front is honestly a new card."""
+    return hashlib.sha1(front.encode("utf-8")).hexdigest()[:16]
+
+
+def load_flashcard_deck(slug: str, rel_path: str) -> List[Dict[str, str]]:
+    """A flashcard deck as ``[{key, front, back}]``, path-confined to the course dir.
+
+    Cards with a duplicate front collapse to the first occurrence (same front ⇒ same key ⇒ same
+    SM-2 row, so keeping both would just double-review one identity). Raises ``CourseError`` for
+    a missing course / escaping path / a file that isn't a well-formed ``[{front, back}]`` deck.
+    """
+    target = material_path(slug, rel_path)
+    if errors := _validate_flashcards_file(target):
+        raise CourseError(f"not a flashcard deck: {errors[0]}")
+    data = json.loads(target.read_text(encoding="utf-8"))
+    out: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for c in data:
+        front = str(c["front"]).strip() if isinstance(c.get("front"), str) else str(c["front"])
+        key = card_key(front)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"key": key, "front": front, "back": str(c["back"])})
+    return out
 
 
 def _validate_quiz_file(path: Path) -> List[str]:

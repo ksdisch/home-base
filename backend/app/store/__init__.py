@@ -3,7 +3,9 @@
 from .db import (
     add_custom_topic,
     connect,
+    course_flashcard_progress,
     course_quiz_progress,
+    flashcard_card_states,
     get_course_progress,
     get_custom_topic,
     get_episode_progress,
@@ -11,6 +13,7 @@ from .db import (
     list_custom_topics,
     list_reflections,
     record_attempt,
+    record_flashcard_review,
     save_reflection,
     set_episode_listened,
     set_lesson_completed,
@@ -32,4 +35,7 @@ __all__ = [
     "get_course_progress",
     "set_lesson_completed",
     "course_quiz_progress",
+    "course_flashcard_progress",
+    "flashcard_card_states",
+    "record_flashcard_review",
 ]

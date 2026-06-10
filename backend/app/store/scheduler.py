@@ -54,6 +54,24 @@ def fmt_ts(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
+# M3 flashcards: the Anki-style self-grade buttons, in escalating SM-2 quality order.
+GRADES = ("again", "hard", "good", "easy")
+_GRADE_QUALITY = {"again": 2, "hard": 3, "good": 4, "easy": 5}
+
+
+def quality_from_grade(grade: str) -> int:
+    """Map a flashcard self-grade to an SM-2 quality (again→2 lapse, hard→3, good→4, easy→5).
+
+    ``good`` is SM-2's neutral grade (the ease delta at q=4 is exactly 0), so steady "good"
+    reviews grow the interval without drifting ease. Unknown grades raise ``ValueError`` —
+    the API layer turns that into a 422 via a ``Literal`` before it can reach here.
+    """
+    try:
+        return _GRADE_QUALITY[grade]
+    except KeyError:
+        raise ValueError(f"unknown grade {grade!r}; expected one of {GRADES}") from None
+
+
 def quality_from_signal(correct: bool, used_hint: bool) -> int:
     """Map the hub's grading signal to an SM-2 quality (0–5).
 
