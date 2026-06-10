@@ -24,6 +24,24 @@ def test_quality_from_signal_maps_three_cases():
     assert s.quality_from_signal(correct=True, used_hint=False) == 5   # clean → good pass
 
 
+def test_quality_from_grade_maps_the_four_buttons():
+    # M3 flashcards: Anki-style self-grades onto the SM-2 quality scale.
+    assert s.quality_from_grade("again") == 2  # lapse
+    assert s.quality_from_grade("hard") == 3
+    assert s.quality_from_grade("good") == 4   # SM-2's neutral: ease delta is exactly 0
+    assert s.quality_from_grade("easy") == 5
+
+
+def test_quality_from_grade_rejects_junk():
+    with pytest.raises(ValueError):
+        s.quality_from_grade("meh")
+
+
+def test_good_grade_leaves_ease_unchanged():
+    st = s.next_state(quality=s.quality_from_grade("good"), now=NOW)
+    assert st.ease == pytest.approx(s.INITIAL_EASE)
+
+
 # -- fresh item progression ----------------------------------------------------
 
 def test_first_clean_pass_schedules_one_day_out():

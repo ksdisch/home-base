@@ -93,3 +93,32 @@ def test_fresh_store_has_sr_columns_and_is_reentrant(tmp_path):
     # Re-running init_db must be a clean no-op (idempotent ALTERs).
     init_db(db)
     assert _SR_COLUMNS <= _columns(db, "question_mastery")
+
+
+# -- Phase-7 M3 (v4): the flashcard_mastery table --------------------------------
+
+_FM_COLUMNS = {
+    "course_slug", "deck_path", "card_key", "last_grade",
+    "ease", "interval_days", "reps", "lapses", "last_review_at", "due_at",
+}
+
+
+def test_v4_adds_flashcard_mastery_to_old_and_fresh_stores(tmp_path):
+    # An old (v2) store gains the table on upgrade, alongside the v3 columns...
+    old = tmp_path / "old.sqlite"
+    _make_v2_store(old)
+    init_db(old)
+    assert _FM_COLUMNS <= _columns(old, "flashcard_mastery")
+
+    # ...a fresh store has it straight from STATEMENTS, and re-init is a no-op.
+    fresh = tmp_path / "fresh.sqlite"
+    init_db(fresh)
+    init_db(fresh)
+    assert _FM_COLUMNS <= _columns(fresh, "flashcard_mastery")
+
+    conn = connect(fresh)
+    try:
+        versions = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations")}
+    finally:
+        conn.close()
+    assert 4 in versions
