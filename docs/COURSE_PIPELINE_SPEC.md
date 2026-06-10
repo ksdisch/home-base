@@ -1,7 +1,7 @@
 # Course Pipeline — Vision & Architecture Spec
 
 _The "autonomous course creation" epic. Agreed via the `/autonomous-milestone` brainstorm
-(2026-06-07). This is the multi-milestone vision; `docs/PHASE6_PLAN.md` is the concrete first
+(2026-06-07). This is the multi-milestone vision; `docs/PHASE7_PLAN.md` is the concrete first
 slice. Source of truth for **what** a course is and **how** the pipeline builds one._
 
 ## One-line vision
@@ -139,7 +139,7 @@ generated courses and the shipped example coexist.
 
 ## Roadmap (milestones)
 
-- **M1 — Slice (this milestone, `docs/PHASE6_PLAN.md`):** the manifest format + disk/SQLite
+- **M1 — Slice (this milestone, `docs/PHASE7_PLAN.md`):** the manifest format + disk/SQLite
   split, backend read+track API, a Courses list + Course-detail UI, the `course-builder` skill +
   `/build-course` command + `app.courses.cli` bridge, and one bundled example course end-to-end.
 - **M2 — Practice fully interactive:** take a course quiz in the existing quiz player (route it
