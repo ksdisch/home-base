@@ -68,3 +68,7 @@ session only if `nlm`/MCP is configured there).
 > version, re-run that command and re-port it. The `custom_topics` CLI writer that
 > `youtube-breakdown` uses is built (`backend/app/topics/custom.py`); surfacing custom topics on
 > the hub home remains Phase-5 UI work (see `BACKLOG.md`).
+
+## Operating Constraints
+
+@.claude/operating-constraints.md
