@@ -44,19 +44,31 @@ def _canon(value: Any) -> str:
     return str(value).strip().lower() if value is not None else ""
 
 
+def _match_truncated(aid: str, truncated_ids: set[str], claimed: set[str]) -> str | None:
+    """A truncated sidecar id (``id_complete=False``) is a prefix of the full live id — READMEs
+    often shorten artifact ids, so match it to its live id instead of doubling the artifact. Only a
+    unique, unclaimed truncated prefix wins; ambiguity falls through to an nlm-only entry."""
+    prefixes = [s for s in truncated_ids if s and aid.startswith(s) and s not in claimed]
+    return prefixes[0] if len(prefixes) == 1 else None
+
+
 def reconcile(
     sidecar_artifacts: List[RawArtifact], studio_artifacts: List[Dict[str, Any]]
 ) -> ReconcileResult:
     # Canonicalize ids on BOTH sides so case/whitespace never splits one artifact into two.
     by_canon: Dict[str, RawArtifact] = {}
     sidecar_ids = set()
+    truncated_ids = set()  # id_complete=False ids, eligible to prefix-match a full live id
     for a in sidecar_artifacts:
         c = _canon(a.artifact_id)
         sidecar_ids.add(c)
         by_canon[c] = a
+        if not a.id_complete:
+            truncated_ids.add(c)
 
-    live_ids = set()
     live_status: Dict[str, str] = {}
+    claimed_sidecar_ids = set()  # sidecar ids a live artifact reconciled to (exact or truncated)
+    nlm_only: List[str] = []
 
     for raw in studio_artifacts or []:
         if not isinstance(raw, dict):
@@ -64,7 +76,6 @@ def reconcile(
         aid = _canon(raw.get("id"))
         if not aid:  # null / empty / whitespace-only id -> not an artifact
             continue
-        live_ids.add(aid)
 
         raw_status = raw.get("status")
         status = (str(raw_status).strip() or None) if raw_status is not None else None
@@ -72,16 +83,22 @@ def reconcile(
         if status:
             live_status[aid] = status
 
-        if aid in by_canon:
-            existing = by_canon[aid]
+        # Reconcile to a sidecar artifact by exact canon id, else a truncated sidecar id that
+        # prefixes this full live id, else fall back to an nlm-only entry already created for `aid`.
+        key = aid if aid in by_canon else _match_truncated(aid, truncated_ids, claimed_sidecar_ids)
+        if key is not None:
+            if key in sidecar_ids:
+                claimed_sidecar_ids.add(key)
+            existing = by_canon[key]
             new_type = existing.type if existing.type != "unknown" else ntype
-            by_canon[aid] = replace(
+            by_canon[key] = replace(
                 existing,
                 type=new_type,
                 status=status or existing.status,
                 source=(existing.source + "+nlm") if "nlm" not in existing.source else existing.source,
             )
         else:
+            nlm_only.append(aid)
             by_canon[aid] = RawArtifact(
                 artifact_id=aid,
                 type=ntype,
@@ -90,12 +107,11 @@ def reconcile(
                 source="nlm",
             )
 
-    nlm_only = sorted(aid for aid in live_ids if aid not in sidecar_ids)
-    sidecar_only = sorted(sidecar_ids - live_ids)
+    sidecar_only = sorted(sidecar_ids - claimed_sidecar_ids)
 
     return ReconcileResult(
         artifacts=list(by_canon.values()),
-        nlm_only_ids=nlm_only,
+        nlm_only_ids=sorted(nlm_only),
         sidecar_only_ids=sidecar_only,
         live_status=live_status,
         live_missing_ids=sidecar_only,  # in sidecar but not live
