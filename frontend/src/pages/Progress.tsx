@@ -229,6 +229,14 @@ export default function Progress() {
     };
   }, []);
 
+  // The page fuses three independent endpoints. Each section is shown based on ITS OWN data, not on
+  // whether a quiz has been graded — reflections and listens write activity + reflection rows with no
+  // attempt, so gating the whole block on progress.has_data hid the journal + activity strip for
+  // reflections-only / listen-only users.
+  const hasActivity = (data?.activity ?? []).some((d) => d.count > 0);
+  const hasAnything =
+    !!data?.has_data || hasActivity || !!review?.has_data || !!reflections?.has_data;
+
   return (
     <div>
       <div className="mb-6">
@@ -254,7 +262,7 @@ export default function Progress() {
         </div>
       )}
 
-      {data && !data.has_data && (
+      {data && !hasAnything && (
         <Banner tone="info" title="No attempts yet">
           Take a quiz from any topic to start building your score history.{" "}
           <Link to="/" className="font-medium underline">
@@ -263,42 +271,49 @@ export default function Progress() {
         </Banner>
       )}
 
-      {data && data.has_data && (
+      {data && hasAnything && (
         <div className="space-y-8">
-          {/* Review next — the actionable headline */}
+          {/* Review next — the actionable headline (self-guards on review.has_data) */}
           <ReviewNext review={review} />
 
-          {/* Summary band */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            <Stat label="Attempts" value={String(data.summary.attempts_total)} />
-            <Stat label="Avg score" value={`${Math.round(data.summary.avg_pct)}%`} />
-            <Stat label="Topics" value={String(data.summary.topics_practiced)} hint="Topics you've practiced" />
-            <Stat
-              label="Streak"
-              value={data.summary.current_streak > 0 ? `🔥 ${data.summary.current_streak}` : "0"}
-              hint="Consecutive days with activity"
-            />
-            <Stat label="Best streak" value={String(data.summary.longest_streak)} />
-          </div>
-
-          {/* Activity strip */}
-          <section>
-            <h2 className="mb-2 text-sm font-semibold text-ink">Recent activity</h2>
-            <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
-              <ActivityStrip days={data.activity} />
-              <p className="mt-2 text-xs text-muted">Last {data.activity.length} days · last touched {shortDate(data.summary.last_activity)}</p>
+          {/* Summary band — quiz-attempt stats; only meaningful once a quiz has been graded */}
+          {data.has_data && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <Stat label="Attempts" value={String(data.summary.attempts_total)} />
+              <Stat label="Avg score" value={`${Math.round(data.summary.avg_pct)}%`} />
+              <Stat label="Topics" value={String(data.summary.topics_practiced)} hint="Topics you've practiced" />
+              <Stat
+                label="Streak"
+                value={data.summary.current_streak > 0 ? `🔥 ${data.summary.current_streak}` : "0"}
+                hint="Consecutive days with activity"
+              />
+              <Stat label="Best streak" value={String(data.summary.longest_streak)} />
             </div>
-          </section>
+          )}
 
-          {/* Per-topic trends */}
-          <section>
-            <h2 className="mb-2 text-sm font-semibold text-ink">By topic</h2>
-            <div className="space-y-3">
-              {data.topics.map((t) => (
-                <TopicRow key={t.notebook_id} t={t} />
-              ))}
-            </div>
-          </section>
+          {/* Activity strip — driven by activity rows (reflections/listens too), so show it
+              whenever there's any activity, not only after a quiz is graded */}
+          {hasActivity && (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold text-ink">Recent activity</h2>
+              <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
+                <ActivityStrip days={data.activity} />
+                <p className="mt-2 text-xs text-muted">Last {data.activity.length} days · last touched {shortDate(data.summary.last_activity)}</p>
+              </div>
+            </section>
+          )}
+
+          {/* Per-topic trends — quiz-attempt data */}
+          {data.has_data && (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold text-ink">By topic</h2>
+              <div className="space-y-3">
+                {data.topics.map((t) => (
+                  <TopicRow key={t.notebook_id} t={t} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Shaky spots */}
           {data.shaky.length > 0 && (
