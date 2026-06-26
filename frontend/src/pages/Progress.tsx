@@ -215,14 +215,19 @@ export default function Progress() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([api.progress(), api.review(), api.reflections()])
+    // Each section renders off its OWN endpoint (see below), so fetch them independently: a single
+    // flaky call must degrade only its own section, not blank the whole dashboard. The error banner
+    // shows only if EVERY endpoint failed.
+    Promise.allSettled([api.progress(), api.review(), api.reflections()])
       .then(([p, r, refl]) => {
         if (!alive) return;
-        setData(p);
-        setReview(r);
-        setReflections(refl);
+        if (p.status === "fulfilled") setData(p.value);
+        if (r.status === "fulfilled") setReview(r.value);
+        if (refl.status === "fulfilled") setReflections(refl.value);
+        if (p.status === "rejected" && r.status === "rejected" && refl.status === "rejected") {
+          setError((p.reason instanceof Error && p.reason.message) || "Failed to load progress");
+        }
       })
-      .catch((e) => alive && setError(e.message ?? "Failed to load progress"))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
