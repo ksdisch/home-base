@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
+
 from app.catalog.build import to_groups, to_topic_detail
 from app.catalog.ingest import find_sidecar, load_sidecars
+from app.catalog.sidecar import parse_sidecar
 
 
 def test_load_never_crashes_and_skips_unusable(crafted_root):
@@ -68,6 +71,37 @@ def test_truncated_ids_in_interview_prep(crafted_root):
     assert len(sc.artifacts) == 4
     detail = to_topic_detail(sc, sc.artifacts, {})
     assert sorted(e.n for e in detail.episodes) == [1, 2]
+
+
+def test_bom_prefixed_readme_and_map_still_parse(tmp_path):
+    """A UTF-8 BOM must not defeat parsing: a BOM before the README frontmatter would otherwise
+    break the `---` detection (losing notebook_id/title), and a BOM before the artifact-map JSON
+    would break json.loads. Both files are read as utf-8-sig."""
+    nb = tmp_path / "bom-notebook"
+    (nb / "artifacts").mkdir(parents=True)
+    nid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    aid = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    # BOM (﻿) before the frontmatter; NO notebook URL in the body, so only successful
+    # frontmatter parsing can yield a notebook_id (URL recovery can't rescue it).
+    (nb / "README.md").write_text(
+        "﻿---\n"
+        f"notebook_id: {nid}\n"
+        "title: BOM Topic\n"
+        "template: learning-topic\n"
+        "---\n\n# BOM Topic\n",
+        encoding="utf-8",
+    )
+    # BOM before the artifact-map JSON.
+    (nb / "artifacts" / "audio-series-artifact-map.json").write_text(
+        "﻿" + json.dumps({"notebook_id": nid, "audio": {"1": {"id": aid, "title": "Ep 1"}}}),
+        encoding="utf-8",
+    )
+
+    sc = parse_sidecar(nb / "README.md")
+    assert sc is not None
+    assert sc.notebook_id == nid  # from frontmatter (no URL to recover from)
+    assert sc.title == "BOM Topic"  # frontmatter title -> frontmatter actually parsed
+    assert any(a.artifact_id == aid for a in sc.artifacts)  # BOM-prefixed map still parsed
 
 
 def _id(root, dir_name: str) -> str:

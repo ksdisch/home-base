@@ -117,7 +117,8 @@ def parse_sidecar(readme_path: Path) -> Optional[ParsedSidecar]:
     dir_name = readme_path.parent.name
     warnings: List[str] = []
     try:
-        text = readme_path.read_text(encoding="utf-8", errors="replace")
+        # utf-8-sig strips a leading BOM if present (else == utf-8); a BOM would defeat frontmatter.
+        text = readme_path.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return None
     fm, body = parse_frontmatter(text)
@@ -163,7 +164,8 @@ def parse_sidecar(readme_path: Path) -> Optional[ParsedSidecar]:
     map_path = readme_path.parent / "artifacts" / "audio-series-artifact-map.json"
     if map_path.exists():
         try:
-            data = json.loads(map_path.read_text(encoding="utf-8", errors="replace"))
+            # utf-8-sig: a leading BOM would otherwise make json.loads reject the map.
+            data = json.loads(map_path.read_text(encoding="utf-8-sig", errors="replace"))
             artifacts.extend(parse_artifact_map(data))
         except Exception as e:
             warnings.append(f"artifact-map parse skipped: {e}")
