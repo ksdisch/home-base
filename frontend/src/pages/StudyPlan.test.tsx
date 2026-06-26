@@ -84,4 +84,19 @@ describe("StudyPlan page", () => {
     await user.click(screen.getByRole("button", { name: "45m" }));
     await waitFor(() => expect(studyPlan).toHaveBeenCalledWith(45));
   });
+
+  it("clears a stale error when a later plan request succeeds", async () => {
+    studyPlan.mockRejectedValueOnce(new Error("plan failed")); // first budget (20m) errors
+    studyPlan.mockResolvedValue(DUE_PLAN); // a later budget succeeds
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText(/plan failed/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "45m" }));
+    expect(await screen.findByText("Stoicism")).toBeInTheDocument();
+    // The stale error from the failed 20m request must not linger over the new plan.
+    expect(screen.queryByText(/plan failed/i)).not.toBeInTheDocument();
+  });
 });
