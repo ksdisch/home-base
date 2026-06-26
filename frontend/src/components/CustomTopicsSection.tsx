@@ -13,6 +13,7 @@ export function CustomTopicsSection() {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
+    setError(null); // clear any stale error before refetching
     return api
       .customTopics()
       .then((r) => setTopics(r.topics))

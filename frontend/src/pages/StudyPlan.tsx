@@ -76,6 +76,7 @@ export default function StudyPlan() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setError(null); // clear any stale error before refetching (e.g. when the minute budget changes)
     api
       .studyPlan(minutes)
       .then((p) => alive && setPlan(p))
