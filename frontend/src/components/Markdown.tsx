@@ -117,18 +117,23 @@ export function Markdown({
       quote = [];
     }
   };
+  const flushCode = () => {
+    if (code !== null) {
+      blocks.push(
+        <pre key={`c${k++}`} className="overflow-x-auto rounded-lg bg-stone-900 p-3 text-xs text-stone-100">
+          <code>{code.join("\n")}</code>
+        </pre>,
+      );
+      code = null;
+    }
+  };
 
   for (const raw of lines) {
     const line = raw.trimEnd();
 
     if (code !== null) {
       if (line.trim().startsWith("```")) {
-        blocks.push(
-          <pre key={`c${k++}`} className="overflow-x-auto rounded-lg bg-stone-900 p-3 text-xs text-stone-100">
-            <code>{code.join("\n")}</code>
-          </pre>,
-        );
-        code = null;
+        flushCode();
       } else {
         code.push(raw);
       }
@@ -187,7 +192,7 @@ export function Markdown({
       para.push(line);
     }
   }
-  flushPara(); flushList(); flushQuote();
+  flushPara(); flushList(); flushQuote(); flushCode(); // flushCode: render any unterminated fence
 
   return <div className={className ? `space-y-3 ${className}` : "space-y-3"}>{blocks}</div>;
 }
