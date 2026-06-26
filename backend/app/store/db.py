@@ -211,13 +211,16 @@ def record_attempt(
             if qkey is not None:
                 # Raw mastery signal: clean-correct=1.0, hinted-correct=0.5, miss=0.0.
                 qscore = (0.5 if used_hint else 1.0) if correct else 0.0
-                miss = 0 if correct else 1
                 # Advance this question's SM-2 state off whatever it was before.
                 prev = conn.execute(
-                    "SELECT ease, interval_days, reps, lapses FROM question_mastery "
+                    "SELECT ease, interval_days, reps, lapses, miss_count FROM question_mastery "
                     "WHERE notebook_id = ? AND quiz_artifact_id = ? AND question_key = ?",
                     (notebook_id, quiz_artifact_id, qkey),
                 ).fetchone()
+                # miss_count tracks CONSECUTIVE (unresolved) misses — how shaky this question is
+                # *now*: a correct answer clears it, a miss bumps it. Accumulating forever would keep
+                # a long-since-mastered question flagged shaky and over-ranked for review.
+                miss_count = 0 if correct else (prev["miss_count"] if prev else 0) + 1
                 state = scheduler.next_state(
                     ease=prev["ease"] if prev else scheduler.INITIAL_EASE,
                     interval_days=prev["interval_days"] if prev else 0.0,
@@ -234,7 +237,7 @@ def record_attempt(
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(notebook_id, quiz_artifact_id, question_key)
                     DO UPDATE SET score = excluded.score,
-                                  miss_count = question_mastery.miss_count + ?,
+                                  miss_count = excluded.miss_count,
                                   last_review_at = excluded.last_review_at,
                                   ease = excluded.ease,
                                   interval_days = excluded.interval_days,
@@ -243,9 +246,9 @@ def record_attempt(
                                   due_at = excluded.due_at
                     """,
                     (
-                        notebook_id, quiz_artifact_id, qkey, qscore, miss, now_str,
+                        notebook_id, quiz_artifact_id, qkey, qscore, miss_count, now_str,
                         state.ease, state.interval_days, state.reps, state.lapses,
-                        scheduler.fmt_ts(state.due_at), miss,
+                        scheduler.fmt_ts(state.due_at),
                     ),
                 )
 
