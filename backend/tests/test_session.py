@@ -178,13 +178,14 @@ def test_duplicate_stem_questions_get_distinct_mastery_keys(tmp_path):
     }
     f = tmp_path / "dup.json"
     f.write_text(json.dumps(quiz), encoding="utf-8")
-    prep = session.cmd_prepare(NB, QUIZ, from_file=str(f))
+    nb = "nb-dup-stem"  # isolated id — the session-scoped test DB accumulates rows across tests
+    prep = session.cmd_prepare(nb, QUIZ, from_file=str(f))
     session.cmd_grade(prep["session_id"], {"0": 0, "1": 1})  # q0 correct, q1 wrong
 
     conn = connect()
     try:
         n = conn.execute(
-            "SELECT COUNT(*) c FROM question_mastery WHERE notebook_id = ?", (NB,)
+            "SELECT COUNT(*) c FROM question_mastery WHERE notebook_id = ?", (nb,)
         ).fetchone()["c"]
         assert n == 2  # two distinct questions -> two rows, not collapsed to one
     finally:
