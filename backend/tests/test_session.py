@@ -140,6 +140,29 @@ def test_miss_increments_question_miss_count():
         conn.close()
 
 
+def test_correct_answer_resets_question_miss_count():
+    """miss_count tracks *unresolved* misses: a correct answer must clear it. Otherwise a
+    long-since-mastered question stays flagged shaky and over-ranked for review forever
+    (mastery.review_priority weights miss_count; shaky_questions counts miss_count > 0)."""
+    prep = _prepare()
+    qkey = session.question_key(prep["questions"][0]["question"])
+    correct = _correct_index(prep, 0)
+    wrong = 0 if correct != 0 else 1
+
+    session.cmd_grade(prep["session_id"], {"0": wrong})    # miss -> miss_count 1
+    session.cmd_grade(prep["session_id"], {"0": correct})  # correct -> must reset to 0
+
+    conn = connect()
+    try:
+        miss = conn.execute(
+            "SELECT miss_count FROM question_mastery WHERE notebook_id = ? AND question_key = ?",
+            (NB, qkey),
+        ).fetchone()["miss_count"]
+        assert miss == 0
+    finally:
+        conn.close()
+
+
 def test_grade_rejects_session_id_path_traversal():
     """A crafted session_id must not escape the sessions dir to read an arbitrary *.json (CWE-22).
 
