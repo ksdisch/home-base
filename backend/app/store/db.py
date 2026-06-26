@@ -178,14 +178,15 @@ def record_attempt(
     """
     now_dt = now or scheduler.now_utc()
     now_str = scheduler.fmt_ts(now_dt)
+    now_date = now_str[:10]  # "YYYY-MM-DD" — the injected day for activity rows
     conn = connect(db_path)
     try:
         cur = conn.execute(
             """
             INSERT INTO attempts (notebook_id, quiz_artifact_id, finished_at, score, total)
-            VALUES (?, ?, datetime('now'), ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (notebook_id, quiz_artifact_id, score, total),
+            (notebook_id, quiz_artifact_id, now_str, score, total),
         )
         attempt_id = int(cur.lastrowid)
 
@@ -256,30 +257,30 @@ def record_attempt(
         conn.execute(
             """
             INSERT INTO topic_mastery (notebook_id, score, last_review_at)
-            VALUES (?, ?, datetime('now'))
+            VALUES (?, ?, ?)
             ON CONFLICT(notebook_id)
-            DO UPDATE SET score = excluded.score, last_review_at = datetime('now')
+            DO UPDATE SET score = excluded.score, last_review_at = excluded.last_review_at
             """,
-            (notebook_id, frac),
+            (notebook_id, frac, now_str),
         )
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), ?, ?)",
-            (notebook_id, "quiz_attempt"),
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (?, ?, ?)",
+            (now_date, notebook_id, "quiz_attempt"),
         )
 
         if mark_listened and episode_artifact_id:
             conn.execute(
                 """
                 INSERT INTO episode_progress (notebook_id, artifact_id, listened, updated_at)
-                VALUES (?, ?, 1, datetime('now'))
+                VALUES (?, ?, 1, ?)
                 ON CONFLICT(notebook_id, artifact_id)
-                DO UPDATE SET listened = 1, updated_at = datetime('now')
+                DO UPDATE SET listened = 1, updated_at = excluded.updated_at
                 """,
-                (notebook_id, episode_artifact_id),
+                (notebook_id, episode_artifact_id, now_str),
             )
             conn.execute(
-                "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), ?, ?)",
-                (notebook_id, "episode_listened"),
+                "INSERT INTO activity (day, notebook_id, kind) VALUES (?, ?, ?)",
+                (now_date, notebook_id, "episode_listened"),
             )
 
         conn.commit()
