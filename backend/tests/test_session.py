@@ -140,6 +140,25 @@ def test_miss_increments_question_miss_count():
         conn.close()
 
 
+def test_grade_rejects_session_id_path_traversal():
+    """A crafted session_id must not escape the sessions dir to read an arbitrary *.json (CWE-22).
+
+    Legit ids are ``uuid4().hex``; a ``../``-laden id like ``../outside`` would otherwise resolve to
+    ``<cache>/review-sessions/../outside.json`` and grade an attacker-planted file on the unauth'd
+    grade endpoint. Grading must instead refuse it as an unknown session (the same FileNotFoundError
+    the route maps to a 404), never reading outside the sessions dir.
+    """
+    prep = _prepare()
+    legit = session._sessions_dir() / f"{prep['session_id']}.json"
+    # Plant a VALID keyed quiz one level ABOVE the sessions dir — reachable only via traversal.
+    outside = session._sessions_dir().parent / "outside.json"
+    outside.write_text(legit.read_text(encoding="utf-8"), encoding="utf-8")
+
+    answers = {str(q["index"]): _correct_index(prep, q["index"]) for q in prep["questions"]}
+    with pytest.raises(FileNotFoundError):
+        session.cmd_grade("../outside", answers)
+
+
 def test_reflect_persists_reflection():
     out = session.cmd_reflect(NB, "Felt shaky on Hyrum's Law.", episode_artifact_id=EP, grasp_rating=3)
     conn = connect()

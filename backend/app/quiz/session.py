@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -38,6 +39,12 @@ def _sessions_dir() -> Path:
     d = get_settings().cache_dir / "review-sessions"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+# A review session id is exactly the token `prepare` mints — ``uuid.uuid4().hex`` (32 hex chars).
+# Validating a caller-supplied id against this shape keeps it from escaping the sessions dir via
+# path text (``../``, an absolute path, a NUL): a non-matching id can never name a file outside it.
+_SESSION_ID_RE = re.compile(r"[0-9a-f]{32}")
 
 
 def question_key(text: str) -> str:
@@ -116,6 +123,10 @@ def cmd_grade(
     mark_listened: bool = False,
 ) -> Dict[str, Any]:
     """Grade with the offline oracle, persist the attempt, return a full review payload."""
+    # Refuse any id that isn't the minted token shape *before* touching the filesystem — a
+    # path-traversal probe (CWE-22) is then indistinguishable from an expired session (both 404).
+    if not _SESSION_ID_RE.fullmatch(session_id):
+        raise FileNotFoundError(f"Unknown review session: {session_id}")
     session_path = _sessions_dir() / f"{session_id}.json"
     if not session_path.exists():
         raise FileNotFoundError(f"Unknown review session: {session_id}")
