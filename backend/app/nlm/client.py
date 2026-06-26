@@ -210,20 +210,25 @@ class NlmClient:
 
 
 def _parse_json_array(text: str) -> list[dict]:
-    """Parse a JSON array, tolerating a stray log line before the opening bracket."""
+    """Parse a JSON array, tolerating log lines around it — including ones that contain a '['."""
     text = text.strip()
     try:
         data = json.loads(text)
+        return data if isinstance(data, list) else []
     except json.JSONDecodeError:
-        start = text.find("[")
-        if start == -1:
-            raise NlmExecError(
-                "nlm studio status returned no JSON array.", detail=text[:200]
-            )
+        pass
+    # A log line may precede the JSON and may itself contain a '[' (e.g. "[INFO] …"), so anchoring
+    # on the first '[' can fail. Try decoding from EACH '[' until one yields an array; raw_decode
+    # ignores any trailing log output after the array.
+    decoder = json.JSONDecoder()
+    start = text.find("[")
+    if start == -1:
+        raise NlmExecError("nlm studio status returned no JSON array.", detail=text[:200])
+    while start != -1:
         try:
-            data = json.loads(text[start:])
-        except json.JSONDecodeError as e:
-            raise NlmExecError(
-                "Could not parse nlm studio status JSON.", detail=str(e)
-            ) from e
-    return data if isinstance(data, list) else []
+            data, _ = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            start = text.find("[", start + 1)
+            continue
+        return data if isinstance(data, list) else []
+    raise NlmExecError("Could not parse nlm studio status JSON.", detail=text[:200])
