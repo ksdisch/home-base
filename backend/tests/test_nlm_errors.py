@@ -44,3 +44,12 @@ def test_studio_status_parses_json_with_leading_log_line():
     client = NlmClient(runner=_runner_returning(stdout=payload, code=0))
     out = client.studio_status("nb")
     assert out == [{"id": "x", "type": "quiz", "status": "completed"}]
+
+
+def test_studio_status_recovers_json_after_a_bracketed_log_line():
+    """A log line that itself contains '[' (e.g. "[INFO] …") must not break recovery: find('[')
+    grabs the log's bracket and fails on the whole remainder. The real array follows it."""
+    payload = '[INFO] fetching studio status\n[{"id":"x","type":"quiz","status":"completed"}]'
+    client = NlmClient(runner=_runner_returning(stdout=payload, code=0))
+    out = client.studio_status("nb")
+    assert out == [{"id": "x", "type": "quiz", "status": "completed"}]
