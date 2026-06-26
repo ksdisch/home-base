@@ -47,9 +47,15 @@ def _sessions_dir() -> Path:
 _SESSION_ID_RE = re.compile(r"[0-9a-f]{32}")
 
 
-def question_key(text: str) -> str:
-    """Stable per-question identity for mastery tracking (survives reordering / re-downloads)."""
-    return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
+def question_key(text: str, occurrence: int = 0) -> str:
+    """Stable per-question identity for mastery tracking (survives reordering / re-downloads).
+
+    ``occurrence`` disambiguates questions that share a stem within one quiz: the first keeps the
+    bare-stem key (so existing mastery rows are preserved), each later duplicate gets a distinct
+    key — otherwise duplicate stems collide and overwrite each other's per-question SM-2 state.
+    """
+    payload = text if occurrence == 0 else f"{text}\x00#{occurrence}"
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:16]
 
 
 # -- prepare -------------------------------------------------------------------
@@ -145,8 +151,11 @@ def cmd_grade(
     # Build the persistence rows + the human-facing review in one pass over the questions.
     attempt_rows = []
     review = []
+    stem_occurrence: Dict[str, int] = {}
     for q, g in zip(quiz.questions, result.questions):
-        qkey = question_key(q.question)
+        occ = stem_occurrence.get(q.question, 0)
+        stem_occurrence[q.question] = occ + 1
+        qkey = question_key(q.question, occ)
         attempt_rows.append(
             {
                 "question_index": g.index,

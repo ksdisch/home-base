@@ -163,6 +163,35 @@ def test_correct_answer_resets_question_miss_count():
         conn.close()
 
 
+def test_duplicate_stem_questions_get_distinct_mastery_keys(tmp_path):
+    """Two questions that share a stem must not collide onto one question_key — otherwise the
+    second's grade overwrites the first's per-question SM-2/mastery state. Occurrence within the
+    quiz disambiguates same-text questions (the first keeps the bare-stem key for back-compat)."""
+    quiz = {
+        "title": "Dup Stems",
+        "questions": [
+            {"question": "What is 2 + 2?", "answerOptions": [
+                {"text": "4", "isCorrect": True}, {"text": "5", "isCorrect": False}]},
+            {"question": "What is 2 + 2?", "answerOptions": [  # same stem, different options
+                {"text": "four", "isCorrect": True}, {"text": "five", "isCorrect": False}]},
+        ],
+    }
+    f = tmp_path / "dup.json"
+    f.write_text(json.dumps(quiz), encoding="utf-8")
+    nb = "nb-dup-stem"  # isolated id — the session-scoped test DB accumulates rows across tests
+    prep = session.cmd_prepare(nb, QUIZ, from_file=str(f))
+    session.cmd_grade(prep["session_id"], {"0": 0, "1": 1})  # q0 correct, q1 wrong
+
+    conn = connect()
+    try:
+        n = conn.execute(
+            "SELECT COUNT(*) c FROM question_mastery WHERE notebook_id = ?", (nb,)
+        ).fetchone()["c"]
+        assert n == 2  # two distinct questions -> two rows, not collapsed to one
+    finally:
+        conn.close()
+
+
 def test_grade_rejects_session_id_path_traversal():
     """A crafted session_id must not escape the sessions dir to read an arbitrary *.json (CWE-22).
 
