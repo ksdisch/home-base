@@ -1,4 +1,10 @@
-# CLAUDE.md — Learning Hub
+# CLAUDE.md — Home Base
+
+> **Home Base** (renamed from `learning-hub` on 2026-07-13): evolving into Kyle's daily home
+> base — self-updating morning brief + inline notes, with the Learning Hub as the learning
+> section. Source of truth: `docs/KICKOFF-home-base.md`. Current milestone: **M0 — sweep
+> quality week** (manual per-topic sweeps graded daily; no UI until quality passes).
+> Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Claude tooling for this repo
 

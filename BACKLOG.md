@@ -1,7 +1,28 @@
-# Learning Hub — Backlog
+# Home Base — Backlog
 
 _Ideas captured for later. Not committed work; a parking lot so good ideas don't get lost.
 See `SPEC.md` for the agreed product and `docs/PHASE1_PLAN.md` for what's already built._
+
+---
+
+## 🏠 Home Base evolution — Morning Brief (kickoff approved 2026-07-13)
+
+The repo's next arc: evolve the hub into Kyle's daily home base — a self-updating morning
+brief across his topics with inline notes, learning riding along. Full contract:
+[`docs/KICKOFF-home-base.md`](docs/KICKOFF-home-base.md).
+
+- [ ] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
+      manual runs on pilot topics (AI/LLMs · fantasy football · market/tech news); 2-min A–F
+      grade each morning. Go/no-go gate before ANY UI work.
+- [ ] **M1 — the brief page:** home route renders stored sweeps (topic sections · digests ·
+      sources · as-of stamp) + manual refresh + visit log; current home → "Learning" tab.
+- [ ] **M2 — full roster + notes:** all topics with seasonal pause flags (config file), inline
+      notes on brief items, "Your learning" section on home.
+- [ ] **M3 — hands-off:** scheduled sweeps (launchd on-wake catch-up), dedup vs history, cost
+      guardrails, curation polish.
+
+Deferred by the brief: mobile · ESPN league integration · audio brief · auto-courses ·
+breaking-news alerts · public writing · chat-with-brief.
 
 ---
 
