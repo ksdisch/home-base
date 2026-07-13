@@ -1,4 +1,15 @@
-# 📚 Learning Hub
+# 🏠 Home Base
+
+Kyle's daily home base: a self-updating **morning brief** across his topics (AI/LLMs, his
+teams, fantasy football, market/tech news) with inline notes — and the original
+**Learning Hub** riding along as the learning section.
+
+> **Evolving (kickoff approved 2026-07-13):** the contract is
+> [`docs/KICKOFF-home-base.md`](docs/KICKOFF-home-base.md). Current milestone: **M0 — sweep
+> quality week** (de-risk brief quality with zero UI). Repo renamed `learning-hub` →
+> `home-base`; everything below describes the Learning Hub app as it runs today.
+
+## 📚 The Learning Hub (the app today)
 
 A personal, calm learning dashboard that sits on top of your **NotebookLM** notebooks.
 See every topic you're learning in one place, take your NotebookLM-generated quizzes
