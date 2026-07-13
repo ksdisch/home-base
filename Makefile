@@ -1,9 +1,12 @@
 # Learning Hub — local dev. `make dev` is the one command that boots everything.
 .DEFAULT_GOAL := dev
-.PHONY: dev setup test test-frontend lint build typecheck clean
+.PHONY: dev setup test test-frontend lint build typecheck clean sweep
 
 dev: ## Boot backend (:8000) + frontend (:5173) together
 	./dev.sh
+
+sweep: ## M0 morning sweep across pilot topics → data/sweeps/<date>/ (see sweeps/README.md)
+	./sweep.sh
 
 setup: ## Bootstrap venv + frontend deps without running
 	./dev.sh setup

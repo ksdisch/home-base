@@ -35,6 +35,9 @@ venv/
 .cache/
 **/data/cache/
 backend/data/
+
+# M0 sweep outputs — regenerable daily briefs; grade them, don't commit.
+/data/sweeps/
 # nlm CLI default download names (./{notebook_id}_<type>.<ext>) — pre-fix server runs dropped
 # these into backend/, and a quiz one carries the full ANSWER KEY; never let one get added.
 backend/*_quiz.json
