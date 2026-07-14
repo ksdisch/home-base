@@ -36,6 +36,12 @@ class Settings:
             os.environ.get("SWEEPS_DIR", str(backend_dir.parent / "data" / "sweeps"))
         ).expanduser()
 
+        # The topic roster (M2): ordered slugs/titles + manual pause flags, shared by
+        # sweep.sh (which topics to run) and GET /api/brief (titles + display order).
+        self.roster_file = Path(
+            os.environ.get("ROSTER_FILE", str(backend_dir.parent / "sweeps" / "topics.json"))
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 

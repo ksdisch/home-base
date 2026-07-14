@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Home Base — sweep runner (M0 grading loop + M1 brief-page ingest).
 #
-# Runs each pilot topic's sweep prompt through `claude -p` (your Claude subscription)
-# with web search. Since M1, prompts emit strict JSON; sweeps/render_brief.py validates
-# it and writes BOTH data/sweeps/<date>/<topic>.json (what GET /api/brief serves) and
-# the gradeable <topic>.md (same shape as the M0 era — the grading routine is unchanged).
-# Invalid JSON → <topic>.raw.txt + a loud per-topic failure. See sweeps/README.md.
+# Runs each active roster topic's sweep prompt through `claude -p` (your Claude
+# subscription) with web search. Since M1, prompts emit strict JSON; sweeps/render_brief.py
+# validates it and writes BOTH data/sweeps/<date>/<topic>.json (what GET /api/brief serves)
+# and the gradeable <topic>.md (same shape as the M0 era — the grading routine is
+# unchanged). Invalid JSON → <topic>.raw.txt + a loud per-topic failure. See
+# sweeps/README.md.
 #
-#   ./sweep.sh                       # run all pilot topics
-#   TOPIC=ai-llms ./sweep.sh         # run a single topic
+#   ./sweep.sh                       # run every active topic in sweeps/topics.json
+#   TOPIC=ai-llms ./sweep.sh         # run a single topic (works even if paused)
 #   SWEEP_MODEL=sonnet ./sweep.sh    # try a cheaper/faster model
 #
 # Auth: plain `claude -p` uses your logged-in Claude subscription (the lane chosen at
@@ -22,13 +23,6 @@ DATE="$(date +%Y-%m-%d)"
 OUT_DIR="$ROOT/data/sweeps/$DATE"
 MODEL="${SWEEP_MODEL:-opus}"
 
-# Pilot topics for M0 (fixed set from the kickoff brief).
-TOPICS=(ai-llms fantasy-football market-tech-news)
-# `TOPIC=<slug> ./sweep.sh` runs just one.
-if [ -n "${TOPIC:-}" ]; then
-  TOPICS=("$TOPIC")
-fi
-
 if ! command -v claude >/dev/null 2>&1; then
   echo "!! 'claude' CLI not found on PATH — install Claude Code first." >&2
   exit 1
@@ -38,6 +32,29 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 RENDERER="$ROOT/sweeps/render_brief.py"
+
+# Topics come from the roster config (M2): sweeps/topics.json, an ordered
+# [{slug, title, paused}] list. Pausing there stops the daily sweep for that topic;
+# `TOPIC=<slug> ./sweep.sh` still runs any single topic, paused or not.
+ROSTER="$ROOT/sweeps/topics.json"
+if [ -n "${TOPIC:-}" ]; then
+  TOPICS=("$TOPIC")
+else
+  if [ ! -f "$ROSTER" ]; then
+    echo "!! roster file missing: $ROSTER" >&2
+    exit 1
+  fi
+  TOPICS=($(python3 -c '
+import json, sys
+for t in json.load(open(sys.argv[1], encoding="utf-8")):
+    if isinstance(t, dict) and t.get("slug") and not t.get("paused"):
+        print(t["slug"])
+' "$ROSTER"))
+  if [ "${#TOPICS[@]}" -eq 0 ]; then
+    echo "!! no active topics in ${ROSTER} — all paused?" >&2
+    exit 1
+  fi
+fi
 
 mkdir -p "$OUT_DIR"
 today_human="$(date '+%A, %B %-d, %Y')"

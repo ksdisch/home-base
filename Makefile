@@ -5,7 +5,7 @@
 dev: ## Boot backend (:8000) + frontend (:5173) together
 	./dev.sh
 
-sweep: ## M0 morning sweep across pilot topics → data/sweeps/<date>/ (see sweeps/README.md)
+sweep: ## Morning sweep across the roster's active topics → data/sweeps/<date>/ (see sweeps/README.md)
 	./sweep.sh
 
 setup: ## Bootstrap venv + frontend deps without running

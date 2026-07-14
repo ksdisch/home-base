@@ -42,6 +42,11 @@ Copy the three-row block each morning and fill it in. `Miss?` = what it failed t
 > brief page can ingest it (see `docs/M1_PLAN.md`). The gradeable `.md` files keep the same
 > shape and filenames; grades from 2026-07-14 onward reflect the JSON-emitting prompts.
 
+> **Roster expansion — 2026-07-14 (M2):** the roster grew from the 3 pilots to the full
+> 8 topics via `sweeps/topics.json` + 5 new prompts (Chiefs · Celtics · Indiana ·
+> Kansas BB · Blues). **The M0 go/no-go still rides on the 3 pilot topics only** — grade
+> the new ones too if useful, but they don't gate. Full-roster sweeps take ~30 min.
+
 ## Running verdict
 
 _Update as the week goes — the go/no-go call per topic plus the main prompt changes made._
