@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -136,6 +136,23 @@ STATEMENTS = [
         completed   INTEGER NOT NULL DEFAULT 0,
         updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (course_slug, lesson_id)
+    )
+    """,
+    # M2: inline notes on brief items. ``item_id`` is the read-time anchor derived in
+    # ``app.sweeps`` (sha1(date|slug|headline)[:12]); topic_slug/brief_date/item_headline
+    # snapshot what was annotated because data/sweeps is gitignored + regenerable — a note
+    # must stay meaningful after its brief file is re-swept or gone. Deliberately NOT an
+    # ``activity`` row: activity feeds learning streaks (same reasoning as brief_visits).
+    # v5 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS brief_notes (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_id       TEXT NOT NULL,
+        topic_slug    TEXT NOT NULL,
+        brief_date    TEXT NOT NULL,
+        item_headline TEXT NOT NULL,
+        body          TEXT NOT NULL,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
     )
     """,
 ]

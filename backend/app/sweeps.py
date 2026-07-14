@@ -10,6 +10,7 @@ silently dropped. Strictly read-only; the backend never writes under data/sweeps
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -70,20 +71,37 @@ def _split_md_header(text: str) -> tuple[Optional[str], str]:
     return None, text
 
 
-def _structured_topic(slug: str, data: Any, titles: Dict[str, str]) -> Dict[str, Any]:
-    """Shape one parsed <topic>.json; raises on anything malformed (caller falls back)."""
-    items = [
-        {
-            "headline": str(item["headline"]),
-            "attribution": str(item.get("attribution", "")),
-            "digest": str(item.get("digest", "")),
-            "why_it_matters": str(item.get("why_it_matters", "")),
-            "sources": [
-                {"title": str(s["title"]), "url": str(s["url"])} for s in item.get("sources", [])
-            ],
-        }
-        for item in data["items"]
-    ]
+def _structured_topic(slug: str, data: Any, titles: Dict[str, str], date: str) -> Dict[str, Any]:
+    """Shape one parsed <topic>.json; raises on anything malformed (caller falls back).
+
+    Each item gets a stable id derived at read time — sha1(date|slug|headline)[:12] — the
+    anchor inline notes attach to (M2). Derived, not stored in the file: data/sweeps is
+    regenerable and the pre-M2 days have no ids, so the file format stays frozen. Identical
+    headlines within one brief (rare) get a ``-2``/``-3`` suffix in item order.
+    """
+    items: List[Dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for item in data["items"]:
+        headline = str(item["headline"])
+        base = hashlib.sha1(f"{date}|{slug}|{headline}".encode("utf-8")).hexdigest()[:12]
+        item_id, n = base, 2
+        while item_id in seen_ids:
+            item_id = f"{base}-{n}"
+            n += 1
+        seen_ids.add(item_id)
+        items.append(
+            {
+                "id": item_id,
+                "headline": headline,
+                "attribution": str(item.get("attribution", "")),
+                "digest": str(item.get("digest", "")),
+                "why_it_matters": str(item.get("why_it_matters", "")),
+                "sources": [
+                    {"title": str(s["title"]), "url": str(s["url"])}
+                    for s in item.get("sources", [])
+                ],
+            }
+        )
     note = data.get("context_note")
     return {
         "slug": slug,
@@ -144,7 +162,7 @@ def load_brief_topics(
         if json_path.is_file():
             try:
                 data = json.loads(json_path.read_text(encoding="utf-8"))
-                topics.append(_structured_topic(slug, data, titles))
+                topics.append(_structured_topic(slug, data, titles, date))
                 continue
             except (json.JSONDecodeError, KeyError, TypeError, UnicodeDecodeError) as e:
                 topics.append(

@@ -13,11 +13,14 @@ brief across his topics with inline notes, learning riding along. Full contract:
 
 - [ ] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
       manual runs on pilot topics (AI/LLMs · fantasy football · market/tech news); 2-min A–F
-      grade each morning. Go/no-go gate before ANY UI work.
-- [ ] **M1 — the brief page:** home route renders stored sweeps (topic sections · digests ·
+      grade each morning. Go/no-go gate before ANY UI work. _In flight — grading through
+      ~2026-07-19 in `docs/M0-sweep-grades.md`._
+- [x] **M1 — the brief page:** home route renders stored sweeps (topic sections · digests ·
       sources · as-of stamp) + manual refresh + visit log; current home → "Learning" tab.
-- [ ] **M2 — full roster + notes:** all topics with seasonal pause flags (config file), inline
+      _✅ shipped 2026-07-13 (PR #36, `docs/M1_PLAN.md`; deliberate Day-0 override of the M0 gate)._
+- [x] **M2 — full roster + notes:** all topics with seasonal pause flags (config file), inline
       notes on brief items, "Your learning" section on home.
+      _✅ shipped 2026-07-14 (roster PR #38 + notes/strip PR, `docs/M2_PLAN.md`; second deliberate override)._
 - [ ] **M3 — hands-off:** scheduled sweeps (launchd on-wake catch-up), dedup vs history, cost
       guardrails, curation polish.
 

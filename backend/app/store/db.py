@@ -172,6 +172,102 @@ def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
     return {"day": day, "visited_at": visited_at}
 
 
+# -- brief notes (M2) -----------------------------------------------------------
+# Inline notes on Today-brief items. ``item_id`` is the read-time anchor derived in
+# ``app.sweeps``; the snapshot columns keep a note meaningful after its (gitignored,
+# regenerable) sweep file is re-swept or gone. No ``activity`` row — that table feeds
+# learning streaks, and brief state deliberately stays out of it (as with brief_visits).
+
+
+def _row_to_brief_note(r: sqlite3.Row) -> Dict[str, Any]:
+    return {
+        "id": int(r["id"]),
+        "item_id": r["item_id"],
+        "topic_slug": r["topic_slug"],
+        "brief_date": r["brief_date"],
+        "item_headline": r["item_headline"],
+        "body": r["body"],
+        "created_at": r["created_at"],
+    }
+
+
+def add_brief_note(
+    item_id: str,
+    topic_slug: str,
+    brief_date: str,
+    item_headline: str,
+    body: str,
+    db_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Attach one flat note to a brief item. Returns the new row as a dict."""
+    if not body or not body.strip():
+        raise ValueError("body must be a non-empty string")
+    for name, value in (
+        ("item_id", item_id),
+        ("topic_slug", topic_slug),
+        ("brief_date", brief_date),
+        ("item_headline", item_headline),
+    ):
+        if not value or not str(value).strip():
+            raise ValueError(f"{name} must be a non-empty string")
+    conn = connect(db_path)
+    try:
+        cur = conn.execute(
+            """
+            INSERT INTO brief_notes (item_id, topic_slug, brief_date, item_headline, body)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (item_id.strip(), topic_slug.strip(), brief_date.strip(), item_headline.strip(), body.strip()),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM brief_notes WHERE id = ?", (int(cur.lastrowid),)
+        ).fetchone()
+        return _row_to_brief_note(row)
+    finally:
+        conn.close()
+
+
+def list_brief_notes(
+    topic_slug: Optional[str] = None,
+    brief_date: Optional[str] = None,
+    *,
+    limit: int = 500,
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """Newest-first notes, optionally filtered to one topic and/or one brief day."""
+    limit = max(1, min(1000, int(limit)))
+    where: List[str] = []
+    params: List[Any] = []
+    if topic_slug is not None:
+        where.append("topic_slug = ?")
+        params.append(topic_slug)
+    if brief_date is not None:
+        where.append("brief_date = ?")
+        params.append(brief_date)
+    clause = f"WHERE {' AND '.join(where)} " if where else ""
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            f"SELECT * FROM brief_notes {clause}ORDER BY created_at DESC, id DESC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
+    finally:
+        conn.close()
+    return [_row_to_brief_note(r) for r in rows]
+
+
+def delete_brief_note(note_id: int, db_path: Optional[Path] = None) -> bool:
+    """Delete one note; True if a row was actually removed."""
+    conn = connect(db_path)
+    try:
+        cur = conn.execute("DELETE FROM brief_notes WHERE id = ?", (int(note_id),))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
 def record_attempt(
     notebook_id: str,
     quiz_artifact_id: str,
