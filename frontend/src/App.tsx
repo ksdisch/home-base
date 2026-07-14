@@ -3,6 +3,7 @@ import Brief from "./pages/Brief";
 import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
 import Home from "./pages/Home";
+import Notes from "./pages/Notes";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
 import StudyGuide from "./pages/StudyGuide";
@@ -27,6 +28,9 @@ export default function App() {
             <NavLink to="/" end className={navLinkClass}>
               Today
             </NavLink>
+            <NavLink to="/notes" className={navLinkClass}>
+              Notes
+            </NavLink>
             <NavLink to="/learning" className={navLinkClass}>
               Learning
             </NavLink>
@@ -47,6 +51,8 @@ export default function App() {
         <Routes>
           {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
           <Route path="/" element={<Brief />} />
+          {/* M2: every note attached to a brief item, browsable per topic. */}
+          <Route path="/notes" element={<Notes />} />
           <Route path="/learning" element={<Home />} />
           <Route path="/plan" element={<StudyPlan />} />
           <Route path="/courses" element={<Courses />} />

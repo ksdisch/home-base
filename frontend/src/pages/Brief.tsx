@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { BriefResponse, BriefTopic } from "../api/types";
+import type { BriefItem, BriefNote, BriefResponse, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
 import { Markdown } from "../components/Markdown";
+import { YourLearning } from "../components/YourLearning";
 
 // "Sunday, July 13" from the sweep folder's YYYY-MM-DD (parsed as local, not UTC).
 function humanDate(iso: string): string {
@@ -20,7 +21,120 @@ function localToday(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-function TopicSection({ topic }: { topic: BriefTopic }) {
+// M2: flat notes on one brief item — existing notes plus an add-a-take composer. Notes
+// state is local to the item after load; saves go through POST /api/brief/notes with the
+// item's snapshot (slug/date/headline) so the note outlives the regenerable sweep file.
+function ItemNotes({
+  item,
+  slug,
+  date,
+}: {
+  item: BriefItem;
+  slug: string;
+  date: string;
+}) {
+  const [notes, setNotes] = useState<BriefNote[]>(item.notes ?? []);
+  const [composing, setComposing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = () => {
+    if (!draft.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    api
+      .addBriefNote({
+        item_id: item.id,
+        topic_slug: slug,
+        brief_date: date,
+        item_headline: item.headline,
+        body: draft.trim(),
+      })
+      .then((n) => {
+        setNotes((prev) => [...prev, n]);
+        setDraft("");
+        setComposing(false);
+      })
+      .catch((e) => setError(e.message ?? "Couldn't save the note"))
+      .finally(() => setSaving(false));
+  };
+
+  const remove = (id: number) => {
+    api
+      .deleteBriefNote(id)
+      .then(() => setNotes((prev) => prev.filter((n) => n.id !== id)))
+      .catch((e) => setError(e.message ?? "Couldn't delete the note"));
+  };
+
+  return (
+    <div className="mt-2">
+      {notes.length > 0 && (
+        <ul className="space-y-1">
+          {notes.map((n) => (
+            <li
+              key={n.id}
+              className="group flex items-start justify-between gap-3 rounded-lg bg-accent-soft/40 px-3 py-1.5"
+            >
+              <p className="whitespace-pre-wrap text-sm text-ink/90">{n.body}</p>
+              <button
+                onClick={() => remove(n.id)}
+                aria-label={`Delete note ${n.id}`}
+                className="text-xs text-muted opacity-0 transition group-hover:opacity-100"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {composing ? (
+        <div className="mt-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Your take or question…"
+            rows={2}
+            autoFocus
+            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
+          />
+          <div className="mt-1 flex items-center gap-3">
+            <button
+              onClick={save}
+              disabled={!draft.trim() || saving}
+              className="rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save note"}
+            </button>
+            <button
+              onClick={() => {
+                setComposing(false);
+                setDraft("");
+              }}
+              className="text-xs text-muted hover:text-ink"
+            >
+              Cancel
+            </button>
+            {error && <span className="text-xs text-red-600">{error}</span>}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex items-center gap-3">
+          <button
+            onClick={() => setComposing(true)}
+            className="text-xs text-muted transition hover:text-accent"
+          >
+            + Add note
+          </button>
+          {error && <span className="text-xs text-red-600">{error}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TopicSection({ topic, date }: { topic: BriefTopic; date: string | null }) {
   return (
     <section className="rounded-2xl border border-stone-200 bg-white/60 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -44,7 +158,7 @@ function TopicSection({ topic }: { topic: BriefTopic }) {
       {topic.items.length > 0 && (
         <div className="mt-4 space-y-5">
           {topic.items.map((item, i) => (
-            <article key={i} className="border-t border-stone-100 pt-4">
+            <article key={item.id || i} className="border-t border-stone-100 pt-4">
               <h3 className="font-semibold text-ink">
                 {item.headline}
                 {item.attribution && (
@@ -79,6 +193,7 @@ function TopicSection({ topic }: { topic: BriefTopic }) {
                   ))}
                 </p>
               )}
+              {item.id && date && <ItemNotes item={item} slug={topic.slug} date={date} />}
             </article>
           ))}
         </div>
@@ -161,15 +276,23 @@ export default function Brief() {
         <Banner tone="info" title="No sweeps yet">
           Run{" "}
           <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
-          to generate today's brief across your pilot topics.
+          to generate today's brief across your topics.
         </Banner>
       )}
 
       {brief && brief.topics.length > 0 && (
         <div className="space-y-4">
           {brief.topics.map((t) => (
-            <TopicSection key={t.slug} topic={t} />
+            <TopicSection key={t.slug} topic={t} date={brief.date ?? null} />
           ))}
+        </div>
+      )}
+
+      {/* M2: due reviews + active courses, surfaced after the brief (hides itself when
+          there's nothing to show — it never blocks the morning read). */}
+      {!loading && (
+        <div className="mt-4">
+          <YourLearning />
         </div>
       )}
     </div>

@@ -1,13 +1,16 @@
 """Hub-owned SQLite store. The ONLY place user progress lives — never the sidecars."""
 
 from .db import (
+    add_brief_note,
     add_custom_topic,
     connect,
     course_quiz_progress,
+    delete_brief_note,
     get_course_progress,
     get_custom_topic,
     get_episode_progress,
     init_db,
+    list_brief_notes,
     list_custom_topics,
     list_reflections,
     record_attempt,
@@ -27,6 +30,9 @@ __all__ = [
     "list_reflections",
     "record_attempt",
     "record_brief_visit",
+    "add_brief_note",
+    "list_brief_notes",
+    "delete_brief_note",
     "add_custom_topic",
     "list_custom_topics",
     "get_custom_topic",

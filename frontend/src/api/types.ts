@@ -400,18 +400,53 @@ export interface Flashcard {
   back: string;
 }
 
-// M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse.
+// M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
+// (+ the M2 note models).
 export interface BriefSource {
   title: string;
   url: string;
 }
 
+// One flat inline note on a brief item (M2). topic_slug/brief_date/item_headline snapshot
+// what was annotated so the note outlives the regenerable sweep file; topic_title is
+// resolved server-side from the roster.
+export interface BriefNote {
+  id: number;
+  item_id: string;
+  topic_slug: string;
+  topic_title: string;
+  brief_date: string;
+  item_headline: string;
+  body: string;
+  created_at: string;
+}
+
+export interface BriefNoteCreate {
+  item_id: string;
+  topic_slug: string;
+  brief_date: string;
+  item_headline: string;
+  body: string;
+}
+
+export interface BriefNotesResponse {
+  generated_at: string;
+  notes: BriefNote[];
+}
+
+export interface BriefNoteDeleteResponse {
+  ok: boolean;
+}
+
 export interface BriefItem {
+  // sha1(date|slug|headline)[:12], derived server-side at read time — the note anchor.
+  id: string;
   headline: string;
   attribution: string;
   digest: string;
   why_it_matters: string;
   sources: BriefSource[];
+  notes: BriefNote[];
 }
 
 // One topic section: either structured (top_line/items from <topic>.json) or a raw_markdown

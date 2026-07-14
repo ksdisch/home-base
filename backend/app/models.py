@@ -454,12 +454,49 @@ class BriefSource(BaseModel):
     url: str
 
 
+class BriefNote(BaseModel):
+    """One flat inline note on a brief item (M2). ``topic_slug``/``brief_date``/
+    ``item_headline`` snapshot what was annotated so the note stays meaningful after its
+    (gitignored, regenerable) sweep file is re-swept or gone; ``topic_title`` is resolved
+    from the roster at read time."""
+
+    id: int
+    item_id: str
+    topic_slug: str
+    topic_title: str = ""
+    brief_date: str
+    item_headline: str
+    body: str
+    created_at: str
+
+
+class BriefNoteCreate(BaseModel):
+    item_id: str
+    topic_slug: str
+    brief_date: str
+    item_headline: str
+    body: str
+
+
+class BriefNotesResponse(BaseModel):
+    generated_at: str
+    notes: List[BriefNote] = []
+
+
+class BriefNoteDeleteResponse(BaseModel):
+    ok: bool = True
+
+
 class BriefItem(BaseModel):
+    # sha1(date|slug|headline)[:12], derived at read time in app.sweeps (M2) — the anchor
+    # notes attach to. Empty only for hand-built instances; the API always sets it.
+    id: str = ""
     headline: str
     attribution: str = ""
     digest: str = ""
     why_it_matters: str = ""
     sources: List[BriefSource] = []
+    notes: List[BriefNote] = []
 
 
 class BriefTopic(BaseModel):

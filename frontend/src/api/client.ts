@@ -1,6 +1,10 @@
 // The ONE place the API base URL lives. Everything goes through "/api" (Vite proxies it to
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
+  BriefNote,
+  BriefNoteCreate,
+  BriefNoteDeleteResponse,
+  BriefNotesResponse,
   BriefResponse,
   BriefVisitResponse,
   CatalogResponse,
@@ -90,11 +94,34 @@ async function patch<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function del<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const data = await res.json();
+      detail = data.detail ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const api = {
   health: () => get<HealthResponse>("/health"),
   brief: () => get<BriefResponse>("/brief"),
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
+  // M2 inline notes on brief items — browse (optionally per topic), add, delete.
+  briefNotes: (topic?: string) =>
+    get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),
+  addBriefNote: (body: BriefNoteCreate) => post<BriefNote>("/brief/notes", body),
+  deleteBriefNote: (id: number) => del<BriefNoteDeleteResponse>(`/brief/notes/${id}`),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),
