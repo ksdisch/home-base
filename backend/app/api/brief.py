@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends
 from ..deps import get_app_settings
 from ..models import BriefResponse, BriefTopic, BriefVisitResponse
 from ..store import record_brief_visit
-from ..sweeps import latest_sweep_date, load_brief_topics
+from ..sweeps import latest_sweep_date, load_brief_topics, load_roster
 
 router = APIRouter()
 
@@ -24,7 +24,8 @@ router = APIRouter()
 @router.get("/brief", response_model=BriefResponse)
 def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
     date = latest_sweep_date(settings.sweeps_dir)
-    raw_topics = load_brief_topics(settings.sweeps_dir, date) if date else []
+    roster = load_roster(settings.roster_file)
+    raw_topics = load_brief_topics(settings.sweeps_dir, date, roster) if date else []
     return BriefResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         has_data=len(raw_topics) > 0,

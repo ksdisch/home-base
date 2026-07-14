@@ -1,0 +1,10 @@
+[
+  { "slug": "ai-llms", "title": "AI / LLMs", "paused": false },
+  { "slug": "chiefs", "title": "Kansas City Chiefs", "paused": false },
+  { "slug": "celtics", "title": "Boston Celtics", "paused": false },
+  { "slug": "indiana", "title": "Indiana Hoosiers (FB + BB)", "paused": false },
+  { "slug": "kansas-basketball", "title": "Kansas Jayhawks (BB)", "paused": false },
+  { "slug": "st-louis-blues", "title": "St. Louis Blues", "paused": false },
+  { "slug": "fantasy-football", "title": "Fantasy football", "paused": false },
+  { "slug": "market-tech-news", "title": "Market & tech news", "paused": false }
+]

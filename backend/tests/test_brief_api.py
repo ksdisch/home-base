@@ -1,9 +1,11 @@
 """M1 /api/brief — the Today page's read path over data/sweeps/, plus the visit log.
 
-Synthetic sweep folders only (never the real data/sweeps): JSON days, legacy md-only days,
-malformed-json fallback, latest-date selection, .raw.txt skipping, roster ordering, and the
+Synthetic sweep folders + a synthetic roster file only (never the real data/sweeps or
+sweeps/topics.json): JSON days, legacy md-only days, malformed-json fallback, latest-date
+selection, .raw.txt skipping, config-roster titles/ordering/pause semantics (M2), and the
 brief_visits habit-metric write. House rules under test: never a 500 on missing data; a
-topic is never silently dropped; failed-validation raw output never reaches the page.
+topic is never silently dropped; failed-validation raw output never reaches the page; a
+broken roster file degrades the titles, never the brief.
 """
 
 from __future__ import annotations
@@ -40,6 +42,15 @@ Digest here.
 """
 
 
+# The synthetic stand-in for sweeps/topics.json — mirrors the M0 pilot roster so the
+# pre-M2 assertions (titles, pilot ordering) keep meaning what they always meant.
+PILOT_ROSTER = [
+    {"slug": "ai-llms", "title": "AI / LLMs", "paused": False},
+    {"slug": "fantasy-football", "title": "Fantasy football", "paused": False},
+    {"slug": "market-tech-news", "title": "Market & tech news", "paused": False},
+]
+
+
 def _client():
     from fastapi.testclient import TestClient
 
@@ -48,12 +59,15 @@ def _client():
     return TestClient(app)
 
 
-def _env(tmp_path, monkeypatch, name: str):
-    """Fresh store + fresh sweeps dir, both isolated under tmp_path."""
+def _env(tmp_path, monkeypatch, name: str, roster=PILOT_ROSTER):
+    """Fresh store + fresh sweeps dir + synthetic roster file, all isolated under tmp_path."""
     sweeps = tmp_path / name / "sweeps"
     sweeps.mkdir(parents=True)
+    roster_file = tmp_path / name / "topics.json"
+    roster_file.write_text(json.dumps(roster), encoding="utf-8")
     monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / name / "hub"))
     monkeypatch.setenv("SWEEPS_DIR", str(sweeps))
+    monkeypatch.setenv("ROSTER_FILE", str(roster_file))
     from app.config import get_settings
     from app.store import init_db
 
@@ -250,6 +264,98 @@ def test_brief_non_string_as_of_is_coerced_not_500(tmp_path, monkeypatch):
         res = _client().get("/api/brief")
         assert res.status_code == 200
         assert res.json()["topics"][0]["as_of"] == "123"
+    finally:
+        get_settings.cache_clear()
+
+
+# -- the roster config file (M2) ---------------------------------------------------
+
+
+def test_brief_missing_roster_file_humanizes_not_500(tmp_path, monkeypatch):
+    """No sweeps/topics.json → humanized titles and a working brief, never a crash."""
+    sweeps = _env(tmp_path, monkeypatch, "noroster")
+    monkeypatch.setenv("ROSTER_FILE", str(tmp_path / "noroster" / "does-not-exist.json"))
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    try:
+        res = _client().get("/api/brief")
+        assert res.status_code == 200
+        topic = res.json()["topics"][0]
+        assert topic["title"] == "Ai llms"  # humanized fallback, not the roster title
+        assert topic["top_line"] == VALID_BRIEF["top_line"]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_invalid_roster_json_degrades_not_500(tmp_path, monkeypatch):
+    """A hand-edit that breaks topics.json must degrade titles, never the brief."""
+    sweeps = _env(tmp_path, monkeypatch, "badroster")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    # The roster file is re-read per request, so breaking it now is enough.
+    (tmp_path / "badroster" / "topics.json").write_text("{not json", encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        res = _client().get("/api/brief")
+        assert res.status_code == 200
+        topic = res.json()["topics"][0]
+        assert topic["title"] == "Ai llms"
+        assert topic["items"][0]["headline"] == "OpenAI lifts caps"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_paused_topic_with_data_still_displays(tmp_path, monkeypatch):
+    """Pausing gates the sweep, not the page — existing files still render in roster order."""
+    roster = [
+        {"slug": "ai-llms", "title": "AI / LLMs", "paused": False},
+        {"slug": "fantasy-football", "title": "Fantasy football", "paused": True},
+    ]
+    sweeps = _env(tmp_path, monkeypatch, "paused", roster=roster)
+    _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "fantasy-football.json": json.dumps({**VALID_BRIEF, "topic": "fantasy-football"}),
+        },
+    )
+    from app.config import get_settings
+
+    try:
+        topics = _client().get("/api/brief").json()["topics"]
+        assert [t["slug"] for t in topics] == ["ai-llms", "fantasy-football"]
+        assert topics[1]["title"] == "Fantasy football"  # roster title, despite the pause
+        assert topics[1]["error"] is None
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_roster_file_defines_titles_and_order(tmp_path, monkeypatch):
+    """Roster order wins over alphabetical; roster titles win over humanizing."""
+    roster = [
+        {"slug": "chiefs", "title": "Kansas City Chiefs", "paused": False},
+        {"slug": "ai-llms", "title": "AI / LLMs", "paused": False},
+    ]
+    sweeps = _env(tmp_path, monkeypatch, "rosterorder", roster=roster)
+    _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "chiefs.json": json.dumps({**VALID_BRIEF, "topic": "chiefs"}),
+            "zzz-custom.json": json.dumps({**VALID_BRIEF, "topic": "zzz-custom"}),
+        },
+    )
+    from app.config import get_settings
+
+    try:
+        topics = _client().get("/api/brief").json()["topics"]
+        assert [t["slug"] for t in topics] == ["chiefs", "ai-llms", "zzz-custom"]
+        assert topics[0]["title"] == "Kansas City Chiefs"
+        assert topics[2]["title"] == "Zzz custom"  # unknown slug still humanizes
     finally:
         get_settings.cache_clear()
 
