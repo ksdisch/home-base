@@ -270,7 +270,7 @@ export default function Progress() {
       {data && !hasAnything && (
         <Banner tone="info" title="No attempts yet">
           Take a quiz from any topic to start building your score history.{" "}
-          <Link to="/" className="font-medium underline">
+          <Link to="/learning" className="font-medium underline">
             Browse your topics →
           </Link>
         </Banner>

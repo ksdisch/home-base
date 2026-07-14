@@ -123,7 +123,7 @@ export default function StudyPlan() {
         <Banner tone="info" title="No questions to schedule yet">
           Take a quiz from any topic and your answers start feeding the spaced-repetition
           scheduler.{" "}
-          <Link to="/" className="font-medium underline">
+          <Link to="/learning" className="font-medium underline">
             Browse your topics →
           </Link>
         </Banner>

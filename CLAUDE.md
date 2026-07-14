@@ -2,8 +2,12 @@
 
 > **Home Base** (renamed from `learning-hub` on 2026-07-13): evolving into Kyle's daily home
 > base — self-updating morning brief + inline notes, with the Learning Hub as the learning
-> section. Source of truth: `docs/KICKOFF-home-base.md`. Current milestone: **M0 — sweep
-> quality week** (manual per-topic sweeps graded daily; no UI until quality passes).
+> section. Source of truth: `docs/KICKOFF-home-base.md`. Current milestone: **M1 — the brief
+> page** shipped its slice (`docs/M1_PLAN.md`): "Today" home route ← `GET /api/brief` ←
+> validated-JSON sweeps (`sweep.sh` → `sweeps/render_brief.py`); old home = "Learning" tab.
+> **M0's grading week continues in parallel** — grade daily in `docs/M0-sweep-grades.md`
+> (Kyle knowingly overrode "no UI until M0 passes" on Day 0). Next: finish the grading week
+> → M2 (full roster + inline notes).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Claude tooling for this repo
