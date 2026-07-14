@@ -82,3 +82,48 @@ def test_classify_type_specificity():
     assert classify_type("Report — Personal Roadmap") == "report"
     assert classify_type("Mind Map") == "mind_map"
     assert classify_type("Audio — deep_dive") == "audio"
+
+
+# -- source manifests (merge-produced sidecars) must never fabricate artifacts ----------
+# Regression for the 2026-07-13 ai-stack drift: a "## Source manifest" section with
+# "### From <notebook> (23/23 migrated)" subheadings and | New ID | Title | Method | Note |
+# tables produced 59 "unknown" artifacts. Three independent guards, each tested alone.
+
+
+def test_source_manifest_tables_are_never_artifacts():
+    md = (
+        "## Source manifest (61 = 66 raw − 3 exact dupes)\n\n"
+        "### From ai-cs-glossary (23/23 migrated)\n\n"
+        "| New ID | Title | Method | Note |\n|---|---|---|---|\n"
+        "| 2e92f94c | AI/CS Glossary (master text) | text re-add | **Anchor** |\n"
+        "| d147b06d | Big Bird (NeurIPS PDF) | url | URL-as-title |\n\n"
+        "### From the Forge notebook (1/1 — via dedupe)\n\n"
+        f"| New ID | Title | Method | Note |\n|---|---|---|---|\n| {U1} | Forge paper | file | |\n"
+    )
+    assert _arts(md) == []
+
+
+def test_migrated_and_dedupe_headings_are_source_sections():
+    # Keyword guard alone: no Method column, plain Artifact ID — the heading must exclude it.
+    for heading in ("### From x (3/3 migrated)", "### Merged rows (via dedupe)"):
+        arts = _arts(f"{heading}\n| Artifact ID | Title |\n|---|---|\n| {U1} | A thing |\n")
+        assert arts == [], heading
+
+
+def test_method_column_disqualifies_table_even_under_neutral_heading():
+    # Shape guard alone: heading carries no source keyword at all.
+    arts = _arts(
+        f"### Imported items\n| ID | Title | Method |\n|---|---|---|\n| {U1} | A paper | url |\n"
+    )
+    assert arts == []
+
+
+def test_source_typed_rows_skipped_but_artifact_rows_kept():
+    # Row guard alone: same table, one row typed "url" (a source), one typed Audio.
+    arts = _arts(
+        f"### Library\n| Artifact ID | Title | Type |\n|---|---|---|\n"
+        f"| {U1} | Some webpage | url |\n| {U2} | Ep 1 — Intro | Audio |\n"
+    )
+    assert len(arts) == 1
+    assert arts[0].artifact_id == U2
+    assert arts[0].type == "audio"

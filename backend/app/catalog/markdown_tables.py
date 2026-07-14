@@ -6,7 +6,9 @@ JSON at all, and the same row can carry two artifacts (``Study Guide ID`` + ``Qu
 
 Two anti-fabrication rules hold everywhere:
   1. A row contributes an artifact only if an *id column* cell contains a real UUID.
-  2. ``Source ID`` columns (and any "source" section) are never treated as artifacts.
+  2. Sources are never artifacts, however they're written: ``Source ID`` columns,
+     source/migration/manifest sections, tables with a ``Method`` column (migration
+     manifests), and rows whose Type is a source type (url/text/drive/…) are all excluded.
 
 Artifacts are typed by, in priority order: the id-column header (e.g. "Quiz ID"),
 a ``Type`` column, the nearest section heading, then the title text.
@@ -118,7 +120,32 @@ def classify_type(text: Optional[str]) -> Optional[str]:
 
 
 # Section headings that never describe artifacts (sources + migration/rebuild prose).
-_NON_ARTIFACT_SECTION = ("source", "migration", "rebuild", "deleted", "failed import")
+# "migrat" covers migration/migrated/migrating — merge-produced sidecars head their source
+# manifests with e.g. "### From ai-cs-glossary (23/23 migrated)".
+_NON_ARTIFACT_SECTION = (
+    "source",
+    "migrat",
+    "manifest",
+    "dedupe",
+    "rebuild",
+    "deleted",
+    "failed import",
+)
+
+# Cell values in a Type column that mark a row as a SOURCE (NotebookLM ingestion types),
+# never an artifact — whatever section or id column it sits under.
+_SOURCE_TYPE_VALUES = {
+    "url",
+    "text",
+    "drive",
+    "file",
+    "pdf",
+    "youtube",
+    "md",
+    "markdown",
+    "website",
+    "link",
+}
 
 
 def _is_source_section(section: str) -> bool:
@@ -258,6 +285,10 @@ def _find_col(headers: List[str], *names: str) -> Optional[int]:
 def classify_table_artifacts(table: Table) -> List[RawArtifact]:
     if _is_source_section(table.section):
         return []  # a Sources table is never artifacts, whatever its id column is named
+    if "method" in table.headers:
+        # A Method column describes HOW a source was ingested (url / file / text re-add) —
+        # the signature of a migration manifest, never an artifact table.
+        return []
     headers = table.headers
     id_cols = [(i, _id_header_type(h)) for i, h in enumerate(headers) if _is_id_header(h)]
     if not id_cols:
@@ -292,6 +323,9 @@ def classify_table_artifacts(table: Table) -> List[RawArtifact]:
         type_text = cell(type_col)
         title_text = cell(title_col)
         ep_text = cell(ep_col)
+
+        if type_text.lower() in _SOURCE_TYPE_VALUES:
+            continue  # a source-typed row (url/text/drive/…) is a source, never an artifact
 
         for ci, header_type in id_cols:
             raw = cell(ci)
