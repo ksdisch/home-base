@@ -30,6 +30,12 @@ class Settings:
             os.environ.get("COURSES_DIR", str(self.data_dir / "courses"))
         ).expanduser()
 
+        # Where the sweep runner (sweep.sh) drops daily briefs: <repo>/data/sweeps/<date>/.
+        # Read-only for the backend (GET /api/brief); overridable for tests.
+        self.sweeps_dir = Path(
+            os.environ.get("SWEEPS_DIR", str(backend_dir.parent / "data" / "sweeps"))
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 

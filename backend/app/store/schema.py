@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -112,6 +112,17 @@ STATEMENTS = [
         notebook_id TEXT,
         kind        TEXT NOT NULL,
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    # M1: one row per Today-page load — the kickoff's habit metric ("opened ≥5 mornings/week"
+    # = distinct days). `day` is the LOCAL calendar day, written by the app (sqlite's
+    # datetime('now') is UTC, which would file a 7pm CDT visit under tomorrow). v4 adds this
+    # table; being a plain CREATE IF NOT EXISTS it needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS brief_visits (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        day        TEXT NOT NULL,
+        visited_at TEXT NOT NULL
     )
     """,
     # Phase 6: per-lesson "I finished this lesson" checkbox for generated courses. Course

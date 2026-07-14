@@ -55,7 +55,7 @@ export default function TopicDetail() {
   if (error && !detail) {
     return (
       <div className="space-y-4">
-        <Link to="/" className="text-sm text-accent hover:underline">
+        <Link to="/learning" className="text-sm text-accent hover:underline">
           ← All topics
         </Link>
         <Banner tone="warning" title="Couldn't load this topic">
@@ -69,7 +69,7 @@ export default function TopicDetail() {
   return (
     <div className="space-y-8">
       <div>
-        <Link to="/" className="text-sm text-accent hover:underline">
+        <Link to="/learning" className="text-sm text-accent hover:underline">
           ← All topics
         </Link>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">

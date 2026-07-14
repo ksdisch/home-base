@@ -151,6 +151,27 @@ def list_reflections(
     ]
 
 
+def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
+    """Log one Today-page visit (M1's habit metric: opened ≥5 mornings/week = distinct days).
+
+    Uses the LOCAL calendar day — "did I open it this morning" is a local-time question, and
+    sqlite's ``datetime('now')`` is UTC (a 7pm CDT visit would land on tomorrow's day).
+    """
+    now = datetime.now().astimezone()
+    day = now.strftime("%Y-%m-%d")
+    visited_at = now.isoformat(timespec="seconds")
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO brief_visits (day, visited_at) VALUES (?, ?)",
+            (day, visited_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"day": day, "visited_at": visited_at}
+
+
 def record_attempt(
     notebook_id: str,
     quiz_artifact_id: str,

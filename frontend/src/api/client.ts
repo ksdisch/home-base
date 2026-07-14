@@ -1,6 +1,8 @@
 // The ONE place the API base URL lives. Everything goes through "/api" (Vite proxies it to
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
+  BriefResponse,
+  BriefVisitResponse,
   CatalogResponse,
   CourseDetail,
   CourseMaterialResponse,
@@ -90,6 +92,9 @@ async function patch<T>(path: string, body?: unknown): Promise<T> {
 
 export const api = {
   health: () => get<HealthResponse>("/health"),
+  brief: () => get<BriefResponse>("/brief"),
+  // The habit metric — one row per Today-page load; fire-and-forget from the page.
+  logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

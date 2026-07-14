@@ -399,3 +399,43 @@ export interface Flashcard {
   front: string;
   back: string;
 }
+
+// M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse.
+export interface BriefSource {
+  title: string;
+  url: string;
+}
+
+export interface BriefItem {
+  headline: string;
+  attribution: string;
+  digest: string;
+  why_it_matters: string;
+  sources: BriefSource[];
+}
+
+// One topic section: either structured (top_line/items from <topic>.json) or a raw_markdown
+// fallback (legacy md-only day, or an unreadable json carried with `error`) — never dropped.
+export interface BriefTopic {
+  slug: string;
+  title: string;
+  as_of?: string | null;
+  top_line?: string | null;
+  context_note?: string | null;
+  items: BriefItem[];
+  raw_markdown?: string | null;
+  error?: string | null;
+}
+
+export interface BriefResponse {
+  generated_at: string;
+  has_data: boolean;
+  date?: string | null; // YYYY-MM-DD of the sweep folder being served
+  topics: BriefTopic[];
+}
+
+export interface BriefVisitResponse {
+  ok: boolean;
+  day: string;
+  visited_at: string;
+}
