@@ -447,3 +447,44 @@ class CourseQuizzesResponse(BaseModel):
     slug: str
     generated_at: str
     quizzes: List[CourseQuizState] = []
+
+
+class BriefSource(BaseModel):
+    title: str
+    url: str
+
+
+class BriefItem(BaseModel):
+    headline: str
+    attribution: str = ""
+    digest: str = ""
+    why_it_matters: str = ""
+    sources: List[BriefSource] = []
+
+
+class BriefTopic(BaseModel):
+    """One topic section of the Today brief. Either structured (top_line/items, from
+    <topic>.json) or a ``raw_markdown`` fallback (md-only legacy day, or a json that
+    wouldn't parse — carried with ``error`` rather than silently dropped)."""
+
+    slug: str
+    title: str
+    as_of: Optional[str] = None
+    top_line: Optional[str] = None
+    context_note: Optional[str] = None
+    items: List[BriefItem] = []
+    raw_markdown: Optional[str] = None
+    error: Optional[str] = None
+
+
+class BriefResponse(BaseModel):
+    generated_at: str
+    has_data: bool = False
+    date: Optional[str] = None  # YYYY-MM-DD of the latest sweep folder being served
+    topics: List[BriefTopic] = []
+
+
+class BriefVisitResponse(BaseModel):
+    ok: bool = True
+    day: str
+    visited_at: str
