@@ -5,15 +5,18 @@ autonomous sweep reliably catch what matters per topic, every morning, without h
 or stale slop?* Two bad mornings and the daily-brief habit dies. So before any UI is built,
 we run the sweeps by hand for ~5–7 days and grade them.
 
-**No UI, no backend, no ingest yet.** Just prompts → `claude -p` with web search → markdown
-briefs in a folder → your 2-minute grade. If quality passes, M1 builds the brief page on top
-of these exact (by then, tuned) prompts. If it fails, we fix the source strategy cheaply
-before investing in an interface.
+**Pipeline (since M1).** Prompts → `claude -p` with web search emitting **strict JSON** →
+`render_brief.py` validates it and writes both `data/sweeps/<date>/<topic>.json` (what the
+hub's `GET /api/brief` serves) and the gradeable `<topic>.md` (same shape as the M0 era —
+your grading routine is unchanged). Invalid JSON never reaches the page: the raw output is
+kept at `<topic>.raw.txt` and the run fails loudly for that topic. The grading week
+continues exactly as before; if a topic's quality fails, we fix the source strategy before
+trusting the page.
 
 ## The daily routine (~5 min)
 
 ```bash
-make sweep          # runs all 3 pilot topics → data/sweeps/<today>/*.md
+make sweep          # runs all 3 pilot topics → data/sweeps/<today>/*.{json,md}
 ```
 
 Then open today's folder and, for each brief, spend ~2 minutes grading it **A–F against

@@ -37,6 +37,11 @@ Copy the three-row block each morning and fill it in. `Miss?` = what it failed t
 | | Fantasy football | | | | |
 | | Market / tech news | | | | |
 
+> **Prompt/format tweak — 2026-07-13 (post-Day-0, M1):** sweep output switched from direct
+> Markdown to **strict JSON + deterministic renderer** (`sweeps/render_brief.py`) so the M1
+> brief page can ingest it (see `docs/M1_PLAN.md`). The gradeable `.md` files keep the same
+> shape and filenames; grades from 2026-07-14 onward reflect the JSON-emitting prompts.
+
 ## Running verdict
 
 _Update as the week goes — the go/no-go call per topic plus the main prompt changes made._
