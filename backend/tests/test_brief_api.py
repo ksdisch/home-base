@@ -240,6 +240,20 @@ def test_brief_roster_order_then_unknowns(tmp_path, monkeypatch):
         get_settings.cache_clear()
 
 
+def test_brief_non_string_as_of_is_coerced_not_500(tmp_path, monkeypatch):
+    """A hand-edited json with a numeric as_of must not 500 the whole brief."""
+    sweeps = _env(tmp_path, monkeypatch, "asof")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({**VALID_BRIEF, "as_of": 123})})
+    from app.config import get_settings
+
+    try:
+        res = _client().get("/api/brief")
+        assert res.status_code == 200
+        assert res.json()["topics"][0]["as_of"] == "123"
+    finally:
+        get_settings.cache_clear()
+
+
 # -- the visit log (the habit metric) ----------------------------------------------
 
 

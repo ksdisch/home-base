@@ -63,7 +63,7 @@ def _structured_topic(slug: str, data: Any) -> Dict[str, Any]:
     return {
         "slug": slug,
         "title": topic_title(slug),
-        "as_of": data.get("as_of"),
+        "as_of": str(data["as_of"]) if data.get("as_of") is not None else None,
         "top_line": str(data["top_line"]),
         "context_note": str(note) if note else None,
         "items": items,
