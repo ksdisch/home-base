@@ -47,6 +47,24 @@ Copy the three-row block each morning and fill it in. `Miss?` = what it failed t
 > Kansas BB · Blues). **The M0 go/no-go still rides on the 3 pilot topics only** — grade
 > the new ones too if useful, but they don't gate. Full-roster sweeps take ~30 min.
 
+> **First full-roster sweep — 2026-07-15 (Claude-run, source-verified first pass — _not_ a
+> human grade):** the M2 roster's first production run swept all 8 topics end-to-end
+> (`./sweep.sh`, opus, ~25 min wall-clock). **Result: 8/8 topics wrote valid `.json` + `.md`,
+> zero `.raw.txt` validation failures, runner exit 0** — the config-file roster + JSON→renderer
+> pipeline works across the whole lineup, and it ran cleanly from a cloud session (nested
+> `claude -p` with web search). Sanity scan (source-appropriateness + internal consistency;
+> lighter than Day-0's fetch/cross-search audit): every item carries ≥1 real `http(s)` source,
+> all domains are topic-appropriate beat/major outlets (CelticsBlog, Inside the Hall / The Daily
+> Hoosier, Through the Phog, Arrowhead Pride, The Hockey News, NHL/NBA/NFL.com, CNBC,
+> federalreserve.gov …) — no fabricated-looking or non-http URLs. Mid-July is deep offseason for
+> the 5 sports topics and each brief handled it honestly: 2–4 items apiece, no padding, fresh
+> items dated and explicitly separated from recent-week context. Indiana correctly delivered
+> **one** brief covering FB + BB with program-led headlines. The 4 first-time-live prompts
+> (Celtics · Indiana · Kansas BB · Blues; Chiefs was trialed once on 7-14) all ran clean —
+> **no prompt tuning was needed this run.** A–F grades below are Kyle's; the go/no-go still rides
+> on the 3 pilots (today's `ai-llms` / `fantasy-football` / `market-tech-news` briefs are ready
+> to grade in `data/sweeps/2026-07-15/`).
+
 ## Running verdict
 
 _Update as the week goes — the go/no-go call per topic plus the main prompt changes made._
