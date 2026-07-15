@@ -13,6 +13,15 @@
 > guardrails).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
+## Master plan upkeep (required)
+
+[`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) is the **living unified view** of both arcs'
+plans — checklists + a Kanban board. **Any session that starts, completes, or reshapes a
+plan item MUST update it in the same commit/PR as the work**: tick/untick the checkbox,
+move the Kanban card, and touch its "Last updated" line. New milestone/plan docs get added
+to its checklist, board, and doc map. The detailed per-phase docs stay authoritative for
+*how* things were built; MASTER_PLAN.md is authoritative for *status*.
+
 ## Claude tooling for this repo
 
 These slash commands and skills are vendored into `.claude/` so they work in cloud/web
