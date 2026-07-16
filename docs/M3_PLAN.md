@@ -1,6 +1,7 @@
 # M3 Plan — Hands-off (scheduled sweeps · dedup · cost guardrails)
 
-_Status: in progress. Kickoff M3 spec: "Scheduled sweeps (launchd on-wake catch-up), dedup
+_Status: ✅ shipped 2026-07-15 (PR #43) · schedule installed at 06:00 CT · first unattended
+fire verified clean 2026-07-16 (8/8 topics, rc=0, fresh briefs + ledger rows). Kickoff M3 spec: "Scheduled sweeps (launchd on-wake catch-up), dedup
 vs history, cost guardrails, curation polish." Kyle green-lit M3 on 2026-07-15 — a **third**
 deliberate override of the "wait for the M0 verdict" gate (after M1 on Day 0 and M2 on Day 1),
 noted in writing; the M0 grading week + go/no-go verdict continue in parallel and are **not**
@@ -105,3 +106,10 @@ data/sweeps/{logs/,.runs.jsonl}       already gitignored via `/data/sweeps/` —
 - `make typecheck` + `make lint`; contract-reviewer pass on the two new TS fields.
 - End-to-end: `install-schedule.sh`, then `launchctl kickstart` the real agent once and confirm a
   full brief + log + ledger rows land — before trusting the morning schedule.
+- **Verified in production (2026-07-16):** first real unattended fire — log wake 06:00:04,
+  `sweep finished (rc=0)` 06:25:39, 8/8 topics in `data/sweeps/2026-07-16/`, 8 clean rows in
+  `.runs.jsonl` (~$10.06 equiv total, avg ~$1.26/topic), spot-checked brief carried
+  same-morning news. Observability note: `web_search_requests`/`web_fetch_requests` were 0
+  across all topics while content was demonstrably fresh — the envelope's `server_tool_use`
+  counters don't see the CLI's client-side WebSearch/WebFetch, so don't read them as a
+  freshness signal; the M0 grades remain the real quality check.
