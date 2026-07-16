@@ -385,3 +385,82 @@ def test_brief_visit_logged(tmp_path, monkeypatch):
         assert days == 1  # …the metric is distinct days
     finally:
         get_settings.cache_clear()
+
+
+# -- read-time dedup: "developing" labels (M3) -------------------------------------
+
+
+def _dev_item(headline: str, url: str) -> dict:
+    return {
+        "headline": headline,
+        "attribution": "a",
+        "digest": "d",
+        "why_it_matters": "w",
+        "sources": [{"title": "S", "url": url}],
+    }
+
+
+def test_brief_flags_repeat_as_developing(tmp_path, monkeypatch):
+    """A story that ran on an earlier day is labelled developing + first_seen; a fresh one isn't."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_repeat")
+    repeat = _dev_item("OpenAI lifts caps", "https://example.com/a")
+    fresh = _dev_item("Brand new thing ships", "https://example.com/z")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [repeat]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [repeat, fresh]})})
+    from app.config import get_settings
+
+    try:
+        items = {it["headline"]: it for it in _client().get("/api/brief").json()["topics"][0]["items"]}
+        assert items["OpenAI lifts caps"]["developing"] is True
+        assert items["OpenAI lifts caps"]["first_seen"] == "2026-07-13"
+        assert items["Brand new thing ships"]["developing"] is False
+        assert items["Brand new thing ships"]["first_seen"] is None
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_developing_matches_on_shared_source_url(tmp_path, monkeypatch):
+    """A reworded headline is still caught as developing when it shares a source URL (query stripped)."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_url")
+    day1 = _dev_item("DeepSeek eyes IPO", "https://techcrunch.com/deepseek-ipo")
+    day2 = _dev_item("DeepSeek: what the IPO means", "https://techcrunch.com/deepseek-ipo?utm=x")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day1]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day2]})})
+    from app.config import get_settings
+
+    try:
+        item = _client().get("/api/brief").json()["topics"][0]["items"][0]
+        assert item["developing"] is True
+        assert item["first_seen"] == "2026-07-13"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_developing_is_per_topic(tmp_path, monkeypatch):
+    """History is matched within a topic — the same headline under a different topic doesn't flag."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_pertopic")
+    shared = _dev_item("Same headline everywhere", "https://example.com/x")
+    _write_day(sweeps, "2026-07-13", {"fantasy-football.json": json.dumps({"top_line": "t", "items": [shared]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [shared]})})
+    from app.config import get_settings
+
+    try:
+        topics = {t["slug"]: t for t in _client().get("/api/brief").json()["topics"]}
+        assert topics["ai-llms"]["items"][0]["developing"] is False
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_developing_ignores_history_beyond_lookback(tmp_path, monkeypatch):
+    """Only the last week counts — a recurrence from >7 days earlier is treated as fresh."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_window")
+    item = _dev_item("Old recurring story", "https://example.com/old")
+    _write_day(sweeps, "2026-07-01", {"ai-llms.json": json.dumps({"top_line": "t", "items": [item]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [item]})})
+    from app.config import get_settings
+
+    try:
+        it = _client().get("/api/brief").json()["topics"][0]["items"][0]
+        assert it["developing"] is False
+    finally:
+        get_settings.cache_clear()

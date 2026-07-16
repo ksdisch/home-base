@@ -47,6 +47,7 @@ def ledger_row(env: dict, topic: str, date: str, model: str) -> dict:
         "cache_read_input_tokens": _num(usage.get("cache_read_input_tokens")),
         "cache_creation_input_tokens": _num(usage.get("cache_creation_input_tokens")),
         "web_search_requests": _num(stu.get("web_search_requests")),
+        "web_fetch_requests": _num(stu.get("web_fetch_requests")),
     }
 
 

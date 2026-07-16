@@ -447,6 +447,10 @@ export interface BriefItem {
   why_it_matters: string;
   sources: BriefSource[];
   notes: BriefNote[];
+  // M3 read-time dedup: true when this story's headline/source already appeared in the last
+  // week for this topic; first_seen is that earliest YYYY-MM-DD. Labelled, never dropped.
+  developing: boolean;
+  first_seen?: string | null;
 }
 
 // One topic section: either structured (top_line/items from <topic>.json) or a raw_markdown

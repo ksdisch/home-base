@@ -15,6 +15,12 @@ function humanDate(iso: string): string {
   });
 }
 
+// "Jul 14" from a YYYY-MM-DD (parsed as local) — for the compact "developing since" chip.
+function humanDateShort(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function localToday(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -164,6 +170,18 @@ function TopicSection({ topic, date }: { topic: BriefTopic; date: string | null 
                 {item.attribution && (
                   <span className="ml-2 text-sm font-normal text-muted">
                     — {item.attribution}
+                  </span>
+                )}
+                {item.developing && (
+                  <span
+                    title={
+                      item.first_seen
+                        ? `This story first appeared in your ${topic.title} brief on ${item.first_seen}`
+                        : "This story appeared earlier this week"
+                    }
+                    className="ml-2 inline-block whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted"
+                  >
+                    developing{item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
                   </span>
                 )}
               </h3>
