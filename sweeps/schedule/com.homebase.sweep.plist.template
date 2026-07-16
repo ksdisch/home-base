@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Home Base daily-sweep LaunchAgent. NOT loaded from here — install-schedule.sh fills the
+     __PLACEHOLDERS__ and writes the result to ~/Library/LaunchAgents/com.homebase.sweep.plist. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.homebase.sweep</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__WRAPPER__</string>
+  </array>
+
+  <!-- launchd's env is minimal; give the job a PATH that includes the nvm bin holding
+       claude + node (baked in by install-schedule.sh) so the wrapper can find them. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__NODE_BIN__:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- Fire every morning at __HOUR__:__MINUTE__ local. If the Mac was asleep or off then,
+       launchd runs the missed job once on wake — the "on-wake catch-up". -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>__HOUR__</integer>
+    <key>Minute</key><integer>__MINUTE__</integer>
+  </dict>
+
+  <!-- Only run on the schedule (+ its on-wake catch-up), never at load/login. -->
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/launchd.log</string>
+</dict>
+</plist>
