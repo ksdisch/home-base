@@ -6,6 +6,10 @@ day and shapes it for GET /api/brief, with titles + display order from the confi
 roster (sweeps/topics.json). Honesty rules: an md-only day (the pre-JSON era) or a json
 that won't parse degrades to a raw-markdown fallback with an error note — a topic is never
 silently dropped. Strictly read-only; the backend never writes under data/sweeps.
+
+M3 adds read-time ``developing``/``first_seen`` labels: an item whose normalized headline or
+a source URL already appeared in the last week's briefs for its topic is flagged (never
+dropped) — a repeated story on a morning brief is usually a real update.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -134,6 +139,91 @@ def _fallback_topic(
     }
 
 
+_DEDUP_LOOKBACK_DAYS = 7
+_NON_ALNUM = re.compile(r"[^a-z0-9]+")
+_URL_SCHEME = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def _norm_headline(headline: str) -> str:
+    """Lowercase, alphanumeric-only identity for a headline (whitespace/punctuation-insensitive)."""
+    return _NON_ALNUM.sub(" ", headline.lower()).strip()
+
+
+def _norm_url(url: str) -> str:
+    """host+path identity for a source URL — drop scheme, www., query, fragment, trailing slash."""
+    u = _URL_SCHEME.sub("", url.strip().lower())
+    if u.startswith("www."):
+        u = u[4:]
+    u = u.split("#", 1)[0].split("?", 1)[0]
+    return u.rstrip("/")
+
+
+def _item_identity_keys(item: Dict[str, Any]) -> set[str]:
+    """Cross-day match keys for one item: its normalized headline + each normalized source URL."""
+    keys: set[str] = set()
+    headline = _norm_headline(str(item.get("headline", "")))
+    if headline:
+        keys.add(f"h:{headline}")
+    for src in item.get("sources", []):
+        if isinstance(src, dict):
+            u = _norm_url(str(src.get("url", "")))
+            if u:
+                keys.add(f"u:{u}")
+    return keys
+
+
+def _history_first_seen(sweeps_dir: Path, slug: str, before_date: str) -> Dict[str, str]:
+    """Map each prior match key → the earliest date it appeared, within the
+    _DEDUP_LOOKBACK_DAYS calendar days before ``before_date`` (this topic only)."""
+    if not sweeps_dir.is_dir():
+        return {}
+    try:
+        cutoff = (date.fromisoformat(before_date) - timedelta(days=_DEDUP_LOOKBACK_DAYS)).isoformat()
+    except ValueError:
+        return {}
+    dates = sorted(
+        p.name
+        for p in sweeps_dir.iterdir()
+        if p.is_dir() and _DATE_DIR.match(p.name) and cutoff <= p.name < before_date
+    )
+    first_seen: Dict[str, str] = {}
+    for d in dates:  # oldest→newest, so a key's first set is its earliest date
+        path = sweeps_dir / d / f"{slug}.json"
+        try:
+            items = json.loads(path.read_text(encoding="utf-8"))["items"]
+        except (OSError, ValueError, KeyError, TypeError, UnicodeDecodeError):
+            continue
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if isinstance(item, dict):
+                for key in _item_identity_keys(item):
+                    first_seen.setdefault(key, d)
+    return first_seen
+
+
+def _annotate_developing(topics: List[Dict[str, Any]], sweeps_dir: Path, date: str) -> None:
+    """Flag each structured item that already appeared in the last week for its topic (M3).
+
+    ``developing`` = the same normalized headline, or a shared source URL, showed up on an
+    earlier day; ``first_seen`` = that earliest date. Read-only and conservative (exact-normalized
+    match, per topic) so a genuinely fresh item is never mislabeled, and nothing is ever dropped.
+    Any read error just leaves items unflagged — the brief must never fail over a history lookup.
+    """
+    for topic in topics:
+        items = topic.get("items")
+        if not items:
+            continue
+        history = _history_first_seen(sweeps_dir, topic["slug"], date)
+        if not history:
+            continue
+        for item in items:
+            seen = [history[k] for k in _item_identity_keys(item) if k in history]
+            if seen:
+                item["developing"] = True
+                item["first_seen"] = min(seen)
+
+
 def load_brief_topics(
     sweeps_dir: Path, date: str, roster: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
@@ -170,4 +260,6 @@ def load_brief_topics(
                 )
                 continue
         topics.append(_fallback_topic(slug, day_dir, None, titles))
+
+    _annotate_developing(topics, sweeps_dir, date)
     return topics

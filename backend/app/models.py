@@ -497,6 +497,11 @@ class BriefItem(BaseModel):
     why_it_matters: str = ""
     sources: List[BriefSource] = []
     notes: List[BriefNote] = []
+    # M3 read-time dedup (app.sweeps._annotate_developing): set when this story's headline or a
+    # source URL already appeared in the last week for this topic. Labels a developing story —
+    # first_seen is that earliest date — and the item is never dropped.
+    developing: bool = False
+    first_seen: Optional[str] = None
 
 
 class BriefTopic(BaseModel):
