@@ -1,0 +1,28 @@
+{
+  "criteria": [
+    {
+      "name": "Spacing schedule",
+      "levels": [
+        { "label": "Developing", "description": "Touches are missing, fewer than four, or spaced at a fixed daily interval with no expansion." },
+        { "label": "Meets", "description": "At least four touches across the two weeks with gaps that clearly expand over time." },
+        { "label": "Exceeds", "description": "Expanding-interval schedule that also adapts the next gap to how well each recall went." }
+      ]
+    },
+    {
+      "name": "Retrieval over re-reading",
+      "levels": [
+        { "label": "Developing", "description": "One or more touches are re-reading or passive review ('go over the notes') rather than producing from memory." },
+        { "label": "Meets", "description": "Every touch names a concrete retrieval action — recall, self-quiz, redo, or teach-aloud." },
+        { "label": "Exceeds", "description": "Retrieval actions escalate in difficulty and each ends with a check against the source (desirable difficulty)." }
+      ]
+    },
+    {
+      "name": "Interleaving & elaboration",
+      "levels": [
+        { "label": "Developing", "description": "No interleaved session, or no elaboration prompt — the plan blocks one topic and only tests recall." },
+        { "label": "Meets", "description": "Includes at least one interleaved late session and one 'why/how does this connect' elaboration prompt." },
+        { "label": "Exceeds", "description": "Interleaving pairs genuinely confusable topics and the elaboration prompt links the new material to specific prior knowledge." }
+      ]
+    }
+  ]
+}

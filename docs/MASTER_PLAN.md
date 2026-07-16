@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · M5 (chat with the brief) shipped — both post-M3 picks landed the same day they were chosen; the M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-16 · Courses M3 (generation at depth) **shipped** — project/capstone + tracked rubrics, course "what to do next", skill fan-out at depth ([PHASE7_M3_PLAN](PHASE7_M3_PLAN.md)); 370 backend tests + frontend typecheck/vitest/build green. The M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -19,7 +19,8 @@ so nobody has to click through a dozen docs to see the state of the project._
 
 The repo has two arcs. **Arc 1 — Learning Hub** (the original SPEC build order, Phases 1–5,
 plus extension Phases 6–7): **fully shipped**, including the SM-2 spaced-repetition core and
-the first two Course-pipeline milestones. **Arc 2 — Home Base** (kickoff 2026-07-13: the
+the first three Course-pipeline milestones (M1 read+track · M2 quizzes+SM-2 · M3 generation at
+depth — project/capstone + tracked rubrics + a course-level "what to do next"). **Arc 2 — Home Base** (kickoff 2026-07-13: the
 morning-brief evolution): **M1, M2, and M3 are shipped** — M3 (hands-off automation, PR #43)
 was built 2026-07-15 under Kyle's third deliberate override of the "wait for the M0 verdict"
 gate, and its **first unattended 06:00 fire ran clean on 2026-07-16** (8/8 topics, rc=0,
@@ -42,6 +43,7 @@ kanban
     lh6["LH Phase 6 — SM-2 SR core + daily study plan + reflections journal"]
     lh7["Courses M1 — course sidecars, read+track API, Courses UI, /build-course"]
     lh7m2["Courses M2 — course quizzes in the quiz player + per-course SM-2"]
+    lh7m3["Courses M3 — generation at depth: project/capstone + tracked rubrics · course what-to-do-next · skill fan-out at depth"]
     hbm1["HB M1 — the brief page: Today route, /api/brief, visit log · PR 36"]
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
@@ -52,7 +54,6 @@ kanban
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
-    cm3["Courses M3 — multi-agent generation at depth + rubrics"]
     cm4["Courses M4 — NotebookLM enrichment in-flow"]
     cm5["Courses M5 — authoring loop in the hub"]
     fcui["Course flashcard review UI — specced in Courses M2, not shipped"]
@@ -79,6 +80,7 @@ Phases 1–5 were the SPEC build order; 6–7 extended it.
 | 6 | SM-2 per-item scheduler + daily study plan + reflections journal | ✅ shipped | [PHASE6_PLAN](PHASE6_PLAN.md) | `store/scheduler.py`, `study/planner.py`, `GET /api/study-plan`, Plan page |
 | 7 | Courses M1 — course-pipeline vertical slice | ✅ shipped | [PHASE7_PLAN](PHASE7_PLAN.md) | `app/courses/*`, `/api/courses`, Courses UI, `/build-course` |
 | 7-M2 | Courses M2 — course quizzes in the player + per-course SM-2 | ✅ shipped | [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md) | `7f2db03`; `course:<slug>` namespace, notebook aggregates filtered |
+| 7-M3 | Courses M3 — generation at depth: project/capstone + tracked rubrics · course "what to do next" · skill fan-out at depth | ✅ shipped | [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md) | PR #48; `course_rubric_assessment` (schema v6) · `GET /courses/{slug}/next` · `POST /courses/{slug}/assess` · rubric self-assessment UI |
 
 Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings resolved
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
@@ -122,8 +124,9 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 
 ## Parked / deferred (not scheduled — do not build without a decision)
 
-- **Course epic M3–M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): multi-agent
-  generation at depth + rubrics → NotebookLM enrichment in-flow → in-hub authoring loop.
+- **Course epic M4–M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): NotebookLM
+  enrichment in-flow → in-hub authoring loop. _(M3 — generation at depth — is now **in progress**;
+  see [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md).)_
 - **Kickoff-deferred v1 outs**: mobile access · ESPN league integration · auto-courses from
   news items · breaking-news alerts · public writing. _(The audio brief became M4 and
   chat-with-the-brief became M5 on 2026-07-16.)_
@@ -138,7 +141,7 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 |---|---|
 | [`SPEC.md`](../SPEC.md) | Arc-1 product spec (Learning Hub) |
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
-| [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`](.) | Per-phase build plans (Arc 1) |
+| [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
 | [`M1_PLAN.md`](M1_PLAN.md) … [`M5_PLAN.md`](M5_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |

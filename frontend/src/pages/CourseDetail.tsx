@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type {
+  CourseAssessment,
   CourseDetail as Detail,
   CourseLesson,
   CourseMaterial,
+  CourseNextItem,
   CourseQuizState,
+  CourseRubric,
   Flashcard,
 } from "../api/types";
 import { Badge } from "../components/Badge";
@@ -39,6 +42,15 @@ export default function CourseDetail() {
   // Per-quiz attempt/SM-2 state keyed by material path. Re-fetched on mount, so returning from a
   // quiz attempt (a separate route → this remounts) shows the fresh score + due count.
   const [quizzes, setQuizzes] = useState<Record<string, CourseQuizState>>({});
+  // M3: the course's ranked "what to do next" + which lesson cards are expanded (lifted here so a
+  // next-up row can open the lesson it points at).
+  const [next, setNext] = useState<CourseNextItem[]>([]);
+  const [openLessons, setOpenLessons] = useState<Set<string>>(new Set());
+
+  const loadNext = useCallback(
+    () => api.courseNext(slug).then((r) => setNext(r.items)).catch(() => setNext([])),
+    [slug],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -56,20 +68,54 @@ export default function CourseDetail() {
       .catch(() => {
         /* quiz stats are non-critical; the lessons still render without them */
       });
+    api
+      .courseNext(slug)
+      .then((r) => alive && setNext(r.items))
+      .catch(() => {
+        /* the next-up panel is a nicety; the course still renders without it */
+      });
     return () => {
       alive = false;
     };
   }, [slug]);
 
+  // After a self-assessment saves, refresh the merged detail (so the material shows its saved
+  // ratings) and the next-up list (so the assessed project drops off it).
+  const onAssessed = useCallback(async () => {
+    await Promise.all([
+      api.course(slug).then(setCourse).catch(() => {}),
+      loadNext(),
+    ]);
+  }, [slug, loadNext]);
+
+  const toggleLessonOpen = useCallback((lessonId: string) => {
+    setOpenLessons((s) => {
+      const n = new Set(s);
+      if (n.has(lessonId)) n.delete(lessonId);
+      else n.add(lessonId);
+      return n;
+    });
+  }, []);
+
+  const goToLesson = useCallback((lessonId: string) => {
+    setOpenLessons((s) => new Set(s).add(lessonId));
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`lesson-${lessonId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  }, []);
+
   const onToggle = async (lesson: CourseLesson) => {
     if (pending.has(lesson.id)) return; // ignore a re-click while this lesson's POST is in flight
-    const next = !lesson.completed;
+    const done = !lesson.completed;
     setPending((p) => new Set(p).add(lesson.id));
-    setCourse((c) => (c ? setLessonDone(c, lesson.id, next) : c)); // optimistic + derived progress
+    setCourse((c) => (c ? setLessonDone(c, lesson.id, done) : c)); // optimistic + derived progress
     try {
-      await api.setLessonComplete(slug, lesson.id, next);
+      await api.setLessonComplete(slug, lesson.id, done);
+      void loadNext(); // completing/uncompleting a lesson changes what's next
     } catch {
-      setCourse((c) => (c ? setLessonDone(c, lesson.id, !next) : c)); // revert this lesson
+      setCourse((c) => (c ? setLessonDone(c, lesson.id, !done) : c)); // revert this lesson
     } finally {
       setPending((p) => {
         const n = new Set(p);
@@ -130,6 +176,8 @@ export default function CourseDetail() {
         </div>
       </div>
 
+      <NextUp items={next} slug={slug} onGoToLesson={goToLesson} />
+
       {course.modules.map((m, mi) => (
         <section key={m.id} className="space-y-3">
           <div>
@@ -147,6 +195,9 @@ export default function CourseDetail() {
                 quizzes={quizzes}
                 pending={pending.has(l.id)}
                 onToggle={() => onToggle(l)}
+                open={openLessons.has(l.id)}
+                onToggleOpen={() => toggleLessonOpen(l.id)}
+                onAssessed={onAssessed}
               />
             ))}
           </div>
@@ -156,22 +207,86 @@ export default function CourseDetail() {
   );
 }
 
+// M3: a compact "what to do next" panel — the course-scoped mirror of the global Review queue.
+// Quiz items launch the player; lesson/project items expand + scroll to their card.
+function NextUp({
+  items,
+  slug,
+  onGoToLesson,
+}: {
+  items: CourseNextItem[];
+  slug: string;
+  onGoToLesson: (lessonId: string) => void;
+}) {
+  if (items.length === 0) return null;
+  const icon: Record<string, string> = {
+    quiz_review: "🔁",
+    lesson: "▶️",
+    quiz_new: "❓",
+    project: "🎓",
+  };
+  return (
+    <section className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-accent">What to do next</h2>
+      <ul className="mt-3 space-y-2">
+        {items.map((it, i) => (
+          <li
+            key={i}
+            className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-3"
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span aria-hidden>{icon[it.kind] ?? "•"}</span>
+                <span className="truncate font-medium text-ink">{it.title}</span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">{it.reason}</p>
+            </div>
+            {it.path && (it.kind === "quiz_review" || it.kind === "quiz_new") ? (
+              <Link
+                to={`/courses/${encodeURIComponent(slug)}/quiz?path=${encodeURIComponent(it.path)}`}
+                className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              >
+                {it.kind === "quiz_review" ? "Review" : "Take quiz"}
+              </Link>
+            ) : it.lesson_id ? (
+              <button
+                onClick={() => onGoToLesson(it.lesson_id as string)}
+                className="shrink-0 rounded-lg border border-accent px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/10"
+              >
+                {it.kind === "project" ? "Open" : "Continue"}
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function LessonCard({
   slug,
   lesson,
   quizzes,
   pending,
   onToggle,
+  open,
+  onToggleOpen,
+  onAssessed,
 }: {
   slug: string;
   lesson: CourseLesson;
   quizzes: Record<string, CourseQuizState>;
   pending: boolean;
   onToggle: () => void;
+  open: boolean;
+  onToggleOpen: () => void;
+  onAssessed: () => void | Promise<void>;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+    <div
+      id={`lesson-${lesson.id}`}
+      className="scroll-mt-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-card"
+    >
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
@@ -183,7 +298,7 @@ function LessonCard({
         />
         <div className="min-w-0 flex-1">
           <button
-            onClick={() => setOpen((o) => !o)}
+            onClick={onToggleOpen}
             aria-expanded={open}
             className="flex w-full items-center justify-between gap-2 text-left"
           >
@@ -214,6 +329,7 @@ function LessonCard({
                   slug={slug}
                   material={mat}
                   quizState={mat.path ? quizzes[mat.path] : undefined}
+                  onAssessed={onAssessed}
                 />
               ))}
             </div>
@@ -228,10 +344,12 @@ function MaterialView({
   slug,
   material,
   quizState,
+  onAssessed,
 }: {
   slug: string;
   material: CourseMaterial;
   quizState?: CourseQuizState;
+  onAssessed: () => void | Promise<void>;
 }) {
   const label = material.title || material.type;
 
@@ -259,6 +377,18 @@ function MaterialView({
         <p className="text-sm text-muted">
           {material.note ?? "Optional NotebookLM artifact — generate locally with the audio-series skill."}
         </p>
+      </div>
+    );
+  }
+
+  // Project / capstone — the markdown brief, plus a rubric self-assessment widget when one is set.
+  if (material.type === "project" || material.type === "capstone") {
+    return (
+      <div className="space-y-3">
+        <FileMaterial slug={slug} material={material} label={label} />
+        {material.rubric && (
+          <RubricAssessment slug={slug} material={material} onAssessed={onAssessed} />
+        )}
       </div>
     );
   }
@@ -307,7 +437,12 @@ function FileMaterial({
     );
   }
 
-  if (material.type === "lesson" || material.type === "exercise") {
+  if (
+    material.type === "lesson" ||
+    material.type === "exercise" ||
+    material.type === "project" ||
+    material.type === "capstone"
+  ) {
     return (
       <div>
         <MaterialHeader type={material.type} label={label} />
@@ -341,6 +476,122 @@ function FileMaterial({
     );
   }
   return null;
+}
+
+// M3: a rubric self-assessment. The rubric (criteria × levels) lives on disk; the learner picks one
+// level per criterion + an optional note, and it's saved to the store (content on disk, progress in
+// SQLite — the same split as the lesson checkbox). Pre-fills from any saved assessment.
+function RubricAssessment({
+  slug,
+  material,
+  onAssessed,
+}: {
+  slug: string;
+  material: CourseMaterial;
+  onAssessed: () => void | Promise<void>;
+}) {
+  const [rubric, setRubric] = useState<CourseRubric | null>(null);
+  const [choices, setChoices] = useState<Record<string, string>>(
+    material.assessment?.ratings ?? {},
+  );
+  const [note, setNote] = useState(material.assessment?.note ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<boolean>(Boolean(material.assessment));
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!material.rubric) return;
+    let alive = true;
+    api
+      .courseMaterial(slug, material.rubric)
+      .then((r) => {
+        if (alive && r.kind === "json") setRubric(r.data as CourseRubric);
+      })
+      .catch(() => {
+        /* the markdown brief still renders even if the rubric can't load */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [slug, material.rubric]);
+
+  if (!material.rubric) return null;
+
+  const save = async () => {
+    if (!material.path) return;
+    setSaving(true);
+    setErr(null);
+    try {
+      const res: CourseAssessment = await api.assessProject(slug, material.path, {
+        ratings: choices,
+        note,
+        self_rating: null,
+      });
+      setSaved(Boolean(res.updated_at) || true);
+      await onAssessed();
+    } catch (e) {
+      setErr((e as Error).message ?? "Couldn't save your self-assessment");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <span aria-hidden>📋</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+          Rubric — self-assess
+        </span>
+        {saved && <span className="text-xs text-accent">saved ✓</span>}
+      </div>
+      {rubric === null ? (
+        <Skeleton />
+      ) : (
+        <div className="space-y-3">
+          {rubric.criteria.map((c) => (
+            <fieldset key={c.name}>
+              <legend className="text-sm font-medium text-ink">{c.name}</legend>
+              <div className="mt-1 space-y-1">
+                {c.levels.map((lv) => (
+                  <label key={lv.label} className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name={`${material.path}:${c.name}`}
+                      checked={choices[c.name] === lv.label}
+                      onChange={() => setChoices((ch) => ({ ...ch, [c.name]: lv.label }))}
+                      className="mt-1 h-3.5 w-3.5 border-stone-300 text-accent focus:ring-accent"
+                    />
+                    <span>
+                      <span className="font-medium text-ink">{lv.label}</span>{" "}
+                      <span className="text-muted">— {lv.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Optional note — e.g. what you'll fix before you run it"
+            rows={2}
+            className="w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving…" : saved ? "Update self-assessment" : "Save self-assessment"}
+            </button>
+          </div>
+          {err && <Banner tone="warning">{err}</Banner>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // A quiz card: launches the in-hub player (answer-key-free) and surfaces the learner's last score
@@ -390,6 +641,8 @@ function MaterialHeader({ type, label }: { type: string; label: string }) {
   const icon: Record<string, string> = {
     lesson: "📖",
     exercise: "✏️",
+    project: "🛠",
+    capstone: "🎓",
     diagram: "📊",
     flashcards: "🃏",
     quiz: "❓",

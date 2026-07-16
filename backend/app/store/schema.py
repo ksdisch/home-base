@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -153,6 +153,24 @@ STATEMENTS = [
         item_headline TEXT NOT NULL,
         body          TEXT NOT NULL,
         created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    # M3 (Courses): a learner's self-assessment of a project/capstone against its rubric. Course
+    # *content* (the project markdown + the rubric JSON) lives on disk; only the self-rating lives
+    # here — the same content-on-disk/progress-in-SQLite split as ``course_lesson_progress``.
+    # ``material_path`` is the project/capstone material's path (its id, like a course quiz keys on
+    # ``quiz_artifact_id = path``). ``ratings`` is a JSON map of criterion-name -> chosen level
+    # label. Kept out of ``reflections`` on purpose so course self-assessments never leak into the
+    # notebook reflection surfaces. v6 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER.
+    """
+    CREATE TABLE IF NOT EXISTS course_rubric_assessment (
+        course_slug   TEXT NOT NULL,
+        material_path TEXT NOT NULL,
+        self_rating   INTEGER,
+        ratings       TEXT NOT NULL DEFAULT '{}',
+        note          TEXT NOT NULL DEFAULT '',
+        updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (course_slug, material_path)
     )
     """,
 ]

@@ -10,8 +10,11 @@ import type {
   BriefResponse,
   BriefVisitResponse,
   CatalogResponse,
+  CourseAssessment,
+  CourseAssessmentRequest,
   CourseDetail,
   CourseMaterialResponse,
+  CourseNextResponse,
   CourseQuizzesResponse,
   CoursesResponse,
   CustomTopic,
@@ -189,5 +192,14 @@ export const api = {
   prepareCourseQuiz: (slug: string, path: string) =>
     post<QuizPrepareResponse>(
       `/courses/${encodeURIComponent(slug)}/quiz/prepare?path=${encodeURIComponent(path)}`,
+    ),
+  // M3: the course's ranked "what to do next" (due reviews → continue → practice → project).
+  courseNext: (slug: string) =>
+    get<CourseNextResponse>(`/courses/${encodeURIComponent(slug)}/next`),
+  // M3: save a rubric self-assessment for a project/capstone material.
+  assessProject: (slug: string, path: string, body: CourseAssessmentRequest) =>
+    post<CourseAssessment>(
+      `/courses/${encodeURIComponent(slug)}/assess?path=${encodeURIComponent(path)}`,
+      body,
     ),
 };

@@ -304,6 +304,15 @@ export interface HealthResponse {
   root_exists: boolean;
 }
 
+// A learner's self-assessment of a project/capstone against its rubric (M3). Mirrors backend
+// CourseAssessment. `ratings` maps each rubric criterion name to the chosen level label.
+export interface CourseAssessment {
+  self_rating?: number | null;
+  ratings: Record<string, string>;
+  note: string;
+  updated_at?: string | null;
+}
+
 // Mirrors backend Course* models (Phase 6) — generated courses read from on-disk sidecars.
 export interface CourseMaterial {
   type: string;
@@ -315,6 +324,21 @@ export interface CourseMaterial {
   count?: number | null;
   notebook_id?: string | null;
   artifact?: string | null;
+  rubric?: string | null; // M3: a rubrics/<id>.json path (exercise/project/capstone)
+  assessment?: CourseAssessment | null; // M3: merged saved self-assessment, if any
+}
+
+// Rubric file content (fetched via courseMaterial for a material's `rubric` path).
+export interface RubricLevel {
+  label: string;
+  description: string;
+}
+export interface RubricCriterion {
+  name: string;
+  levels: RubricLevel[];
+}
+export interface CourseRubric {
+  criteria: RubricCriterion[];
 }
 
 export interface CourseLesson {
@@ -393,6 +417,29 @@ export interface CourseQuizzesResponse {
   slug: string;
   generated_at: string;
   quizzes: CourseQuizState[];
+}
+
+// Course-level "what to do next" (M3). Mirrors backend CourseNextItem/CourseNextResponse.
+export interface CourseNextItem {
+  kind: "quiz_review" | "lesson" | "quiz_new" | "project" | string;
+  title: string;
+  reason: string;
+  module_id?: string | null;
+  lesson_id?: string | null;
+  path?: string | null;
+}
+export interface CourseNextResponse {
+  slug: string;
+  generated_at: string;
+  all_done: boolean;
+  items: CourseNextItem[];
+}
+
+// Body for POST /courses/{slug}/assess — a rubric self-assessment.
+export interface CourseAssessmentRequest {
+  self_rating?: number | null;
+  ratings: Record<string, string>;
+  note: string;
 }
 
 export interface Flashcard {

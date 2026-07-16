@@ -76,6 +76,7 @@
           "materials": [
             { "type": "lesson", "title": "Testing as studying", "path": "lessons/m2l2.md" },
             { "type": "quiz", "title": "Module 2 check", "path": "quizzes/m2l2.json", "count": 5, "purpose": "summative" },
+            { "type": "capstone", "title": "Design a two-week learning plan", "path": "capstones/m2l2.md", "rubric": "rubrics/m2l2.json" },
             { "type": "notebooklm", "title": "Optional: deep-dive audio overview", "artifact": "audio", "note": "Local enrichment — generate with the audio-series skill (needs nlm). Not required to finish the course." }
           ]
         }

@@ -546,3 +546,124 @@ def test_cli_scaffold_rejects_dash_boundary_slugs(courses_dir, capsys, slug):
     # `--slug=<v>` form so argparse doesn't treat a leading-dash slug as a flag.
     assert cli.main(["scaffold", f"--slug={slug}", "--title", "X"]) == 2
     assert json.loads(capsys.readouterr().err)["kind"] == "ValueError"
+
+
+# -- M3: projects / capstones + rubrics ----------------------------------------
+
+def _rubric(**over) -> dict:
+    r = {"criteria": [
+        {"name": "Correctness", "levels": [
+            {"label": "Developing", "description": "wrong or incomplete"},
+            {"label": "Meets", "description": "correct and complete"},
+        ]},
+    ]}
+    r.update(over)
+    return r
+
+
+def _course_with_project(
+    base: Path, *, mtype: str = "capstone", rubric: dict | None = None,
+    rubric_path: str = "rubrics/l1.json",
+) -> Path:
+    folder = {"project": "projects", "capstone": "capstones", "exercise": "exercises"}[mtype]
+    mat = {"type": mtype, "path": f"{folder}/l1.md"}
+    files = {f"{folder}/l1.md": "## The task\nBuild X.\n\n## Self-assess\nScore it.\n"}
+    if rubric is not None:
+        mat["rubric"] = rubric_path
+        files[rubric_path] = json.dumps(rubric)
+    return _write_course(base, "p", {
+        "title": "P", "modules": [
+            {"id": "m1", "title": "M", "lessons": [
+                {"id": "l1", "title": "L", "objectives": ["Build X"], "materials": [mat]},
+            ]},
+        ],
+    }, files)
+
+
+def test_capstone_with_valid_rubric_validates(tmp_path):
+    report = validate_dir(_course_with_project(tmp_path, mtype="capstone", rubric=_rubric()))
+    assert report["ok"], report["errors"]
+
+
+def test_project_is_a_file_backed_material(tmp_path):
+    report = validate_dir(_course_with_project(tmp_path, mtype="project", rubric=_rubric()))
+    assert report["ok"], report["errors"]
+
+
+def test_validate_rejects_missing_rubric_file(tmp_path):
+    cdir = _course_with_project(tmp_path, mtype="capstone", rubric=_rubric())
+    (cdir / "rubrics" / "l1.json").unlink()  # manifest points at a rubric that isn't on disk
+    report = validate_dir(cdir)
+    assert not report["ok"]
+    assert any("missing rubric file" in e for e in report["errors"])
+
+
+def test_validate_rejects_rubric_criterion_with_one_level(tmp_path):
+    bad = _rubric(criteria=[{"name": "X", "levels": [{"label": "only", "description": "d"}]}])
+    report = validate_dir(_course_with_project(tmp_path, rubric=bad))
+    assert not report["ok"]
+    assert any(">=2 'levels'" in e for e in report["errors"])
+
+
+def test_validate_rejects_rubric_level_missing_description(tmp_path):
+    bad = _rubric(criteria=[{"name": "X", "levels": [
+        {"label": "a", "description": "d"}, {"label": "b"},  # second level has no description
+    ]}])
+    report = validate_dir(_course_with_project(tmp_path, rubric=bad))
+    assert not report["ok"]
+    assert any("label" in e and "description" in e for e in report["errors"])
+
+
+def test_validate_rejects_rubric_without_criteria(tmp_path):
+    report = validate_dir(_course_with_project(tmp_path, rubric={"criteria": []}))
+    assert not report["ok"]
+    assert any("criteria" in e for e in report["errors"])
+
+
+def test_validate_warns_rubric_on_non_project_material(tmp_path):
+    # A rubric on a lesson is allowed but flagged — rubrics belong on exercise/project/capstone.
+    cdir = _write_course(tmp_path, "r", {
+        "title": "R", "modules": [
+            {"id": "m1", "title": "M", "lessons": [
+                {"id": "l1", "title": "L", "objectives": ["Build X"], "materials": [
+                    {"type": "lesson", "path": "lessons/l1.md", "rubric": "rubrics/l1.json"},
+                ]},
+            ]},
+        ],
+    }, {"lessons/l1.md": "Body.\n", "rubrics/l1.json": json.dumps(_rubric())})
+    report = validate_dir(cdir)
+    assert report["ok"]  # advisory
+    assert any("rubrics attach" in w for w in report["warnings"])
+
+
+def test_validate_warns_rubric_wrong_folder(tmp_path):
+    cdir = _course_with_project(tmp_path, rubric=_rubric(), rubric_path="misc/l1.json")
+    report = validate_dir(cdir)
+    assert report["ok"]  # the rubric content is valid; only the folder convention is off
+    assert any("rubrics/*.json" in w for w in report["warnings"])
+
+
+def test_rubric_path_escape_is_blocked_by_validate(courses_dir):
+    (courses_dir / "evil.json").write_text(json.dumps(_rubric()), encoding="utf-8")  # outside dir
+    cdir = _write_course(courses_dir, "c", {
+        "title": "C", "modules": [
+            {"id": "m1", "title": "M", "lessons": [
+                {"id": "l1", "title": "L", "objectives": ["Build X"], "materials": [
+                    {"type": "capstone", "path": "capstones/l1.md", "rubric": "../evil.json"},
+                ]},
+            ]},
+        ],
+    }, {"capstones/l1.md": "## The task\nx\n"})
+    report = validate_dir(cdir)
+    assert report["ok"] is False
+    assert any("rubric path escapes" in e for e in report["errors"])
+
+
+def test_bundled_example_has_capstone_with_rubric():
+    course = get_course(EXAMPLE_SLUG)
+    caps = [mt for m in course["modules"] for lsn in m["lessons"] for mt in lsn["materials"]
+            if mt.get("type") == "capstone"]
+    assert len(caps) == 1 and caps[0].get("rubric") == "rubrics/m2l2.json"
+    rub = read_material(EXAMPLE_SLUG, "rubrics/m2l2.json")["data"]
+    assert len(rub["criteria"]) >= 3
+    assert all(len(c["levels"]) >= 2 for c in rub["criteria"])

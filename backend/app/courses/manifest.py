@@ -48,11 +48,17 @@ _VAGUE_OBJECTIVE_VERBS = {
 }
 # Material types backed by a file under the course dir (so `validate` checks the file exists).
 # Unknown types are kept (forward-compatible) but the UI/loader treat them generically.
-_FILE_MATERIALS = {"lesson", "diagram", "flashcards", "quiz", "exercise"}
+# M3 adds ``project``/``capstone`` — longer, rubric-assessable practice items (markdown, like
+# ``exercise``); a capstone is the course-ending synthesis project.
+_FILE_MATERIALS = {"lesson", "diagram", "flashcards", "quiz", "exercise", "project", "capstone"}
+# Material types that may carry a ``rubric`` (a rubrics/<id>.json the learner self-assesses against).
+_RUBRIC_MATERIALS = {"exercise", "project", "capstone"}
 # Expected folder/extension per file-backed type (a soft convention; mismatch -> warning).
 _PATH_CONVENTION = {
     "lesson": ("lessons/", ".md"),
     "exercise": ("exercises/", ".md"),
+    "project": ("projects/", ".md"),
+    "capstone": ("capstones/", ".md"),
     "diagram": ("diagrams/", ".mmd"),
     "flashcards": ("flashcards/", ".json"),
     "quiz": ("quizzes/", ".json"),
@@ -352,6 +358,41 @@ def _validate_flashcards_file(path: Path) -> List[str]:
     return errors
 
 
+def _validate_rubric_file(path: Path) -> List[str]:
+    """A rubric is ``{criteria: [{name, levels: [{label, description}, ...]}]}``. Each criterion
+    needs a name and >=2 levels; each level a label + description. ``validate`` enforcing this is
+    what makes the skill's 'self-assessable project/capstone' promise real — the hub renders these
+    levels as the self-assessment choices."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
+        return [f"{path.name}: invalid JSON ({e})"]
+    crits = data.get("criteria") if isinstance(data, dict) else None
+    if not isinstance(crits, list) or not crits:
+        return [f"{path.name}: must be an object with a non-empty 'criteria' list"]
+    errors: List[str] = []
+    for i, c in enumerate(crits, 1):
+        if not isinstance(c, dict) or not str(c.get("name", "")).strip():
+            errors.append(f"{path.name} criterion {i}: needs a non-empty 'name'")
+            continue
+        levels = c.get("levels")
+        if not isinstance(levels, list) or len(levels) < 2:
+            errors.append(f"{path.name} criterion {i}: needs >=2 'levels'")
+            continue
+        if any(
+            not (
+                isinstance(lv, dict)
+                and str(lv.get("label", "")).strip()
+                and str(lv.get("description", "")).strip()
+            )
+            for lv in levels
+        ):
+            errors.append(
+                f"{path.name} criterion {i}: every level needs a 'label' and 'description'"
+            )
+    return errors
+
+
 def _json_len(path: Path) -> Optional[int]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -452,6 +493,28 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
                     pass  # optional local enrichment; nothing to check on disk
                 else:
                     warnings.append(f"unknown material type '{mtype}' in '{lsn['id']}'")
+                # A rubric (on exercise/project/capstone) is an optional rubrics/<id>.json the
+                # learner self-assesses against — confine + existence-check + content-check it,
+                # same posture as a quiz file, so a broken rubric can't reach the hub.
+                rubric = material.get("rubric")
+                if isinstance(rubric, str) and rubric:
+                    base = course_dir.resolve()
+                    target = (base / rubric).resolve()
+                    if base != target and base not in target.parents:
+                        errors.append(f"rubric path escapes the course dir: {rubric}")
+                    elif not target.is_file():
+                        errors.append(f"missing rubric file: {rubric}")
+                    else:
+                        if not (rubric.startswith("rubrics/") and rubric.endswith(".json")):
+                            warnings.append(f"{rubric}: a rubric usually lives in rubrics/*.json")
+                        errors.extend(_validate_rubric_file(target))
+                        if mtype not in _RUBRIC_MATERIALS:
+                            warnings.append(
+                                f"rubric on a '{mtype}' material in '{lsn['id']}' — rubrics attach "
+                                f"to exercise/project/capstone"
+                            )
+                elif rubric is not None and not isinstance(rubric, str):
+                    warnings.append(f"rubric in '{lsn['id']}' must be a string path")
 
     report = {"ok": not errors, "slug": manifest["slug"], "errors": errors,
               "warnings": warnings}

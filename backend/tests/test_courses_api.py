@@ -151,3 +151,99 @@ def test_material_traversal_is_404(client):
 def test_material_missing_is_404(client):
     r = client.get(f"/api/courses/{EXAMPLE_SLUG}/materials", params={"path": "lessons/x.md"})
     assert r.status_code == 404
+
+
+# -- M3: rubric self-assessment ------------------------------------------------
+
+CAPSTONE = "capstones/m2l2.md"  # the bundled example's rubric-bearing capstone
+
+
+def test_assess_roundtrip_merges_into_detail(client):
+    body = {
+        "self_rating": 4,
+        "ratings": {"Spacing schedule": "Meets", "Retrieval over re-reading": "Exceeds"},
+        "note": "interleaving was thin",
+    }
+    r = client.post(f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": CAPSTONE}, json=body)
+    assert r.status_code == 200
+    saved = r.json()
+    assert saved["self_rating"] == 4
+    assert saved["ratings"]["Retrieval over re-reading"] == "Exceeds"
+
+    # The saved assessment is merged onto the capstone material in the course detail.
+    course = client.get(f"/api/courses/{EXAMPLE_SLUG}").json()
+    mats = [
+        mt
+        for m in course["modules"]
+        for lsn in m["lessons"]
+        for mt in lsn["materials"]
+        if mt.get("path") == CAPSTONE
+    ]
+    assert len(mats) == 1
+    assert mats[0]["assessment"]["ratings"]["Spacing schedule"] == "Meets"
+    assert mats[0]["assessment"]["note"] == "interleaving was thin"
+
+
+def test_assess_updates_existing_assessment(client):
+    client.post(f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": CAPSTONE},
+                json={"self_rating": 2, "ratings": {}, "note": "first pass"})
+    r = client.post(f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": CAPSTONE},
+                    json={"self_rating": 5, "ratings": {}, "note": "revised"})
+    assert r.json()["self_rating"] == 5 and r.json()["note"] == "revised"
+
+
+def test_assess_rejects_material_without_rubric(client):
+    # A plain lesson has no rubric to assess against.
+    r = client.post(
+        f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": "lessons/m1l1.md"}, json={"ratings": {}}
+    )
+    assert r.status_code == 404
+
+
+def test_assess_rejects_unknown_path(client):
+    r = client.post(
+        f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": "../../secret"}, json={"ratings": {}}
+    )
+    assert r.status_code == 404
+
+
+def test_assess_rejects_out_of_range_self_rating(client):
+    r = client.post(
+        f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": CAPSTONE},
+        json={"self_rating": 9, "ratings": {}},
+    )
+    assert r.status_code == 422
+
+
+def test_assess_unknown_course_is_404(client):
+    r = client.post("/api/courses/nope/assess", params={"path": CAPSTONE}, json={"ratings": {}})
+    assert r.status_code == 404
+
+
+def test_assess_logs_activity(client):
+    from app.store import connect
+
+    client.post(f"/api/courses/{EXAMPLE_SLUG}/assess", params={"path": CAPSTONE},
+                json={"ratings": {}, "note": ""})
+    conn = connect()
+    try:
+        n = conn.execute(
+            "SELECT COUNT(*) c FROM activity WHERE kind = 'project_assessed'"
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert n == 1
+
+
+def test_detail_without_assessment_has_none(client):
+    # Before any self-assessment, the capstone material carries no assessment.
+    course = client.get(f"/api/courses/{EXAMPLE_SLUG}").json()
+    cap = next(
+        mt
+        for m in course["modules"]
+        for lsn in m["lessons"]
+        for mt in lsn["materials"]
+        if mt.get("path") == CAPSTONE
+    )
+    assert cap.get("assessment") is None
+    assert cap.get("rubric") == "rubrics/m2l2.json"
