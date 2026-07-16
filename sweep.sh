@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Home Base — sweep runner (M0 grading loop + M1 brief-page ingest).
+# Home Base — sweep runner (M0 grading loop + M1 brief-page ingest; M3 automation guards).
 #
 # Runs each active roster topic's sweep prompt through `claude -p` (your Claude
 # subscription) with web search. Since M1, prompts emit strict JSON; sweeps/render_brief.py
@@ -12,10 +12,28 @@
 #   TOPIC=ai-llms ./sweep.sh         # run a single topic (works even if paused)
 #   SWEEP_MODEL=sonnet ./sweep.sh    # try a cheaper/faster model
 #
+# M3 automation env (used by sweeps/schedule/run-scheduled.sh):
+#   SWEEP_SKIP_DONE=1                # skip a topic whose <topic>.json already exists today —
+#                                    #   idempotent, so launchd's on-wake re-fire can't double-run
+#   SWEEP_MAX_TOPICS=N               # stop after N topics have run this invocation (rate cap)
+#   SWEEP_ALLOW_API=1                # allow running with ANTHROPIC_API_KEY set (see Auth below)
+#
+# Every run appends a per-topic cost/usage row to data/sweeps/.runs.jsonl (gitignored) via
+# sweeps/envelope.py — the durable record of what the sweeps actually cost.
+#
 # Auth: plain `claude -p` uses your logged-in Claude subscription (the lane chosen at
-# kickoff). If ANTHROPIC_API_KEY is exported, Claude Code may use API billing instead —
-# `unset ANTHROPIC_API_KEY` to stay on the subscription.
+# kickoff). If ANTHROPIC_API_KEY is exported, Claude Code may use API billing instead, so this
+# runner refuses to start with it set — `unset ANTHROPIC_API_KEY` to stay on the subscription,
+# or SWEEP_ALLOW_API=1 to run on the API deliberately.
 set -euo pipefail
+
+# Cost guardrail: never *silently* fall off the subscription onto metered API billing.
+if [ -n "${ANTHROPIC_API_KEY:-}" ] && [ "${SWEEP_ALLOW_API:-}" != "1" ]; then
+  echo "!! ANTHROPIC_API_KEY is set — sweeps are meant to run on your Claude subscription," >&2
+  echo "   not metered API billing. 'unset ANTHROPIC_API_KEY' (recommended), or set" >&2
+  echo "   SWEEP_ALLOW_API=1 to run on the API deliberately." >&2
+  exit 1
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPTS_DIR="$ROOT/sweeps/prompts"
@@ -32,6 +50,8 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 RENDERER="$ROOT/sweeps/render_brief.py"
+ENVELOPE="$ROOT/sweeps/envelope.py"
+RUNS_LOG="$ROOT/data/sweeps/.runs.jsonl"
 
 # Topics come from the roster config (M2): sweeps/topics.json, an ordered
 # [{slug, title, paused}] list. Pausing there stops the daily sweep for that topic;
@@ -59,6 +79,7 @@ fi
 mkdir -p "$OUT_DIR"
 today_human="$(date '+%A, %B %-d, %Y')"
 failures=0
+processed=0
 
 for topic in "${TOPICS[@]}"; do
   prompt_file="$PROMPTS_DIR/$topic.md"
@@ -67,6 +88,19 @@ for topic in "${TOPICS[@]}"; do
     failures=$((failures + 1))
     continue
   fi
+
+  # M3 idempotency: on an on-wake re-fire, don't re-sweep a topic already written today.
+  if [ "${SWEEP_SKIP_DONE:-}" = "1" ] && [ -f "$OUT_DIR/$topic.json" ]; then
+    echo "· ${topic} already swept for ${DATE} — skipping (SWEEP_SKIP_DONE)"
+    continue
+  fi
+
+  # M3 rate cap: stop once SWEEP_MAX_TOPICS topics have actually run this invocation.
+  if [ -n "${SWEEP_MAX_TOPICS:-}" ] && [ "$processed" -ge "$SWEEP_MAX_TOPICS" ]; then
+    echo "· reached SWEEP_MAX_TOPICS=${SWEEP_MAX_TOPICS} — stopping (rest left for the next run)"
+    break
+  fi
+
   echo "› sweeping ${topic}  (model: ${MODEL})"
 
   # Dynamic date preamble anchors the run; the static instructions live in the prompt file.
@@ -75,27 +109,40 @@ for topic in "${TOPICS[@]}"; do
 
   # Per-topic "as of" stamp — runs take minutes each, so stamp at this topic's start.
   now_stamp="$(date '+%Y-%m-%d %H:%M %Z')"
+  envelope_file="$(mktemp)"
   raw_file="$(mktemp)"
 
-  # Headless run: web tools only (no file/shell tools). Non-whitelisted tools are
-  # auto-denied in -p mode, so nothing can hang on a permission prompt.
+  # Headless run: web tools only (no file/shell tools). Non-whitelisted tools are auto-denied
+  # in -p mode, so nothing can hang on a permission prompt. --output-format json wraps the
+  # model's brief JSON in a result envelope (carrying cost/usage for the ledger); </dev/null
+  # keeps it from stalling on stdin under launchd.
   if claude -p "$full_prompt" \
         --model "$MODEL" \
         --allowedTools "WebSearch" "WebFetch" \
-        > "$raw_file"; then
-    # Validate the JSON and write <topic>.json + gradeable <topic>.md (or .raw.txt on failure).
-    if python3 "$RENDERER" --topic "$topic" --date "$DATE" --as-of "$now_stamp" \
-          --raw "$raw_file" --out-dir "$OUT_DIR"; then
-      echo "  → ${OUT_DIR}/${topic}.md + ${topic}.json"
+        --output-format json \
+        < /dev/null > "$envelope_file"; then
+    # Unwrap .result → raw_file (what the frozen renderer expects) + append the cost ledger row.
+    if python3 "$ENVELOPE" --topic "$topic" --date "$DATE" --model "$MODEL" \
+          --envelope "$envelope_file" --out-raw "$raw_file" --runs-log "$RUNS_LOG"; then
+      # Validate the JSON and write <topic>.json + gradeable <topic>.md (or .raw.txt on failure).
+      if python3 "$RENDERER" --topic "$topic" --date "$DATE" --as-of "$now_stamp" \
+            --raw "$raw_file" --out-dir "$OUT_DIR"; then
+        echo "  → ${OUT_DIR}/${topic}.md + ${topic}.json"
+      else
+        failures=$((failures + 1))
+      fi
     else
+      cp "$envelope_file" "$OUT_DIR/$topic.raw.txt" 2>/dev/null || true
+      echo "!! sweep envelope error for ${topic} — raw envelope in ${OUT_DIR}/${topic}.raw.txt" >&2
       failures=$((failures + 1))
     fi
   else
-    cp "$raw_file" "$OUT_DIR/$topic.raw.txt" 2>/dev/null || true
+    cp "$envelope_file" "$OUT_DIR/$topic.raw.txt" 2>/dev/null || true
     echo "!! sweep failed for ${topic} — see the error above; partial output in ${OUT_DIR}/${topic}.raw.txt" >&2
     failures=$((failures + 1))
   fi
-  rm -f "$raw_file"
+  processed=$((processed + 1))
+  rm -f "$envelope_file" "$raw_file"
 done
 
 echo
