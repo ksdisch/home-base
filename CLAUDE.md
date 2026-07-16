@@ -14,8 +14,11 @@
 > first unattended fire verified clean 2026-07-16 (8/8 topics). **M4 — audio brief** shipped
 > 2026-07-16 (PR #45, `docs/M4_PLAN.md`): `sweeps/audio_brief.py` renders a ~5-min Kokoro
 > MP3 after every sweep (best-effort, never fails it), served at `GET /api/brief/audio`,
-> 🎧 player on Today. **Next: M5 — chat with the brief** (picked 2026-07-16; needs its own
-> `/explore-plan` first) + the M0 verdict (~2026-07-19).
+> 🎧 player on Today. **M5 — chat with the brief** shipped 2026-07-16 (PR #47,
+> `docs/M5_PLAN.md`): "Ask about this" on every brief item — one grounded headless
+> `claude -p` answer per question (subscription lane, API key scrubbed, no web tools),
+> save-as-note via the existing notes API, usage ledger at `backend/data/brief-chat.jsonl`.
+> Next: the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)

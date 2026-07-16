@@ -1,6 +1,8 @@
 // The ONE place the API base URL lives. Everything goes through "/api" (Vite proxies it to
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
+  BriefChatRequest,
+  BriefChatResponse,
   BriefNote,
   BriefNoteCreate,
   BriefNoteDeleteResponse,
@@ -124,6 +126,9 @@ export const api = {
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),
   addBriefNote: (body: BriefNoteCreate) => post<BriefNote>("/brief/notes", body),
   deleteBriefNote: (id: number) => del<BriefNoteDeleteResponse>(`/brief/notes/${id}`),
+  // M5: one grounded follow-up answer about a served item (subscription lane, no web) —
+  // slow by web standards (a real model call, ~5–20s), so callers show a thinking state.
+  briefChat: (body: BriefChatRequest) => post<BriefChatResponse>("/brief/chat", body),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

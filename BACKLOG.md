@@ -27,8 +27,9 @@ brief across his topics with inline notes, learning riding along. Full contract:
       unattended 06:00 fire verified clean 2026-07-16._
 - [x] **M4 — audio brief:** ~5-min narrated MP3 of each sweep via local Kokoro + 🎧 player on
       Today. _✅ shipped 2026-07-16 (PR #45, `docs/M4_PLAN.md`; picked from the post-M3 menu)._
-- [ ] **M5 — chat with the brief:** ask follow-ups on brief items. _Queued next (picked
-      2026-07-16); gets its own `/explore-plan` before any code._
+- [x] **M5 — chat with the brief:** ask follow-ups on brief items. _✅ shipped 2026-07-16
+      (PR #47, `docs/M5_PLAN.md`; approach A from its explore-plan — per-item Ask, no web
+      tools, save-as-note)._
 
 Deferred by the brief: mobile · ESPN league integration · auto-courses ·
 breaking-news alerts · public writing.

@@ -45,6 +45,14 @@ class Settings:
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 
+        # M5 chat-with-the-brief: the claude CLI + model for POST /api/brief/chat
+        # (overridable so tests inject fakes and other machines aren't hardcoded).
+        self.claude_bin = os.environ.get("CLAUDE_BIN", "claude")
+        self.brief_chat_model = os.environ.get("BRIEF_CHAT_MODEL", "sonnet")
+        # Chat usage/cost rows live under backend data on purpose — the backend stays
+        # strictly read-only over data/sweeps.
+        self.brief_chat_ledger = self.data_dir / "brief-chat.jsonl"
+
         # Vite dev origin(s). CORS also allows private-LAN origins via regex (see main.py).
         self.cors_origins = [
             "http://localhost:5173",
