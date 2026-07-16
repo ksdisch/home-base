@@ -21,11 +21,17 @@ brief across his topics with inline notes, learning riding along. Full contract:
 - [x] **M2 — full roster + notes:** all topics with seasonal pause flags (config file), inline
       notes on brief items, "Your learning" section on home.
       _✅ shipped 2026-07-14 (roster PR #38 + notes/strip PR, `docs/M2_PLAN.md`; second deliberate override)._
-- [ ] **M3 — hands-off:** scheduled sweeps (launchd on-wake catch-up), dedup vs history, cost
+- [x] **M3 — hands-off:** scheduled sweeps (launchd on-wake catch-up), dedup vs history, cost
       guardrails, curation polish.
+      _✅ shipped 2026-07-15 (PR #43, `docs/M3_PLAN.md`; third deliberate override) — first
+      unattended 06:00 fire verified clean 2026-07-16._
+- [x] **M4 — audio brief:** ~5-min narrated MP3 of each sweep via local Kokoro + 🎧 player on
+      Today. _✅ shipped 2026-07-16 (PR #45, `docs/M4_PLAN.md`; picked from the post-M3 menu)._
+- [ ] **M5 — chat with the brief:** ask follow-ups on brief items. _Queued next (picked
+      2026-07-16); gets its own `/explore-plan` before any code._
 
-Deferred by the brief: mobile · ESPN league integration · audio brief · auto-courses ·
-breaking-news alerts · public writing · chat-with-brief.
+Deferred by the brief: mobile · ESPN league integration · auto-courses ·
+breaking-news alerts · public writing.
 
 ---
 

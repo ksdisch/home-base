@@ -464,3 +464,65 @@ def test_brief_developing_ignores_history_beyond_lookback(tmp_path, monkeypatch)
         assert it["developing"] is False
     finally:
         get_settings.cache_clear()
+
+
+# -- audio brief (M4) -------------------------------------------------------------
+# The mp3 is written by the sweep pipeline (sweeps/audio_brief.py), never the backend —
+# these tests plant the file directly and only exercise the read path.
+
+
+def test_brief_audio_available_flag_flips_with_mp3(tmp_path, monkeypatch):
+    sweeps = _env(tmp_path, monkeypatch, "audioflag")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief").json()["audio_available"] is False
+        (sweeps / "2026-07-14" / "brief.mp3").write_bytes(b"\xff\xfbfake-mp3-bytes")
+        assert _client().get("/api/brief").json()["audio_available"] is True
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_serves_the_latest_days_mp3(tmp_path, monkeypatch):
+    """Two days, both with audio — the endpoint streams the served (newest) day's bytes."""
+    sweeps = _env(tmp_path, monkeypatch, "audiolatest")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-13" / "brief.mp3").write_bytes(b"OLD-DAY-AUDIO")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-14" / "brief.mp3").write_bytes(b"NEW-DAY-AUDIO")
+    from app.config import get_settings
+
+    try:
+        r = _client().get("/api/brief/audio")
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("audio/mpeg")
+        assert r.content == b"NEW-DAY-AUDIO"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_404_never_serves_a_stale_days_mp3(tmp_path, monkeypatch):
+    """Audio exists only for an OLDER day: the flag stays off and the endpoint 404s —
+    yesterday's narration must never play over today's brief."""
+    sweeps = _env(tmp_path, monkeypatch, "audiostale")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-13" / "brief.mp3").write_bytes(b"YESTERDAY")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief").json()["audio_available"] is False
+        assert _client().get("/api/brief/audio").status_code == 404
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_404_when_no_sweeps_exist(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch, "audionone")
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief/audio").status_code == 404
+    finally:
+        get_settings.cache_clear()

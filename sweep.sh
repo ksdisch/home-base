@@ -145,6 +145,13 @@ for topic in "${TOPICS[@]}"; do
   rm -f "$envelope_file" "$raw_file"
 done
 
+# M4: best-effort audio brief (local Kokoro TTS). A down/absent Kokoro must never fail the
+# sweep — the text brief is the product, the MP3 is a bonus. The script skips itself when
+# brief.mp3 is already newer than every <topic>.json, so on-wake re-fires stay no-ops.
+if ! python3 "$ROOT/sweeps/audio_brief.py" --date "$DATE" --sweeps-dir "$ROOT/data/sweeps"; then
+  echo "!! audio brief did not render (see above) — text briefs are unaffected" >&2
+fi
+
 echo
 echo "Briefs written to ${OUT_DIR}"
 echo "Grade each A–F in docs/M0-sweep-grades.md (~2 min)."

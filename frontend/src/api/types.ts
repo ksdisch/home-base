@@ -471,6 +471,8 @@ export interface BriefResponse {
   has_data: boolean;
   date?: string | null; // YYYY-MM-DD of the sweep folder being served
   topics: BriefTopic[];
+  // M4: the served day has a narrated brief.mp3 — GET /api/brief/audio streams it.
+  audio_available: boolean;
 }
 
 export interface BriefVisitResponse {

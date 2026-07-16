@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · M3 shipped (PR #43) + first unattended 06:00 fire verified clean — kickoff plan M0–M3 fully built; next build awaiting Kyle's pick
+**Last updated:** 2026-07-16 · M4 (audio brief) shipped the same day it was picked — audio-first won the post-M3 menu; M5 (chat with the brief) queued next
 
 ---
 
@@ -23,10 +23,12 @@ the first two Course-pipeline milestones. **Arc 2 — Home Base** (kickoff 2026-
 morning-brief evolution): **M1, M2, and M3 are shipped** — M3 (hands-off automation, PR #43)
 was built 2026-07-15 under Kyle's third deliberate override of the "wait for the M0 verdict"
 gate, and its **first unattended 06:00 fire ran clean on 2026-07-16** (8/8 topics, rc=0,
-fresh briefs + ledger rows). The kickoff's phased plan (M0–M3) is now fully built. **M0's
+fresh briefs + ledger rows). The kickoff's phased plan (M0–M3) is fully built, and Kyle
+picked the encore on 2026-07-16: **M4 — the audio brief — shipped the same day** (PR #45: a
+~5-minute Kokoro-narrated MP3 rendered after every sweep, 🎧 player on Today), and **M5 —
+chat with the brief — is queued next** (its own explore-plan comes first). **M0's
 sweep-quality grading week continues** alongside (Kyle grades daily through ~2026-07-19); its
-go/no-go verdict is still pending. **The next build is an open decision** — candidates live
-in "Parked / deferred" below; nothing is scheduled until Kyle picks.
+go/no-go verdict is still pending.
 
 ---
 
@@ -42,17 +44,18 @@ kanban
     hbm1["HB M1 — the brief page: Today route, /api/brief, visit log · PR 36"]
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
+    hbm4["HB M4 — audio brief: 5-min Kokoro MP3 after every sweep + Today player · PR 45"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
-    hbnext["Next build — kickoff plan M0–M3 exhausted · candidates in Parked list · Kyle picks"]
   later["🧊 Later / parked"]
+    hbm5["HB M5 — chat with the brief · queued next, picked 2026-07-16 · own explore-plan before build"]
     cm3["Courses M3 — multi-agent generation at depth + rubrics"]
     cm4["Courses M4 — NotebookLM enrichment in-flow"]
     cm5["Courses M5 — authoring loop in the hub"]
     fcui["Course flashcard review UI — specced in Courses M2, not shipped"]
-    defer["Kickoff-deferred: mobile · ESPN · audio brief · auto-courses · alerts · chat-with-brief"]
+    defer["Kickoff-deferred: mobile · ESPN · auto-courses · alerts · public writing"]
 ```
 
 _If the board above doesn't render in your viewer, the checklists below carry the same truth —
@@ -106,6 +109,9 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Cost/usage guardrails: `--output-format json` → `data/sweeps/.runs.jsonl` ledger · API-key guard · skip-done · max-topics
   - [x] Read-time dedup: `developing`/`first_seen` labels on repeated stories (nothing dropped) + subtle Today chip
   - [x] Schedule installed 2026-07-15 at 06:00 CT; **first unattended fire verified 2026-07-16** — 8/8 topics, `rc=0` in 25½ min, fresh briefs + 8 ledger rows (~$10 equiv/day, subscription lane — not billed)
+- [x] **M4 — Audio brief** — ✅ shipped 2026-07-16, PR #45 ([plan](M4_PLAN.md); picked same day from the post-M3 menu — audio-first over one combined milestone)
+      _`sweeps/audio_brief.py`: deterministic ~650-word ear script → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
+- [ ] **M5 — Chat with the brief** — _queued next (picked 2026-07-16); gets its own `/explore-plan` before any code_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -116,8 +122,9 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 
 - **Course epic M3–M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): multi-agent
   generation at depth + rubrics → NotebookLM enrichment in-flow → in-hub authoring loop.
-- **Kickoff-deferred v1 outs**: mobile access · ESPN league integration · audio brief ·
-  auto-courses from news items · breaking-news alerts · public writing · chat-with-the-brief.
+- **Kickoff-deferred v1 outs**: mobile access · ESPN league integration · auto-courses from
+  news items · breaking-news alerts · public writing. _(The audio brief became M4 and
+  chat-with-the-brief became M5 on 2026-07-16.)_
 - **BACKLOG parked ideas** ([BACKLOG.md](../BACKLOG.md)): study-planner subagent (superseded by
   Phase 6), learner-profile doc, "Generate from hub" button, hosted phone access.
 
@@ -131,6 +138,6 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
 | [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
-| [`M1_PLAN.md`](M1_PLAN.md) / [`M2_PLAN.md`](M2_PLAN.md) / [`M3_PLAN.md`](M3_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
+| [`M1_PLAN.md`](M1_PLAN.md) / [`M2_PLAN.md`](M2_PLAN.md) / [`M3_PLAN.md`](M3_PLAN.md) / [`M4_PLAN.md`](M4_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas |

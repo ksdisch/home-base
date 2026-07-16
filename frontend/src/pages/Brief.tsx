@@ -261,6 +261,17 @@ export default function Brief() {
         </p>
       </div>
 
+      {/* M4: the ~5-min narrated cut of this sweep (sweeps/audio_brief.py + local Kokoro).
+          Only rendered when the served day actually has an mp3 — no player, no 404 noise. */}
+      {brief?.audio_available && (
+        <div className="mb-6 rounded-2xl border border-stone-200 bg-white/60 p-4">
+          <p className="mb-2 text-xs font-medium text-muted">
+            🎧 Listen to this brief — the ~5-minute cut
+          </p>
+          <audio controls preload="none" src={api.briefAudioUrl()} className="w-full" />
+        </div>
+      )}
+
       {error && (
         <div className="mb-6">
           <Banner tone="warning" title="Couldn't load the brief">

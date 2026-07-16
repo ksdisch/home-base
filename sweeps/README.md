@@ -63,6 +63,24 @@ TOPIC=ai-llms make sweep        # run a single topic (works even if it's paused)
 SWEEP_MODEL=sonnet make sweep   # try a cheaper/faster model and compare quality
 ```
 
+## The audio brief (M4)
+
+After the topic loop, `sweep.sh` makes one **best-effort** call to
+[`audio_brief.py`](audio_brief.py): a deterministic ~650-word "morning drive" script (per
+topic: speakable title + top line + the top story's headline and first sentence) rendered to
+`data/sweeps/<date>/brief.mp3` by the **local Kokoro TTS** the `com.voicemode.kokoro`
+LaunchAgent keeps running (port 8880 — free, offline, no quota). The hub serves it at
+`GET /api/brief/audio` and Today shows a 🎧 player. Kokoro down or missing? One loud log
+line, the sweep still succeeds, the player just doesn't appear — the text brief is the
+product, the MP3 is a bonus. Idempotent: it skips itself when `brief.mp3` is already newer
+than every `<topic>.json`.
+
+```bash
+python3 sweeps/audio_brief.py --print-script   # preview today's ear script, render nothing
+python3 sweeps/audio_brief.py --force          # re-render even if the mp3 is fresh
+KOKORO_URL=… NARRATE_VOICE=af_bella NARRATE_SPEED=1.1   # env overrides (default am_adam)
+```
+
 ## Billing & auth
 
 Sweeps run on **your Claude subscription** via `claude -p` (the lane chosen at kickoff) — no

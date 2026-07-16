@@ -11,9 +11,11 @@
 > 2026-07-15** — deliberate, in writing; the go/no-go still rides on the 3 pilot topics).
 > **M3 — hands-off** shipped 2026-07-15 (PR #43, `docs/M3_PLAN.md`): launchd 06:00 CT
 > scheduler + on-wake catch-up, read-time `developing` dedup labels, cost/usage ledger —
-> first unattended fire verified clean 2026-07-16 (8/8 topics). The kickoff plan M0–M3 is
-> fully built; the next build is an open decision (`docs/MASTER_PLAN.md` → Parked/deferred).
-> Next: finish the grading week + the M0 verdict (~2026-07-19).
+> first unattended fire verified clean 2026-07-16 (8/8 topics). **M4 — audio brief** shipped
+> 2026-07-16 (PR #45, `docs/M4_PLAN.md`): `sweeps/audio_brief.py` renders a ~5-min Kokoro
+> MP3 after every sweep (best-effort, never fails it), served at `GET /api/brief/audio`,
+> 🎧 player on Today. **Next: M5 — chat with the brief** (picked 2026-07-16; needs its own
+> `/explore-plan` first) + the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
