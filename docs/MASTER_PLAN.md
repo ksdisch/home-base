@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-15 · main @ `335da9a` (PR #40)
+**Last updated:** 2026-07-15 · M3 (Hands-off) built on `feat/m3-hands-off` — Kyle overrode the M0-verdict gate to build it in parallel
 
 ---
 
@@ -20,10 +20,12 @@ so nobody has to click through a dozen docs to see the state of the project._
 The repo has two arcs. **Arc 1 — Learning Hub** (the original SPEC build order, Phases 1–5,
 plus extension Phases 6–7): **fully shipped**, including the SM-2 spaced-repetition core and
 the first two Course-pipeline milestones. **Arc 2 — Home Base** (kickoff 2026-07-13: the
-morning-brief evolution): **M1 and M2 are shipped**; **M0's sweep-quality grading week is the
-only thing in flight** (Kyle grades daily through ~2026-07-19), and its go/no-go verdict gates
-**M3 (hands-off automation)** — the next big build. Later course-epic milestones (M3–M5) and
-the kickoff's deferred list are parked, not scheduled.
+morning-brief evolution): **M1 and M2 are shipped**, and **M3 (hands-off automation) is now in
+progress** — Kyle overrode the "wait for the M0 verdict" gate on 2026-07-15 to build it in
+parallel (a third deliberate override, after M1 and M2). **M0's sweep-quality grading week
+continues** alongside (Kyle grades daily through ~2026-07-19); its go/no-go verdict is still
+pending and no longer blocks M3. Later course-epic milestones (M3–M5) and the kickoff's
+deferred list are parked, not scheduled.
 
 ---
 
@@ -40,10 +42,9 @@ kanban
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
+    hbm3["HB M3 — hands-off: launchd scheduler + on-wake catch-up · read-time dedup · cost/usage ledger · built, PR open"]
   decide["⏸️ Awaiting decision"]
-    hbm3gate["HB M3 go/no-go — rides on M0's verdict · Kyle, ~2026-07-19"]
-  next["⬜ Up next once unblocked"]
-    hbm3["HB M3 — hands-off: scheduled sweeps via launchd · dedup vs history · cost guardrails"]
+    hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
     cm3["Courses M3 — multi-agent generation at depth + rubrics"]
     cm4["Courses M4 — NotebookLM enrichment in-flow"]
@@ -93,13 +94,16 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] JSON pipeline refit: prompts emit strict JSON → validated render (with M1, PR #36)
   - [x] First full-roster 8-topic production sweep verified clean, incl. cloud-session run (2026-07-15, PR #40)
   - [ ] **Kyle's daily A–F grades through ~2026-07-19** ← _the live task; pilots gate the verdict_
-  - [ ] **Go/no-go verdict** on the 3 pilot topics → unlocks M3 (kill criteria: persistent misses/slop)
+  - [ ] **Go/no-go verdict** on the 3 pilot topics — Kyle, ~2026-07-19 (kill criteria: persistent misses/slop). _No longer blocks M3, which Kyle chose to build in parallel._
 - [x] **M1 — The brief page** — ✅ shipped 2026-07-13, PR #36 ([plan](M1_PLAN.md); deliberate Day-0 override of the M0 gate)
       _Today route at `/` renders stored sweeps · `GET /api/brief` · visit log (habit metric) · old home → "Learning" tab_
 - [x] **M2 — Full roster + notes** — ✅ shipped 2026-07-14, PRs #38 + #39 ([plan](M2_PLAN.md); second deliberate override)
       _`sweeps/topics.json` roster (8 topics, pause flags) · read-time item ids · inline notes (`brief_notes` v5, `/notes` page) · "Your learning" strip_
-- [ ] ⏸️ **M3 — Hands-off** — _blocked on the M0 verdict (Kyle's call, ~2026-07-19)_
-      _Scheduled sweeps (launchd on-wake catch-up) · dedup vs history · cost guardrails · curation polish_
+- [ ] 🔄 **M3 — Hands-off** — _in progress on `feat/m3-hands-off` ([plan](M3_PLAN.md)); Kyle overrode the M0-verdict gate on 2026-07-15 to build in parallel (third deliberate override)_
+  - [x] Launchd scheduler + wrapper + installer; on-wake catch-up; auth spike + a bounded launchd run proven end-to-end
+  - [x] Cost/usage guardrails: `--output-format json` → `data/sweeps/.runs.jsonl` ledger · API-key guard · skip-done · max-topics
+  - [x] Read-time dedup: `developing`/`first_seen` labels on repeated stories (nothing dropped) + subtle Today chip
+  - [ ] Kyle installs the schedule (`sweeps/schedule/install-schedule.sh`) at his chosen time — not auto-enabled
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -125,6 +129,6 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
 | [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
-| [`M1_PLAN.md`](M1_PLAN.md) / [`M2_PLAN.md`](M2_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
+| [`M1_PLAN.md`](M1_PLAN.md) / [`M2_PLAN.md`](M2_PLAN.md) / [`M3_PLAN.md`](M3_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas |

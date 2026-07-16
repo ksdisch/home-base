@@ -7,10 +7,12 @@
 > (8 topics, manual pause flags), read-time item ids + inline notes (`brief_notes` v5,
 > browsable at `/notes`), "Your learning" strip on Today. M1 record: `docs/M1_PLAN.md`.
 > **M0's grading week continues in parallel** — grade daily in `docs/M0-sweep-grades.md`
-> (Kyle overrode the "no UI until M0 passes" gate for M1 on Day 0 and again for M2 on
-> Day 1 — deliberate, in writing; the go/no-go still rides on the 3 pilot topics). Next:
-> finish the grading week → M3 (hands-off: scheduled sweeps, dedup vs history, cost
-> guardrails).
+> (Kyle overrode the "no UI until M0 passes" gate for M1 on Day 0, M2 on Day 1, and **M3 on
+> 2026-07-15** — deliberate, in writing; the go/no-go still rides on the 3 pilot topics).
+> **M3 — hands-off** is now in progress (`docs/M3_PLAN.md`): launchd scheduler + on-wake
+> catch-up, read-time `developing` dedup labels, and a cost/usage ledger — built on
+> `feat/m3-hands-off`; Kyle installs the schedule when ready. Next: finish the grading week +
+> the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
