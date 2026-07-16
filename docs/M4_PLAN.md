@@ -1,6 +1,8 @@
 # M4 Plan — The audio brief (listen to the morning sweep)
 
-_Status: in progress on `feat/m4-audio-brief`. Picked 2026-07-16 from the post-M3 menu (the
+_Status: ✅ shipped 2026-07-16 (PR #45) · verified end-to-end the same day — 330 backend
+tests green and a real Kokoro render of the live 2026-07-16 brief (651 words → 4:49 MP3,
+8 topics). Picked 2026-07-16 from the post-M3 menu (the
 kickoff's phased plan ended at M3, so the next build was an open decision): Kyle chose **both**
 the audio brief and chat-with-the-brief, then approach **A** from the `/explore-plan` fork —
 **audio first as M4**, chat queued as **M5** with its own explore-plan. "Audio version of the
