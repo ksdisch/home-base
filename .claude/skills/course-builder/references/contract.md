@@ -11,9 +11,12 @@ course "just works."
   course.json            # manifest (below)
   lessons/<id>.md        # written lesson, markdown (the markdown SUBSET below)
   exercises/<id>.md      # practice: a Problem then a Solution, markdown
-  diagrams/<id>.mmd      # mermaid source (renders as SOURCE today, graph in M2)
+  projects/<id>.md       # a larger, rubric-assessed practice project, markdown (M3)
+  capstones/<id>.md      # the course-ending synthesis project, markdown (M3)
+  diagrams/<id>.mmd      # mermaid source (renders as SOURCE today, graph is a later enhancement)
   flashcards/<id>.json   # [{ "front": "...", "back": "..." }]
   quizzes/<id>.json      # hub quiz shape (below)
+  rubrics/<id>.json      # a rubric (criteria × levels) for a project/capstone/exercise (M3)
 ```
 
 Slug rules (the CLI enforces): `^[a-z0-9]+(?:-[a-z0-9]+)*$` — lowercase kebab-case, no leading/
@@ -57,12 +60,18 @@ collapse repeats, trim (`C++ templates` → `c-templates`).
 | `type` | Required | Optional | Renders as |
 |---|---|---|---|
 | `lesson` | `type`, `path` (`lessons/*.md`) | `title` | inline markdown |
-| `exercise` | `type`, `path` (`exercises/*.md`) | `title` | inline markdown (✏️) |
+| `exercise` | `type`, `path` (`exercises/*.md`) | `title`, `rubric` | inline markdown (✏️) |
+| `project` | `type`, `path` (`projects/*.md`) | `title`, `rubric` | inline markdown (🛠) + rubric self-assessment |
+| `capstone` | `type`, `path` (`capstones/*.md`) | `title`, `rubric` | inline markdown (🎓) + rubric self-assessment |
 | `diagram` | `type`, `path` (`diagrams/*.mmd`) | `title`, `format:"mermaid"` | **mermaid source** (not a graph yet) |
 | `flashcards` | `type`, `path` (`flashcards/*.json`) | `title`, `count` | flip cards |
-| `quiz` | `type`, `path` (`quizzes/*.json`) | `title`, `count`, `purpose:"formative"\|"summative"` | question count only (player = M2) |
+| `quiz` | `type`, `path` (`quizzes/*.json`) | `title`, `count`, `purpose:"formative"\|"summative"` | in-hub player + SM-2 tracking |
 | `reading` | `type`, `url` | `title`, `note` | external link |
 | `notebooklm` | `type` | `title`, `artifact`, `notebook_id`, `note` | note (⚠️ local enrichment) |
+
+`rubric` (optional, on `exercise`/`project`/`capstone`) is a **path to a `rubrics/<id>.json`** the
+learner self-assesses against in the hub (see the Rubric shape below). `validate` BLOCKS on a
+missing/malformed rubric file, and *warns* if a rubric is attached to any other material type.
 
 `count` must match the file's length (validate warns otherwise). `format` (on `diagram`) and
 `purpose` (on `quiz`) are preserved metadata — author them for intent, but they're not yet shown
@@ -117,7 +126,50 @@ A predict-then-check practice item:
 <full worked solution — the learner reads after attempting>
 ```
 
-## Markdown SUBSET (lessons + exercises)
+## Project / capstone (`projects/<id>.md`, `capstones/<id>.md`) — M3
+
+A larger, open-ended build the learner does and then **self-assesses against a rubric**. A
+`capstone` is the course-ending synthesis project (combine objectives from ≥2 modules); a
+`project` is a mid-course version of the same. Markdown shape:
+
+```markdown
+## The task
+<a concrete deliverable to build/design, with the specific requirements it must meet>
+
+## What a strong result looks like
+<the qualities of a good answer — read AFTER attempting, so the doing is the retrieval>
+
+## Self-assess
+<tell the learner to score their result against the rubric on this page, one level per criterion>
+```
+
+Attach a rubric via the material's `rubric` field (`"rubric": "rubrics/<id>.json"`). The hub
+renders the project markdown, then a rubric widget where the learner picks one level per criterion
++ an optional note; the self-assessment is tracked (it drops off the course's "what to do next").
+
+## Rubric (`rubrics/<id>.json`) — M3
+
+```json
+{
+  "criteria": [
+    {
+      "name": "Correctness",
+      "levels": [
+        { "label": "Developing", "description": "what a weak result looks like on this dimension" },
+        { "label": "Meets",      "description": "the bar a solid result clears" },
+        { "label": "Exceeds",    "description": "what an excellent result adds" }
+      ]
+    }
+  ]
+}
+```
+
+`validate` BLOCKS unless: a non-empty `criteria` list; each criterion a non-empty `name` + **≥2
+`levels`**; each level a non-empty `label` + `description`. Author **3–4 criteria** covering the
+objectives the project exercises, each with **3 observable levels** (worst → best) phrased as what
+you'd *see* in the work — not "understands X". Order levels weakest-first.
+
+## Markdown SUBSET (lessons + exercises + projects + capstones)
 
 The hub renderer is intentionally tiny. **Supported:** `#`–`####` headings, `-`/`*` and `1.`
 lists, `>` blockquotes, fenced code ```` ``` ````, inline `` `code` ``, `**bold**`, `*italic*`,

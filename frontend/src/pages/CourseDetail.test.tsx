@@ -7,10 +7,14 @@ import CourseDetail from "./CourseDetail";
 // Mock the API client so the page renders deterministically without a backend.
 const course = vi.fn();
 const courseQuizzes = vi.fn();
+const courseNext = vi.fn();
+const assessProject = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     course: (s: string) => course(s),
     courseQuizzes: (s: string) => courseQuizzes(s),
+    courseNext: (s: string) => courseNext(s),
+    assessProject: (s: string, p: string, b: unknown) => assessProject(s, p, b),
   },
 }));
 
@@ -65,6 +69,9 @@ function renderPage() {
 beforeEach(() => {
   course.mockReset();
   courseQuizzes.mockReset();
+  courseNext.mockReset();
+  courseNext.mockResolvedValue({ slug: SLUG, generated_at: "now", all_done: false, items: [] });
+  assessProject.mockReset();
 });
 
 describe("CourseDetail — course quizzes (M2)", () => {

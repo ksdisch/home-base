@@ -6,6 +6,7 @@ from .db import (
     connect,
     course_quiz_progress,
     delete_brief_note,
+    get_course_assessments,
     get_course_progress,
     get_custom_topic,
     get_episode_progress,
@@ -16,6 +17,7 @@ from .db import (
     record_attempt,
     record_brief_visit,
     save_reflection,
+    set_course_assessment,
     set_episode_listened,
     set_lesson_completed,
     update_custom_topic,
@@ -40,4 +42,6 @@ __all__ = [
     "get_course_progress",
     "set_lesson_completed",
     "course_quiz_progress",
+    "get_course_assessments",
+    "set_course_assessment",
 ]

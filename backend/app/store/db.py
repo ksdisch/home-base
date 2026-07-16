@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -509,6 +510,88 @@ def course_quiz_progress(
         if mastery.item_is_due(r["due_at"], now_dt):
             slot["due_questions"] += 1
     return out
+
+
+# -- course rubric self-assessments (M3) ---------------------------------------
+# A project/capstone material can carry a rubric (criteria × levels) on disk; the learner's
+# self-assessment against it lives here, keyed by the material's path (its id). Mirrors
+# ``course_lesson_progress`` — content on disk, progress in SQLite. ``ratings`` is stored as a JSON
+# string (criterion name -> chosen level label) and returned decoded.
+
+def get_course_assessments(
+    course_slug: str, db_path: Optional[Path] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Every saved rubric self-assessment for a course, keyed by ``material_path``. ``ratings`` is
+    decoded from JSON (a malformed row degrades to ``{}`` rather than raising — the stored string is
+    hub-written, but stay defensive like the rest of the read layer)."""
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT material_path, self_rating, ratings, note, updated_at "
+            "FROM course_rubric_assessment WHERE course_slug = ?",
+            (course_slug,),
+        ).fetchall()
+    finally:
+        conn.close()
+    out: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        try:
+            ratings = json.loads(r["ratings"]) if r["ratings"] else {}
+        except (json.JSONDecodeError, TypeError):
+            ratings = {}
+        if not isinstance(ratings, dict):
+            ratings = {}
+        out[r["material_path"]] = {
+            "self_rating": r["self_rating"],
+            "ratings": {str(k): str(v) for k, v in ratings.items()},
+            "note": r["note"] or "",
+            "updated_at": r["updated_at"],
+        }
+    return out
+
+
+def set_course_assessment(
+    course_slug: str,
+    material_path: str,
+    self_rating: Optional[int],
+    ratings: Mapping[str, str],
+    note: str,
+    db_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Upsert one rubric self-assessment (logs an ``activity`` row like ``set_lesson_completed``).
+    Returns the saved slot. ``ratings`` is JSON-encoded; ``self_rating`` is an optional 1–5 overall."""
+    ratings_json = json.dumps({str(k): str(v) for k, v in dict(ratings).items()})
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO course_rubric_assessment
+                (course_slug, material_path, self_rating, ratings, note, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(course_slug, material_path)
+            DO UPDATE SET self_rating = excluded.self_rating, ratings = excluded.ratings,
+                          note = excluded.note, updated_at = datetime('now')
+            """,
+            (course_slug, material_path, self_rating, ratings_json, note or ""),
+        )
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            ("project_assessed",),
+        )
+        row = conn.execute(
+            "SELECT self_rating, ratings, note, updated_at FROM course_rubric_assessment "
+            "WHERE course_slug = ? AND material_path = ?",
+            (course_slug, material_path),
+        ).fetchone()
+        conn.commit()
+    finally:
+        conn.close()
+    return {
+        "self_rating": row["self_rating"],
+        "ratings": {str(k): str(v) for k, v in json.loads(row["ratings"]).items()},
+        "note": row["note"] or "",
+        "updated_at": row["updated_at"],
+    }
 
 
 # -- custom topics -------------------------------------------------------------

@@ -15,6 +15,7 @@ from .manifest import (
     read_material,
     validate_dir,
 )
+from .next_actions import next_actions
 
 __all__ = [
     "COURSE_NB_PREFIX",
@@ -24,6 +25,7 @@ __all__ = [
     "list_courses",
     "load_manifest",
     "material_path",
+    "next_actions",
     "read_material",
     "validate_dir",
 ]

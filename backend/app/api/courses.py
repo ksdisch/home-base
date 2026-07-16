@@ -19,11 +19,16 @@ from ..courses import (
     get_course,
     list_courses,
     material_path,
+    next_actions,
     read_material,
 )
 from ..models import (
+    CourseAssessment,
+    CourseAssessmentRequest,
     CourseDetail,
     CourseMaterialResponse,
+    CourseNextItem,
+    CourseNextResponse,
     CourseQuizState,
     CourseQuizzesResponse,
     CoursesResponse,
@@ -33,7 +38,13 @@ from ..models import (
 )
 from ..quiz.grading import QuizValidationError
 from ..quiz.session import cmd_prepare
-from ..store import course_quiz_progress, get_course_progress, set_lesson_completed
+from ..store import (
+    course_quiz_progress,
+    get_course_assessments,
+    get_course_progress,
+    set_course_assessment,
+    set_lesson_completed,
+)
 
 router = APIRouter()
 
@@ -51,6 +62,17 @@ def _quiz_materials(course: Dict[str, Any]) -> List[Tuple[str, str, Dict[str, An
 
 def _lesson_ids(course: Dict[str, Any]) -> List[str]:
     return [lsn["id"] for m in course["modules"] for lsn in m["lessons"]]
+
+
+def _material_by_path(course: Dict[str, Any], path: str) -> Dict[str, Any] | None:
+    """The first material whose ``path`` matches — the manifest is the source of truth for what a
+    course contains, so an ``assess`` target must be a material the course actually declares."""
+    for m in course["modules"]:
+        for lsn in m["lessons"]:
+            for mat in lsn["materials"]:
+                if mat.get("path") == path:
+                    return mat
+    return None
 
 
 def _progress(lesson_ids: List[str], done: Dict[str, bool]) -> Tuple[int, int]:
@@ -84,9 +106,14 @@ def get_course_detail(slug: str) -> CourseDetail:
         raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
 
     done = get_course_progress(slug)
+    assessments = get_course_assessments(slug)  # {material_path: {...}} — merged onto materials
     for m in course["modules"]:
         for lsn in m["lessons"]:
             lsn["completed"] = done.get(lsn["id"], False)
+            for mat in lsn["materials"]:
+                saved = assessments.get(mat.get("path"))
+                if saved is not None:
+                    mat["assessment"] = saved
     ids = _lesson_ids(course)
     completed, pct = _progress(ids, done)
     return CourseDetail(**course, completed_lessons=completed, progress_pct=pct)
@@ -197,6 +224,62 @@ def get_course_quizzes(slug: str) -> CourseQuizzesResponse:
         generated_at=datetime.now(timezone.utc).isoformat(),
         quizzes=quizzes,
     )
+
+
+@router.get("/courses/{slug}/next", response_model=CourseNextResponse)
+def get_course_next(slug: str) -> CourseNextResponse:
+    """A course-scoped "what to do next": due quiz reviews → continue the next lesson → practice a
+    finished lesson's quiz → self-assess a ready project/capstone. Built on the same SM-2 + progress
+    signals as the rest of the hub, but course-scoped (the global ``/review`` + study plan exclude
+    course rows on purpose). Read-only; never a 500 — an empty/blank course yields no items."""
+    try:
+        course = get_course(slug)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if course is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+
+    items = next_actions(
+        course,
+        get_course_progress(slug),
+        course_quiz_progress(slug),
+        get_course_assessments(slug),
+    )
+    lesson_count = len(_lesson_ids(course))
+    return CourseNextResponse(
+        slug=slug,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        all_done=lesson_count > 0 and not items,
+        items=[CourseNextItem(**it) for it in items],
+    )
+
+
+@router.post("/courses/{slug}/assess", response_model=CourseAssessment)
+def assess_project(
+    slug: str,
+    body: CourseAssessmentRequest,
+    path: str = Query(..., description="project/capstone material path relative to the course dir"),
+) -> CourseAssessment:
+    """Save a rubric self-assessment for a project/capstone. The ``path`` must be a material the
+    course actually declares AND carry a ``rubric`` — you can't assess an arbitrary path. Persists
+    to ``course_rubric_assessment`` (the project + rubric stay on disk; only the self-rating lands
+    in SQLite, mirroring the lesson-complete checkbox)."""
+    if body.self_rating is not None and not (1 <= body.self_rating <= 5):
+        raise HTTPException(status_code=422, detail="self_rating must be between 1 and 5")
+    try:
+        course = get_course(slug)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if course is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+    material = _material_by_path(course, path)
+    if material is None or not material.get("rubric"):
+        # No such material, or it declares no rubric to assess against.
+        raise HTTPException(
+            status_code=404, detail=f"No rubric-assessable material '{path}' in '{slug}'."
+        )
+    saved = set_course_assessment(slug, path, body.self_rating, body.ratings, body.note)
+    return CourseAssessment(**saved)
 
 
 def _lesson_title(course: Dict[str, Any], lesson_id: str) -> str:

@@ -68,7 +68,8 @@ def cmd_scaffold(
     base = get_settings().courses_dir / slug
     if (base / "course.json").exists():
         raise FileExistsError(f"course '{slug}' already exists at {base}")
-    for sub in ("lessons", "exercises", "diagrams", "flashcards", "quizzes"):
+    for sub in ("lessons", "exercises", "projects", "capstones", "diagrams", "flashcards",
+                "quizzes", "rubrics"):
         (base / sub).mkdir(parents=True, exist_ok=True)
 
     manifest = {

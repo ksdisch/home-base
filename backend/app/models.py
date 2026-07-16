@@ -353,10 +353,24 @@ class CustomTopicUpdate(BaseModel):
 # A course is a sidecar dir on disk (course.json + material files); these models mirror the
 # manifest read by ``app.courses.manifest``. Progress is merged in from the SQLite store.
 
+class CourseAssessment(BaseModel):
+    """A learner's self-assessment of a project/capstone against its rubric (M3). ``ratings`` maps
+    each rubric criterion name to the chosen level label; ``self_rating`` is an optional 1–5 overall.
+    Read from ``course_rubric_assessment`` and merged onto the owning material in the course detail."""
+
+    self_rating: Optional[int] = None
+    ratings: Dict[str, str] = {}
+    note: str = ""
+    updated_at: Optional[str] = None
+
+
 class CourseMaterial(BaseModel):
     """One material attached to a lesson. ``type`` drives rendering; the other fields vary by
     type (file-backed ones carry ``path``; ``reading`` carries ``url``; ``notebooklm`` carries
-    ``notebook_id``). Extra fields are preserved so the format can grow without a model change."""
+    ``notebook_id``). Extra fields are preserved so the format can grow without a model change.
+
+    M3: ``rubric`` (a ``rubrics/<id>.json`` path) makes an exercise/project/capstone self-assessable;
+    ``assessment`` is the learner's saved self-assessment, merged in by the course-detail endpoint."""
 
     model_config = ConfigDict(extra="allow")
     type: str
@@ -368,6 +382,8 @@ class CourseMaterial(BaseModel):
     count: Optional[int] = None
     notebook_id: Optional[str] = None
     artifact: Optional[str] = None
+    rubric: Optional[str] = None
+    assessment: Optional[CourseAssessment] = None
 
 
 class CourseLesson(BaseModel):
@@ -447,6 +463,35 @@ class CourseQuizzesResponse(BaseModel):
     slug: str
     generated_at: str
     quizzes: List[CourseQuizState] = []
+
+
+class CourseAssessmentRequest(BaseModel):
+    """The body of ``POST /courses/{slug}/assess`` — a rubric self-assessment. All fields optional;
+    an empty ratings map with a note is fine (it still records that the project was attempted)."""
+
+    self_rating: Optional[int] = None
+    ratings: Dict[str, str] = {}
+    note: str = ""
+
+
+class CourseNextItem(BaseModel):
+    """One ranked "what to do next" action for a course (M3). ``kind`` drives the CTA:
+    ``quiz_review``/``quiz_new`` link to the player (``path``); ``lesson``/``project`` point at the
+    lesson card (``lesson_id``)."""
+
+    kind: str  # "quiz_review" | "lesson" | "quiz_new" | "project"
+    title: str
+    reason: str
+    module_id: Optional[str] = None
+    lesson_id: Optional[str] = None
+    path: Optional[str] = None
+
+
+class CourseNextResponse(BaseModel):
+    slug: str
+    generated_at: str
+    all_done: bool = False  # course has lessons and nothing is currently actionable
+    items: List[CourseNextItem] = []
 
 
 class BriefSource(BaseModel):

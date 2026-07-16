@@ -54,9 +54,10 @@ material** the user approved (note any change in the final report).
    (c) **its module spec only** — every lesson id, its objectives, and the **exact id + path of
    every file-backed material to write**; (d) the entire **Pedagogy** section of this skill; and
    (e) the entire `references/contract.md` **including the Markdown SUBSET**. Each subagent **writes
-   only its module's file-backed materials** (lessons/exercises/diagrams/flashcards/quizzes) to the
-   given paths and returns a JSON list of `{path, type, lesson_id}`. Subagents **must use only the
-   assigned ids/paths — never mint new ones**, and must **not** touch `course.json`.
+   only its module's file-backed materials** (lessons/exercises/projects/capstones/diagrams/
+   flashcards/quizzes **and any rubric JSON** those carry) to the given paths and returns a JSON list
+   of `{path, type, lesson_id}`. Subagents **must use only the assigned ids/paths — never mint new
+   ones**, and must **not** touch `course.json`.
 3. The main thread assembles `course.json` from the approved id map (never from subagent-invented
    ids), backfilling `created_at` (today) and `estimated_hours` (≈ Σ lesson minutes / 60, rounded
    to a whole hour, min 1). **File-less materials (`reading`, `notebooklm`) have no subagent and no
@@ -64,6 +65,14 @@ material** the user approved (note any change in the final report).
    verification here (subagents return only file paths, so a `reading` is invisible to them).
 4. **Validate, then self-check** (see §4). For a small course (1–2 modules) authoring inline on
    the main thread is fine — fan-out is for speed at scale.
+
+**At depth (large courses).** Fan-out is what makes a big course tractable — but dispatch in
+**waves of ~3–4 module-subagents at a time**, not all at once: reconcile each wave's returned
+`{path,…}` lists against the id map before launching the next, so a partial failure re-dispatches
+only the missing module (§ "Partial fan-out") instead of forcing a full restart. The main thread
+stays the single owner of `course.json`, identity, and the file-less `reading`/`notebooklm`
+materials across every wave. Keep each subagent's job **one module** no matter how large the
+course — never widen a subagent to multiple modules to "save" agents.
 
 ### 4. Validate → self-check → save
 - Commit the manifest with `… cli write --slug <slug> --from-file <manifest.json>` — it writes
@@ -75,14 +84,23 @@ material** the user approved (note any change in the final report).
   `data/courses/<slug>`: courses live under `COURSES_DIR` (default `backend/data/courses`, but the
   user may override it), and `scaffold`/`write` return the real path — use that.
 - Get `ok: true`. `validate` checks structure, that files exist + stay inside the course dir, and
-  that **quizzes have exactly one correct option + a rationale on every option** and flashcards are
-  `{front, back}`; it also *warns* on unknown material types, empty modules, count mismatches, bad
-  levels, **vague (non-Bloom's) objective verbs, empty lesson/diagram files, and non-http(s)
-  `reading` URLs** — clear those too. Loop **at most 3 times**; map errors to fixes (`missing
-  material file` → the owning subagent didn't write it / wrong path → re-dispatch just that module,
-  **unless** the file exists at the convention path and the manifest just points elsewhere → fix the
-  manifest path; `duplicate lesson id` → a subagent minted its own id → use the assigned map). If
-  still failing after 3 passes, **stop and report the residual errors** — don't ship broken.
+  that **quizzes have exactly one correct option + a rationale on every option**, flashcards are
+  `{front, back}`, and **each `rubric` file has ≥1 criterion, each with a name + ≥2 labelled,
+  described levels**; it also *warns* on unknown material types, empty modules, count mismatches, bad
+  levels, **vague (non-Bloom's) objective verbs, empty lesson/diagram files, non-http(s) `reading`
+  URLs, and a rubric on a non-exercise/project/capstone material** — clear those too. Loop **at most
+  3 times**; map errors to fixes (`missing material file`/`missing rubric file` → the owning subagent
+  didn't write it / wrong path → re-dispatch just that module, **unless** the file exists at the
+  convention path and the manifest just points elsewhere → fix the manifest path; `duplicate lesson
+  id` → a subagent minted its own id → use the assigned map). If still failing after 3 passes,
+  **stop and report the residual errors** — don't ship broken.
+- **Reviewer pass (recommended at depth).** `validate` checks *shape*, not *teaching quality*. For a
+  large or high-stakes course, after `ok:true` dispatch **one read-only reviewer subagent** over the
+  authored files to catch what the validator can't: objectives not actually covered by a material,
+  quiz distractors that aren't plausible misconceptions, a capstone that doesn't combine ≥2 modules,
+  rubric levels that aren't observable, lessons that lead with the answer instead of a predict-then-
+  read beat. It **reports**; the main thread applies fixes and re-`write`s. Keep it read-only — it
+  never edits course files itself.
 - Once `ok`, the course appears at `/courses/<slug>` immediately (the hub reads disk per request).
 
 ### 5. (Optional, gated, ⚠️ local) NotebookLM enrichment
@@ -104,19 +122,31 @@ tell the user to run `nlm login` — don't retry. The course is complete without
   before any diagram/result) → What to take away.* Don't start the file with `# Title` (the hub
   shows it already).
 - **Sequencing:** build prerequisites first; each lesson after the first opens with a one-sentence
-  callback to the prior idea. **Every course ends with a synthesis lesson or a capstone exercise**
-  that combines objectives from ≥2 modules.
+  callback to the prior idea. **Every course ends with a `capstone` material** (a rubric-assessed
+  synthesis project) that combines objectives from ≥2 modules — this is now a first-class material
+  type, not just a note in a lesson.
 - **Retrieval & spacing:** lean on retrieval (quizzes/flashcards/self-explanation) over re-reading.
   Put a short **cumulative/interleaved** review at each module boundary and make the final
-  assessment cumulative. *(Honesty: course quizzes are authored in the hub shape but are NOT yet
-  fed into the hub's Review-next/mastery engine — that's M2. Don't write lesson copy claiming the
-  hub auto-schedules course-quiz review yet.)*
+  assessment cumulative. *(Course quizzes DO feed the hub now: they play in the in-hub quiz player,
+  advance per-course SM-2, and surface in the course's own "what to do next" — you may write copy
+  that says "re-take this quiz when it's due." Two honesty caveats: the **global** Review-next queue
+  + daily study plan still exclude courses, so don't claim course quizzes show up on the cross-hub
+  review page; and a project/capstone rubric is **self-assessment**, not auto-graded — don't imply
+  the hub scores the learner's work.)*
 - **Quizzes:** include a difficulty spread — at least one **application/scenario** question, not
   only recall. Each distractor encodes a plausible misconception, and its rationale names why a
   learner would believe it. Tag `purpose` formative (per-lesson practice) vs summative
   (end-of-module).
 - **Flashcards:** atomic (one idea per card); prefer retrieval prompts ("Why does X fail?") over
   recognition; the front must not leak the answer; cover the objectives, not just vocabulary.
+- **Projects, capstones & rubrics (M3):** a `project`/`capstone` is an open-ended *build* — a
+  deliverable the learner produces, not a quiz. Shape it as **The task → What a strong result looks
+  like (read after attempting) → Self-assess** (see contract.md). Give it a **rubric** (`rubrics/
+  <id>.json`): **3–4 criteria** tied to the objectives it exercises, each with **3 observable
+  levels** (worst→best) describing what you'd *see* in the work, never "understands X." A `capstone`
+  must combine objectives from **≥2 modules**; a mid-course `project` can be single-module. Because
+  the rubric is **self-assessment**, write the levels so a learner can honestly place their own
+  work — concrete, checkable, non-flattering.
 - **Level contract** — make `level` actually change the output:
   - **Beginner** — assume no prior knowledge; define all jargon; more worked examples; recall-
     heavy quizzes; shorter lessons.
@@ -157,9 +187,11 @@ tell the user to run `nlm login` — don't retry. The course is complete without
 - **Stay out of the NotebookLM sidecars**; the bundled `backend/app/courses/examples/` are
   read-only references — write only under `COURSES_DIR`. A user slug that matches a bundled
   example **shadows** it; use unique slugs (`… cli list` shows what exists).
-- **Set rendering expectations** when reporting: diagrams display as mermaid **source** (graph =
-  M2), and quizzes show a **question count** (interactive player = M2) — don't tell the user
-  learners can take the quiz today.
+- **Set rendering expectations** when reporting: diagrams still display as mermaid **source** (a
+  rendered graph is a later enhancement) — always convey the same idea in the lesson prose too.
+  Quizzes **are** playable in-hub now (M2) and projects/capstones get a **self-assessment rubric**
+  (M3); a course's "what to do next" panel surfaces due reviews + the next lesson + un-assessed
+  projects — so you *can* tell the user learners take quizzes and self-assess projects today.
 - **Cloud vs local:** authoring files + the manifest is ✅ cloud-safe; saving to disk needs a
   filesystem; NotebookLM enrichment needs `nlm` (⚠️ local). Say so if a step can't run here, and
   still deliver everything that can.
