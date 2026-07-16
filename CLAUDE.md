@@ -9,10 +9,11 @@
 > **M0's grading week continues in parallel** — grade daily in `docs/M0-sweep-grades.md`
 > (Kyle overrode the "no UI until M0 passes" gate for M1 on Day 0, M2 on Day 1, and **M3 on
 > 2026-07-15** — deliberate, in writing; the go/no-go still rides on the 3 pilot topics).
-> **M3 — hands-off** is now in progress (`docs/M3_PLAN.md`): launchd scheduler + on-wake
-> catch-up, read-time `developing` dedup labels, and a cost/usage ledger — built on
-> `feat/m3-hands-off`; Kyle installs the schedule when ready. Next: finish the grading week +
-> the M0 verdict (~2026-07-19).
+> **M3 — hands-off** shipped 2026-07-15 (PR #43, `docs/M3_PLAN.md`): launchd 06:00 CT
+> scheduler + on-wake catch-up, read-time `developing` dedup labels, cost/usage ledger —
+> first unattended fire verified clean 2026-07-16 (8/8 topics). The kickoff plan M0–M3 is
+> fully built; the next build is an open decision (`docs/MASTER_PLAN.md` → Parked/deferred).
+> Next: finish the grading week + the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
