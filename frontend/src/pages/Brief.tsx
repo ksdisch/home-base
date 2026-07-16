@@ -30,6 +30,9 @@ function localToday(): string {
 // M2: flat notes on one brief item — existing notes plus an add-a-take composer. Notes
 // state is local to the item after load; saves go through POST /api/brief/notes with the
 // item's snapshot (slug/date/headline) so the note outlives the regenerable sweep file.
+// M5 adds "Ask about this": one grounded follow-up answer per question (a real model call,
+// ~5–20s). Answers are ephemeral by design; "Save as note" turns a keeper into a normal
+// note through the same POST, so it appends to this item's list live and shows on /notes.
 function ItemNotes({
   item,
   slug,
@@ -44,6 +47,14 @@ function ItemNotes({
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [asking, setAsking] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [askedQuestion, setAskedQuestion] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [qaSaved, setQaSaved] = useState(false);
 
   const save = () => {
     if (!draft.trim() || saving) return;
@@ -71,6 +82,48 @@ function ItemNotes({
       .deleteBriefNote(id)
       .then(() => setNotes((prev) => prev.filter((n) => n.id !== id)))
       .catch((e) => setError(e.message ?? "Couldn't delete the note"));
+  };
+
+  const ask = () => {
+    const q = question.trim();
+    if (!q || thinking) return;
+    setThinking(true);
+    setChatError(null);
+    setAnswer(null);
+    setQaSaved(false);
+    api
+      .briefChat({ item_id: item.id, topic_slug: slug, question: q })
+      .then((r) => {
+        setAnswer(r.answer);
+        setAskedQuestion(q);
+      })
+      .catch((e) => setChatError(e.message ?? "Couldn't get an answer"))
+      .finally(() => setThinking(false));
+  };
+
+  const closeAsk = () => {
+    setAsking(false);
+    setQuestion("");
+    setAnswer(null);
+    setChatError(null);
+    setQaSaved(false);
+  };
+
+  const saveAnswerAsNote = () => {
+    if (!answer || qaSaved) return;
+    api
+      .addBriefNote({
+        item_id: item.id,
+        topic_slug: slug,
+        brief_date: date,
+        item_headline: item.headline,
+        body: `**Q:** ${askedQuestion}\n\n**A:** ${answer}`,
+      })
+      .then((n) => {
+        setNotes((prev) => [...prev, n]);
+        setQaSaved(true);
+      })
+      .catch((e) => setChatError(e.message ?? "Couldn't save the answer"));
   };
 
   return (
@@ -125,6 +178,50 @@ function ItemNotes({
             {error && <span className="text-xs text-red-600">{error}</span>}
           </div>
         </div>
+      ) : asking ? (
+        <div className="mt-2">
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask a follow-up about this story…"
+            rows={2}
+            autoFocus
+            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
+          />
+          <div className="mt-1 flex items-center gap-3">
+            <button
+              onClick={ask}
+              disabled={!question.trim() || thinking}
+              className="rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
+            >
+              {thinking ? "Thinking…" : answer ? "Ask again" : "Ask"}
+            </button>
+            <button onClick={closeAsk} className="text-xs text-muted hover:text-ink">
+              Close
+            </button>
+            {thinking && <span className="text-xs text-muted">usually 10–20 seconds</span>}
+            {chatError && <span className="text-xs text-red-600">{chatError}</span>}
+          </div>
+          {answer && (
+            <div className="mt-2 rounded-lg border border-stone-200 bg-white/80 px-3 py-2">
+              <div className="text-sm text-ink/90">
+                <Markdown source={answer} />
+              </div>
+              <div className="mt-2 flex items-center gap-3 border-t border-stone-100 pt-2">
+                <button
+                  onClick={saveAnswerAsNote}
+                  disabled={qaSaved}
+                  className="text-xs font-medium text-accent disabled:text-muted"
+                >
+                  {qaSaved ? "Saved to notes ✓" : "Save as note"}
+                </button>
+                <span className="text-xs text-muted">
+                  answered from this brief + model knowledge — no live web
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="mt-1 flex items-center gap-3">
           <button
@@ -132,6 +229,12 @@ function ItemNotes({
             className="text-xs text-muted transition hover:text-accent"
           >
             + Add note
+          </button>
+          <button
+            onClick={() => setAsking(true)}
+            className="text-xs text-muted transition hover:text-accent"
+          >
+            Ask about this
           </button>
           {error && <span className="text-xs text-red-600">{error}</span>}
         </div>

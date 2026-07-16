@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · M4 (audio brief) shipped the same day it was picked — audio-first won the post-M3 menu; M5 (chat with the brief) queued next
+**Last updated:** 2026-07-16 · M5 (chat with the brief) shipped — both post-M3 picks landed the same day they were chosen; the M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -24,11 +24,12 @@ morning-brief evolution): **M1, M2, and M3 are shipped** — M3 (hands-off autom
 was built 2026-07-15 under Kyle's third deliberate override of the "wait for the M0 verdict"
 gate, and its **first unattended 06:00 fire ran clean on 2026-07-16** (8/8 topics, rc=0,
 fresh briefs + ledger rows). The kickoff's phased plan (M0–M3) is fully built, and Kyle
-picked the encore on 2026-07-16: **M4 — the audio brief — shipped the same day** (PR #45: a
-~5-minute Kokoro-narrated MP3 rendered after every sweep, 🎧 player on Today), and **M5 —
-chat with the brief — is queued next** (its own explore-plan comes first). **M0's
-sweep-quality grading week continues** alongside (Kyle grades daily through ~2026-07-19); its
-go/no-go verdict is still pending.
+picked the encore on 2026-07-16 — **both halves shipped the same day**: **M4 — the audio
+brief** (PR #45: a ~5-minute Kokoro-narrated MP3 rendered after every sweep, 🎧 player on
+Today) and **M5 — chat with the brief** (PR #47: "Ask about this" on every brief item — one
+grounded answer per question on the subscription lane, no web tools, keepers saved as
+notes). **M0's sweep-quality grading week continues** alongside (Kyle grades daily through
+~2026-07-19); its go/no-go verdict is the one open item.
 
 ---
 
@@ -45,12 +46,12 @@ kanban
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
     hbm4["HB M4 — audio brief: 5-min Kokoro MP3 after every sweep + Today player · PR 45"]
+    hbm5["HB M5 — chat with the brief: per-item Ask · grounded answers, subscription lane, no web · save-as-note · PR 47"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
-    hbm5["HB M5 — chat with the brief · queued next, picked 2026-07-16 · own explore-plan before build"]
     cm3["Courses M3 — multi-agent generation at depth + rubrics"]
     cm4["Courses M4 — NotebookLM enrichment in-flow"]
     cm5["Courses M5 — authoring loop in the hub"]
@@ -111,7 +112,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Schedule installed 2026-07-15 at 06:00 CT; **first unattended fire verified 2026-07-16** — 8/8 topics, `rc=0` in 25½ min, fresh briefs + 8 ledger rows (~$10 equiv/day, subscription lane — not billed)
 - [x] **M4 — Audio brief** — ✅ shipped 2026-07-16, PR #45 ([plan](M4_PLAN.md); picked same day from the post-M3 menu — audio-first over one combined milestone)
       _`sweeps/audio_brief.py`: deterministic ~650-word ear script → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
-- [ ] **M5 — Chat with the brief** — _queued next (picked 2026-07-16); gets its own `/explore-plan` before any code_
+- [x] **M5 — Chat with the brief** — ✅ shipped 2026-07-16, PR #47 ([plan](M5_PLAN.md); approach A from its own explore-plan — per-item Ask, no web tools)
+      _`app/chat.py` (headless `claude -p` on the subscription lane, API key scrubbed, no tools) · `POST /api/brief/chat` · "Ask about this" on every item with save-as-note reuse · `brief-chat.jsonl` ledger under backend data · live e2e: grounded answer in 13s, ~$0.07 equiv_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -138,6 +140,6 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
 | [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
-| [`M1_PLAN.md`](M1_PLAN.md) / [`M2_PLAN.md`](M2_PLAN.md) / [`M3_PLAN.md`](M3_PLAN.md) / [`M4_PLAN.md`](M4_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
+| [`M1_PLAN.md`](M1_PLAN.md) … [`M5_PLAN.md`](M5_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas |

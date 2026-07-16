@@ -20,8 +20,11 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from ..deps import get_app_settings
+from ..chat import BriefChatError, append_chat_ledger, build_prompt, max_question_chars
+from ..deps import get_app_settings, get_brief_chat_client
 from ..models import (
+    BriefChatRequest,
+    BriefChatResponse,
     BriefNote,
     BriefNoteCreate,
     BriefNoteDeleteResponse,
@@ -79,6 +82,66 @@ def get_brief_audio(settings=Depends(get_app_settings)) -> FileResponse:
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="no audio brief for the latest sweep")
     return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{date}.mp3")
+
+
+@router.post("/brief/chat", response_model=BriefChatResponse)
+def chat_about_brief_item(
+    payload: BriefChatRequest,
+    settings=Depends(get_app_settings),
+    chat=Depends(get_brief_chat_client),
+) -> BriefChatResponse:
+    """One grounded follow-up answer about a served brief item (M5).
+
+    Runs a single headless ``claude -p`` on the subscription lane (no tools, API key
+    scrubbed — see ``app.chat``). The item is looked up on the *served* day, so a question
+    from a stale tab 404s honestly instead of answering against the wrong morning. Every
+    exchange lands in the chat ledger; only successful answers reach the page.
+    """
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="question is empty")
+    if len(question) > max_question_chars():
+        raise HTTPException(
+            status_code=400, detail=f"question is too long ({max_question_chars()} chars max)"
+        )
+
+    date = latest_sweep_date(settings.sweeps_dir)
+    if not date:
+        raise HTTPException(status_code=404, detail="no sweeps yet — nothing to chat about")
+    roster = load_roster(settings.roster_file)
+    topics = load_brief_topics(settings.sweeps_dir, date, roster)
+    topic = next((t for t in topics if t["slug"] == payload.topic_slug), None)
+    item = None
+    if topic is not None:
+        item = next((i for i in topic.get("items", []) if i.get("id") == payload.item_id), None)
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="that item isn't on the served brief — it may have rolled to a new day; reload",
+        )
+
+    prompt = build_prompt(topic, item, question, date)
+    try:
+        result = chat.ask(prompt)
+    except BriefChatError as e:
+        append_chat_ledger(
+            settings.brief_chat_ledger,
+            brief_date=date,
+            topic_slug=payload.topic_slug,
+            item_id=payload.item_id,
+            model=chat.model,
+            error=f"{e} ({e.detail})" if e.detail else str(e),
+        )
+        raise HTTPException(status_code=502, detail=f"chat failed: {e}")
+    append_chat_ledger(
+        settings.brief_chat_ledger,
+        brief_date=date,
+        topic_slug=payload.topic_slug,
+        item_id=payload.item_id,
+        model=chat.model,
+        envelope=result["envelope"],
+    )
+    return BriefChatResponse(answer=result["answer"])
 
 
 @router.post("/brief/visit", response_model=BriefVisitResponse)

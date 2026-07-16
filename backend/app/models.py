@@ -532,3 +532,16 @@ class BriefVisitResponse(BaseModel):
     ok: bool = True
     day: str
     visited_at: str
+
+
+class BriefChatRequest(BaseModel):
+    """One follow-up question about a served brief item (M5). The item_id is date-scoped
+    (sha1(date|slug|headline)), so a stale tab's question naturally 404s after rollover."""
+
+    item_id: str
+    topic_slug: str
+    question: str
+
+
+class BriefChatResponse(BaseModel):
+    answer: str  # markdown, grounded in the served item — ephemeral unless saved as a note

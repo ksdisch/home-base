@@ -480,3 +480,15 @@ export interface BriefVisitResponse {
   day: string;
   visited_at: string;
 }
+
+// M5 chat-with-the-brief: one grounded follow-up answer about a served item. item_id is
+// date-scoped, so a stale tab's question 404s after the brief rolls to a new day.
+export interface BriefChatRequest {
+  item_id: string;
+  topic_slug: string;
+  question: string;
+}
+
+export interface BriefChatResponse {
+  answer: string; // markdown, grounded in the served item — ephemeral unless saved as a note
+}
