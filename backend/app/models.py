@@ -524,6 +524,8 @@ class BriefResponse(BaseModel):
     has_data: bool = False
     date: Optional[str] = None  # YYYY-MM-DD of the latest sweep folder being served
     topics: List[BriefTopic] = []
+    # M4: data/sweeps/<date>/brief.mp3 exists for the served day — GET /brief/audio streams it.
+    audio_available: bool = False
 
 
 class BriefVisitResponse(BaseModel):

@@ -115,6 +115,8 @@ async function del<T>(path: string): Promise<T> {
 export const api = {
   health: () => get<HealthResponse>("/health"),
   brief: () => get<BriefResponse>("/brief"),
+  // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
+  briefAudioUrl: () => `${API_BASE}/brief/audio`,
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.

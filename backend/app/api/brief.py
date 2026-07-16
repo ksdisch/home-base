@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 
 from ..deps import get_app_settings
 from ..models import (
@@ -62,7 +63,22 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
         has_data=len(raw_topics) > 0,
         date=date,
         topics=[BriefTopic(**t) for t in raw_topics],
+        audio_available=bool(date) and (settings.sweeps_dir / date / "brief.mp3").is_file(),
     )
+
+
+@router.get("/brief/audio")
+def get_brief_audio(settings=Depends(get_app_settings)) -> FileResponse:
+    """The served day's narrated MP3 (M4 — sweeps/audio_brief.py renders it after each sweep).
+
+    404 when the latest sweep has no audio (Kokoro was down, or a pre-M4 day) — the page just
+    hides the player. Always the *served* day's file, never a stale mp3 from an older folder.
+    """
+    date = latest_sweep_date(settings.sweeps_dir)
+    path = (settings.sweeps_dir / date / "brief.mp3") if date else None
+    if path is None or not path.is_file():
+        raise HTTPException(status_code=404, detail="no audio brief for the latest sweep")
+    return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{date}.mp3")
 
 
 @router.post("/brief/visit", response_model=BriefVisitResponse)
