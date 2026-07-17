@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · Courses **M2 remainder shipped** — the flashcard review UI (dedicated session page, again/hard/good advancing per-card SM-2 under `course:<slug>`, due chips + next-up integration; addendum in [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md)); 388 backend tests + frontend typecheck/vitest/build green. Earlier today: Courses M3 shipped (PR #48). The M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-16 · Courses **M2 remainder shipped** — the flashcard review UI (PR #49: dedicated session page, again/hard/good advancing per-card SM-2 under `course:<slug>`, due chips + next-up integration; addendum in [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md)); 388 backend tests + frontend typecheck/vitest/build green. Earlier today: Courses M3 shipped (PR #48). The M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -86,7 +86,7 @@ Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
 
 **Open remainder from the course epic's M2 spec** — ✅ closed 2026-07-16:
-- [x] Flashcard **review UI** — ✅ shipped 2026-07-16: a dedicated review session at
+- [x] Flashcard **review UI** — ✅ shipped 2026-07-16, PR #49: a dedicated review session at
       `/courses/:slug/flashcards` (due → new → later ordering, again/hard/good grades advancing
       per-card SM-2 in the shared store under `course:<slug>` — no schema change), Review CTAs +
       due chips on Course detail, and due decks ranked into the course "what to do next".
