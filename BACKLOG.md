@@ -95,6 +95,15 @@ study-planner subagent (which would read it as context). Stub now, populate as t
 - **"Generate from hub" button** — kick off a new NotebookLM audio series from the hub UI
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
 - **Hosted phone access** — remove the "Mac must be running on the same LAN" constraint.
+- **Migration ledger hardening** — found 2026-07-16: the live store's `question_mastery` was
+  missing the five v3 SM-2 columns even though `schema_migrations` recorded v3 as applied
+  (the table was empty and in its Phase-1 shape — most plausibly dropped/recreated outside the
+  app, e.g. via the sqlite MCP or a manual session; every SM-2 surface 500'd against the real
+  store until the columns were re-added by hand, with a file backup at
+  `backend/data/learning-hub.sqlite.bak-pre-v3-repair-20260716`). Idea: make `init_db` verify
+  reality instead of trusting the ledger — e.g. check `PRAGMA table_info` for each migration's
+  columns (or re-run the idempotent ALTERs unconditionally, since `_safe_alter` already
+  tolerates duplicates) so a poisoned/orphaned ledger row can't silently skip a migration.
 
 ### ✅ Shipped: `custom_topics` CLI writer + Phase-5 UI
 
