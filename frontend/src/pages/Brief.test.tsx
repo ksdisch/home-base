@@ -10,6 +10,7 @@ const brief = vi.fn();
 const logBriefVisit = vi.fn();
 const review = vi.fn();
 const courses = vi.fn();
+const briefHabit = vi.fn();
 const addBriefNote = vi.fn();
 const deleteBriefNote = vi.fn();
 vi.mock("../api/client", () => ({
@@ -18,6 +19,7 @@ vi.mock("../api/client", () => ({
     logBriefVisit: () => logBriefVisit(),
     review: () => review(),
     courses: () => courses(),
+    briefHabit: () => briefHabit(),
     addBriefNote: (body: unknown) => addBriefNote(body),
     deleteBriefNote: (id: number) => deleteBriefNote(id),
   },
@@ -28,12 +30,14 @@ beforeEach(() => {
   logBriefVisit.mockReset();
   review.mockReset();
   courses.mockReset();
+  briefHabit.mockReset();
   addBriefNote.mockReset();
   deleteBriefNote.mockReset();
   logBriefVisit.mockResolvedValue({ ok: true, day: "2026-07-14", visited_at: "" });
-  // Quiet defaults: nothing due, no courses → the strip hides itself.
+  // Quiet defaults: nothing due, no courses, no habit signal → the strips hide themselves.
   review.mockResolvedValue({ generated_at: "now", has_data: false, due_count: 0, items: [] });
   courses.mockResolvedValue({ generated_at: "now", courses: [] });
+  briefHabit.mockResolvedValue({ generated_at: "now", weeks: [] });
 });
 
 const ITEM = {
@@ -234,5 +238,36 @@ describe("Brief (Today page)", () => {
       "href",
       "/plan",
     );
+  });
+
+  it("shows the habit strip when there's weekly signal, dropping all-zero history weeks", async () => {
+    brief.mockResolvedValue(STRUCTURED);
+    briefHabit.mockResolvedValue({
+      generated_at: "now",
+      weeks: [
+        { week_start: "2026-06-29", mornings: 0, notes: 0 }, // pre-habit week: kept out of history
+        { week_start: "2026-07-06", mornings: 5, notes: 2 },
+        { week_start: "2026-07-13", mornings: 3, notes: 4 }, // current week
+      ],
+    });
+    renderBrief();
+
+    expect(await screen.findByText("Habit check:")).toBeInTheDocument();
+    expect(screen.getByText(/3 of 5 mornings/)).toBeInTheDocument();
+    expect(screen.getByText(/4 of 3 notes/)).toBeInTheDocument();
+    expect(screen.getByText(/5m \/ 2n/)).toBeInTheDocument(); // previous-weeks history line
+    expect(screen.queryByText(/0m \/ 0n/)).not.toBeInTheDocument();
+  });
+
+  it("hides the habit strip when there's no signal at all", async () => {
+    brief.mockResolvedValue(STRUCTURED);
+    briefHabit.mockResolvedValue({
+      generated_at: "now",
+      weeks: [{ week_start: "2026-07-13", mornings: 0, notes: 0 }],
+    });
+    renderBrief();
+
+    await screen.findByText("AI / LLMs"); // page settled
+    expect(screen.queryByText("Habit check:")).not.toBeInTheDocument();
   });
 });

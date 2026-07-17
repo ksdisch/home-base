@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-17 · **Migration ledger hardening shipped** (PR #52 — the BACKLOG item from the 7-16 store repair): `init_db` now trusts the store's actual table shape over the `schema_migrations` ledger — forward migrations re-run idempotently on every call, so a poisoned/orphaned ledger row can't silently skip one (the failure class behind the 7-16 `question_mastery` incident, where every SM-2 surface 500'd). Poisoned-ledger + unknown-version regression tests added; backend suite green (390 passed, 7 skipped). The M0 verdict (~07-19) remains the one open item
+**Last updated:** 2026-07-17 · Two items shipped on PR #52: **migration ledger hardening** (the BACKLOG item from the 7-16 store repair — `init_db` now trusts the store's actual table shape over the `schema_migrations` ledger, re-running forward migrations idempotently so a poisoned/orphaned ledger row can't silently skip one; poisoned-ledger + unknown-version regression tests) and **habit-metrics instrumentation for the v1 check** (`GET /api/brief/habit` + a self-hiding "Habit check" strip on Today: current week's mornings vs 5 and notes vs 3, plus prior weeks — reads `brief_visits`/`brief_notes`, local Monday-start weeks). Backend 393 passed + 7 skipped, frontend 42 green. The M0 verdict (~07-19) remains the one open item
 
 ---
 
@@ -123,6 +123,9 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
+_Instrumented 2026-07-17 (PR #52): `GET /api/brief/habit` + a self-hiding "Habit check" strip on
+Today count mornings + notes per local Monday-start week — the two measurable criteria read at a
+glance instead of a sqlite dig._
 
 ---
 

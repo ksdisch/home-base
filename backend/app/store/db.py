@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -174,6 +174,60 @@ def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
     finally:
         conn.close()
     return {"day": day, "visited_at": visited_at}
+
+
+def brief_habit_weeks(
+    weeks: int = 4,
+    *,
+    now: Optional[datetime] = None,
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """Per-week habit counts for the kickoff's v1 success check (≥5 mornings/week on the
+    visit log, ≥3 notes/week attach — evaluated ~3 weeks in).
+
+    Weeks are Monday-start on the LOCAL calendar, matching how the rows are written:
+    ``brief_visits.day`` is already the local day (see :func:`record_brief_visit`), and
+    ``brief_notes.created_at`` is sqlite's UTC ``datetime('now')`` so it's converted to
+    local before bucketing — a 7pm CDT note belongs to that evening's week, not tomorrow's.
+    Returns exactly ``weeks`` entries (clamped 1–12), oldest first, current week last,
+    zero-filled — ``mornings`` = distinct visit days, ``notes`` = notes attached. ``now``
+    is injectable for deterministic tests. Malformed hand-edited rows are skipped, never
+    a 500 (defensive like the rest of the read layer).
+    """
+    weeks = max(1, min(12, int(weeks)))
+    now_dt = now or datetime.now().astimezone()
+    this_monday = now_dt.date() - timedelta(days=now_dt.date().weekday())
+    starts = [this_monday - timedelta(weeks=w) for w in range(weeks - 1, -1, -1)]
+    slots: Dict[date, Dict[str, Any]] = {
+        s: {"week_start": s.isoformat(), "mornings": 0, "notes": 0} for s in starts
+    }
+
+    conn = connect(db_path)
+    try:
+        visit_rows = conn.execute("SELECT DISTINCT day FROM brief_visits").fetchall()
+        note_rows = conn.execute("SELECT created_at FROM brief_notes").fetchall()
+    finally:
+        conn.close()
+
+    for r in visit_rows:
+        try:
+            d = date.fromisoformat(r["day"])
+        except (TypeError, ValueError):
+            continue
+        monday = d - timedelta(days=d.weekday())
+        if monday in slots:
+            slots[monday]["mornings"] += 1
+    for r in note_rows:
+        try:
+            created = datetime.strptime(r["created_at"], "%Y-%m-%d %H:%M:%S")
+        except (TypeError, ValueError):
+            continue
+        d = created.replace(tzinfo=timezone.utc).astimezone().date()
+        monday = d - timedelta(days=d.weekday())
+        if monday in slots:
+            slots[monday]["notes"] += 1
+
+    return [slots[s] for s in starts]
 
 
 # -- brief notes (M2) -----------------------------------------------------------

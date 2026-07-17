@@ -3,6 +3,7 @@
 from .db import (
     add_brief_note,
     add_custom_topic,
+    brief_habit_weeks,
     connect,
     course_flashcard_states,
     course_quiz_progress,
@@ -34,6 +35,7 @@ __all__ = [
     "list_reflections",
     "record_attempt",
     "record_brief_visit",
+    "brief_habit_weeks",
     "add_brief_note",
     "list_brief_notes",
     "delete_brief_note",

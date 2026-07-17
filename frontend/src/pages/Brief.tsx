@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { BriefItem, BriefNote, BriefResponse, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
+import { HabitStrip } from "../components/HabitStrip";
 import { Markdown } from "../components/Markdown";
 import { YourLearning } from "../components/YourLearning";
 
@@ -425,6 +426,9 @@ export default function Brief() {
       {!loading && (
         <div className="mt-4">
           <YourLearning />
+          {/* v1 habit check: mornings/notes per week vs the kickoff targets (hides itself
+              until there's any signal). */}
+          <HabitStrip />
         </div>
       )}
     </div>

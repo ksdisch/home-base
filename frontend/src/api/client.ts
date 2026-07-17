@@ -3,6 +3,7 @@
 import type {
   BriefChatRequest,
   BriefChatResponse,
+  BriefHabitResponse,
   BriefNote,
   BriefNoteCreate,
   BriefNoteDeleteResponse,
@@ -128,6 +129,7 @@ export const api = {
   briefAudioUrl: () => `${API_BASE}/brief/audio`,
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
+  briefHabit: () => get<BriefHabitResponse>("/brief/habit"),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.
   briefNotes: (topic?: string) =>
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),
