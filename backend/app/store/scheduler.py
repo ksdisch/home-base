@@ -65,6 +65,12 @@ def quality_from_signal(correct: bool, used_hint: bool) -> int:
     return 3 if used_hint else 5
 
 
+# Flashcard self-grades reuse the exact quality trio the quiz signal produces, so a card and a
+# question with the same recall history schedule identically: again = a lapse, hard = a hinted-
+# grade pass, good = a clean pass.
+FLASHCARD_QUALITY = {"again": 2, "hard": 3, "good": 5}
+
+
 def _next_ease(ease: float, quality: int) -> float:
     """SM-2 ease update, floored at :data:`MIN_EASE`.
 

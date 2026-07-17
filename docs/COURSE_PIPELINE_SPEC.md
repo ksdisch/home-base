@@ -103,7 +103,7 @@ generated courses and the shipped example coexist.
 |---|---|---|---|
 | `lesson` | Markdown explainer | ✅ | rendered inline in the hub |
 | `diagram` | Mermaid | ✅ | rendered/【shown as source】in the hub |
-| `flashcards` | JSON deck | ✅ | (future) spaced-rep review |
+| `flashcards` | JSON deck | ✅ | per-card SM-2 review sessions (M2 remainder, shipped) |
 | `quiz` | Hub quiz JSON | ✅ | the existing quiz player + mastery engine |
 | `exercise` / `project` / `capstone` | Markdown w/ prompts + a rubric | ✅ | (future) reflection log |
 | `reading` | URL + note | ✅ | external link |

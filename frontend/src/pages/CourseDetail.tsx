@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type {
   CourseAssessment,
   CourseDetail as Detail,
+  CourseFlashcardDeck,
   CourseLesson,
   CourseMaterial,
   CourseNextItem,
@@ -42,6 +43,8 @@ export default function CourseDetail() {
   // Per-quiz attempt/SM-2 state keyed by material path. Re-fetched on mount, so returning from a
   // quiz attempt (a separate route → this remounts) shows the fresh score + due count.
   const [quizzes, setQuizzes] = useState<Record<string, CourseQuizState>>({});
+  // Per-deck flashcard review state keyed by material path — same remount-refresh behavior.
+  const [decks, setDecks] = useState<Record<string, CourseFlashcardDeck>>({});
   // M3: the course's ranked "what to do next" + which lesson cards are expanded (lifted here so a
   // next-up row can open the lesson it points at).
   const [next, setNext] = useState<CourseNextItem[]>([]);
@@ -67,6 +70,15 @@ export default function CourseDetail() {
       })
       .catch(() => {
         /* quiz stats are non-critical; the lessons still render without them */
+      });
+    api
+      .courseFlashcards(slug)
+      .then((r) => {
+        if (!alive) return;
+        setDecks(Object.fromEntries(r.decks.map((d) => [d.path, d])));
+      })
+      .catch(() => {
+        /* deck stats are non-critical; flashcards still browse without them */
       });
     api
       .courseNext(slug)
@@ -193,6 +205,7 @@ export default function CourseDetail() {
                 slug={slug}
                 lesson={l}
                 quizzes={quizzes}
+                decks={decks}
                 pending={pending.has(l.id)}
                 onToggle={() => onToggle(l)}
                 open={openLessons.has(l.id)}
@@ -221,6 +234,7 @@ function NextUp({
   if (items.length === 0) return null;
   const icon: Record<string, string> = {
     quiz_review: "🔁",
+    flashcards_review: "🃏",
     lesson: "▶️",
     quiz_new: "❓",
     project: "🎓",
@@ -241,7 +255,14 @@ function NextUp({
               </div>
               <p className="mt-0.5 text-xs text-muted">{it.reason}</p>
             </div>
-            {it.path && (it.kind === "quiz_review" || it.kind === "quiz_new") ? (
+            {it.path && it.kind === "flashcards_review" ? (
+              <Link
+                to={`/courses/${encodeURIComponent(slug)}/flashcards?path=${encodeURIComponent(it.path)}`}
+                className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              >
+                Review cards
+              </Link>
+            ) : it.path && (it.kind === "quiz_review" || it.kind === "quiz_new") ? (
               <Link
                 to={`/courses/${encodeURIComponent(slug)}/quiz?path=${encodeURIComponent(it.path)}`}
                 className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
@@ -267,6 +288,7 @@ function LessonCard({
   slug,
   lesson,
   quizzes,
+  decks,
   pending,
   onToggle,
   open,
@@ -276,6 +298,7 @@ function LessonCard({
   slug: string;
   lesson: CourseLesson;
   quizzes: Record<string, CourseQuizState>;
+  decks: Record<string, CourseFlashcardDeck>;
   pending: boolean;
   onToggle: () => void;
   open: boolean;
@@ -329,6 +352,7 @@ function LessonCard({
                   slug={slug}
                   material={mat}
                   quizState={mat.path ? quizzes[mat.path] : undefined}
+                  deck={mat.path ? decks[mat.path] : undefined}
                   onAssessed={onAssessed}
                 />
               ))}
@@ -344,11 +368,13 @@ function MaterialView({
   slug,
   material,
   quizState,
+  deck,
   onAssessed,
 }: {
   slug: string;
   material: CourseMaterial;
   quizState?: CourseQuizState;
+  deck?: CourseFlashcardDeck;
   onAssessed: () => void | Promise<void>;
 }) {
   const label = material.title || material.type;
@@ -356,6 +382,11 @@ function MaterialView({
   // A quiz is launched into the answer-key-free in-hub player — never fetch its keyed JSON here.
   if (material.type === "quiz") {
     return <QuizMaterial slug={slug} material={material} label={label} state={quizState} />;
+  }
+
+  // Flashcards get a dedicated review session (per-card SM-2); the inline grid stays for browsing.
+  if (material.type === "flashcards") {
+    return <FlashcardsMaterial slug={slug} material={material} label={label} deck={deck} />;
   }
 
   // Materials with no file body — render from manifest metadata directly.
@@ -405,7 +436,6 @@ function FileMaterial({
   material: CourseMaterial;
   label: string;
 }) {
-  const [data, setData] = useState<unknown>(null);
   const [text, setText] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -416,8 +446,7 @@ function FileMaterial({
       .courseMaterial(slug, material.path)
       .then((r) => {
         if (!alive) return;
-        if (r.kind === "json") setData(r.data);
-        else setText(r.text ?? "");
+        setText(r.text ?? "");
       })
       .catch((e) => alive && setErr(e.message ?? "Couldn't load material"));
     return () => {
@@ -467,15 +496,68 @@ function FileMaterial({
       </div>
     );
   }
-  if (material.type === "flashcards") {
-    return (
-      <div>
-        <MaterialHeader type="flashcards" label={label} />
-        {data === null ? <Skeleton /> : <Flashcards cards={data as Flashcard[]} />}
-      </div>
-    );
-  }
   return null;
+}
+
+// Flashcards: a Review CTA (+ due chip from the per-course SM-2 state) above the browsable
+// flip-card grid. The grade buttons live on the dedicated review page, not here.
+function FlashcardsMaterial({
+  slug,
+  material,
+  label,
+  deck,
+}: {
+  slug: string;
+  material: CourseMaterial;
+  label: string;
+  deck?: CourseFlashcardDeck;
+}) {
+  const [cards, setCards] = useState<Flashcard[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!material.path) return;
+    let alive = true;
+    api
+      .courseMaterial(slug, material.path)
+      .then((r) => {
+        if (!alive) return;
+        setCards(r.kind === "json" && Array.isArray(r.data) ? (r.data as Flashcard[]) : []);
+      })
+      .catch((e) => alive && setErr((e as Error).message ?? "Couldn't load this deck"));
+    return () => {
+      alive = false;
+    };
+  }, [slug, material.path]);
+
+  const path = material.path ?? "";
+  const count = deck?.card_count ?? material.count ?? cards?.length ?? null;
+  return (
+    <div>
+      <MaterialHeader type="flashcards" label={label} />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Link
+          to={`/courses/${encodeURIComponent(slug)}/flashcards?path=${encodeURIComponent(path)}`}
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+        >
+          Review deck
+        </Link>
+        {count != null && <span className="text-xs text-muted">{count} cards</span>}
+        {deck && deck.due_cards > 0 && (
+          <Badge tone="amber">🔁 {deck.due_cards} due for review</Badge>
+        )}
+      </div>
+      {err ? (
+        <Banner tone="warning">
+          Couldn't load this flashcards deck{path ? ` (${path})` : ""}: {err}
+        </Banner>
+      ) : cards === null ? (
+        <Skeleton />
+      ) : (
+        <Flashcards cards={cards} />
+      )}
+    </div>
+  );
 }
 
 // M3: a rubric self-assessment. The rubric (criteria × levels) lives on disk; the learner picks one

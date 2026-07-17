@@ -139,6 +139,10 @@ tell the user to run `nlm login` — don't retry. The course is complete without
   (end-of-module).
 - **Flashcards:** atomic (one idea per card); prefer retrieval prompts ("Why does X fail?") over
   recognition; the front must not leak the answer; cover the objectives, not just vocabulary.
+  *(Decks are reviewable in-hub now: a dedicated session per deck grades cards again/hard/good and
+  advances per-card SM-2, and due decks surface in the course's "what to do next" — you may write
+  copy that says "review this deck when cards come due." The card's front text is its identity, so
+  rewording a front resets that card's schedule — prefer stable fronts.)*
 - **Projects, capstones & rubrics (M3):** a `project`/`capstone` is an open-ended *build* — a
   deliverable the learner produces, not a quiz. Shape it as **The task → What a strong result looks
   like (read after attempting) → Self-assess** (see contract.md). Give it a **rubric** (`rubrics/

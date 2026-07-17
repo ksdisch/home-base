@@ -13,6 +13,8 @@ import type {
   CourseAssessment,
   CourseAssessmentRequest,
   CourseDetail,
+  CourseFlashcardsResponse,
+  CourseFlashcardStateResponse,
   CourseMaterialResponse,
   CourseNextResponse,
   CourseQuizzesResponse,
@@ -21,6 +23,8 @@ import type {
   CustomTopicCreate,
   CustomTopicsResponse,
   CustomTopicUpdate,
+  FlashcardCardState,
+  FlashcardReviewRequest,
   HealthResponse,
   LessonCompleteResponse,
   ProgressResponse,
@@ -187,6 +191,19 @@ export const api = {
     ),
   courseQuizzes: (slug: string) =>
     get<CourseQuizzesResponse>(`/courses/${encodeURIComponent(slug)}/quizzes`),
+  // M2 remainder: flashcard decks + per-card review state. A self-graded card advances the same
+  // per-course SM-2 scheduler the quizzes use (again/hard/good).
+  courseFlashcards: (slug: string) =>
+    get<CourseFlashcardsResponse>(`/courses/${encodeURIComponent(slug)}/flashcards`),
+  courseFlashcardState: (slug: string, path: string) =>
+    get<CourseFlashcardStateResponse>(
+      `/courses/${encodeURIComponent(slug)}/flashcards/state?path=${encodeURIComponent(path)}`,
+    ),
+  reviewFlashcard: (slug: string, path: string, body: FlashcardReviewRequest) =>
+    post<FlashcardCardState>(
+      `/courses/${encodeURIComponent(slug)}/flashcards/review?path=${encodeURIComponent(path)}`,
+      body,
+    ),
   // Course quizzes live on disk; prepare stashes a keyed copy server-side and returns the same
   // answer-key-free player view as a NotebookLM quiz. Graded via the shared gradeQuiz().
   prepareCourseQuiz: (slug: string, path: string) =>
