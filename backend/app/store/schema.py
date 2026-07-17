@@ -176,9 +176,12 @@ STATEMENTS = [
 ]
 
 # Forward migrations for stores created before a given SCHEMA_VERSION. Each value is a list of
-# additive ``ALTER TABLE`` statements applied in order when upgrading *past* that version. They
-# run idempotently — :func:`app.store.db.init_db` ignores "duplicate column" so a fresh DB (which
-# already has the columns from STATEMENTS) and a re-run are both safe.
+# additive ``ALTER TABLE`` statements applied in order. :func:`app.store.db.init_db` re-runs them
+# on EVERY call, ignoring "duplicate column" — the schema_migrations ledger records when a version
+# was first seen but does not gate them, so a store whose table was dropped/recreated outside the
+# app heals instead of 500ing (the 2026-07-16 question_mastery incident). Consequence: every entry
+# here MUST stay idempotent-under-re-run (additive ADD COLUMN); a one-shot data backfill can't go
+# in this dict without reintroducing a gate for it.
 MIGRATIONS = {
     3: [
         "ALTER TABLE question_mastery ADD COLUMN ease REAL NOT NULL DEFAULT 2.5",

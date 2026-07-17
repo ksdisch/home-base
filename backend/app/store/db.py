@@ -40,11 +40,14 @@ def init_db(db_path: Optional[Path] = None) -> None:
     try:
         for stmt in STATEMENTS:
             conn.execute(stmt)
-        # Apply forward migrations not yet recorded for this store (idempotent ALTERs).
-        applied = {r["version"] for r in conn.execute("SELECT version FROM schema_migrations")}
+        # Apply every forward migration unconditionally — the actual table shape, not the
+        # schema_migrations ledger, decides whether a column gets added (_safe_alter treats
+        # "already there" as success). A ledger row can outlive the columns it records: the
+        # 2026-07-16 incident had question_mastery dropped/recreated in its Phase-1 shape
+        # outside the app while the ledger still said v3, so the gated version of this loop
+        # skipped the ALTERs and every SM-2 surface 500'd. The ledger stays as a record of
+        # when each version was first seen; it is no longer a gate.
         for version in sorted(MIGRATIONS):
-            if version in applied:
-                continue
             for alter in MIGRATIONS[version]:
                 _safe_alter(conn, alter)
             conn.execute(
