@@ -465,6 +465,55 @@ class CourseQuizzesResponse(BaseModel):
     quizzes: List[CourseQuizState] = []
 
 
+class CourseFlashcardDeck(BaseModel):
+    """A course flashcard deck + the learner's SM-2 review state (read-only, derived from the
+    shared store under ``course:<slug>`` exactly like a course quiz). ``path`` doubles as the
+    deck id."""
+
+    path: str
+    lesson_id: str
+    module_id: str
+    title: str
+    card_count: int = 0
+    tracked_cards: int = 0   # cards reviewed at least once (they carry SM-2 state)
+    due_cards: int = 0       # of those, how many are due for review now
+
+
+class CourseFlashcardsResponse(BaseModel):
+    slug: str
+    generated_at: str
+    decks: List[CourseFlashcardDeck] = []
+
+
+class FlashcardCardState(BaseModel):
+    """One card's review state, aligned by ``index`` to the deck file's order. A card with no
+    SM-2 row yet is ``tracked=False`` — never reviewed, so the review page treats it as new."""
+
+    index: int
+    tracked: bool = False
+    due: bool = False
+    reps: int = 0
+    lapses: int = 0
+    due_at: Optional[str] = None
+    last_review_at: Optional[str] = None
+
+
+class CourseFlashcardStateResponse(BaseModel):
+    slug: str
+    path: str
+    generated_at: str
+    cards: List[FlashcardCardState] = []
+
+
+class FlashcardReviewRequest(BaseModel):
+    """The body of ``POST /courses/{slug}/flashcards/review`` — one self-graded card. ``index``
+    is the card's position in the deck file; the server derives the stable card key from the
+    card's front text, so identity never comes from the client."""
+
+    index: int
+    rating: str  # "again" | "hard" | "good"
+
+
 class CourseAssessmentRequest(BaseModel):
     """The body of ``POST /courses/{slug}/assess`` — a rubric self-assessment. All fields optional;
     an empty ratings map with a note is fine (it still records that the project was attempted)."""
@@ -479,7 +528,7 @@ class CourseNextItem(BaseModel):
     ``quiz_review``/``quiz_new`` link to the player (``path``); ``lesson``/``project`` point at the
     lesson card (``lesson_id``)."""
 
-    kind: str  # "quiz_review" | "lesson" | "quiz_new" | "project"
+    kind: str  # "quiz_review" | "flashcards_review" | "lesson" | "quiz_new" | "project"
     title: str
     reason: str
     module_id: Optional[str] = None

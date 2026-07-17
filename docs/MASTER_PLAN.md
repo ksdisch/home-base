@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · Courses M3 (generation at depth) **shipped** — project/capstone + tracked rubrics, course "what to do next", skill fan-out at depth ([PHASE7_M3_PLAN](PHASE7_M3_PLAN.md)); 370 backend tests + frontend typecheck/vitest/build green. The M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-16 · Courses **M2 remainder shipped** — the flashcard review UI (dedicated session page, again/hard/good advancing per-card SM-2 under `course:<slug>`, due chips + next-up integration; addendum in [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md)); 388 backend tests + frontend typecheck/vitest/build green. Earlier today: Courses M3 shipped (PR #48). The M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -44,6 +44,7 @@ kanban
     lh7["Courses M1 — course sidecars, read+track API, Courses UI, /build-course"]
     lh7m2["Courses M2 — course quizzes in the quiz player + per-course SM-2"]
     lh7m3["Courses M3 — generation at depth: project/capstone + tracked rubrics · course what-to-do-next · skill fan-out at depth"]
+    lh7fc["Courses M2 remainder — flashcard review UI: dedicated session page + per-card SM-2 + due chips"]
     hbm1["HB M1 — the brief page: Today route, /api/brief, visit log · PR 36"]
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
@@ -56,7 +57,6 @@ kanban
   later["🧊 Later / parked"]
     cm4["Courses M4 — NotebookLM enrichment in-flow"]
     cm5["Courses M5 — authoring loop in the hub"]
-    fcui["Course flashcard review UI — specced in Courses M2, not shipped"]
     defer["Kickoff-deferred: mobile · ESPN · auto-courses · alerts · public writing"]
 ```
 
@@ -85,9 +85,12 @@ Phases 1–5 were the SPEC build order; 6–7 extended it.
 Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings resolved
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
 
-**Open remainder from the course epic's M2 spec** (deliberately not shipped with 7-M2):
-- [ ] Flashcard **review UI** (flashcards render inline on Course detail; a dedicated review
-      surface was spec'd in [COURSE_PIPELINE_SPEC](COURSE_PIPELINE_SPEC.md) M2 and remains open)
+**Open remainder from the course epic's M2 spec** — ✅ closed 2026-07-16:
+- [x] Flashcard **review UI** — ✅ shipped 2026-07-16: a dedicated review session at
+      `/courses/:slug/flashcards` (due → new → later ordering, again/hard/good grades advancing
+      per-card SM-2 in the shared store under `course:<slug>` — no schema change), Review CTAs +
+      due chips on Course detail, and due decks ranked into the course "what to do next".
+      Addendum in [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md)
 
 ---
 

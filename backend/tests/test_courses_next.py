@@ -14,13 +14,14 @@ EXAMPLE_SLUG = "learning-how-to-learn"
 
 
 def _course() -> dict:
-    """2 lessons: l1 has a quiz, l2 has a capstone with a rubric."""
+    """2 lessons: l1 has a quiz + a flashcard deck, l2 has a capstone with a rubric."""
     return {
         "modules": [
             {"id": "m1", "title": "M1", "lessons": [
                 {"id": "l1", "title": "Lesson one", "materials": [
                     {"type": "lesson", "path": "lessons/l1.md"},
                     {"type": "quiz", "title": "Q1", "path": "quizzes/l1.json"},
+                    {"type": "flashcards", "title": "Deck 1", "path": "flashcards/l1.json"},
                 ]},
                 {"id": "l2", "title": "Lesson two", "materials": [
                     {"type": "capstone", "title": "Cap", "path": "capstones/l2.md",
@@ -34,7 +35,7 @@ def _course() -> dict:
 # -- pure ranker ---------------------------------------------------------------
 
 def test_fresh_course_says_start():
-    items = next_actions(_course(), {}, {}, {})
+    items = next_actions(_course(), {}, {}, {}, {})
     assert items[0]["kind"] == "lesson"
     assert items[0]["reason"] == "Start the course"
     assert items[0]["lesson_id"] == "l1"
@@ -42,7 +43,7 @@ def test_fresh_course_says_start():
 
 def test_due_review_outranks_everything():
     quiz_stats = {"quizzes/l1.json": {"attempts": 1, "due_questions": 3}}
-    items = next_actions(_course(), {"l1": True}, quiz_stats, {})
+    items = next_actions(_course(), {"l1": True}, quiz_stats, {}, {})
     assert items[0]["kind"] == "quiz_review"
     assert items[0]["path"] == "quizzes/l1.json"
     assert "3 questions due" in items[0]["reason"]
@@ -50,12 +51,34 @@ def test_due_review_outranks_everything():
 
 def test_due_review_reason_singular():
     quiz_stats = {"quizzes/l1.json": {"attempts": 1, "due_questions": 1}}
-    items = next_actions(_course(), {"l1": True}, quiz_stats, {})
+    items = next_actions(_course(), {"l1": True}, quiz_stats, {}, {})
     assert "1 question due" in items[0]["reason"]
 
 
+def test_due_flashcards_outrank_lessons_but_not_quiz_reviews():
+    quiz_stats = {"quizzes/l1.json": {"attempts": 1, "due_questions": 2}}
+    deck_stats = {"flashcards/l1.json": {"due_cards": 3}}
+    items = next_actions(_course(), {}, quiz_stats, deck_stats, {}, limit=None)
+    kinds = [it["kind"] for it in items]
+    assert kinds.index("quiz_review") < kinds.index("flashcards_review") < kinds.index("lesson")
+    fc = next(it for it in items if it["kind"] == "flashcards_review")
+    assert fc["path"] == "flashcards/l1.json"
+    assert "3 cards due" in fc["reason"]
+
+
+def test_due_flashcards_reason_singular_and_untracked_deck_is_silent():
+    # No due cards -> the deck never appears (a never-reviewed deck isn't nagged about).
+    assert not any(
+        it["kind"] == "flashcards_review"
+        for it in next_actions(_course(), {}, {}, {"flashcards/l1.json": {"due_cards": 0}}, {})
+    )
+    items = next_actions(_course(), {}, {}, {"flashcards/l1.json": {"due_cards": 1}}, {})
+    assert items[0]["kind"] == "flashcards_review"
+    assert "1 card due" in items[0]["reason"]
+
+
 def test_continue_points_at_first_unread_lesson():
-    items = next_actions(_course(), {"l1": True}, {}, {})
+    items = next_actions(_course(), {"l1": True}, {}, {}, {})
     lessons = [it for it in items if it["kind"] == "lesson"]
     assert lessons and lessons[0]["lesson_id"] == "l2"
     assert lessons[0]["reason"] == "Continue where you left off"
@@ -63,35 +86,35 @@ def test_continue_points_at_first_unread_lesson():
 
 def test_quiz_new_only_when_its_lesson_done():
     # l1 not done -> no quiz_new for its quiz...
-    assert not any(it["kind"] == "quiz_new" for it in next_actions(_course(), {}, {}, {}))
+    assert not any(it["kind"] == "quiz_new" for it in next_actions(_course(), {}, {}, {}, {}))
     # ...l1 done + quiz never attempted -> quiz_new surfaces.
-    items = next_actions(_course(), {"l1": True}, {"quizzes/l1.json": {"attempts": 0}}, {})
+    items = next_actions(_course(), {"l1": True}, {"quizzes/l1.json": {"attempts": 0}}, {}, {})
     assert any(it["kind"] == "quiz_new" and it["path"] == "quizzes/l1.json" for it in items)
 
 
 def test_project_surfaces_then_drops_after_assessing():
     done = {"l1": True, "l2": True}
-    items = next_actions(_course(), done, {}, {})
+    items = next_actions(_course(), done, {}, {}, {})
     assert any(it["kind"] == "project" and it["path"] == "capstones/l2.md" for it in items)
     # once an assessment exists for that path, it drops off.
-    items2 = next_actions(_course(), done, {}, {"capstones/l2.md": {"self_rating": 3}})
+    items2 = next_actions(_course(), done, {}, {}, {"capstones/l2.md": {"self_rating": 3}})
     assert not any(it["kind"] == "project" for it in items2)
 
 
 def test_project_hidden_until_its_lesson_done():
-    items = next_actions(_course(), {"l1": True}, {}, {})  # l2 not done
+    items = next_actions(_course(), {"l1": True}, {}, {}, {})  # l2 not done
     assert not any(it["kind"] == "project" for it in items)
 
 
 def test_limit_caps_items():
     quiz_stats = {"quizzes/l1.json": {"attempts": 1, "due_questions": 2}}
     done = {"l1": True, "l2": True}
-    assert len(next_actions(_course(), done, quiz_stats, {}, limit=None)) >= 2
-    assert len(next_actions(_course(), done, quiz_stats, {}, limit=1)) == 1
+    assert len(next_actions(_course(), done, quiz_stats, {}, {}, limit=None)) >= 2
+    assert len(next_actions(_course(), done, quiz_stats, {}, {}, limit=1)) == 1
 
 
 def test_empty_course_yields_nothing():
-    assert next_actions({"modules": []}, {}, {}, {}) == []
+    assert next_actions({"modules": []}, {}, {}, {}, {}) == []
 
 
 # -- endpoint ------------------------------------------------------------------

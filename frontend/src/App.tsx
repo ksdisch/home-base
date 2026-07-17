@@ -2,6 +2,7 @@ import { Link, NavLink, Route, Routes } from "react-router-dom";
 import Brief from "./pages/Brief";
 import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
+import FlashcardReview from "./pages/FlashcardReview";
 import Home from "./pages/Home";
 import Notes from "./pages/Notes";
 import Progress from "./pages/Progress";
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
+          <Route path="/courses/:slug/flashcards" element={<FlashcardReview />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/topics/:id" element={<TopicDetail />} />
           <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />

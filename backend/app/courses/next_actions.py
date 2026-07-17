@@ -28,18 +28,21 @@ def next_actions(
     course: Mapping[str, Any],
     lesson_done: Mapping[str, bool],
     quiz_stats: Mapping[str, Mapping[str, Any]],
+    flashcard_stats: Mapping[str, Mapping[str, Any]],
     assessments: Mapping[str, Any],
     *,
     limit: Optional[int] = 3,
 ) -> List[Dict[str, Any]]:
     """Rank what to do next for one course. Returns a list of items
     ``{kind, title, reason, module_id, lesson_id, path}`` with
-    ``kind ∈ {quiz_review, lesson, quiz_new, project}``, priority-ordered:
+    ``kind ∈ {quiz_review, flashcards_review, lesson, quiz_new, project}``, priority-ordered:
 
     1. **quiz_review** — questions the SM-2 scheduler says are due now (time-sensitive: spacing).
-    2. **lesson** — the next lesson not yet completed (continue where you left off).
-    3. **quiz_new** — a quiz you haven't taken, on a lesson you've finished (retrieval practice).
-    4. **project** — a project/capstone with a rubric, its lesson done, not yet self-assessed.
+    2. **flashcards_review** — deck cards due now (same spacing urgency; quizzes rank first
+       because graded retrieval gives feedback a self-graded card can't).
+    3. **lesson** — the next lesson not yet completed (continue where you left off).
+    4. **quiz_new** — a quiz you haven't taken, on a lesson you've finished (retrieval practice).
+    5. **project** — a project/capstone with a rubric, its lesson done, not yet self-assessed.
 
     Within a rank, course order is preserved (due reviews break ties by most-due first). ``limit``
     caps the list (``None`` = no cap).
@@ -64,7 +67,25 @@ def next_actions(
                     }
                 )
 
-    # 2) Continue — the first lesson not yet completed, in course order.
+    # 2) Due flashcards — the deck's SM-2 rows say cards are overdue. Same urgency tier as quiz
+    #    reviews, ranked just after them.
+    for m, lsn in _lessons_in_order(course):
+        for mat in lsn["materials"]:
+            if mat.get("type") != "flashcards" or not isinstance(mat.get("path"), str):
+                continue
+            due = int(flashcard_stats.get(mat["path"], {}).get("due_cards", 0) or 0)
+            if due > 0:
+                items.append(
+                    {
+                        "kind": "flashcards_review",
+                        "title": mat.get("title") or lsn["title"],
+                        "reason": f"{due} card{'s' if due != 1 else ''} due for review",
+                        "module_id": m["id"], "lesson_id": lsn["id"], "path": mat["path"],
+                        "_sort": (1, -due),
+                    }
+                )
+
+    # 3) Continue — the first lesson not yet completed, in course order.
     first_unread: Optional[Tuple[Mapping[str, Any], Mapping[str, Any]]] = None
     any_done = False
     for m, lsn in _lessons_in_order(course):
@@ -80,11 +101,11 @@ def next_actions(
                 "title": lsn["title"],
                 "reason": "Continue where you left off" if any_done else "Start the course",
                 "module_id": m["id"], "lesson_id": lsn["id"], "path": None,
-                "_sort": (1, 0),
+                "_sort": (2, 0),
             }
         )
 
-    # 3) Practice — a quiz never taken, on a lesson you've finished.
+    # 4) Practice — a quiz never taken, on a lesson you've finished.
     for m, lsn in _lessons_in_order(course):
         if not bool(lesson_done.get(lsn["id"])):
             continue
@@ -98,11 +119,11 @@ def next_actions(
                         "title": mat.get("title") or lsn["title"],
                         "reason": "You finished the lesson — test yourself",
                         "module_id": m["id"], "lesson_id": lsn["id"], "path": mat["path"],
-                        "_sort": (2, 0),
+                        "_sort": (3, 0),
                     }
                 )
 
-    # 4) Project / capstone — has a rubric, its lesson is done, not yet self-assessed.
+    # 5) Project / capstone — has a rubric, its lesson is done, not yet self-assessed.
     for m, lsn in _lessons_in_order(course):
         if not bool(lesson_done.get(lsn["id"])):
             continue
@@ -120,7 +141,7 @@ def next_actions(
                     "title": mat.get("title") or lsn["title"],
                     "reason": f"Apply what you learned — self-assess this {label} against its rubric",
                     "module_id": m["id"], "lesson_id": lsn["id"], "path": mat["path"],
-                    "_sort": (3, 0),
+                    "_sort": (4, 0),
                 }
             )
 

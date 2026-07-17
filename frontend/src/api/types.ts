@@ -419,9 +419,54 @@ export interface CourseQuizzesResponse {
   quizzes: CourseQuizState[];
 }
 
+// Course flashcard decks + per-card SM-2 review state (the M2 remainder). Mirrors backend
+// CourseFlashcardDeck / FlashcardCardState + friends.
+export interface CourseFlashcardDeck {
+  path: string; // also the deck id
+  lesson_id: string;
+  module_id: string;
+  title: string;
+  card_count: number;
+  tracked_cards: number;
+  due_cards: number;
+}
+
+export interface CourseFlashcardsResponse {
+  slug: string;
+  generated_at: string;
+  decks: CourseFlashcardDeck[];
+}
+
+// One card's review state, aligned by index to the deck file's order (tracked=false → new).
+export interface FlashcardCardState {
+  index: number;
+  tracked: boolean;
+  due: boolean;
+  reps: number;
+  lapses: number;
+  due_at?: string | null;
+  last_review_at?: string | null;
+}
+
+export interface CourseFlashcardStateResponse {
+  slug: string;
+  path: string;
+  generated_at: string;
+  cards: FlashcardCardState[];
+}
+
+export type FlashcardRating = "again" | "hard" | "good";
+
+// Body for POST /courses/{slug}/flashcards/review — an index into the deck file; the card's
+// stable key is derived server-side from its front text.
+export interface FlashcardReviewRequest {
+  index: number;
+  rating: FlashcardRating;
+}
+
 // Course-level "what to do next" (M3). Mirrors backend CourseNextItem/CourseNextResponse.
 export interface CourseNextItem {
-  kind: "quiz_review" | "lesson" | "quiz_new" | "project" | string;
+  kind: "quiz_review" | "flashcards_review" | "lesson" | "quiz_new" | "project" | string;
   title: string;
   reason: string;
   module_id?: string | null;

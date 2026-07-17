@@ -70,3 +70,32 @@ the course attempt. `make test` green; frontend `tsc` + vitest + build clean.
 
 Interleaving course questions into the cross-notebook **Study plan** (needs course-aware segment
 links — deferred); flashcard review UI; live Mermaid; exercises/capstone; NotebookLM enrichment.
+
+## Addendum — the flashcard review UI (the M2 remainder, shipped 2026-07-16)
+
+The one piece of this spec deliberately deferred at ship time. Same design center as the quizzes
+above: **ride the existing per-item SM-2 machinery under the `course:<slug>` namespace, no schema
+change** — a flashcard self-grade is one `question_mastery` row keyed
+``(course:<slug>, <deck path>, <card key>)``, advanced by the same `scheduler.next_state`.
+
+- **Store:** `record_flashcard_review(slug, path, card_key, rating)` (again/hard/good → the same
+  SM-2 quality trio the quiz signal produces: 2/3/5; consecutive-miss tracking; an `activity` row
+  for the streak) + `course_flashcard_states(slug, path)` (per-card `due`/reps/lapses, `now`-
+  injectable). Deliberately NOT an attempt — `attempts`/`topic_mastery` stay untouched.
+- **Card identity is server-side:** the client sends the card's *index*; the backend derives the
+  stable key from the deck file via `question_key(front, occurrence)` (duplicate fronts stay
+  distinct, exactly like duplicate quiz stems). A made-up key can never mint a mastery row.
+- **API:** `GET /courses/{slug}/flashcards` (deck list + tracked/due counts — the deck-shaped
+  mirror of `/quizzes`), `GET /courses/{slug}/flashcards/state?path=…` (per-card state aligned by
+  index), `POST /courses/{slug}/flashcards/review?path=…` (`{index, rating}` → the saved state).
+  Manifest-declared flashcard materials only; traversal/non-deck paths 404/422 calmly.
+- **Next-up:** `next_actions` gains a `flashcards_review` kind ranked just after due quiz reviews
+  (same spacing urgency; graded retrieval first) — due decks surface on the course page.
+- **UI:** `/courses/:slug/flashcards?path=…` — a session over one deck ordered due → new → later:
+  flip → self-grade (Again/Hard/Good), an "again" card re-queues to the session's end, summary at
+  the finish. Course detail's flashcards material gains a **Review deck** CTA + `N due` chip
+  (state re-fetched on remount, like quizzes); the browsable flip-card grid stays.
+- **Boundary preserved:** deck rows inherit the `course:%` exclusion from every notebook surface
+  (asserted in `tests/test_courses_flashcards.py`, mirroring the quiz boundary tests) while still
+  counting toward the source-agnostic activity streak; deck paths never masquerade as quizzes in
+  `/quizzes` or next-up.
