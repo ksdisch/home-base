@@ -67,7 +67,7 @@ collapse repeats, trim (`C++ templates` → `c-templates`).
 | `flashcards` | `type`, `path` (`flashcards/*.json`) | `title`, `count` | flip cards |
 | `quiz` | `type`, `path` (`quizzes/*.json`) | `title`, `count`, `purpose:"formative"\|"summative"` | in-hub player + SM-2 tracking |
 | `reading` | `type`, `url` | `title`, `note` | external link |
-| `notebooklm` | `type` | `title`, `artifact`, `notebook_id`, `note` | note (⚠️ local enrichment) |
+| `notebooklm` | `type` | `title`, `artifact`, `notebook_id`, `note` | cross-link card when `notebook_id` resolves in the local catalog; the `note` otherwise (⚠️ local enrichment, M4) |
 
 `rubric` (optional, on `exercise`/`project`/`capstone`) is a **path to a `rubrics/<id>.json`** the
 learner self-assesses against in the hub (see the Rubric shape below). `validate` BLOCKS on a
@@ -77,6 +77,16 @@ missing/malformed rubric file, and *warns* if a rubric is attached to any other 
 `purpose` (on `quiz`) are preserved metadata — author them for intent, but they're not yet shown
 in the UI. Every file material's `path` must stay **inside the course dir** (no `../` / absolute) —
 validate blocks an escaping path.
+
+## NotebookLM material (`notebooklm`) — M4
+
+File-less; the **main thread owns it** (subagents never see it). Fields: optional `title`,
+`note`, `artifact` (`"audio"` | `"study_guide"` | …, informational), `notebook_id`. When
+`notebook_id` matches a notebook in the machine's sidecar catalog, the hub renders a real card —
+the notebook's title, episode/guide/quiz counts, and an "Open notebook" link to `/topics/<id>`.
+No id (or an id this machine doesn't have) degrades to the `note`, so **always author a `note`
+that stands alone** ("Optional: audio deep-dive season — generate or link locally with the
+audio-series skill"). `validate` warns on a non-string `notebook_id`.
 
 ## Quiz shape (`quizzes/<id>.json`)
 

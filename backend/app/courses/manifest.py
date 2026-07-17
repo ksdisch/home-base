@@ -490,7 +490,13 @@ def validate_dir(course_dir: Path) -> Dict[str, Any]:
                             f"reading in '{lsn['id']}' has a non-http(s) url — the hub links it"
                         )
                 elif mtype == "notebooklm":
-                    pass  # optional local enrichment; nothing to check on disk
+                    # Optional local enrichment; nothing on disk to check. The hub joins
+                    # ``notebook_id`` against the sidecar catalog at read time (M4).
+                    nb = material.get("notebook_id")
+                    if nb is not None and not isinstance(nb, str):
+                        warnings.append(
+                            f"notebooklm in '{lsn['id']}' has a non-string notebook_id"
+                        )
                 else:
                     warnings.append(f"unknown material type '{mtype}' in '{lsn['id']}'")
                 # A rubric (on exercise/project/capstone) is an optional rubrics/<id>.json the

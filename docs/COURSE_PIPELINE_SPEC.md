@@ -107,7 +107,7 @@ generated courses and the shipped example coexist.
 | `quiz` | Hub quiz JSON | ✅ | the existing quiz player + mastery engine |
 | `exercise` / `project` / `capstone` | Markdown w/ prompts + a rubric | ✅ | (future) reflection log |
 | `reading` | URL + note | ✅ | external link |
-| `notebooklm` | reference to an `nlm` artifact | ⚠️ local-only | the existing topic/episode/quiz surfaces |
+| `notebooklm` | reference to an `nlm` artifact | ⚠️ local-only | cross-link card to the topic/episode/quiz surfaces (M4, shipped) |
 
 ## Pipeline topology (the "skills/commands/agents")
 

@@ -402,14 +402,7 @@ function MaterialView({
     );
   }
   if (material.type === "notebooklm") {
-    return (
-      <div>
-        <MaterialHeader type="notebooklm" label={label} />
-        <p className="text-sm text-muted">
-          {material.note ?? "Optional NotebookLM artifact — generate locally with the audio-series skill."}
-        </p>
-      </div>
-    );
+    return <NotebookLmMaterial material={material} label={label} />;
   }
 
   // Project / capstone — the markdown brief, plus a rubric self-assessment widget when one is set.
@@ -715,6 +708,52 @@ function QuizMaterial({
           <Badge tone="amber">🔁 {state.due_questions} due for review</Badge>
         )}
       </div>
+    </div>
+  );
+}
+
+// M4: a notebooklm material cross-links to the real notebook in the hub catalog — episodes,
+// study guides, and quizzes live on the topic page, so we link there rather than duplicating
+// them here. Degrades to the note when there's no notebook_id yet, or the id isn't in this
+// machine's catalog (the enrichment is local by nature).
+function NotebookLmMaterial({ material, label }: { material: CourseMaterial; label: string }) {
+  const nb = material.notebook;
+  const n = (key: string) => nb?.counts?.[key] ?? 0;
+  return (
+    <div>
+      <MaterialHeader type="notebooklm" label={label} />
+      {nb?.found ? (
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to={nb.topic_url ?? `/topics/${encodeURIComponent(nb.notebook_id)}`}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            >
+              Open notebook
+            </Link>
+            <span className="text-sm font-medium text-ink">{nb.title}</span>
+            {n("audio") > 0 && (
+              <Badge tone="neutral">🎧 {n("audio")} episode{n("audio") === 1 ? "" : "s"}</Badge>
+            )}
+            {n("study_guides") > 0 && (
+              <Badge tone="neutral">📖 {n("study_guides")} guide{n("study_guides") === 1 ? "" : "s"}</Badge>
+            )}
+            {n("quizzes") > 0 && (
+              <Badge tone="neutral">❓ {n("quizzes")} quiz{n("quizzes") === 1 ? "" : "zes"}</Badge>
+            )}
+          </div>
+          {material.note && <p className="mt-1 text-xs text-muted">{material.note}</p>}
+        </div>
+      ) : nb ? (
+        <p className="text-sm text-muted">
+          Linked notebook <code className="text-xs">{nb.notebook_id}</code> isn't in this
+          machine's catalog.{material.note ? ` ${material.note}` : ""}
+        </p>
+      ) : (
+        <p className="text-sm text-muted">
+          {material.note ?? "Optional NotebookLM artifact — generate locally with the audio-series skill."}
+        </p>
+      )}
     </div>
   );
 }

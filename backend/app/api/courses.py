@@ -13,6 +13,9 @@ from typing import Any, Dict, List, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
 
+from ..catalog.build import to_card
+from ..catalog.ingest import load_sidecars
+from ..config import get_settings
 from ..courses import (
     CourseError,
     course_notebook_id,
@@ -55,6 +58,44 @@ from ..store import (
 )
 
 router = APIRouter()
+
+
+def _attach_notebook_refs(course: Dict[str, Any]) -> None:
+    """M4: join each ``notebooklm`` material's ``notebook_id`` against the sidecar catalog and
+    merge a small ``notebook`` ref (found/title/link/counts) onto the material, so the course
+    page cross-links straight to the real topic surfaces instead of rendering a dead note.
+    Best-effort and read-only: a missing root / unparseable sidecars never break the course page
+    (materials simply keep no ``notebook`` ref or come back ``found=False``)."""
+    mats = [
+        mat
+        for m in course["modules"]
+        for lsn in m["lessons"]
+        for mat in lsn["materials"]
+        if mat.get("type") == "notebooklm"
+        and isinstance(mat.get("notebook_id"), str)
+        and mat["notebook_id"]
+    ]
+    if not mats:
+        return
+    try:
+        sidecars = load_sidecars(get_settings().notebooklm_root).sidecars
+    except Exception:  # the catalog is an enrichment here — never 500 the course over it
+        return
+    by_id = {sc.notebook_id: sc for sc in sidecars}
+    for mat in mats:
+        sc = by_id.get(mat["notebook_id"])
+        if sc is None:
+            mat["notebook"] = {"notebook_id": mat["notebook_id"], "found": False}
+            continue
+        card = to_card(sc)
+        mat["notebook"] = {
+            "notebook_id": card.notebook_id,
+            "found": True,
+            "title": card.title,
+            "topic_url": card.topic_url,
+            "notebooklm_url": card.notebooklm_url,
+            "counts": card.counts,
+        }
 
 
 def _quiz_materials(course: Dict[str, Any]) -> List[Tuple[str, str, Dict[str, Any]]]:
@@ -178,6 +219,7 @@ def get_course_detail(slug: str) -> CourseDetail:
                 saved = assessments.get(mat.get("path"))
                 if saved is not None:
                     mat["assessment"] = saved
+    _attach_notebook_refs(course)  # M4: notebooklm materials cross-link to the catalog
     ids = _lesson_ids(course)
     completed, pct = _progress(ids, done)
     return CourseDetail(**course, completed_lessons=completed, progress_pct=pct)

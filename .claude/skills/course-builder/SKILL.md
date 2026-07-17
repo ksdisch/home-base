@@ -103,11 +103,27 @@ course — never widen a subagent to multiple modules to "save" agents.
   never edits course files itself.
 - Once `ok`, the course appears at `/courses/<slug>` immediately (the hub reads disk per request).
 
-### 5. (Optional, gated, ⚠️ local) NotebookLM enrichment
-Preflight first (`which nlm` + an auth check), like `notebook-init`/`audio-series`. If
-available and the user wants it, hand off to those skills, then record `"notebook_id": "<id>"`
-(+ `artifact`) on a `notebooklm` material. **Confirm before any `nlm` write**; if auth lapsed,
-tell the user to run `nlm login` — don't retry. The course is complete without this.
+### 5. (Optional, gated, ⚠️ local) NotebookLM enrichment — M4
+The hub renders a `notebooklm` material as a **real cross-link** once its `notebook_id` resolves
+in the machine's sidecar catalog: title + episode/guide/quiz counts + an "Open notebook" button
+to the topic page (episodes, study guides, and quizzes live there — the course page never
+duplicates them). Preflight first (`which nlm` + an auth check, like
+`notebook-init`/`audio-series`), then two paths — **confirm with the user before any `nlm`
+write**:
+
+1. **Link an existing notebook** (no quota): the user already has a notebook on the course's
+   topic. Find its id (`nlm notebook list`, or the sidecar README frontmatter under
+   `$NOTEBOOKLM_ROOT`), set `"notebook_id"` (+ `artifact`, e.g. `"audio"`) on the `notebooklm`
+   material, re-run `… cli write`, and confirm the course page shows the linked card.
+2. **Create + generate** (spends NotebookLM quota — confirm explicitly): hand off to
+   `notebook-init` (notebook + sources + the sidecar dir) and `audio-series` (an episodic audio
+   season) — those skills own the `nlm` mechanics and the sidecar write-up. Then record the new
+   `notebook_id` exactly as in (1).
+
+Either way the manifest update goes through the CLI bridge (`write` validates + rolls back). If
+auth lapsed, tell the user to run `nlm login` — don't retry. The course is complete without
+this; and the link only resolves on a machine whose catalog has that notebook — elsewhere the
+hub degrades to the material's `note`, so **always author a `note` that stands alone**.
 
 ## Pedagogy — what makes a generated course actually teach
 
