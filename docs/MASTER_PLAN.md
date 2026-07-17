@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-17 · **Migration ledger hardening shipped** (the BACKLOG item from the 7-16 store repair): `init_db` now trusts the store's actual table shape over the `schema_migrations` ledger — forward migrations re-run idempotently on every call, so a poisoned/orphaned ledger row can't silently skip one (the failure class behind the 7-16 `question_mastery` incident, where every SM-2 surface 500'd). Poisoned-ledger + unknown-version regression tests added; backend suite green (390 passed, 7 skipped). The M0 verdict (~07-19) remains the one open item
+**Last updated:** 2026-07-17 · **Migration ledger hardening shipped** (PR #52 — the BACKLOG item from the 7-16 store repair): `init_db` now trusts the store's actual table shape over the `schema_migrations` ledger — forward migrations re-run idempotently on every call, so a poisoned/orphaned ledger row can't silently skip one (the failure class behind the 7-16 `question_mastery` incident, where every SM-2 surface 500'd). Poisoned-ledger + unknown-version regression tests added; backend suite green (390 passed, 7 skipped). The M0 verdict (~07-19) remains the one open item
 
 ---
 

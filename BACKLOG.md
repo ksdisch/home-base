@@ -95,7 +95,7 @@ study-planner subagent (which would read it as context). Stub now, populate as t
 - **"Generate from hub" button** — kick off a new NotebookLM audio series from the hub UI
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
 - **Hosted phone access** — remove the "Mac must be running on the same LAN" constraint.
-- **Migration ledger hardening** — ✅ shipped 2026-07-17: `init_db` now re-runs every forward
+- **Migration ledger hardening** — ✅ shipped 2026-07-17 (PR #52): `init_db` now re-runs every forward
   migration unconditionally instead of gating on `schema_migrations` — the ledger records when
   a version was first seen, but the table's real shape decides what gets altered (`_safe_alter`
   already swallows "duplicate column"), so a poisoned/orphaned ledger row can no longer
