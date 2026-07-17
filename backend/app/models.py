@@ -364,13 +364,28 @@ class CourseAssessment(BaseModel):
     updated_at: Optional[str] = None
 
 
+class CourseNotebookRef(BaseModel):
+    """The sidecar catalog's view of a ``notebooklm`` material's linked notebook (M4).
+    ``found=False`` when the referenced notebook isn't in this machine's catalog — the UI
+    degrades to the material's note. Merged in by the course-detail endpoint; read-only."""
+
+    notebook_id: str
+    found: bool = False
+    title: Optional[str] = None
+    topic_url: Optional[str] = None
+    notebooklm_url: Optional[str] = None
+    counts: Dict[str, int] = {}
+
+
 class CourseMaterial(BaseModel):
     """One material attached to a lesson. ``type`` drives rendering; the other fields vary by
     type (file-backed ones carry ``path``; ``reading`` carries ``url``; ``notebooklm`` carries
     ``notebook_id``). Extra fields are preserved so the format can grow without a model change.
 
     M3: ``rubric`` (a ``rubrics/<id>.json`` path) makes an exercise/project/capstone self-assessable;
-    ``assessment`` is the learner's saved self-assessment, merged in by the course-detail endpoint."""
+    ``assessment`` is the learner's saved self-assessment, merged in by the course-detail endpoint.
+    M4: ``notebook`` is the catalog join for a ``notebooklm`` material's ``notebook_id`` — the
+    course page cross-links to the real topic surfaces instead of rendering a dead note."""
 
     model_config = ConfigDict(extra="allow")
     type: str
@@ -384,6 +399,7 @@ class CourseMaterial(BaseModel):
     artifact: Optional[str] = None
     rubric: Optional[str] = None
     assessment: Optional[CourseAssessment] = None
+    notebook: Optional[CourseNotebookRef] = None
 
 
 class CourseLesson(BaseModel):

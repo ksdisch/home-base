@@ -270,3 +270,123 @@ describe("CourseDetail — flashcard decks (M2 remainder)", () => {
     expect(screen.getByText(/2 cards due for review/i)).toBeInTheDocument();
   });
 });
+
+const NB_ID = "f84dc873-0dc7-407d-9b2a-dbde7eeb66c4";
+
+function nbCourse(material: object): Detail {
+  return {
+    ...COURSE,
+    material_counts: { notebooklm: 1 },
+    modules: [
+      {
+        id: "m2",
+        title: "Evidence-Based Techniques",
+        summary: "",
+        lessons: [
+          {
+            id: "m2l2",
+            title: "Putting It Together",
+            objectives: [],
+            estimated_minutes: 10,
+            completed: false,
+            materials: [material as Detail["modules"][0]["lessons"][0]["materials"][0]],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("CourseDetail — notebooklm cross-link (M4)", () => {
+  it("renders a linked notebook as an Open-notebook card with counts", async () => {
+    course.mockResolvedValue(
+      nbCourse({
+        type: "notebooklm",
+        title: "Audio deep-dive",
+        artifact: "audio",
+        notebook_id: NB_ID,
+        note: "Six-episode season.",
+        notebook: {
+          notebook_id: NB_ID,
+          found: true,
+          title: "Jlens Workspace",
+          topic_url: `/topics/${NB_ID}`,
+          notebooklm_url: `https://notebooklm.google.com/notebook/${NB_ID}`,
+          counts: { audio: 6, study_guides: 1, quizzes: 1, total: 8 },
+        },
+      }),
+    );
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={[`/courses/${SLUG}`]}>
+        <Routes>
+          <Route path="/courses/:slug" element={<CourseDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Putting It Together/i }));
+
+    const link = await screen.findByRole("link", { name: /Open notebook/i });
+    expect(link).toHaveAttribute("href", `/topics/${NB_ID}`);
+    expect(screen.getByText("Jlens Workspace")).toBeInTheDocument();
+    expect(screen.getByText(/6 episodes/)).toBeInTheDocument();
+    expect(screen.getByText(/1 guide/)).toBeInTheDocument();
+    expect(screen.getByText(/Six-episode season/)).toBeInTheDocument();
+  });
+
+  it("degrades calmly when the linked notebook isn't in this machine's catalog", async () => {
+    course.mockResolvedValue(
+      nbCourse({
+        type: "notebooklm",
+        title: "Audio deep-dive",
+        notebook_id: NB_ID,
+        note: "Generate locally.",
+        notebook: { notebook_id: NB_ID, found: false, counts: {} },
+      }),
+    );
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={[`/courses/${SLUG}`]}>
+        <Routes>
+          <Route path="/courses/:slug" element={<CourseDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Putting It Together/i }));
+    expect(await screen.findByText(/isn't in this machine's catalog/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open notebook/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps the plain note when no notebook is linked yet", async () => {
+    course.mockResolvedValue(
+      nbCourse({
+        type: "notebooklm",
+        title: "Optional deep-dive",
+        note: "Link a notebook later.",
+      }),
+    );
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={[`/courses/${SLUG}`]}>
+        <Routes>
+          <Route path="/courses/:slug" element={<CourseDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /Putting It Together/i }));
+    expect(await screen.findByText(/Link a notebook later/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Open notebook/i })).not.toBeInTheDocument();
+  });
+});

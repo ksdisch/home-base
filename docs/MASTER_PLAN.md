@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · Courses **M2 remainder shipped** — the flashcard review UI (PR #49: dedicated session page, again/hard/good advancing per-card SM-2 under `course:<slug>`, due chips + next-up integration; addendum in [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md)); 388 backend tests + frontend typecheck/vitest/build green. Earlier today: Courses M3 shipped (PR #48). The M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-16 · Courses **M4 shipped** — NotebookLM enrichment in-flow: `notebooklm` materials join the sidecar catalog at read time and render as real Open-notebook cards (calm degrade off-machine), plus the gated two-path skill flow ([PHASE7_M4_PLAN](PHASE7_M4_PLAN.md)); 395 backend tests + frontend green. Earlier today: Courses M3 (PR #48) and the M2 flashcard-review remainder (PR #49). The M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -45,6 +45,7 @@ kanban
     lh7m2["Courses M2 — course quizzes in the quiz player + per-course SM-2"]
     lh7m3["Courses M3 — generation at depth: project/capstone + tracked rubrics · course what-to-do-next · skill fan-out at depth"]
     lh7fc["Courses M2 remainder — flashcard review UI: dedicated session page + per-card SM-2 + due chips"]
+    lh7m4["Courses M4 — NotebookLM enrichment in-flow: catalog cross-link cards on course pages + gated link-or-generate skill flow"]
     hbm1["HB M1 — the brief page: Today route, /api/brief, visit log · PR 36"]
     hbm2["HB M2 — full 8-topic roster + inline notes + Your-learning strip · PRs 38-39"]
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
@@ -55,7 +56,6 @@ kanban
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
-    cm4["Courses M4 — NotebookLM enrichment in-flow"]
     cm5["Courses M5 — authoring loop in the hub"]
     defer["Kickoff-deferred: mobile · ESPN · auto-courses · alerts · public writing"]
 ```
@@ -81,6 +81,7 @@ Phases 1–5 were the SPEC build order; 6–7 extended it.
 | 7 | Courses M1 — course-pipeline vertical slice | ✅ shipped | [PHASE7_PLAN](PHASE7_PLAN.md) | `app/courses/*`, `/api/courses`, Courses UI, `/build-course` |
 | 7-M2 | Courses M2 — course quizzes in the player + per-course SM-2 | ✅ shipped | [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md) | `7f2db03`; `course:<slug>` namespace, notebook aggregates filtered |
 | 7-M3 | Courses M3 — generation at depth: project/capstone + tracked rubrics · course "what to do next" · skill fan-out at depth | ✅ shipped | [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md) | PR #48; `course_rubric_assessment` (schema v6) · `GET /courses/{slug}/next` · `POST /courses/{slug}/assess` · rubric self-assessment UI |
+| 7-M4 | Courses M4 — NotebookLM enrichment in-flow: catalog cross-link on course pages + gated skill flow | ✅ shipped | [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md) | `CourseMaterial.notebook` join via `_attach_notebook_refs` · Open-notebook card w/ counts + calm degrades · course-builder §5 two-path flow |
 
 Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings resolved
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
@@ -127,9 +128,10 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 
 ## Parked / deferred (not scheduled — do not build without a decision)
 
-- **Course epic M4–M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): NotebookLM
-  enrichment in-flow → in-hub authoring loop. _(M3 — generation at depth — is now **in progress**;
-  see [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md).)_
+- **Course epic M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): the in-hub
+  authoring loop (regenerate/edit/reorder from the UI — breaks the read-only-course invariant,
+  so it starts with that architectural decision). _(M4 — NotebookLM enrichment — shipped
+  2026-07-16; see [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md).)_
 - **Kickoff-deferred v1 outs**: mobile access · ESPN league integration · auto-courses from
   news items · breaking-news alerts · public writing. _(The audio brief became M4 and
   chat-with-the-brief became M5 on 2026-07-16.)_
@@ -144,7 +146,7 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 |---|---|
 | [`SPEC.md`](../SPEC.md) | Arc-1 product spec (Learning Hub) |
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
-| [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`](.) | Per-phase build plans (Arc 1) |
+| [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`, `PHASE7_M4_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
 | [`M1_PLAN.md`](M1_PLAN.md) … [`M5_PLAN.md`](M5_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |

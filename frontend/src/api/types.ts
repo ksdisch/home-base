@@ -313,6 +313,17 @@ export interface CourseAssessment {
   updated_at?: string | null;
 }
 
+// M4: the sidecar catalog's view of a notebooklm material's linked notebook. found=false when
+// the notebook isn't in this machine's catalog — the UI degrades to the material's note.
+export interface CourseNotebookRef {
+  notebook_id: string;
+  found: boolean;
+  title?: string | null;
+  topic_url?: string | null;
+  notebooklm_url?: string | null;
+  counts: Record<string, number>;
+}
+
 // Mirrors backend Course* models (Phase 6) — generated courses read from on-disk sidecars.
 export interface CourseMaterial {
   type: string;
@@ -326,6 +337,7 @@ export interface CourseMaterial {
   artifact?: string | null;
   rubric?: string | null; // M3: a rubrics/<id>.json path (exercise/project/capstone)
   assessment?: CourseAssessment | null; // M3: merged saved self-assessment, if any
+  notebook?: CourseNotebookRef | null; // M4: merged catalog join for notebooklm materials
 }
 
 // Rubric file content (fetched via courseMaterial for a material's `rubric` path).
