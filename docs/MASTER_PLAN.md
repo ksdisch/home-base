@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · Courses **M4 shipped** — NotebookLM enrichment in-flow: `notebooklm` materials join the sidecar catalog at read time and render as real Open-notebook cards (calm degrade off-machine), plus the gated two-path skill flow ([PHASE7_M4_PLAN](PHASE7_M4_PLAN.md)); 395 backend tests + frontend green. Earlier today: Courses M3 (PR #48) and the M2 flashcard-review remainder (PR #49). The M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-16 · Courses **M4 shipped** — NotebookLM enrichment in-flow: `notebooklm` materials join the sidecar catalog at read time and render as real Open-notebook cards (calm degrade off-machine), plus the gated two-path skill flow (PR #50, [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md)); 395 backend tests + frontend green. Earlier today: Courses M3 (PR #48) and the M2 flashcard-review remainder (PR #49). The M0 verdict (~07-19) is the one open item
 
 ---
 
@@ -81,7 +81,7 @@ Phases 1–5 were the SPEC build order; 6–7 extended it.
 | 7 | Courses M1 — course-pipeline vertical slice | ✅ shipped | [PHASE7_PLAN](PHASE7_PLAN.md) | `app/courses/*`, `/api/courses`, Courses UI, `/build-course` |
 | 7-M2 | Courses M2 — course quizzes in the player + per-course SM-2 | ✅ shipped | [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md) | `7f2db03`; `course:<slug>` namespace, notebook aggregates filtered |
 | 7-M3 | Courses M3 — generation at depth: project/capstone + tracked rubrics · course "what to do next" · skill fan-out at depth | ✅ shipped | [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md) | PR #48; `course_rubric_assessment` (schema v6) · `GET /courses/{slug}/next` · `POST /courses/{slug}/assess` · rubric self-assessment UI |
-| 7-M4 | Courses M4 — NotebookLM enrichment in-flow: catalog cross-link on course pages + gated skill flow | ✅ shipped | [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md) | `CourseMaterial.notebook` join via `_attach_notebook_refs` · Open-notebook card w/ counts + calm degrades · course-builder §5 two-path flow |
+| 7-M4 | Courses M4 — NotebookLM enrichment in-flow: catalog cross-link on course pages + gated skill flow | ✅ shipped | [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md) | PR #50; `CourseMaterial.notebook` join via `_attach_notebook_refs` · Open-notebook card w/ counts + calm degrades · course-builder §5 two-path flow |
 
 Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings resolved
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
