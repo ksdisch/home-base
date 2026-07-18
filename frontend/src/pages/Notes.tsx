@@ -49,13 +49,14 @@ export default function Notes() {
             Your takes and questions from the Today brief, newest first.
           </p>
         </div>
+        {/* Full-width comfortable filter on phones; the compact inline control ≥sm. */}
         {topics.length > 1 && (
-          <label className="text-sm text-muted">
+          <label className="w-full text-sm text-muted sm:w-auto">
             Topic{" "}
             <select
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="ml-1 rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-sm text-ink"
+              className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2 py-2.5 text-sm text-ink sm:ml-1 sm:mt-0 sm:w-auto sm:py-1.5"
             >
               <option value="all">All topics</option>
               {topics.map((t) => (
@@ -97,7 +98,7 @@ export default function Notes() {
                 <button
                   onClick={() => remove(n.id)}
                   aria-label={`Delete note ${n.id}`}
-                  className="text-xs text-muted transition hover:text-ink"
+                  className="-m-2 p-2 text-xs text-muted transition hover:text-ink sm:m-0 sm:p-0"
                 >
                   Delete
                 </button>

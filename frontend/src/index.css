@@ -6,6 +6,13 @@
   color-scheme: light;
 }
 
+/* M6 small-screen polish: don't let iOS inflate text on rotate, and keep taps quiet
+   in the standalone PWA (the focus ring below still covers keyboard users). */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
 body,
 #root {

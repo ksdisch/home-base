@@ -124,6 +124,25 @@ async function del<T>(path: string): Promise<T> {
 export const api = {
   health: () => get<HealthResponse>("/health"),
   brief: () => get<BriefResponse>("/brief"),
+  // M6: same GET /api/brief, but also surfaces whether the service worker replayed it from
+  // the offline cache (X-Served-From-Cache) — frontend-only metadata, never in types.ts.
+  briefWithMeta: async (): Promise<{ brief: BriefResponse; fromCache: boolean }> => {
+    const res = await fetch(`${API_BASE}/brief`, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        const body = await res.json();
+        detail = body.detail ?? detail;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(res.status, detail);
+    }
+    return {
+      brief: (await res.json()) as BriefResponse,
+      fromCache: res.headers.get("X-Served-From-Cache") === "1",
+    };
+  },
   // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
   briefAudioUrl: () => `${API_BASE}/brief/audio`,
   // The habit metric — one row per Today-page load; fire-and-forget from the page.

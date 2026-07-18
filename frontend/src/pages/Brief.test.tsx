@@ -6,7 +6,7 @@ import Brief from "./Brief";
 // Mock the API client so the page renders deterministically without a backend. The Today
 // page also mounts the Your-learning strip (review + courses) and the note composer, so
 // those calls need deterministic defaults too.
-const brief = vi.fn();
+const briefWithMeta = vi.fn();
 const logBriefVisit = vi.fn();
 const review = vi.fn();
 const courses = vi.fn();
@@ -14,7 +14,7 @@ const addBriefNote = vi.fn();
 const deleteBriefNote = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
-    brief: () => brief(),
+    briefWithMeta: () => briefWithMeta(),
     logBriefVisit: () => logBriefVisit(),
     review: () => review(),
     courses: () => courses(),
@@ -23,8 +23,13 @@ vi.mock("../api/client", () => ({
   },
 }));
 
+// The page loads via briefWithMeta (M6): the payload plus whether the service worker
+// replayed it from the offline cache.
+const online = (b: unknown) => ({ brief: b, fromCache: false });
+const offline = (b: unknown) => ({ brief: b, fromCache: true });
+
 beforeEach(() => {
-  brief.mockReset();
+  briefWithMeta.mockReset();
   logBriefVisit.mockReset();
   review.mockReset();
   courses.mockReset();
@@ -74,7 +79,7 @@ function renderBrief() {
 
 describe("Brief (Today page)", () => {
   it("renders a structured topic — items, sources, as-of — and logs a visit", async () => {
-    brief.mockResolvedValue(STRUCTURED);
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
     renderBrief();
 
     expect(await screen.findByText("AI / LLMs")).toBeInTheDocument();
@@ -91,7 +96,8 @@ describe("Brief (Today page)", () => {
   });
 
   it("renders a raw-markdown fallback topic (legacy md-only day) with a stale hint", async () => {
-    brief.mockResolvedValue({
+    briefWithMeta.mockResolvedValue(
+      online({
       generated_at: "now",
       has_data: true,
       date: "2026-07-13", // in the past by the time this runs → stale banner
@@ -104,10 +110,11 @@ describe("Brief (Today page)", () => {
           context_note: null,
           items: [],
           raw_markdown: "**Quiet camp-eve Monday.**\n\n### An item — PFR, July 11\nBody text.",
-          error: null,
-        },
-      ],
-    });
+            error: null,
+          },
+        ],
+      }),
+    );
     renderBrief();
 
     expect(await screen.findByText("Fantasy football")).toBeInTheDocument();
@@ -116,7 +123,9 @@ describe("Brief (Today page)", () => {
   });
 
   it("empty state points at make sweep", async () => {
-    brief.mockResolvedValue({ generated_at: "now", has_data: false, date: null, topics: [] });
+    briefWithMeta.mockResolvedValue(
+      online({ generated_at: "now", has_data: false, date: null, topics: [] }),
+    );
     renderBrief();
 
     expect(await screen.findByText(/No sweeps yet/)).toBeInTheDocument();
@@ -124,7 +133,7 @@ describe("Brief (Today page)", () => {
   });
 
   it("a failed brief load still shows the error banner (and never a blank page)", async () => {
-    brief.mockRejectedValue(new Error("backend down"));
+    briefWithMeta.mockRejectedValue(new Error("backend down"));
     renderBrief();
 
     expect(await screen.findByText(/Couldn't load the brief/)).toBeInTheDocument();
@@ -132,9 +141,10 @@ describe("Brief (Today page)", () => {
   });
 
   it("renders an item's existing notes and saves a new one from the composer", async () => {
-    brief.mockResolvedValue({
-      ...STRUCTURED,
-      topics: [
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
         {
           ...STRUCTURED.topics[0],
           items: [
@@ -155,8 +165,9 @@ describe("Brief (Today page)", () => {
             },
           ],
         },
-      ],
-    });
+        ],
+      }),
+    );
     addBriefNote.mockResolvedValue({
       id: 2,
       item_id: ITEM.id,
@@ -190,7 +201,9 @@ describe("Brief (Today page)", () => {
   });
 
   it("surfaces due reviews and active courses in the Your-learning strip", async () => {
-    brief.mockResolvedValue({ generated_at: "now", has_data: false, date: null, topics: [] });
+    briefWithMeta.mockResolvedValue(
+      online({ generated_at: "now", has_data: false, date: null, topics: [] }),
+    );
     review.mockResolvedValue({
       generated_at: "now",
       has_data: true,
@@ -234,5 +247,34 @@ describe("Brief (Today page)", () => {
       "href",
       "/plan",
     );
+  });
+
+  it("offline replay shows the honest banner (and suppresses the make-sweep stale hint)", async () => {
+    // A past date would normally trigger the stale banner — offline wins instead,
+    // because `make sweep` is impossible when the hub is unreachable.
+    briefWithMeta.mockResolvedValue(offline({ ...STRUCTURED, date: "2026-07-01" }));
+    renderBrief();
+
+    expect(await screen.findByText("Offline copy")).toBeInTheDocument();
+    expect(screen.getByText(/cached last brief/)).toBeInTheDocument();
+    expect(screen.queryByText(/This brief is from a previous day/)).not.toBeInTheDocument();
+  });
+
+  it("offline replay disables the note + Ask composers (writes never queue)", async () => {
+    briefWithMeta.mockResolvedValue(offline(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Add note" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ask about this" })).toBeDisabled();
+  });
+
+  it("online, the composers stay enabled", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Add note" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Ask about this" })).toBeEnabled();
   });
 });
