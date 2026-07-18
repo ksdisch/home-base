@@ -193,3 +193,108 @@ def top_search_terms(profile: Dict[str, Any]) -> List[str]:
 
 def search_feed_url(term: str) -> str:
     return f"https://news.google.com/rss/search?q={quote(term)}&hl=en-US&gl=US&ceid=US:en"
+
+
+# -- the topic scout (Phase 4) ---------------------------------------------------
+
+SUGGESTION_MIN_SCORE = 9.0  # ≈ three fresh clicks on the theme
+SUGGESTION_MIN_DAYS = 3  # a persistent interest, not one morning's rabbit hole
+MAX_SUGGESTIONS = 3
+_SUGGESTION_KINDS = {"click": 3.0, "more_like": 5.0, "not_interested": -8.0}
+
+
+def _roster_tokens(roster: Iterable[Dict[str, Any]]) -> set:
+    """Every meaningful token in the Mode-A roster's slugs + titles. A term sharing any
+    token with the roster counts as covered — conservative on purpose: better to miss a
+    suggestion than nag about a topic the brief already sweeps."""
+    tokens: set = set()
+    for topic in roster:
+        for field in ("slug", "title"):
+            tokens.update(
+                w for w in _TOKEN_RE.findall(str(topic.get(field) or "").lower()) if len(w) > 2
+            )
+    return tokens
+
+
+def suggest_topics(
+    events: Iterable[Dict[str, Any]],
+    roster: Iterable[Dict[str, Any]],
+    dismissed: Iterable[str],
+    *,
+    now: Optional[datetime] = None,
+) -> List[Dict[str, Any]]:
+    """The Mode-A bridge: persistent, high-scoring profile terms the morning brief doesn't
+    cover yet. A term qualifies with decayed score ≥ 9 across ≥ 3 distinct days, no token
+    overlap with the roster, and no prior dismissal. Coverage applies at the *event*
+    level too: a story about a rostered topic teaches the scout nothing — Chiefs stories
+    must not spawn a "kicker battle" suggestion. Bigrams absorb their own unigrams, and
+    the final list is token-disjoint (one suggestion per theme, not three phrasings of
+    it). Each suggestion carries recent example headlines as the card's evidence."""
+    now_dt = now or datetime.now(timezone.utc)
+    # A dismissal silences every phrasing of its theme: dropping "quantum computing"
+    # must not resurface as a bare "quantum" card. Token overlap, like roster coverage.
+    dismissed_tokens: set = set()
+    for d in dismissed:
+        if d and d.strip():
+            dismissed_tokens.update(d.strip().lower().split())
+    roster_tokens = _roster_tokens(roster)
+
+    scores: Dict[str, float] = {}
+    days: Dict[str, set] = {}
+    examples: Dict[str, List[str]] = {}
+    for e in events:
+        weight = _SUGGESTION_KINDS.get(e.get("kind"))
+        if weight is None:
+            continue
+        headline = e.get("headline")
+        terms = extract_terms(headline)
+        if {t for t in terms if " " not in t} & roster_tokens:
+            continue  # a story the brief already covers — not scout evidence
+        decayed = weight * _decay(e.get("created_at"), now_dt)
+        day = str(e.get("created_at") or "")[:10]
+        for term in terms:
+            scores[term] = scores.get(term, 0.0) + decayed
+            if weight > 0 and day:
+                days.setdefault(term, set()).add(day)
+                bucket = examples.setdefault(term, [])
+                if headline and headline not in bucket and len(bucket) < 2:
+                    bucket.append(headline)
+
+    qualifying = {
+        term: score
+        for term, score in scores.items()
+        if score >= SUGGESTION_MIN_SCORE
+        and len(days.get(term, ())) >= SUGGESTION_MIN_DAYS
+        and not (set(term.split()) & dismissed_tokens)
+        and not any(tok in roster_tokens for tok in term.split())
+    }
+    # Bigrams absorb their unigrams: keep the specific phrase, drop its parts.
+    bigram_parts: set = set()
+    for term in qualifying:
+        if " " in term:
+            bigram_parts.update(term.split())
+    ranked = sorted(
+        ((score, " " in term, term) for term, score in qualifying.items()
+         if " " in term or term not in bigram_parts),
+        reverse=True,
+    )
+    # Token-disjoint greedy pick: once "quantum computing" is suggested, "computing
+    # breakthrough" is the same reading streak, not a second interest.
+    out: List[Dict[str, Any]] = []
+    used_tokens: set = set()
+    for score, _is_bigram, term in ranked:
+        tokens = set(term.split())
+        if tokens & used_tokens:
+            continue
+        used_tokens |= tokens
+        out.append(
+            {
+                "term": term,
+                "score": round(score, 2),
+                "days_seen": len(days.get(term, ())),
+                "example_headlines": examples.get(term, []),
+            }
+        )
+        if len(out) == MAX_SUGGESTIONS:
+            break
+    return out

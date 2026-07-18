@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -191,6 +191,15 @@ STATEMENTS = [
         source        TEXT,
         url           TEXT,
         created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    # M7 Phase 4 (news mode): dismissed topic-scout suggestions — "don't suggest this term
+    # again". Terms are stored lowercased; the scout checks membership case-insensitively.
+    # v9 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS news_topic_dismissals (
+        term         TEXT PRIMARY KEY,
+        dismissed_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
     """,
     """

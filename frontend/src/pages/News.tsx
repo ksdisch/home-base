@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { NewsCategory, NewsItem } from "../api/types";
+import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
 
 // M7: the Google-News-style general mode. Phase 1: a tab per category from
@@ -18,6 +18,7 @@ type FeedView = {
   fetched_at?: string | null;
   learning?: boolean;
   event_count?: number;
+  suggestions?: NewsTopicSuggestion[];
 };
 
 const FOR_YOU: NewsCategory = { slug: "foryou", title: "For You" };
@@ -32,6 +33,11 @@ export default function News() {
   // event); more-like acks keep the button honest. Both per-visit — the log is the record.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [liked, setLiked] = useState<Set<string>>(new Set());
+  // Phase 4 scout state: added terms show their confirmation; dismissed ones drop now
+  // (the backend remembers, so they stay gone on every future load too).
+  const [added, setAdded] = useState<Map<string, string>>(new Map());
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   const hasCategories = categories !== null && categories.length > 0;
   const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
@@ -80,6 +86,7 @@ export default function News() {
               stale: false,
               learning: r.learning,
               event_count: r.event_count,
+              suggestions: r.suggestions,
             }),
           )
         : api.newsCategory(selected).then(
@@ -166,6 +173,76 @@ export default function News() {
             The live refresh failed — these are the most recent articles we have
             {feed.fetched_at ? ` (from ${timeAgo(feed.fetched_at) ?? feed.fetched_at})` : ""}.
           </Banner>
+        </div>
+      )}
+
+      {feed?.suggestions && feed.suggestions.filter((s) => !dismissed.has(s.term)).length > 0 && (
+        <div className="mb-6 space-y-3">
+          {suggestionError && (
+            <Banner tone="warning" title="Suggestion action failed">
+              {suggestionError}
+            </Banner>
+          )}
+          {feed.suggestions
+            .filter((s) => !dismissed.has(s.term))
+            .map((s) => (
+              <div
+                key={s.term}
+                className="rounded-2xl border border-stone-200 bg-accent-soft/40 p-4"
+              >
+                <div className="text-sm text-ink">
+                  You've been reading a lot about{" "}
+                  <span className="font-semibold text-accent">{s.term}</span>
+                  <span className="text-muted">
+                    {" "}
+                    — across {s.days_seen} days
+                    {s.example_headlines[0] ? ` (e.g. “${s.example_headlines[0]}”)` : ""}.
+                  </span>
+                </div>
+                <div className="mt-2 flex gap-3 text-xs">
+                  {added.has(s.term) ? (
+                    <span className="font-medium text-accent">
+                      Added ✓ — in tomorrow's morning brief
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSuggestionError(null);
+                          api
+                            .addNewsTopic({ term: s.term })
+                            .then((r) =>
+                              setAdded((prev) => new Map(prev).set(s.term, r.slug)),
+                            )
+                            .catch((e) =>
+                              setSuggestionError(e.message ?? "Couldn't add the topic"),
+                            );
+                        }}
+                        className="font-medium text-accent transition hover:underline"
+                      >
+                        Add to my brief
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSuggestionError(null);
+                          api
+                            .dismissNewsSuggestion({ term: s.term })
+                            .then(() =>
+                              setDismissed((prev) => new Set(prev).add(s.term)),
+                            )
+                            .catch((e) =>
+                              setSuggestionError(e.message ?? "Couldn't dismiss it"),
+                            );
+                        }}
+                        className="text-muted transition hover:text-ink"
+                      >
+                        Don't suggest this
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
         </div>
       )}
 

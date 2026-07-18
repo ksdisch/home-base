@@ -716,8 +716,34 @@ class ForYouItem(NewsItem):
     category_slug: Optional[str] = None
 
 
+class NewsTopicSuggestion(BaseModel):
+    """A topic-scout find (M7 Phase 4): a persistent interest the morning brief doesn't
+    cover yet, with the evidence the card shows."""
+
+    term: str
+    score: float
+    days_seen: int
+    example_headlines: List[str] = []
+
+
 class NewsForYouResponse(BaseModel):
     generated_at: str
     learning: bool  # cold start: fewer than the threshold of positive signals so far
     event_count: int  # positive signals collected — the page shows progress toward warm
     items: List[ForYouItem] = []
+    suggestions: List[NewsTopicSuggestion] = []  # the Mode-A bridge, dismissible
+
+
+class NewsSuggestionActionRequest(BaseModel):
+    term: str
+
+
+class NewsSuggestionAddResponse(BaseModel):
+    ok: bool = True
+    slug: str  # the roster entry the next 06:00 sweep will pick up
+    title: str
+
+
+class NewsSuggestionDismissResponse(BaseModel):
+    ok: bool = True
+    term: str  # normalized (lowercased) — never suggested again

@@ -1,6 +1,7 @@
 # M7 Plan — News mode (the Google-News-style second mode)
 
-_Status: 🔄 **Phase 1 shipped 2026-07-18, PR #58** · Phases 2–4 planned.
+_Status: ✅ **shipped 2026-07-18** — all four phases, one day: **PR #58** (RSS shell) ·
+**PR #60** (signals) · **PR #62** (For You) · Phase 4 PR # recorded below on merge.
 Approved by Kyle 2026-07-18 after a recon-backed interview (live Google News structure +
 Yahoo comparison + Google's published For-You mechanics); the three architecture forks
 below were decided by Kyle from an explicit menu. Planning/building ahead of the M0
@@ -83,9 +84,19 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       chips per item, signals credit the item's origin section · cold start (< 20 positive
       signals) serves Top stories with an honest "still learning you (N of 20)" banner ·
       14 backend + page tests reworked to 12.
-- [ ] **Phase 4 — Topic scout**: persistent high-scoring profile terms not covered by
-      `sweeps/topics.json` → suggestion cards in For You → one-click add via the existing
-      custom-topics path (next 06:00 sweep picks it up) · dismissals remembered.
+- [x] **Phase 4 — Topic scout** ✅ built 2026-07-18 (PR # recorded on merge):
+      `suggest_topics` in the engine — a term qualifies with decayed score ≥ 9 across
+      ≥ 3 distinct days; coverage is conservative at the *event* level (a story about a
+      rostered topic teaches the scout nothing — Chiefs stories can't spawn a "kicker
+      battle" card); bigrams absorb their unigrams and the list is token-disjoint (one
+      card per theme); dismissals silence every phrasing of the theme, remembered in
+      `news_topic_dismissals` (schema v9) · suggestion cards in For You with evidence
+      (days seen + example headlines) · `POST /api/news/suggestions/add` appends to
+      `sweeps/topics.json` **atomically, preserving entries verbatim** (409 on duplicate
+      slug — the one deliberate Mode-B → Mode-A write; next 06:00 sweep picks it up) ·
+      `POST /api/news/suggestions/dismiss` · 10 backend + 3 page tests · live e2e proof:
+      warm profile → real search-feed candidates ranked first → suggestion → add →
+      roster entry → coverage silences the card.
 
 ## Evidence — Phase 1
 

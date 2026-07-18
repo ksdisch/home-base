@@ -849,6 +849,32 @@ def list_news_events(
     ]
 
 
+def add_news_dismissal(term: str, db_path: Optional[Path] = None) -> str:
+    """Remember a dismissed topic-scout suggestion (M7 Phase 4) — stored lowercased,
+    re-dismissing is a no-op. Returns the normalized term."""
+    normalized = (term or "").strip().lower()
+    if not normalized:
+        raise ValueError("term must be a non-empty string")
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO news_topic_dismissals (term) VALUES (?)", (normalized,)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return normalized
+
+
+def list_news_dismissals(db_path: Optional[Path] = None) -> List[str]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute("SELECT term FROM news_topic_dismissals").fetchall()
+    finally:
+        conn.close()
+    return [r["term"] for r in rows]
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

@@ -32,6 +32,9 @@ import type {
   NewsEventCreate,
   NewsEventResponse,
   NewsForYouResponse,
+  NewsSuggestionActionRequest,
+  NewsSuggestionAddResponse,
+  NewsSuggestionDismissResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -168,6 +171,11 @@ export const api = {
   logNewsEvent: (body: NewsEventCreate) => post<NewsEventResponse>("/news/events", body),
   // M7 Phase 3: the personalized feed (cold start returns Top stories, learning=true).
   newsForYou: () => get<NewsForYouResponse>("/news/foryou"),
+  // M7 Phase 4: the topic scout's actions — add to the morning-brief roster, or never again.
+  addNewsTopic: (body: NewsSuggestionActionRequest) =>
+    post<NewsSuggestionAddResponse>("/news/suggestions/add", body),
+  dismissNewsSuggestion: (body: NewsSuggestionActionRequest) =>
+    post<NewsSuggestionDismissResponse>("/news/suggestions/dismiss", body),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

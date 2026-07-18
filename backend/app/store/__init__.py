@@ -3,6 +3,7 @@
 from .db import (
     add_brief_note,
     add_custom_topic,
+    add_news_dismissal,
     connect,
     course_flashcard_states,
     course_quiz_progress,
@@ -15,6 +16,7 @@ from .db import (
     init_db,
     list_brief_notes,
     list_custom_topics,
+    list_news_dismissals,
     list_news_events,
     list_reflections,
     record_attempt,
@@ -56,4 +58,6 @@ __all__ = [
     "set_news_cache",
     "record_news_event",
     "list_news_events",
+    "add_news_dismissal",
+    "list_news_dismissals",
 ]

@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-18 · **HB M7 — news mode: 🔄 Phase 1 (RSS shell) shipped** (`docs/M7_PLAN.md`): the Google-News-style second mode at `/news` — config-roster categories (Local = Chicago/Lake Co.) → Google News RSS → cached, text-first article cards; Phases 2–4 (signals · For You · topic scout) planned. Fifth deliberate M0-gate override, zero new LLM surface ($0 RSS path). · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · **PR #55** one-port backbone + `serve/` LaunchAgent + PWA rename · **PR #56** sw.js v2 cached-last-brief offline + bottom tab bar + Today/Notes phone pass, desktop untouched). **Mac-side live verify clean 2026-07-18**: `com.homebase.server` running headless (kickstart-survives), shell/SPA/API serving on :8000, audio **Range → 206** (iOS scrub support server-side), Tailscale up. **Phone-side proof pending Kyle**: one-time tailnet-serve enable, then `tailscale serve --bg http://127.0.0.1:8000` → iPhone home-screen install → airplane-mode cached brief → real iOS seek; evidence lands in `M6_PLAN.md` M4/M5-style. The M0 verdict (~07-19) is the other open item Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
+**Last updated:** 2026-07-18 · **HB M7 — news mode: ✅ shipped, all four phases in one day** (`docs/M7_PLAN.md` · PRs #58 RSS shell · #60 signals · #62 For You · Phase-4 PR): the Google-News-style second mode at `/news` — config-roster categories (Local = Chicago/Lake Co.) → Google News RSS → cached text-first cards · `news_events` signal log + card feedback · For You decaying-profile ranker (default tab, search-feed reach, honest cold start) · topic scout suggesting roster adds to the morning brief (one-click, dismiss-remembered). Fifth deliberate M0-gate override, zero LLM surface ($0 pure-RSS). · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · **PR #55** one-port backbone + `serve/` LaunchAgent + PWA rename · **PR #56** sw.js v2 cached-last-brief offline + bottom tab bar + Today/Notes phone pass, desktop untouched). **Mac-side live verify clean 2026-07-18**: `com.homebase.server` running headless (kickstart-survives), shell/SPA/API serving on :8000, audio **Range → 206** (iOS scrub support server-side), Tailscale up. **Phone-side proof pending Kyle**: one-time tailnet-serve enable, then `tailscale serve --bg http://127.0.0.1:8000` → iPhone home-screen install → airplane-mode cached brief → real iOS seek; evidence lands in `M6_PLAN.md` M4/M5-style. The M0 verdict (~07-19) is the other open item Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
 
 ---
 
@@ -52,11 +52,10 @@ kanban
     hbm4["HB M4 — audio brief: 5-min Kokoro MP3 after every sweep + Today player · PR 45"]
     hbm5["HB M5 — chat with the brief: per-item Ask · grounded answers, subscription lane, no web · save-as-note · PR 47"]
     hbm6["HB M6 — mobile: one-port serve + LaunchAgent · sw.js v2 cached last brief · bottom tab bar + Today/Notes pass · PRs 55-56 · Mac-side live verify clean 07-18, phone proof pending Kyle"]
+    hbm7["HB M7 — news mode: RSS category shell · news_events signal log + card feedback · For You decaying-profile ranker w/ search-feed reach · topic scout → one-click roster adds · PRs 58/60/62/64 · live e2e proof clean 07-18"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
-    hbm7["HB M7 — news mode: Phases 1-3 shipped (RSS shell · signal log · For You profile+ranker tab)"]
   next["📋 Planned"]
-    hbm7p4["HB M7 Phase 4 — topic scout: suggest roster adds to the morning brief"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
@@ -127,11 +126,11 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
 - [x] **M6 — Mobile** — ✅ shipped 2026-07-18, PRs #55 + #56 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
       _One-port serving backbone (FastAPI serves `frontend/dist`, `/api` always wins) + `com.homebase.server` KeepAlive LaunchAgent (printed pmset, never sudo) · sw.js v2 cached-last-brief offline w/ `X-Served-From-Cache` honesty (writes never queue) · bottom tab bar &lt;sm + Today/Notes phone pass (desktop untouched) · Mac-side live verify clean 2026-07-18 incl. audio Range 206 · phone-side proof pending Kyle (tailnet-serve enable + iPhone install)_
 
-- [ ] 🔄 **M7 — News mode** — Phase 1 ✅ shipped 2026-07-18, PR #58 ([plan](M7_PLAN.md); approved by Kyle from a recon-backed interview — RSS sourcing · Local = Chicago/Lake Co. · behavior-only For You signals; fifth deliberate M0-gate override, zero new LLM surface)
+- [x] **M7 — News mode** — ✅ shipped 2026-07-18, all four phases: PRs #58 · #60 · #62 · #64 ([plan](M7_PLAN.md); approved by Kyle from a recon-backed interview — RSS sourcing · Local = Chicago/Lake Co. · behavior-only For You signals; fifth deliberate M0-gate override, zero new LLM surface)
   - [x] Phase 1 — RSS shell: `sweeps/news_categories.json` roster · `app/news.py` (stdlib fetch/parse, sha1-link ids) · `news_feed_cache` (schema v7, 15-min TTL, stale-honesty) · `GET /api/news/*` · `/news` page w/ category tabs + text-first cards · 13 backend + 5 page tests
   - [x] Phase 2 — signals ✅ 2026-07-18: `news_events` (schema v8, snapshot columns) + `POST /api/news/events` (invalid events 400) + visit/click logging + More-like-this / Not-interested card buttons, all fire-and-forget
   - [x] Phase 3 — For You ✅ 2026-07-18: `app/foryou.py` decaying profile (click +3 · more_like +5 · not_interested −8 · visit +1, 14-day half-life) → all sections + per-term search RSS candidates → interest × freshness ranking w/ seen-exclusion, negative-drop, headline dedup · `GET /api/news/foryou` · default For You tab w/ origin chips + honest cold start
-  - [ ] Phase 4 — topic scout: persistent uncovered profile terms → suggestion cards → one-click add to the Mode-A roster · dismiss memory
+  - [x] Phase 4 — topic scout ✅ 2026-07-18: `suggest_topics` (score ≥ 9 across ≥ 3 days · event-level roster coverage · token-disjoint one-card-per-theme · theme-wide dismiss memory, schema v9) → evidence cards in For You → `POST /api/news/suggestions/add` appends atomically to `sweeps/topics.json` (409 on dupe; the one deliberate Mode-B → Mode-A write) · live e2e proof clean
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
