@@ -54,9 +54,8 @@ kanban
     hbm6["HB M6 — mobile: one-port serve + LaunchAgent · sw.js v2 cached last brief · bottom tab bar + Today/Notes pass · PRs 55-56 · Mac-side live verify clean 07-18, phone proof pending Kyle"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
-    hbm7["HB M7 — news mode: Phases 1+2 shipped (RSS shell · /news tabs page · news_events signal log + card feedback)"]
+    hbm7["HB M7 — news mode: Phases 1-3 shipped (RSS shell · signal log · For You profile+ranker tab)"]
   next["📋 Planned"]
-    hbm7p3["HB M7 Phase 3 — For You: decaying profile + ranker + tab"]
     hbm7p4["HB M7 Phase 4 — topic scout: suggest roster adds to the morning brief"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
@@ -131,7 +130,7 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
 - [ ] 🔄 **M7 — News mode** — Phase 1 ✅ shipped 2026-07-18, PR #58 ([plan](M7_PLAN.md); approved by Kyle from a recon-backed interview — RSS sourcing · Local = Chicago/Lake Co. · behavior-only For You signals; fifth deliberate M0-gate override, zero new LLM surface)
   - [x] Phase 1 — RSS shell: `sweeps/news_categories.json` roster · `app/news.py` (stdlib fetch/parse, sha1-link ids) · `news_feed_cache` (schema v7, 15-min TTL, stale-honesty) · `GET /api/news/*` · `/news` page w/ category tabs + text-first cards · 13 backend + 5 page tests
   - [x] Phase 2 — signals ✅ 2026-07-18: `news_events` (schema v8, snapshot columns) + `POST /api/news/events` (invalid events 400) + visit/click logging + More-like-this / Not-interested card buttons, all fire-and-forget
-  - [ ] Phase 3 — For You: decaying interest profile (click +3 · more_like +5 · not_interested −8 · visit +1, ~14-day half-life) → candidates (cached feeds + per-term search RSS) → ranked tab w/ cold start
+  - [x] Phase 3 — For You ✅ 2026-07-18: `app/foryou.py` decaying profile (click +3 · more_like +5 · not_interested −8 · visit +1, 14-day half-life) → all sections + per-term search RSS candidates → interest × freshness ranking w/ seen-exclusion, negative-drop, headline dedup · `GET /api/news/foryou` · default For You tab w/ origin chips + honest cold start
   - [ ] Phase 4 — topic scout: persistent uncovered profile terms → suggestion cards → one-click add to the Mode-A roster · dismiss memory
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit

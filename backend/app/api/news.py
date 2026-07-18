@@ -14,16 +14,26 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import get_app_settings, get_news_fetcher
+from ..foryou import (
+    COLD_START_EVENTS,
+    FORYOU_MAX_ITEMS,
+    build_profile,
+    rank_candidates,
+    search_feed_url,
+    top_search_terms,
+)
 from ..models import (
+    ForYouItem,
     NewsCategoriesResponse,
     NewsCategory,
     NewsCategoryResponse,
     NewsEventCreate,
     NewsEventResponse,
+    NewsForYouResponse,
     NewsItem,
 )
 from ..news import NewsFeedError, get_category_items, load_news_categories
-from ..store import record_news_event
+from ..store import list_news_events, record_news_event
 
 router = APIRouter()
 
@@ -38,6 +48,59 @@ def get_news_categories(settings=Depends(get_app_settings)) -> NewsCategoriesRes
     return NewsCategoriesResponse(
         generated_at=_now_iso(),
         categories=[NewsCategory(slug=c["slug"], title=c["title"]) for c in cats],
+    )
+
+
+@router.get("/news/foryou", response_model=NewsForYouResponse)
+def get_news_foryou(
+    settings=Depends(get_app_settings),
+    fetcher=Depends(get_news_fetcher),
+) -> NewsForYouResponse:
+    """The personalized feed (M7 Phase 3). Cold start (< 20 positive signals) serves Top
+    stories labeled ``learning`` — honest about not knowing you yet. Warm, it ranks the
+    whole cached candidate pool (every section + a search feed per strong profile term)
+    by decayed interest × freshness. Declared before ``/news/{slug}`` so it isn't
+    swallowed by the slug route. A dead feed is skipped, never fatal — For You degrades
+    to ranking whatever candidates exist."""
+    cats = load_news_categories(settings.news_categories_file)
+    profile = build_profile(list_news_events())
+
+    if profile["event_count"] < COLD_START_EVENTS:
+        top = next((c for c in cats if c["slug"] == "top"), cats[0] if cats else None)
+        items: list = []
+        if top is not None:
+            try:
+                fetched = get_category_items(top, fetcher)["items"]
+                items = [{**i, "category_slug": top["slug"]} for i in fetched]
+            except NewsFeedError:
+                items = []  # the tab already explains itself; stay calm
+        return NewsForYouResponse(
+            generated_at=_now_iso(),
+            learning=True,
+            event_count=profile["event_count"],
+            items=[ForYouItem(**i) for i in items[:FORYOU_MAX_ITEMS]],
+        )
+
+    items_by_category = {}
+    for cat in cats:
+        try:
+            items_by_category[cat["slug"]] = get_category_items(cat, fetcher)["items"]
+        except NewsFeedError:
+            continue
+    for term in top_search_terms(profile):
+        slug = f"search:{term}"
+        pseudo = {"slug": slug, "title": term, "feeds": [search_feed_url(term)]}
+        try:
+            items_by_category[slug] = get_category_items(pseudo, fetcher)["items"]
+        except NewsFeedError:
+            continue
+
+    ranked = rank_candidates(profile, items_by_category)[:FORYOU_MAX_ITEMS]
+    return NewsForYouResponse(
+        generated_at=_now_iso(),
+        learning=False,
+        event_count=profile["event_count"],
+        items=[ForYouItem(**i) for i in ranked],
     )
 
 
