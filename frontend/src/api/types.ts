@@ -625,3 +625,20 @@ export interface NewsCategoryResponse {
   stale: boolean; // true = refresh failed, serving the expired cache honestly
   items: NewsItem[];
 }
+
+// M7 Phase 2: one For-You signal — click | visit | more_like | not_interested. Item kinds
+// carry the item snapshot (the feed cache rolls over in minutes, so events are self-contained).
+export interface NewsEventCreate {
+  kind: "click" | "visit" | "more_like" | "not_interested";
+  category_slug: string;
+  item_id?: string | null;
+  headline?: string | null;
+  source?: string | null;
+  url?: string | null;
+}
+
+export interface NewsEventResponse {
+  ok: boolean;
+  id: number;
+  created_at: string;
+}

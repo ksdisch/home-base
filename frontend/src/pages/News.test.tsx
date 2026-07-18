@@ -5,10 +5,12 @@ import News from "./News";
 
 const newsCategories = vi.fn();
 const newsCategory = vi.fn();
+const logNewsEvent = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     newsCategories: () => newsCategories(),
     newsCategory: (slug: string) => newsCategory(slug),
+    logNewsEvent: (body: unknown) => logNewsEvent(body),
   },
 }));
 
@@ -70,6 +72,8 @@ function renderNews() {
 beforeEach(() => {
   newsCategories.mockReset();
   newsCategory.mockReset();
+  logNewsEvent.mockReset();
+  logNewsEvent.mockResolvedValue({ ok: true, id: 1, created_at: "now" });
 });
 
 describe("News (M7 Phase 1)", () => {
@@ -129,5 +133,69 @@ describe("News (M7 Phase 1)", () => {
 
     expect(await screen.findByText("No news categories configured")).toBeInTheDocument();
     expect(newsCategory).not.toHaveBeenCalled();
+    expect(logNewsEvent).not.toHaveBeenCalled(); // no category, no visit signal
+  });
+
+  // -- Phase 2 signals ------------------------------------------------------------
+
+  it("logs a category visit when a tab is opened", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews();
+    await screen.findByText("Big national story");
+
+    expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "top" });
+
+    fireEvent.click(screen.getByText("Local"));
+    await waitFor(() =>
+      expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "local" }),
+    );
+  });
+
+  it("logs a click with the full item snapshot", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews();
+
+    fireEvent.click(await screen.findByText("Big national story"));
+    expect(logNewsEvent).toHaveBeenCalledWith({
+      kind: "click",
+      category_slug: "top",
+      item_id: "abc123abc123",
+      headline: "Big national story",
+      source: "AP News",
+      url: "https://news.example/1",
+    });
+  });
+
+  it("more-like-this logs once and acknowledges", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews();
+    await screen.findByText("Big national story");
+
+    const btn = screen.getByLabelText("More like Big national story");
+    fireEvent.click(btn);
+    fireEvent.click(btn); // second click is a no-op, not a double signal
+    expect(
+      logNewsEvent.mock.calls.filter(([b]) => b.kind === "more_like"),
+    ).toHaveLength(1);
+    expect(screen.getByText("Noted ✓")).toBeInTheDocument();
+  });
+
+  it("not-interested logs and hides the card", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews();
+    await screen.findByText("Big national story");
+
+    fireEvent.click(screen.getByLabelText("Not interested in Big national story"));
+    expect(logNewsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "not_interested", item_id: "abc123abc123" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Big national story")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Undated story")).toBeInTheDocument(); // only that card hides
   });
 });
