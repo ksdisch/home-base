@@ -5,10 +5,14 @@ sw.js v2 offline + responsive morning loop) · **Mac-side live verify clean 2026
 `install-server.sh` → `com.homebase.server` running headless (survives `launchctl
 kickstart -k`), `/` + `/notes` + `/sw.js` 200, `/api/health` ok, unknown `/api/*` still
 JSON-404s; **audio Range confirmed — `bytes=0-1023` → 206** (iOS scrub has server-side
-support); Tailscale up (`kyles-macbook-pro`, kstan.disch@). **Phone-side proof pending
-Kyle** (one-time tailnet-serve enable → `tailscale serve --bg http://127.0.0.1:8000`,
-iPhone Tailscale app, home-screen install, airplane-mode cached brief, real iOS seek) +
-reboot survival proves itself at next login — record here M4/M5-style when done. Picked by Kyle
+support); Tailscale up (`kyles-macbook-pro`, kstan.disch@). **Tailnet HTTPS live-verified
+2026-07-18** (Kyle enabled serve in the admin console; `tailscale serve --bg
+http://127.0.0.1:8000` persists across reboots): **`https://kyles-macbook-pro.tail01200d.ts.net`**
+serves `/` 200 · `/api/health` ok · `/sw.js` 200 (secure context → the phone can register
+the SW) · audio `Range` → 206 over HTTPS. **Remaining proof is iPhone-only**: Tailscale app
++ login, open the ts.net URL → Add to Home Screen (standalone + SW), airplane-mode cached
+brief w/ banner, real iOS audio seek; reboot survival proves itself at next login — record
+here M4/M5-style when done. Picked by Kyle
 on 2026-07-18 from the kickoff-deferred list — "mobile access" was the last "would be
 amazing" item with live pull (audio → M4, chat → M5). Planning/building ahead of the M0
 verdict (~07-19) is the **fourth deliberate override** of that gate, in writing, same as
