@@ -35,9 +35,9 @@ to its checklist, board, and doc map. The detailed per-phase docs stay authorita
 These slash commands and skills are vendored into `.claude/` so they work in cloud/web
 sessions and for collaborators, not just on the original author's machine.
 
-Legend: ✅ cloud-safe · 💻 local-only (needs a browser/screenshots/dev server — won't run
-in cloud/web sessions) · ⚠️ needs the `nlm` CLI + NotebookLM auth (runs locally; in a cloud
-session only if `nlm`/MCP is configured there).
+Legend: ✅ cloud-safe · 💻 local-only (needs a browser/screenshots/dev server or local
+TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + NotebookLM auth
+(runs locally; in a cloud session only if `nlm`/MCP is configured there).
 
 ### Commands (`.claude/commands/`)
 
@@ -51,6 +51,18 @@ session only if `nlm`/MCP is configured there).
 | ✅ `/trim-context` | Find/fix CLAUDE.md + memory "token bloat" in the repo. |
 | ✅ `/autonomous-milestone` | Autonomously plan/build/test a milestone, or triage the backlog (ultracode multi-agent). |
 | ✅ `/build-course` | Plan-then-autonomous course creation — propose a syllabus, then author lessons/diagrams/flashcards/quizzes into a hub course (thin entry to `course-builder`). |
+| ✅ `/brainstorm` | Multi-mode structured brainstorm (Moonshot default) → `docs/ideas/` vision docs + backlog stubs. |
+| ✅ `/claudify-repo` | Vendor global commands/skills into this repo and/or brainstorm repo-specific automations. |
+| ✅ `/prompt-optimize` | One-shot prompt rewrite: workflow archetype + model + effort + ready-to-paste prompt. Advisory only. |
+| ✅ `/reframe-orchestrator` | Reframe `.claude/orchestrator.md` into a mode-independent invariants & gates doc. |
+| ✅ `/mock-sql-demo` | Text self-play mock SQL interview (interviewer + ideal candidate), then a debrief. |
+| 💻 `/boot_server` | Detect how the project is served, start the dev server, open it in Chrome. |
+| 💻 `/catchup` | Mid-session audio catch-up as an MP3 (local TTS); keeps working after. |
+| 💻 `/envsetup` | Open `.env` in the editor + the credential's generation page in Chrome, key stub pre-added. |
+| 💻 `/mock-sql-audio` | Full simulated SQL mock interview as an MP3 (local two-voice TTS). |
+| 💻 `/mock-sql-interview` | Live voice mock SQL interview (local voice mode). |
+| 💻 `/screenshot-iterate` | Visual loop: implement against a mock, screenshot the running app, compare, iterate. |
+| 💻 `/smoke-test` | Manual smoke test setup: opens pages in Chrome, checklist saved under `docs/smoke/`. |
 
 ### Skills (`.claude/skills/`)
 
@@ -64,6 +76,17 @@ session only if `nlm`/MCP is configured there).
 | ⚠️ `notebook-init` | Initialize a new NotebookLM notebook end-to-end. |
 | ⚠️ `notebook-assist` | Refine / brainstorm / manage sources for an existing NotebookLM notebook. |
 | ⚠️ `audio-series` | Generate an episodic NotebookLM audio series for a notebook. |
+| ✅ `bug-hunt` | Proactive bug hunt: fan out finder agents, adversarially verify findings, ranked triage list. |
+| ✅ `kickoff` | Deep discovery interview → approved kickoff brief + phased plan → scaffold a new project + GitHub repo. |
+| ✅ `mini` | Kick off a new mini project under `~/Projects/mini/` (short interview + scaffold). |
+| ✅ `project-guide` | Comprehensive point-in-time guide to the project (architecture, history, interview lens); dated file. |
+| ✅ `research-paper` | End-of-project research paper + presenter pack from recorded results; opens a PR, never merges. |
+| ✅ `seed-hunt` | End-of-project seed hunt: verify closure, harvest lessons, sweep arXiv, decision brief. |
+| ✅ `ship-and-route` | Land outstanding git work behind a review gate, walk findings, route the next move. |
+| 💻 `narrate` | Turn a short brief into a single-voice MP3 narration (local Kokoro TTS). |
+| ⚠️ `interview-prep` | Init/maintain a NotebookLM interview-prep notebook from the local job-search dossier. |
+| ⚠️ `notebook-merge` | Merge 2+ overlapping NotebookLM notebooks into one unified notebook. |
+| ⚠️ `video-series` | Generate an episodic NotebookLM video series for a notebook. |
 
 #### Repo-specific skills (scaffolded via `/claudify-repo` brainstorm)
 
