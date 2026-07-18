@@ -28,9 +28,10 @@ const moreLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-accent-soft text-accent" : "text-ink"
   }`;
 
-// M6: below `sm` the 6-link header overflows a phone width, so the morning loop gets a
-// fixed, thumb-reachable tab bar instead (Today · Notes · Learning · More). ≥sm renders
-// nothing — the desktop top nav is untouched.
+// M6: below `sm` the header overflows a phone width, so the morning loop gets a fixed,
+// thumb-reachable tab bar instead (Today · News · Notes · Learning · More — News promoted
+// from the More menu post-M7 at Kyle's request). ≥sm renders nothing — the desktop top
+// nav is untouched.
 function MobileTabBar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const close = () => setMoreOpen(false);
@@ -41,10 +42,6 @@ function MobileTabBar() {
     >
       {moreOpen && (
         <div className="absolute bottom-full right-2 mb-2 w-44 rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
-          {/* M7: News rides in More — the morning-loop tabs (Today/Notes/Learning) keep their spots. */}
-          <NavLink to="/news" className={moreLinkClass} onClick={close}>
-            News
-          </NavLink>
           <NavLink to="/plan" className={moreLinkClass} onClick={close}>
             Plan
           </NavLink>
@@ -59,6 +56,9 @@ function MobileTabBar() {
       <div className="flex items-stretch px-2 py-1">
         <NavLink to="/" end className={tabClass} onClick={close}>
           Today
+        </NavLink>
+        <NavLink to="/news" className={tabClass} onClick={close}>
+          News
         </NavLink>
         <NavLink to="/notes" className={tabClass} onClick={close}>
           Notes
