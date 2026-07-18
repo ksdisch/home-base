@@ -1,6 +1,6 @@
 # M7 Plan — News mode (the Google-News-style second mode)
 
-_Status: 🔄 **Phase 1 shipped** (PR # recorded below on merge) · Phases 2–4 planned.
+_Status: 🔄 **Phase 1 shipped 2026-07-18, PR #58** · Phases 2–4 planned.
 Approved by Kyle 2026-07-18 after a recon-backed interview (live Google News structure +
 Yahoo comparison + Google's published For-You mechanics); the three architecture forks
 below were decided by Kyle from an explicit menu. Planning/building ahead of the M0
@@ -84,4 +84,6 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
 - Frontend: `frontend/src/pages/News.test.tsx` — 5/5 green (tabs + articles at source,
   tab switching, stale banner, section error survives tabs, empty-config state);
   `make typecheck` clean.
-- Live smoke against real Google News RSS: recorded in the PR (see MASTER_PLAN entry).
+- Live smoke against real Google News RSS (PR #58): all 10 categories 200 with fresh
+  articles — Local returned actual ABC7 Chicago stories — and `fetched_at` stable across
+  repeat requests (cache hit).
