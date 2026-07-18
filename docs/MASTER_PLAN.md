@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-16 · Courses **M4 live proof verified**: a new `jlens-global-workspace` course (built via `/build-course`, syllabus-gated, 4 lessons + 2 quizzes + 2 decks + capstone/rubric) links the existing `jlens-workspace` notebook — the Open-notebook card resolves live (title + 12 audio artifacts + quiz counts), zero NotebookLM quota spent. Same session: M4 shipped (PR #50), M2 flashcard-review remainder (PR #49), M3 (PR #48); 395 backend tests + frontend green. Also repaired the live store's `question_mastery` (the v3 SM-2 columns were missing despite the ledger — see BACKLOG "migration ledger hardening"). The M0 verdict (~07-19) is the one open item
+**Last updated:** 2026-07-18 · **HB M6 — mobile: planned** (`docs/M6_PLAN.md`): Kyle promoted mobile off the kickoff-deferred list — the same path audio (M4) and chat (M5) took — and picked all four recommended forks from an explicit menu: **Tailscale tailnet** reach (HTTPS unlocks the real PWA) · **one-port serving backbone** (FastAPI serves `frontend/dist`; today the hub only runs as `make dev`) + `com.homebase.server` KeepAlive LaunchAgent (+ printed pmset wake) · **installed PWA with cached-last-brief** offline honesty · **morning-loop UI pass** (shell/Today/Notes — currently zero responsive classes there). Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. Build pending (same session or handoff). The M0 verdict (~07-19) is the other open item
 
 ---
 
@@ -53,11 +53,13 @@ kanban
     hbm5["HB M5 — chat with the brief: per-item Ask · grounded answers, subscription lane, no web · save-as-note · PR 47"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
+  next["📋 Planned"]
+    hbm6["HB M6 — mobile: Tailscale reach · one-port serve + LaunchAgent · installed PWA w/ cached last brief · morning-loop UI pass · planned 07-18, build pending"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
     cm5["Courses M5 — authoring loop in the hub"]
-    defer["Kickoff-deferred: mobile · ESPN · auto-courses · alerts · public writing"]
+    defer["Kickoff-deferred: ESPN · auto-courses · alerts · public writing"]
 ```
 
 _If the board above doesn't render in your viewer, the checklists below carry the same truth —
@@ -120,6 +122,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
       _`sweeps/audio_brief.py`: deterministic ~650-word ear script → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
 - [x] **M5 — Chat with the brief** — ✅ shipped 2026-07-16, PR #47 ([plan](M5_PLAN.md); approach A from its own explore-plan — per-item Ask, no web tools)
       _`app/chat.py` (headless `claude -p` on the subscription lane, API key scrubbed, no tools) · `POST /api/brief/chat` · "Ask about this" on every item with save-as-note reuse · `brief-chat.jsonl` ledger under backend data · live e2e: grounded answer in 13s, ~$0.07 equiv_
+- [ ] 📋 **M6 — Mobile** — planned 2026-07-18 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
+      _Tailscale tailnet reach (HTTPS unlocks the real PWA) · one-port serving backbone (FastAPI serves `frontend/dist`) + `com.homebase.server` KeepAlive LaunchAgent + printed pmset wake · installed PWA with cached-last-brief offline honesty (never queues writes) · mobile-first pass on the morning loop only (shell + Today + `/notes`, bottom tab bar) · build pending_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -132,11 +136,12 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
   authoring loop (regenerate/edit/reorder from the UI — breaks the read-only-course invariant,
   so it starts with that architectural decision). _(M4 — NotebookLM enrichment — shipped
   2026-07-16; see [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md).)_
-- **Kickoff-deferred v1 outs**: mobile access · ESPN league integration · auto-courses from
-  news items · breaking-news alerts · public writing. _(The audio brief became M4 and
-  chat-with-the-brief became M5 on 2026-07-16.)_
+- **Kickoff-deferred v1 outs**: ESPN league integration · auto-courses from news items ·
+  breaking-news alerts · public writing. _(The audio brief became M4 and chat-with-the-brief
+  became M5 on 2026-07-16; mobile access became M6 on 2026-07-18.)_
 - **BACKLOG parked ideas** ([BACKLOG.md](../BACKLOG.md)): study-planner subagent (superseded by
-  Phase 6), learner-profile doc, "Generate from hub" button, hosted phone access.
+  Phase 6), learner-profile doc, "Generate from hub" button, hosted phone access (M6's
+  Tailscale retires the same-LAN half; the Mac-must-be-running half stays parked).
 
 ---
 
@@ -148,6 +153,6 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
 | [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`, `PHASE7_M4_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
-| [`M1_PLAN.md`](M1_PLAN.md) … [`M5_PLAN.md`](M5_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
+| [`M1_PLAN.md`](M1_PLAN.md) … [`M6_PLAN.md`](M6_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas |
