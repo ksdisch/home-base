@@ -596,3 +596,32 @@ export interface BriefChatRequest {
 export interface BriefChatResponse {
   answer: string; // markdown, grounded in the served item — ephemeral unless saved as a note
 }
+
+// -- news mode (M7) --------------------------------------------------------------
+
+export interface NewsItem {
+  id: string; // sha1(link)[:12] — stable across refetches, Phase 2's event anchor
+  headline: string;
+  url: string; // a Google News redirect link — opens the original article
+  source?: string | null;
+  published_at?: string | null; // UTC ISO 8601; null when the feed omitted it
+}
+
+export interface NewsCategory {
+  slug: string;
+  title: string;
+}
+
+export interface NewsCategoriesResponse {
+  generated_at: string;
+  categories: NewsCategory[]; // display order = sweeps/news_categories.json order
+}
+
+export interface NewsCategoryResponse {
+  generated_at: string;
+  slug: string;
+  title: string;
+  fetched_at?: string | null; // when this payload was pulled from Google News
+  stale: boolean; // true = refresh failed, serving the expired cache honestly
+  items: NewsItem[];
+}

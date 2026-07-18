@@ -5,6 +5,7 @@ import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
 import FlashcardReview from "./pages/FlashcardReview";
 import Home from "./pages/Home";
+import News from "./pages/News";
 import Notes from "./pages/Notes";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
@@ -40,6 +41,10 @@ function MobileTabBar() {
     >
       {moreOpen && (
         <div className="absolute bottom-full right-2 mb-2 w-44 rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+          {/* M7: News rides in More — the morning-loop tabs (Today/Notes/Learning) keep their spots. */}
+          <NavLink to="/news" className={moreLinkClass} onClick={close}>
+            News
+          </NavLink>
           <NavLink to="/plan" className={moreLinkClass} onClick={close}>
             Plan
           </NavLink>
@@ -88,6 +93,10 @@ export default function App() {
             <NavLink to="/" end className={navLinkClass}>
               Today
             </NavLink>
+            {/* M7: the general Google-News-style mode — Today stays the custom brief. */}
+            <NavLink to="/news" className={navLinkClass}>
+              News
+            </NavLink>
             <NavLink to="/notes" className={navLinkClass}>
               Notes
             </NavLink>
@@ -112,6 +121,8 @@ export default function App() {
         <Routes>
           {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
           <Route path="/" element={<Brief />} />
+          {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
+          <Route path="/news" element={<News />} />
           {/* M2: every note attached to a brief item, browsable per topic. */}
           <Route path="/notes" element={<Notes />} />
           <Route path="/learning" element={<Home />} />

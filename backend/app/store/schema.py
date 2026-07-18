@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -162,6 +162,18 @@ STATEMENTS = [
     # ``quiz_artifact_id = path``). ``ratings`` is a JSON map of criterion-name -> chosen level
     # label. Kept out of ``reflections`` on purpose so course self-assessments never leak into the
     # notebook reflection surfaces. v6 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER.
+    # M7 (news mode, Phase 1): per-category parsed-feed cache. ``payload`` is the JSON list of
+    # normalized items GET /api/news/<slug> serves; the ~15-min TTL (see ``app.news``) keeps
+    # loads instant without hammering Google News. Pure cache — rows are safely deletable, the
+    # next request refetches. v7 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER
+    # migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS news_feed_cache (
+        category_slug TEXT PRIMARY KEY,
+        payload       TEXT NOT NULL,
+        fetched_at    TEXT NOT NULL
+    )
+    """,
     """
     CREATE TABLE IF NOT EXISTS course_rubric_assessment (
         course_slug   TEXT NOT NULL,

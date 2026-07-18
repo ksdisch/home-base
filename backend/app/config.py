@@ -42,6 +42,15 @@ class Settings:
             os.environ.get("ROSTER_FILE", str(backend_dir.parent / "sweeps" / "topics.json"))
         ).expanduser()
 
+        # The news-mode category roster (M7): ordered slugs/titles + their Google News RSS
+        # feed URLs, shared shape with the topic roster above. Overridable for tests.
+        self.news_categories_file = Path(
+            os.environ.get(
+                "NEWS_CATEGORIES_FILE",
+                str(backend_dir.parent / "sweeps" / "news_categories.json"),
+            )
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 

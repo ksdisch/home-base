@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-18 · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · **PR #55** one-port backbone + `serve/` LaunchAgent + PWA rename · **PR #56** sw.js v2 cached-last-brief offline + bottom tab bar + Today/Notes phone pass, desktop untouched). **Mac-side live verify clean 2026-07-18**: `com.homebase.server` running headless (kickstart-survives), shell/SPA/API serving on :8000, audio **Range → 206** (iOS scrub support server-side), Tailscale up. **Phone-side proof pending Kyle**: one-time tailnet-serve enable, then `tailscale serve --bg http://127.0.0.1:8000` → iPhone home-screen install → airplane-mode cached brief → real iOS seek; evidence lands in `M6_PLAN.md` M4/M5-style. The M0 verdict (~07-19) is the other open item Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
+**Last updated:** 2026-07-18 · **HB M7 — news mode: 🔄 Phase 1 (RSS shell) shipped** (`docs/M7_PLAN.md`): the Google-News-style second mode at `/news` — config-roster categories (Local = Chicago/Lake Co.) → Google News RSS → cached, text-first article cards; Phases 2–4 (signals · For You · topic scout) planned. Fifth deliberate M0-gate override, zero new LLM surface ($0 RSS path). · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · **PR #55** one-port backbone + `serve/` LaunchAgent + PWA rename · **PR #56** sw.js v2 cached-last-brief offline + bottom tab bar + Today/Notes phone pass, desktop untouched). **Mac-side live verify clean 2026-07-18**: `com.homebase.server` running headless (kickstart-survives), shell/SPA/API serving on :8000, audio **Range → 206** (iOS scrub support server-side), Tailscale up. **Phone-side proof pending Kyle**: one-time tailnet-serve enable, then `tailscale serve --bg http://127.0.0.1:8000` → iPhone home-screen install → airplane-mode cached brief → real iOS seek; evidence lands in `M6_PLAN.md` M4/M5-style. The M0 verdict (~07-19) is the other open item Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
 
 ---
 
@@ -54,7 +54,11 @@ kanban
     hbm6["HB M6 — mobile: one-port serve + LaunchAgent · sw.js v2 cached last brief · bottom tab bar + Today/Notes pass · PRs 55-56 · Mac-side live verify clean 07-18, phone proof pending Kyle"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
+    hbm7["HB M7 — news mode: Phase 1 RSS shell shipped (config categories · Google News RSS · TTL cache · /news tabs page)"]
   next["📋 Planned"]
+    hbm7p2["HB M7 Phase 2 — signals: news_events + click/visit/feedback logging"]
+    hbm7p3["HB M7 Phase 3 — For You: decaying profile + ranker + tab"]
+    hbm7p4["HB M7 Phase 4 — topic scout: suggest roster adds to the morning brief"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
@@ -125,6 +129,12 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
 - [x] **M6 — Mobile** — ✅ shipped 2026-07-18, PRs #55 + #56 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
       _One-port serving backbone (FastAPI serves `frontend/dist`, `/api` always wins) + `com.homebase.server` KeepAlive LaunchAgent (printed pmset, never sudo) · sw.js v2 cached-last-brief offline w/ `X-Served-From-Cache` honesty (writes never queue) · bottom tab bar &lt;sm + Today/Notes phone pass (desktop untouched) · Mac-side live verify clean 2026-07-18 incl. audio Range 206 · phone-side proof pending Kyle (tailnet-serve enable + iPhone install)_
 
+- [ ] 🔄 **M7 — News mode** — Phase 1 ✅ shipped 2026-07-18, PR #58 ([plan](M7_PLAN.md); approved by Kyle from a recon-backed interview — RSS sourcing · Local = Chicago/Lake Co. · behavior-only For You signals; fifth deliberate M0-gate override, zero new LLM surface)
+  - [x] Phase 1 — RSS shell: `sweeps/news_categories.json` roster · `app/news.py` (stdlib fetch/parse, sha1-link ids) · `news_feed_cache` (schema v7, 15-min TTL, stale-honesty) · `GET /api/news/*` · `/news` page w/ category tabs + text-first cards · 13 backend + 5 page tests
+  - [ ] Phase 2 — signals: `news_events` + `POST /api/news/events` (click · visit · more_like · not_interested) + card feedback buttons
+  - [ ] Phase 3 — For You: decaying interest profile (click +3 · more_like +5 · not_interested −8 · visit +1, ~14-day half-life) → candidates (cached feeds + per-term search RSS) → ranked tab w/ cold start
+  - [ ] Phase 4 — topic scout: persistent uncovered profile terms → suggestion cards → one-click add to the Mode-A roster · dismiss memory
+
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
 
@@ -153,6 +163,6 @@ log) · significant events reach Kyle here first · foraging → ~zero · ≥3 n
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
 | [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`, `PHASE7_M4_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
-| [`M1_PLAN.md`](M1_PLAN.md) … [`M6_PLAN.md`](M6_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
+| [`M1_PLAN.md`](M1_PLAN.md) … [`M7_PLAN.md`](M7_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas |
