@@ -63,7 +63,7 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       at the source · desktop nav + mobile More entries (morning-loop tabs untouched) ·
       13 backend tests (fixture RSS through an injected fake fetcher — never the network)
       + 5 page tests.
-- [x] **Phase 2 — Signals** ✅ built 2026-07-18 (PR # recorded on merge): `news_events`
+- [x] **Phase 2 — Signals** ✅ shipped 2026-07-18, PR #60: `news_events`
       table (schema v8 — item events snapshot headline/source/url because cache payloads
       roll over; deliberately not `activity` rows) · `POST /api/news/events` (click ·
       visit · more_like · not_interested; invalid events 400 and write nothing) ·
@@ -71,10 +71,18 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       (once, acknowledged) / Not-interested (logs + hides the card) · all signals
       fire-and-forget — reading the news never breaks on a logging hiccup · 9 backend
       + 4 page tests.
-- [ ] **Phase 3 — For You**: decaying interest profile from `news_events` → candidate
-      pool (cached category feeds + per-term search RSS) → interest × freshness ranking,
-      already-clicked and not-interested penalties, title-similarity dedup · For You tab
-      first in the bar · cold-start state.
+- [x] **Phase 3 — For You** ✅ built 2026-07-18 (PR # recorded on merge): `app/foryou.py`
+      — pure, injectable-clock engine: decaying profile from `news_events` only (click +3 ·
+      more_like +5 · not_interested −8 · visit +1, 14-day half-life; unigram+bigram terms,
+      stopworded) → candidates from every section feed **plus** a Google News search feed
+      per strong term (≥5.0, top 3, bigrams win ties — how For You reaches beyond the
+      roster) → `(category×0.5 + terms) × freshness(24h half-life)` ranking, seen items
+      excluded, net-negative dropped, ≥0.6-Jaccard headline dedup, zero-interest fill by
+      freshness · `GET /api/news/foryou` (declared before `/news/{slug}`; dead feeds
+      skipped, never fatal) · For You is the page's first tab and default landing, origin
+      chips per item, signals credit the item's origin section · cold start (< 20 positive
+      signals) serves Top stories with an honest "still learning you (N of 20)" banner ·
+      14 backend + page tests reworked to 12.
 - [ ] **Phase 4 — Topic scout**: persistent high-scoring profile terms not covered by
       `sweeps/topics.json` → suggestion cards in For You → one-click add via the existing
       custom-topics path (next 06:00 sweep picks it up) · dismissals remembered.

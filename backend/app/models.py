@@ -707,3 +707,17 @@ class NewsEventResponse(BaseModel):
     ok: bool = True
     id: int
     created_at: str
+
+
+class ForYouItem(NewsItem):
+    """A ranked item plus where it came from — a section slug, or ``search:<term>``
+    when the profile pulled it from beyond the standard categories (M7 Phase 3)."""
+
+    category_slug: Optional[str] = None
+
+
+class NewsForYouResponse(BaseModel):
+    generated_at: str
+    learning: bool  # cold start: fewer than the threshold of positive signals so far
+    event_count: int  # positive signals collected — the page shows progress toward warm
+    items: List[ForYouItem] = []

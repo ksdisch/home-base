@@ -31,6 +31,7 @@ import type {
   NewsCategoryResponse,
   NewsEventCreate,
   NewsEventResponse,
+  NewsForYouResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -165,6 +166,8 @@ export const api = {
     get<NewsCategoryResponse>(`/news/${encodeURIComponent(slug)}`),
   // M7 Phase 2: For-You signals — fire-and-forget from the page (callers swallow errors).
   logNewsEvent: (body: NewsEventCreate) => post<NewsEventResponse>("/news/events", body),
+  // M7 Phase 3: the personalized feed (cold start returns Top stories, learning=true).
+  newsForYou: () => get<NewsForYouResponse>("/news/foryou"),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

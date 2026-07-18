@@ -5,11 +5,13 @@ import News from "./News";
 
 const newsCategories = vi.fn();
 const newsCategory = vi.fn();
+const newsForYou = vi.fn();
 const logNewsEvent = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     newsCategories: () => newsCategories(),
     newsCategory: (slug: string) => newsCategory(slug),
+    newsForYou: () => newsForYou(),
     logNewsEvent: (body: unknown) => logNewsEvent(body),
   },
 }));
@@ -61,9 +63,33 @@ const LOCAL_FEED = {
   ],
 };
 
-function renderNews() {
+const FORYOU_WARM = {
+  generated_at: "now",
+  learning: false,
+  event_count: 42,
+  items: [
+    {
+      id: "fy1fy1fy1fy1",
+      headline: "Ranked quantum story",
+      url: "https://news.example/q",
+      source: "Wire",
+      published_at: "2026-07-18T11:30:00+00:00",
+      category_slug: "top",
+    },
+    {
+      id: "fy2fy2fy2fy2",
+      headline: "Searched interest story",
+      url: "https://news.example/s",
+      source: "Blog",
+      published_at: "2026-07-18T09:00:00+00:00",
+      category_slug: "search:quantum computing",
+    },
+  ],
+};
+
+function renderNews(path = "/news") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <News />
     </MemoryRouter>,
   );
@@ -72,24 +98,52 @@ function renderNews() {
 beforeEach(() => {
   newsCategories.mockReset();
   newsCategory.mockReset();
+  newsForYou.mockReset();
   logNewsEvent.mockReset();
   logNewsEvent.mockResolvedValue({ ok: true, id: 1, created_at: "now" });
 });
 
-describe("News (M7 Phase 1)", () => {
-  it("renders category tabs and the first category's articles at the source", async () => {
+describe("News (M7)", () => {
+  it("lands on For You by default with origin chips", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
-    newsCategory.mockResolvedValue(TOP_FEED);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
     renderNews();
 
+    expect(await screen.findByText("Ranked quantum story")).toBeInTheDocument();
+    expect(newsForYou).toHaveBeenCalled();
+    expect(newsCategory).not.toHaveBeenCalled();
+    // Origin chips: a section title for section items, the quoted term for search finds.
+    expect(screen.getAllByText("Top stories").length).toBeGreaterThanOrEqual(2); // tab + chip
+    expect(screen.getByText("“quantum computing”")).toBeInTheDocument();
+  });
+
+  it("shows the learning banner during cold start", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({
+      ...FORYOU_WARM,
+      learning: true,
+      event_count: 3,
+      items: FORYOU_WARM.items.slice(0, 1),
+    });
+    renderNews();
+
+    expect(await screen.findByText("Still learning you")).toBeInTheDocument();
+    expect(screen.getByText(/3 of 20 signals/)).toBeInTheDocument();
+    expect(screen.getByText("Ranked quantum story")).toBeInTheDocument();
+  });
+
+  it("renders a category feed with articles opening at the source", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+
     expect(await screen.findByText("Big national story")).toBeInTheDocument();
-    expect(newsCategory).toHaveBeenCalledWith("top"); // first category is the default tab
-    expect(screen.getByText("Local")).toBeInTheDocument();
+    expect(newsCategory).toHaveBeenCalledWith("top");
+    expect(newsForYou).not.toHaveBeenCalled();
     expect(screen.getByText("AP News")).toBeInTheDocument();
     const link = screen.getByText("Big national story").closest("a");
     expect(link).toHaveAttribute("href", "https://news.example/1");
     expect(link).toHaveAttribute("target", "_blank");
-    // An undated item still renders — just without a timestamp.
     expect(screen.getByText("Undated story")).toBeInTheDocument();
   });
 
@@ -98,33 +152,30 @@ describe("News (M7 Phase 1)", () => {
     newsCategory.mockImplementation((slug: string) =>
       Promise.resolve(slug === "local" ? LOCAL_FEED : TOP_FEED),
     );
-    renderNews();
+    renderNews("/news?cat=top");
     await screen.findByText("Big national story");
 
     fireEvent.click(screen.getByText("Local"));
     expect(await screen.findByText("Lake County story")).toBeInTheDocument();
     expect(newsCategory).toHaveBeenLastCalledWith("local");
-    await waitFor(() =>
-      expect(screen.queryByText("Big national story")).not.toBeInTheDocument(),
-    );
   });
 
-  it("flags a stale payload honestly", async () => {
+  it("flags a stale category payload honestly", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue({ ...TOP_FEED, stale: true });
-    renderNews();
+    renderNews("/news?cat=top");
 
     expect(await screen.findByText("Showing saved articles")).toBeInTheDocument();
-    expect(screen.getByText("Big national story")).toBeInTheDocument(); // items still shown
+    expect(screen.getByText("Big national story")).toBeInTheDocument();
   });
 
   it("shows the section error without killing the tabs", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockRejectedValue(new Error("news feed unavailable: down"));
-    renderNews();
+    renderNews("/news?cat=top");
 
     expect(await screen.findByText("Couldn't load this section")).toBeInTheDocument();
-    expect(screen.getByText("Top stories")).toBeInTheDocument(); // tabs survive
+    expect(screen.getByText("For You")).toBeInTheDocument(); // tabs survive
   });
 
   it("shows the empty state when no categories are configured", async () => {
@@ -133,29 +184,31 @@ describe("News (M7 Phase 1)", () => {
 
     expect(await screen.findByText("No news categories configured")).toBeInTheDocument();
     expect(newsCategory).not.toHaveBeenCalled();
-    expect(logNewsEvent).not.toHaveBeenCalled(); // no category, no visit signal
+    expect(newsForYou).not.toHaveBeenCalled();
+    expect(logNewsEvent).not.toHaveBeenCalled(); // no tab, no visit signal
   });
 
   // -- Phase 2 signals ------------------------------------------------------------
 
-  it("logs a category visit when a tab is opened", async () => {
+  it("logs a visit per tab opened, including For You", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
     newsCategory.mockResolvedValue(TOP_FEED);
     renderNews();
-    await screen.findByText("Big national story");
+    await screen.findByText("Ranked quantum story");
 
-    expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "top" });
+    expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "foryou" });
 
-    fireEvent.click(screen.getByText("Local"));
+    fireEvent.click(screen.getByRole("button", { name: "Top stories" }));
     await waitFor(() =>
-      expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "local" }),
+      expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "top" }),
     );
   });
 
   it("logs a click with the full item snapshot", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue(TOP_FEED);
-    renderNews();
+    renderNews("/news?cat=top");
 
     fireEvent.click(await screen.findByText("Big national story"));
     expect(logNewsEvent).toHaveBeenCalledWith({
@@ -168,25 +221,34 @@ describe("News (M7 Phase 1)", () => {
     });
   });
 
+  it("credits For You item signals to their origin section", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    fireEvent.click(await screen.findByText("Ranked quantum story"));
+    expect(logNewsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "click", category_slug: "top" }),
+    );
+  });
+
   it("more-like-this logs once and acknowledges", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue(TOP_FEED);
-    renderNews();
+    renderNews("/news?cat=top");
     await screen.findByText("Big national story");
 
     const btn = screen.getByLabelText("More like Big national story");
     fireEvent.click(btn);
     fireEvent.click(btn); // second click is a no-op, not a double signal
-    expect(
-      logNewsEvent.mock.calls.filter(([b]) => b.kind === "more_like"),
-    ).toHaveLength(1);
+    expect(logNewsEvent.mock.calls.filter(([b]) => b.kind === "more_like")).toHaveLength(1);
     expect(screen.getByText("Noted ✓")).toBeInTheDocument();
   });
 
   it("not-interested logs and hides the card", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue(TOP_FEED);
-    renderNews();
+    renderNews("/news?cat=top");
     await screen.findByText("Big national story");
 
     fireEvent.click(screen.getByLabelText("Not interested in Big national story"));

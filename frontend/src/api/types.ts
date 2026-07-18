@@ -642,3 +642,16 @@ export interface NewsEventResponse {
   id: number;
   created_at: string;
 }
+
+// M7 Phase 3: a ranked For You item — category_slug is its origin section, or
+// "search:<term>" when the profile pulled it from beyond the standard categories.
+export interface ForYouItem extends NewsItem {
+  category_slug?: string | null;
+}
+
+export interface NewsForYouResponse {
+  generated_at: string;
+  learning: boolean; // cold start: fewer than 20 positive signals so far
+  event_count: number;
+  items: ForYouItem[];
+}

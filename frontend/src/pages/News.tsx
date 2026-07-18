@@ -1,33 +1,50 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { NewsCategory, NewsCategoryResponse, NewsItem } from "../api/types";
+import type { NewsCategory, NewsItem } from "../api/types";
 import { Banner } from "../components/Banner";
 
-// M7 Phase 1: the Google-News-style general mode — a tab per category from
-// sweeps/news_categories.json, real RSS-backed articles opening at the source. Text-first
-// (the feeds carry no images). The selected tab lives in ?cat= so back/forward and
-// deep-links work. Mode A (the Today brief) is untouched; this is its sibling page.
+// M7: the Google-News-style general mode. Phase 1: a tab per category from
+// sweeps/news_categories.json, real RSS-backed articles opening at the source, ?cat=
+// deep-links. Phase 2: every interaction (visit, click, More-like-this, Not-interested)
+// is a fire-and-forget signal to /api/news/events. Phase 3: the For You tab — default
+// landing, ranked by the decayed interest profile those signals build; cold start shows
+// Top stories and says so. Mode A (the Today brief) is untouched; this is its sibling.
+
+type FeedItem = NewsItem & { category_slug?: string | null };
+type FeedView = {
+  items: FeedItem[];
+  stale: boolean;
+  fetched_at?: string | null;
+  learning?: boolean;
+  event_count?: number;
+};
+
+const FOR_YOU: NewsCategory = { slug: "foryou", title: "For You" };
+
 export default function News() {
   const [categories, setCategories] = useState<NewsCategory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [feed, setFeed] = useState<NewsCategoryResponse | null>(null);
+  const [feed, setFeed] = useState<FeedView | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
-  // Phase 2 signal state: not-interested items vanish now (the ranker learns later);
-  // more-like acks keep the button honest. Both per-visit only — the log is the record.
+  // Phase 2 signal state: not-interested items vanish now (the ranker learns from the
+  // event); more-like acks keep the button honest. Both per-visit — the log is the record.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
-  const selected = params.get("cat") ?? categories?.[0]?.slug ?? null;
+  const hasCategories = categories !== null && categories.length > 0;
+  const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
+  const tabs = hasCategories ? [FOR_YOU, ...categories] : null;
 
-  // Every signal is fire-and-forget: reading the news must never break on a logging hiccup.
-  const signal = (kind: "click" | "more_like" | "not_interested", item: NewsItem) => {
+  // Every signal is fire-and-forget: reading the news must never break on a logging
+  // hiccup. Item signals credit the item's origin section (For You items carry theirs).
+  const signal = (kind: "click" | "more_like" | "not_interested", item: FeedItem) => {
     if (!selected) return;
     api
       .logNewsEvent({
         kind,
-        category_slug: selected,
+        category_slug: item.category_slug ?? selected,
         item_id: item.id,
         headline: item.headline,
         source: item.source,
@@ -55,14 +72,34 @@ export default function News() {
     // The category-visit signal (Phase 2): you opened this tab — that's the event,
     // regardless of whether the feed then loads.
     api.logNewsEvent({ kind: "visit", category_slug: selected }).catch(() => {});
-    api
-      .newsCategory(selected)
-      .then((r) => alive && setFeed(r))
-      .catch((e) => alive && setFeedError(e.message ?? "Failed to load this category"));
+    const load =
+      selected === FOR_YOU.slug
+        ? api.newsForYou().then(
+            (r): FeedView => ({
+              items: r.items,
+              stale: false,
+              learning: r.learning,
+              event_count: r.event_count,
+            }),
+          )
+        : api.newsCategory(selected).then(
+            (r): FeedView => ({ items: r.items, stale: r.stale, fetched_at: r.fetched_at }),
+          );
+    load
+      .then((view) => alive && setFeed(view))
+      .catch((e) => alive && setFeedError(e.message ?? "Failed to load this section"));
     return () => {
       alive = false;
     };
   }, [selected]);
+
+  const originLabel = (item: FeedItem): string | null => {
+    if (selected !== FOR_YOU.slug || !item.category_slug) return null;
+    if (item.category_slug.startsWith("search:")) {
+      return `“${item.category_slug.slice("search:".length)}”`;
+    }
+    return categories?.find((c) => c.slug === item.category_slug)?.title ?? null;
+  };
 
   return (
     <div>
@@ -85,15 +122,15 @@ export default function News() {
         </Banner>
       )}
 
-      {categories && categories.length > 0 && (
+      {tabs && (
         <nav
           aria-label="News categories"
           className="-mx-4 mb-6 flex gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm"
         >
-          {categories.map((c) => (
+          {tabs.map((c) => (
             <button
               key={c.slug}
-              onClick={() => setParams(c.slug === categories[0].slug ? {} : { cat: c.slug })}
+              onClick={() => setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug })}
               aria-current={c.slug === selected ? "page" : undefined}
               className={`rounded-lg px-3 py-1.5 font-medium transition ${
                 c.slug === selected
@@ -113,6 +150,16 @@ export default function News() {
         </Banner>
       )}
 
+      {feed?.learning && (
+        <div className="mb-4">
+          <Banner tone="info" title="Still learning you">
+            For You warms up as you read — clicks, section visits, and the feedback buttons
+            all teach it ({feed.event_count ?? 0} of 20 signals so far). Until then, here are
+            the top stories.
+          </Banner>
+        </div>
+      )}
+
       {feed?.stale && (
         <div className="mb-4">
           <Banner tone="warning" title="Showing saved articles">
@@ -124,7 +171,7 @@ export default function News() {
 
       {selected && !feed && !feedError && <p className="text-sm text-muted">Loading…</p>}
 
-      {feed && feed.items.length === 0 && (
+      {feed && feed.items.length === 0 && !feed.learning && (
         <Banner tone="info" title="Nothing here right now">
           This section came back empty — try another category or check back later.
         </Banner>
@@ -140,6 +187,11 @@ export default function News() {
                   {item.source && <span className="font-medium text-accent">{item.source}</span>}
                   {item.source && timeAgo(item.published_at) && " · "}
                   {timeAgo(item.published_at)}
+                  {originLabel(item) && (
+                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-accent">
+                      {originLabel(item)}
+                    </span>
+                  )}
                 </div>
                 <a
                   href={item.url}
