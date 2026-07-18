@@ -18,11 +18,13 @@
 > `docs/M5_PLAN.md`): "Ask about this" on every brief item — one grounded headless
 > `claude -p` answer per question (subscription lane, API key scrubbed, no web tools),
 > save-as-note via the existing notes API, usage ledger at `backend/data/brief-chat.jsonl`.
-> **M6 — mobile** planned 2026-07-18 (`docs/M6_PLAN.md`; fourth deliberate gate override,
-> zero new LLM surface): Tailscale tailnet reach · FastAPI serves the built frontend on one
-> port + `com.homebase.server` LaunchAgent (+ printed pmset wake) · installed PWA with
-> cached-last-brief offline honesty · mobile-first pass on the morning loop — build pending.
-> Next: build M6 + the M0 verdict (~2026-07-19).
+> **M6 — mobile** shipped 2026-07-18 (PRs #55 + #56, `docs/M6_PLAN.md`; fourth deliberate
+> gate override, zero new LLM surface): FastAPI serves the built frontend on one port +
+> `com.homebase.server` KeepAlive LaunchAgent (+ printed pmset wake) · sw.js v2
+> cached-last-brief offline honesty (writes never queue) · bottom tab bar below `sm` +
+> Today/Notes phone pass (desktop untouched) · Tailscale tailnet reach. Mac-side live
+> verify clean incl. audio Range 206; phone-side proof pending Kyle (tailnet-serve enable
+> + iPhone install). Next: M6 phone proof + the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)

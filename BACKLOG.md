@@ -30,11 +30,12 @@ brief across his topics with inline notes, learning riding along. Full contract:
 - [x] **M5 — chat with the brief:** ask follow-ups on brief items. _✅ shipped 2026-07-16
       (PR #47, `docs/M5_PLAN.md`; approach A from its explore-plan — per-item Ask, no web
       tools, save-as-note)._
-- [ ] **M6 — mobile:** the brief in your pocket — Tailscale tailnet reach, FastAPI serves
+- [x] **M6 — mobile:** the brief in your pocket — Tailscale tailnet reach, FastAPI serves
       the built frontend on one port + KeepAlive LaunchAgent, installed PWA with
       cached-last-brief offline honesty, mobile-first pass on the morning loop.
-      _📋 planned 2026-07-18 (`docs/M6_PLAN.md`; fourth deliberate override of the
-      M0-verdict gate, zero new LLM surface; build pending)._
+      _✅ shipped 2026-07-18 (PRs #55 + #56, `docs/M6_PLAN.md`; fourth deliberate override
+      of the M0-verdict gate, zero new LLM surface; Mac-side live verify clean, phone-side
+      proof pending Kyle)._
 
 Deferred by the brief: ESPN league integration · auto-courses ·
 breaking-news alerts · public writing. _(Mobile was promoted to M6 on 2026-07-18.)_
@@ -101,7 +102,7 @@ study-planner subagent (which would read it as context). Stub now, populate as t
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
 - **Hosted phone access** — remove the "Mac must be running" constraint entirely (true
   hosting; an architecture split — sweeps, Kokoro, `nlm`, and SQLite are Mac-local by
-  design). _M6 (planned 2026-07-18) retires the same-LAN half via Tailscale; this parked
+  design). _M6 (shipped 2026-07-18) retires the same-LAN half via Tailscale; this parked
   item is now only the remaining half._
 - **Migration ledger hardening** — found 2026-07-16: the live store's `question_mastery` was
   missing the five v3 SM-2 columns even though `schema_migrations` recorded v3 as applied

@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-18 · **HB M6 — mobile: build in flight** (`docs/M6_PLAN.md`, plan merged in #54; all four forks Kyle-picked from an explicit menu — Tailscale reach · one-port serve + `com.homebase.server` LaunchAgent · installed PWA w/ cached last brief · morning-loop UI pass): **PR A (#55)** landed the serving backbone (FastAPI serves `frontend/dist`, `/api` always wins), the `serve/` LaunchAgent set (printed pmset, never sudo), and the Learning Hub → Home Base PWA rename; **PR B (#56)** landed sw.js v2 (cached-last-brief offline w/ `X-Served-From-Cache` honesty, writes never queue) + the responsive morning-loop pass (bottom tab bar &lt;sm, Today/Notes phone pass; desktop untouched). Next: the live Mac+iPhone verification tail, evidence → `M6_PLAN.md` status line. Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
+**Last updated:** 2026-07-18 · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · **PR #55** one-port backbone + `serve/` LaunchAgent + PWA rename · **PR #56** sw.js v2 cached-last-brief offline + bottom tab bar + Today/Notes phone pass, desktop untouched). **Mac-side live verify clean 2026-07-18**: `com.homebase.server` running headless (kickstart-survives), shell/SPA/API serving on :8000, audio **Range → 206** (iOS scrub support server-side), Tailscale up. **Phone-side proof pending Kyle**: one-time tailnet-serve enable, then `tailscale serve --bg http://127.0.0.1:8000` → iPhone home-screen install → airplane-mode cached brief → real iOS seek; evidence lands in `M6_PLAN.md` M4/M5-style. The M0 verdict (~07-19) is the other open item Fourth deliberate override of the M0-verdict gate, in writing; zero new LLM surface. The M0 verdict (~07-19) is the other open item
 
 ---
 
@@ -51,10 +51,10 @@ kanban
     hbm3["HB M3 — hands-off: launchd 06:00 schedule + dedup labels + cost ledger · PR 43 · first unattended fire verified 2026-07-16"]
     hbm4["HB M4 — audio brief: 5-min Kokoro MP3 after every sweep + Today player · PR 45"]
     hbm5["HB M5 — chat with the brief: per-item Ask · grounded answers, subscription lane, no web · save-as-note · PR 47"]
+    hbm6["HB M6 — mobile: one-port serve + LaunchAgent · sw.js v2 cached last brief · bottom tab bar + Today/Notes pass · PRs 55-56 · Mac-side live verify clean 07-18, phone proof pending Kyle"]
   doing["🔄 In progress"]
     hbm0["HB M0 — sweep-quality grading week: Kyle grades daily through ~2026-07-19 · Day-0 A- / A / A · 7-15 full-roster run clean"]
   next["📋 Planned"]
-    hbm6["HB M6 — mobile: Tailscale reach · one-port serve + LaunchAgent · installed PWA w/ cached last brief · morning-loop UI pass · planned 07-18, build pending"]
   decide["⏸️ Awaiting decision"]
     hbm0verdict["HB M0 go/no-go — verdict on sweep quality · Kyle, ~2026-07-19 · no longer blocks M3"]
   later["🧊 Later / parked"]
@@ -122,8 +122,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
       _`sweeps/audio_brief.py`: deterministic ~650-word ear script → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
 - [x] **M5 — Chat with the brief** — ✅ shipped 2026-07-16, PR #47 ([plan](M5_PLAN.md); approach A from its own explore-plan — per-item Ask, no web tools)
       _`app/chat.py` (headless `claude -p` on the subscription lane, API key scrubbed, no tools) · `POST /api/brief/chat` · "Ask about this" on every item with save-as-note reuse · `brief-chat.jsonl` ledger under backend data · live e2e: grounded answer in 13s, ~$0.07 equiv_
-- [ ] 📋 **M6 — Mobile** — planned 2026-07-18 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
-      _Tailscale tailnet reach (HTTPS unlocks the real PWA) · one-port serving backbone (FastAPI serves `frontend/dist`) + `com.homebase.server` KeepAlive LaunchAgent + printed pmset wake · installed PWA with cached-last-brief offline honesty (never queues writes) · mobile-first pass on the morning loop only (shell + Today + `/notes`, bottom tab bar) · build pending_
+- [x] **M6 — Mobile** — ✅ shipped 2026-07-18, PRs #55 + #56 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
+      _One-port serving backbone (FastAPI serves `frontend/dist`, `/api` always wins) + `com.homebase.server` KeepAlive LaunchAgent (printed pmset, never sudo) · sw.js v2 cached-last-brief offline w/ `X-Served-From-Cache` honesty (writes never queue) · bottom tab bar &lt;sm + Today/Notes phone pass (desktop untouched) · Mac-side live verify clean 2026-07-18 incl. audio Range 206 · phone-side proof pending Kyle (tailnet-serve enable + iPhone install)_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
