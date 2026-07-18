@@ -1,9 +1,17 @@
-"""App factory: CORS for the Vite origin (+ LAN), router includes, DB init on startup."""
+"""App factory: CORS for the Vite origin (+ LAN), router includes, DB init on startup.
+
+When ``frontend/dist`` exists (built via ``make build``), the app also serves it on the
+same port — the M6 one-port prod path. Absent a dist, behavior is exactly the dev setup.
+"""
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .api import (
@@ -61,7 +69,32 @@ def create_app() -> FastAPI:
     def api_root() -> dict:
         return {"name": "Learning Hub API", "version": __version__}
 
+    dist = settings.frontend_dist
+    if dist.is_dir() and (dist / "index.html").is_file():
+        _mount_frontend(app, dist)
+
     return app
+
+
+def _mount_frontend(app: FastAPI, dist: Path) -> None:
+    """Serve the built SPA: /assets statics, root PWA files, catch-all → index.html.
+
+    Registered after every /api route, so real API paths always win; unknown /api/*
+    paths still 404 as JSON instead of falling through to the SPA shell.
+    """
+    dist = dist.resolve()
+    if (dist / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str) -> FileResponse:
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        if full_path:
+            candidate = (dist / full_path).resolve()
+            if candidate.is_file() and candidate.is_relative_to(dist):
+                return FileResponse(candidate)
+        return FileResponse(dist / "index.html")
 
 
 app = create_app()

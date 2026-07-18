@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Home Base server LaunchAgent. NOT loaded from here — install-server.sh fills the
+     __PLACEHOLDERS__ and writes the result to ~/Library/LaunchAgents/com.homebase.server.plist. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.homebase.server</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__WRAPPER__</string>
+  </array>
+
+  <!-- launchd's env is minimal; a plain PATH is enough here — the wrapper calls the venv
+       python by absolute path (no nvm/claude needed, unlike the sweep agent). -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- Up whenever the Mac is: start at login, restart if it ever exits. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/launchd.log</string>
+</dict>
+</plist>
