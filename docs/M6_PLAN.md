@@ -15,10 +15,15 @@ registered + controlling, tab bar renders, `home-base-brief-v1` caches the brief
 the first-ever visit races SW control and doesn't cache — every later visit does), then
 with the network emulated fully off: shell served from SW cache, cached brief rendered,
 **"Offline copy" banner shown, both composers disabled**; back online: banner gone,
-composers re-enabled. **Remaining proof is iPhone-hardware-only**: Tailscale app + login
-(without it the ts.net name doesn't resolve — expected), Add to Home Screen (standalone
-display), real iOS audio seek; reboot survival proves itself at next login — record here
-M4/M5-style when done. Picked by Kyle
+composers re-enabled. **Real-iPhone reach verified 2026-07-18** (server log, from the
+phone's tailnet IP `100.96.118.39` — Kyle installed + signed into the Tailscale iOS app
+away from home, on a different network, which is the whole point): full page load over the
+ts.net HTTPS URL, **`sw.js` fetched → SW registered on the phone** (+ its shell pre-cache
+requests), **first real phone `POST /api/brief/visit`** (the kickoff's habit metric now
+counts phone mornings), `/api/brief` + Your-learning fetched. Still to record: Kyle's
+eyes-on trio — home-screen standalone display, airplane-mode "Offline copy" banner, iOS
+audio scrub (server-side 206s from the phone IP will confirm the scrub) — plus reboot
+survival at next login. Picked by Kyle
 on 2026-07-18 from the kickoff-deferred list — "mobile access" was the last "would be
 amazing" item with live pull (audio → M4, chat → M5). Planning/building ahead of the M0
 verdict (~07-19) is the **fourth deliberate override** of that gate, in writing, same as
