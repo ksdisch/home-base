@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -76,6 +77,33 @@ def load_news_categories(path: Path) -> List[Dict[str, Any]]:
             continue
         out.append({"slug": slug, "title": title, "feeds": urls})
     return out
+
+
+def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
+    """The topic scout's one write (M7 Phase 4): append a suggested term to the Mode-A
+    roster (``sweeps/topics.json``) so the next 06:00 sweep picks it up. The file is the
+    hub's own config — this is the single deliberate Mode-B → Mode-A bridge. Preserves
+    the existing entries verbatim, refuses duplicates by slug, and writes atomically
+    (sweep.sh reads this file). Raises ValueError on bad input or an unusable roster."""
+    term = (term or "").strip()
+    if not term:
+        raise ValueError("term must be a non-empty string")
+    slug = re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", term.lower())).strip("-")
+    if not slug:
+        raise ValueError(f"could not derive a slug from {term!r}")
+    try:
+        roster = json.loads(Path(roster_file).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        raise ValueError(f"roster file is unusable: {e}")
+    if not isinstance(roster, list):
+        raise ValueError("roster file is unusable: not a JSON list")
+    if any(isinstance(t, dict) and t.get("slug") == slug for t in roster):
+        raise ValueError(f"'{slug}' is already on the roster")
+    entry = {"slug": slug, "title": term.title(), "paused": False}
+    tmp = Path(f"{roster_file}.tmp")
+    tmp.write_text(json.dumps(roster + [entry], indent=2) + "\n", encoding="utf-8")
+    tmp.replace(roster_file)
+    return entry
 
 
 def parse_rss(xml_bytes: bytes) -> List[Dict[str, Any]]:

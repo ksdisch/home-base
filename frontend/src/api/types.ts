@@ -649,9 +649,33 @@ export interface ForYouItem extends NewsItem {
   category_slug?: string | null;
 }
 
+// M7 Phase 4: a topic-scout find — a persistent interest the morning brief doesn't cover.
+export interface NewsTopicSuggestion {
+  term: string;
+  score: number;
+  days_seen: number;
+  example_headlines: string[];
+}
+
 export interface NewsForYouResponse {
   generated_at: string;
   learning: boolean; // cold start: fewer than 20 positive signals so far
   event_count: number;
   items: ForYouItem[];
+  suggestions: NewsTopicSuggestion[]; // the Mode-A bridge, dismissible
+}
+
+export interface NewsSuggestionActionRequest {
+  term: string;
+}
+
+export interface NewsSuggestionAddResponse {
+  ok: boolean;
+  slug: string; // the roster entry tomorrow's sweep picks up
+  title: string;
+}
+
+export interface NewsSuggestionDismissResponse {
+  ok: boolean;
+  term: string;
 }

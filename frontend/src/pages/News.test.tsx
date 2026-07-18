@@ -7,12 +7,16 @@ const newsCategories = vi.fn();
 const newsCategory = vi.fn();
 const newsForYou = vi.fn();
 const logNewsEvent = vi.fn();
+const addNewsTopic = vi.fn();
+const dismissNewsSuggestion = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     newsCategories: () => newsCategories(),
     newsCategory: (slug: string) => newsCategory(slug),
     newsForYou: () => newsForYou(),
     logNewsEvent: (body: unknown) => logNewsEvent(body),
+    addNewsTopic: (body: unknown) => addNewsTopic(body),
+    dismissNewsSuggestion: (body: unknown) => dismissNewsSuggestion(body),
   },
 }));
 
@@ -67,6 +71,7 @@ const FORYOU_WARM = {
   generated_at: "now",
   learning: false,
   event_count: 42,
+  suggestions: [],
   items: [
     {
       id: "fy1fy1fy1fy1",
@@ -95,11 +100,20 @@ function renderNews(path = "/news") {
   );
 }
 
+const SUGGESTION = {
+  term: "quantum computing",
+  score: 11.6,
+  days_seen: 3,
+  example_headlines: ["Quantum computing breakthrough at the lab"],
+};
+
 beforeEach(() => {
   newsCategories.mockReset();
   newsCategory.mockReset();
   newsForYou.mockReset();
   logNewsEvent.mockReset();
+  addNewsTopic.mockReset();
+  dismissNewsSuggestion.mockReset();
   logNewsEvent.mockResolvedValue({ ok: true, id: 1, created_at: "now" });
 });
 
@@ -243,6 +257,45 @@ describe("News (M7)", () => {
     fireEvent.click(btn); // second click is a no-op, not a double signal
     expect(logNewsEvent.mock.calls.filter(([b]) => b.kind === "more_like")).toHaveLength(1);
     expect(screen.getByText("Noted ✓")).toBeInTheDocument();
+  });
+
+  // -- Phase 4 topic scout ----------------------------------------------------------
+
+  it("renders a scout suggestion with its evidence", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    renderNews();
+
+    expect(await screen.findByText("quantum computing")).toBeInTheDocument();
+    expect(screen.getByText(/across 3 days/)).toBeInTheDocument();
+    expect(screen.getByText(/Quantum computing breakthrough/)).toBeInTheDocument();
+  });
+
+  it("add-to-brief calls the API and confirms in place", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    addNewsTopic.mockResolvedValue({ ok: true, slug: "quantum-computing", title: "Quantum Computing" });
+    renderNews();
+    await screen.findByText("quantum computing");
+
+    fireEvent.click(screen.getByText("Add to my brief"));
+    expect(await screen.findByText(/Added ✓/)).toBeInTheDocument();
+    expect(addNewsTopic).toHaveBeenCalledWith({ term: "quantum computing" });
+  });
+
+  it("dismiss calls the API and drops the card", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    dismissNewsSuggestion.mockResolvedValue({ ok: true, term: "quantum computing" });
+    renderNews();
+    await screen.findByText("quantum computing");
+
+    fireEvent.click(screen.getByText("Don't suggest this"));
+    await waitFor(() =>
+      expect(screen.queryByText("quantum computing")).not.toBeInTheDocument(),
+    );
+    expect(dismissNewsSuggestion).toHaveBeenCalledWith({ term: "quantum computing" });
+    expect(screen.getByText("Ranked quantum story")).toBeInTheDocument(); // feed unaffected
   });
 
   it("not-interested logs and hides the card", async () => {

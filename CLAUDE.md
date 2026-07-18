@@ -24,7 +24,13 @@
 > cached-last-brief offline honesty (writes never queue) · bottom tab bar below `sm` +
 > Today/Notes phone pass (desktop untouched) · Tailscale tailnet reach. Mac-side live
 > verify clean incl. audio Range 206; phone-side proof pending Kyle (tailnet-serve enable
-> + iPhone install). Next: M6 phone proof + the M0 verdict (~2026-07-19).
+> + iPhone install). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#63,
+> `docs/M7_PLAN.md`; fifth gate override, zero LLM, $0 pure-RSS): Google-News-style
+> second mode at `/news` — config categories (`sweeps/news_categories.json`, Local =
+> Chicago/Lake Co.) → Google News RSS w/ 15-min cache · `news_events` signal log +
+> card feedback · For You decaying-profile ranker (default tab, per-term search-feed
+> reach, honest cold start) · topic scout → one-click adds to the Mode-A roster
+> (dismiss-remembered). Next: M6 phone proof + the M0 verdict (~2026-07-19).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
