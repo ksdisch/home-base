@@ -1,7 +1,7 @@
 # M7 Plan — News mode (the Google-News-style second mode)
 
 _Status: ✅ **shipped 2026-07-18** — all four phases, one day: **PR #58** (RSS shell) ·
-**PR #60** (signals) · **PR #62** (For You) · Phase 4 PR # recorded below on merge.
+**PR #60** (signals) · **PR #62** (For You) · **PR #63** (topic scout).
 Approved by Kyle 2026-07-18 after a recon-backed interview (live Google News structure +
 Yahoo comparison + Google's published For-You mechanics); the three architecture forks
 below were decided by Kyle from an explicit menu. Planning/building ahead of the M0
@@ -72,7 +72,7 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       (once, acknowledged) / Not-interested (logs + hides the card) · all signals
       fire-and-forget — reading the news never breaks on a logging hiccup · 9 backend
       + 4 page tests.
-- [x] **Phase 3 — For You** ✅ built 2026-07-18 (PR # recorded on merge): `app/foryou.py`
+- [x] **Phase 3 — For You** ✅ shipped 2026-07-18, PR #62: `app/foryou.py`
       — pure, injectable-clock engine: decaying profile from `news_events` only (click +3 ·
       more_like +5 · not_interested −8 · visit +1, 14-day half-life; unigram+bigram terms,
       stopworded) → candidates from every section feed **plus** a Google News search feed
@@ -84,7 +84,7 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       chips per item, signals credit the item's origin section · cold start (< 20 positive
       signals) serves Top stories with an honest "still learning you (N of 20)" banner ·
       14 backend + page tests reworked to 12.
-- [x] **Phase 4 — Topic scout** ✅ built 2026-07-18 (PR # recorded on merge):
+- [x] **Phase 4 — Topic scout** ✅ shipped 2026-07-18, PR #63:
       `suggest_topics` in the engine — a term qualifies with decayed score ≥ 9 across
       ≥ 3 distinct days; coverage is conservative at the *event* level (a story about a
       rostered topic teaches the scout nothing — Chiefs stories can't spawn a "kicker

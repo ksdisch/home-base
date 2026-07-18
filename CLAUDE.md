@@ -24,7 +24,7 @@
 > cached-last-brief offline honesty (writes never queue) · bottom tab bar below `sm` +
 > Today/Notes phone pass (desktop untouched) · Tailscale tailnet reach. Mac-side live
 > verify clean incl. audio Range 206; phone-side proof pending Kyle (tailnet-serve enable
-> + iPhone install). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#64,
+> + iPhone install). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#63,
 > `docs/M7_PLAN.md`; fifth gate override, zero LLM, $0 pure-RSS): Google-News-style
 > second mode at `/news` — config categories (`sweeps/news_categories.json`, Local =
 > Chicago/Lake Co.) → Google News RSS w/ 15-min cache · `news_events` signal log +
