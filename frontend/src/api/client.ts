@@ -29,6 +29,8 @@ import type {
   LessonCompleteResponse,
   NewsCategoriesResponse,
   NewsCategoryResponse,
+  NewsEventCreate,
+  NewsEventResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -161,6 +163,8 @@ export const api = {
   newsCategories: () => get<NewsCategoriesResponse>("/news/categories"),
   newsCategory: (slug: string) =>
     get<NewsCategoryResponse>(`/news/${encodeURIComponent(slug)}`),
+  // M7 Phase 2: For-You signals — fire-and-forget from the page (callers swallow errors).
+  logNewsEvent: (body: NewsEventCreate) => post<NewsEventResponse>("/news/events", body),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

@@ -18,9 +18,12 @@ from ..models import (
     NewsCategoriesResponse,
     NewsCategory,
     NewsCategoryResponse,
+    NewsEventCreate,
+    NewsEventResponse,
     NewsItem,
 )
 from ..news import NewsFeedError, get_category_items, load_news_categories
+from ..store import record_news_event
 
 router = APIRouter()
 
@@ -36,6 +39,25 @@ def get_news_categories(settings=Depends(get_app_settings)) -> NewsCategoriesRes
         generated_at=_now_iso(),
         categories=[NewsCategory(slug=c["slug"], title=c["title"]) for c in cats],
     )
+
+
+@router.post("/news/events", response_model=NewsEventResponse)
+def create_news_event(payload: NewsEventCreate) -> NewsEventResponse:
+    """Append one For-You signal (M7 Phase 2). Fire-and-forget from the page — but invalid
+    events (unknown kind, item event without its snapshot) 400 rather than pollute the
+    profile the Phase 3 ranker learns from."""
+    try:
+        row = record_news_event(
+            payload.kind,
+            payload.category_slug,
+            item_id=payload.item_id,
+            headline=payload.headline,
+            source=payload.source,
+            url=payload.url,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return NewsEventResponse(ok=True, id=row["id"], created_at=row["created_at"])
 
 
 @router.get("/news/{slug}", response_model=NewsCategoryResponse)

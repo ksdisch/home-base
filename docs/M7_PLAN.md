@@ -63,9 +63,14 @@ Kyle explicitly wants the modes distinct; cold start shows Top stories with a
       at the source · desktop nav + mobile More entries (morning-loop tabs untouched) ·
       13 backend tests (fixture RSS through an injected fake fetcher — never the network)
       + 5 page tests.
-- [ ] **Phase 2 — Signals**: `news_events` table + `POST /api/news/events` (click ·
-      category visit · more_like · not_interested) · click-through logging on cards ·
-      More-like-this / Not-interested buttons. All local, one user, SQLite.
+- [x] **Phase 2 — Signals** ✅ built 2026-07-18 (PR # recorded on merge): `news_events`
+      table (schema v8 — item events snapshot headline/source/url because cache payloads
+      roll over; deliberately not `activity` rows) · `POST /api/news/events` (click ·
+      visit · more_like · not_interested; invalid events 400 and write nothing) ·
+      page wiring: visit signal per tab open, click-through logging, More-like-this
+      (once, acknowledged) / Not-interested (logs + hides the card) · all signals
+      fire-and-forget — reading the news never breaks on a logging hiccup · 9 backend
+      + 4 page tests.
 - [ ] **Phase 3 — For You**: decaying interest profile from `news_events` → candidate
       pool (cached category feeds + per-term search RSS) → interest × freshness ranking,
       already-clicked and not-interested penalties, title-similarity dedup · For You tab

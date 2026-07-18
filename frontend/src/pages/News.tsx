@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { NewsCategory, NewsCategoryResponse } from "../api/types";
+import type { NewsCategory, NewsCategoryResponse, NewsItem } from "../api/types";
 import { Banner } from "../components/Banner";
 
 // M7 Phase 1: the Google-News-style general mode — a tab per category from
@@ -14,8 +14,27 @@ export default function News() {
   const [feed, setFeed] = useState<NewsCategoryResponse | null>(null);
   const [feedError, setFeedError] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
+  // Phase 2 signal state: not-interested items vanish now (the ranker learns later);
+  // more-like acks keep the button honest. Both per-visit only — the log is the record.
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [liked, setLiked] = useState<Set<string>>(new Set());
 
   const selected = params.get("cat") ?? categories?.[0]?.slug ?? null;
+
+  // Every signal is fire-and-forget: reading the news must never break on a logging hiccup.
+  const signal = (kind: "click" | "more_like" | "not_interested", item: NewsItem) => {
+    if (!selected) return;
+    api
+      .logNewsEvent({
+        kind,
+        category_slug: selected,
+        item_id: item.id,
+        headline: item.headline,
+        source: item.source,
+        url: item.url,
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     let alive = true;
@@ -33,6 +52,9 @@ export default function News() {
     let alive = true;
     setFeed(null);
     setFeedError(null);
+    // The category-visit signal (Phase 2): you opened this tab — that's the event,
+    // regardless of whether the feed then loads.
+    api.logNewsEvent({ kind: "visit", category_slug: selected }).catch(() => {});
     api
       .newsCategory(selected)
       .then((r) => alive && setFeed(r))
@@ -110,23 +132,51 @@ export default function News() {
 
       {feed && feed.items.length > 0 && (
         <div className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white/60">
-          {feed.items.map((item) => (
-            <article key={item.id} className="p-4">
-              <div className="text-xs text-muted">
-                {item.source && <span className="font-medium text-accent">{item.source}</span>}
-                {item.source && timeAgo(item.published_at) && " · "}
-                {timeAgo(item.published_at)}
-              </div>
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="mt-1 block font-medium text-ink transition hover:text-accent"
-              >
-                {item.headline}
-              </a>
-            </article>
-          ))}
+          {feed.items
+            .filter((item) => !hidden.has(item.id))
+            .map((item) => (
+              <article key={item.id} className="p-4">
+                <div className="text-xs text-muted">
+                  {item.source && <span className="font-medium text-accent">{item.source}</span>}
+                  {item.source && timeAgo(item.published_at) && " · "}
+                  {timeAgo(item.published_at)}
+                </div>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  onClick={() => signal("click", item)}
+                  className="mt-1 block font-medium text-ink transition hover:text-accent"
+                >
+                  {item.headline}
+                </a>
+                <div className="mt-1.5 flex gap-3 text-xs text-muted">
+                  <button
+                    onClick={() => {
+                      if (liked.has(item.id)) return;
+                      signal("more_like", item);
+                      setLiked((prev) => new Set(prev).add(item.id));
+                    }}
+                    aria-label={`More like ${item.headline}`}
+                    className={`transition ${
+                      liked.has(item.id) ? "text-accent" : "hover:text-ink"
+                    }`}
+                  >
+                    {liked.has(item.id) ? "Noted ✓" : "More like this"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      signal("not_interested", item);
+                      setHidden((prev) => new Set(prev).add(item.id));
+                    }}
+                    aria-label={`Not interested in ${item.headline}`}
+                    className="transition hover:text-ink"
+                  >
+                    Not interested
+                  </button>
+                </div>
+              </article>
+            ))}
         </div>
       )}
     </div>

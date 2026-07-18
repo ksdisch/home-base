@@ -688,3 +688,22 @@ class NewsCategoryResponse(BaseModel):
     fetched_at: Optional[str] = None  # when this payload was pulled from Google News
     stale: bool = False  # True = refresh failed, serving the expired cache honestly
     items: List[NewsItem] = []
+
+
+class NewsEventCreate(BaseModel):
+    """One For-You signal (M7 Phase 2): click | visit | more_like | not_interested.
+    Item-scoped kinds carry the item snapshot — the feed cache rolls over in minutes,
+    so the profile builder can't join back to it later."""
+
+    kind: str
+    category_slug: str
+    item_id: Optional[str] = None
+    headline: Optional[str] = None
+    source: Optional[str] = None
+    url: Optional[str] = None
+
+
+class NewsEventResponse(BaseModel):
+    ok: bool = True
+    id: int
+    created_at: str
