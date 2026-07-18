@@ -59,6 +59,12 @@ class Settings:
             "http://127.0.0.1:5173",
         ]
 
+        # The built frontend (M6): when this dir exists, main.py serves it on the same port
+        # (one-port prod path); when absent — every dev flow — behavior is unchanged.
+        self.frontend_dist = Path(
+            os.environ.get("FRONTEND_DIST", str(backend_dir.parent / "frontend" / "dist"))
+        ).expanduser()
+
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
