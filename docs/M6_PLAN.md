@@ -9,10 +9,16 @@ support); Tailscale up (`kyles-macbook-pro`, kstan.disch@). **Tailnet HTTPS live
 2026-07-18** (Kyle enabled serve in the admin console; `tailscale serve --bg
 http://127.0.0.1:8000` persists across reboots): **`https://kyles-macbook-pro.tail01200d.ts.net`**
 serves `/` 200 · `/api/health` ok · `/sw.js` 200 (secure context → the phone can register
-the SW) · audio `Range` → 206 over HTTPS. **Remaining proof is iPhone-only**: Tailscale app
-+ login, open the ts.net URL → Add to Home Screen (standalone + SW), airplane-mode cached
-brief w/ banner, real iOS audio seek; reboot survival proves itself at next login — record
-here M4/M5-style when done. Picked by Kyle
+the SW) · audio `Range` → 206 over HTTPS. **Offline story e2e-verified in a real browser
+2026-07-18** (Playwright, iPhone-size viewport 390×844, against the live ts.net URL): SW
+registered + controlling, tab bar renders, `home-base-brief-v1` caches the brief (note:
+the first-ever visit races SW control and doesn't cache — every later visit does), then
+with the network emulated fully off: shell served from SW cache, cached brief rendered,
+**"Offline copy" banner shown, both composers disabled**; back online: banner gone,
+composers re-enabled. **Remaining proof is iPhone-hardware-only**: Tailscale app + login
+(without it the ts.net name doesn't resolve — expected), Add to Home Screen (standalone
+display), real iOS audio seek; reboot survival proves itself at next login — record here
+M4/M5-style when done. Picked by Kyle
 on 2026-07-18 from the kickoff-deferred list — "mobile access" was the last "would be
 amazing" item with live pull (audio → M4, chat → M5). Planning/building ahead of the M0
 verdict (~07-19) is the **fourth deliberate override** of that gate, in writing, same as
