@@ -715,6 +715,56 @@ def set_course_assessment(
     }
 
 
+# -- news feed cache (M7) --------------------------------------------------------
+# The news mode's per-category parsed-feed cache (see ``app.news`` for TTL semantics).
+# Pure cache: a corrupt payload reads as "no cache" so the next request just refetches.
+
+
+def get_news_cache(
+    category_slug: str, db_path: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT payload, fetched_at FROM news_feed_cache WHERE category_slug = ?",
+            (category_slug,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return None
+    try:
+        items = json.loads(row["payload"])
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(items, list):
+        return None
+    return {"items": items, "fetched_at": row["fetched_at"]}
+
+
+def set_news_cache(
+    category_slug: str,
+    items: List[Dict[str, Any]],
+    *,
+    fetched_at: str,
+    db_path: Optional[Path] = None,
+) -> None:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO news_feed_cache (category_slug, payload, fetched_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(category_slug)
+            DO UPDATE SET payload = excluded.payload, fetched_at = excluded.fetched_at
+            """,
+            (category_slug, json.dumps(items), fetched_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

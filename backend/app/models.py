@@ -655,3 +655,36 @@ class BriefChatRequest(BaseModel):
 
 class BriefChatResponse(BaseModel):
     answer: str  # markdown, grounded in the served item — ephemeral unless saved as a note
+
+
+# -- news mode (M7) --------------------------------------------------------------
+
+
+class NewsItem(BaseModel):
+    """One real article from a Google News RSS feed — ``url`` is a Google redirect link
+    that opens the original piece. Text-first: the feeds carry no images."""
+
+    id: str  # sha1(link)[:12] — stable across refetches, Phase 2's event anchor
+    headline: str
+    url: str
+    source: Optional[str] = None
+    published_at: Optional[str] = None  # UTC ISO 8601; None when the feed omitted it
+
+
+class NewsCategory(BaseModel):
+    slug: str
+    title: str
+
+
+class NewsCategoriesResponse(BaseModel):
+    generated_at: str
+    categories: List[NewsCategory] = []  # display order = sweeps/news_categories.json order
+
+
+class NewsCategoryResponse(BaseModel):
+    generated_at: str
+    slug: str
+    title: str
+    fetched_at: Optional[str] = None  # when this payload was pulled from Google News
+    stale: bool = False  # True = refresh failed, serving the expired cache honestly
+    items: List[NewsItem] = []

@@ -27,6 +27,8 @@ import type {
   FlashcardReviewRequest,
   HealthResponse,
   LessonCompleteResponse,
+  NewsCategoriesResponse,
+  NewsCategoryResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -155,6 +157,10 @@ export const api = {
   // M5: one grounded follow-up answer about a served item (subscription lane, no web) —
   // slow by web standards (a real model call, ~5–20s), so callers show a thinking state.
   briefChat: (body: BriefChatRequest) => post<BriefChatResponse>("/brief/chat", body),
+  // M7 news mode: the category roster + one category's RSS-backed articles.
+  newsCategories: () => get<NewsCategoriesResponse>("/news/categories"),
+  newsCategory: (slug: string) =>
+    get<NewsCategoryResponse>(`/news/${encodeURIComponent(slug)}`),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

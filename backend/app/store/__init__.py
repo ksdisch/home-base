@@ -11,6 +11,7 @@ from .db import (
     get_course_progress,
     get_custom_topic,
     get_episode_progress,
+    get_news_cache,
     init_db,
     list_brief_notes,
     list_custom_topics,
@@ -22,6 +23,7 @@ from .db import (
     set_course_assessment,
     set_episode_listened,
     set_lesson_completed,
+    set_news_cache,
     update_custom_topic,
 )
 
@@ -48,4 +50,6 @@ __all__ = [
     "record_flashcard_review",
     "get_course_assessments",
     "set_course_assessment",
+    "get_news_cache",
+    "set_news_cache",
 ]
