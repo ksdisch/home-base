@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Home Base heartbeat LaunchAgent (PR12 — the dead-man's switch). NOT loaded from here —
+     install-schedule.sh fills the __PLACEHOLDERS__ and writes the result to
+     ~/Library/LaunchAgents/com.homebase.heartbeat.plist. Scheduled independently of the
+     sweep agent and needs no nvm/claude PATH at all, so it can't die the same way. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.homebase.heartbeat</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HEARTBEAT__</string>
+  </array>
+
+  <!-- Fire daily at __HOUR__:__MINUTE__ local (after the 06:00 sweep had its chance);
+       a fire missed while asleep runs once on wake, like the sweep's catch-up. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>__HOUR__</integer>
+    <key>Minute</key><integer>__MINUTE__</integer>
+  </dict>
+
+  <!-- Unlike the sweep agent, also run at load/login: the check is cheap, idempotent,
+       and self-cleaning, and this closes the watcher's own blind spot after a reboot
+       (launchd only replays calendar fires missed during SLEEP, not power-off). -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/heartbeat.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/heartbeat.log</string>
+</dict>
+</plist>

@@ -214,6 +214,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Antibody: independent heartbeat LaunchAgent alerting outside the app; confirm a killed sweep agent produces a phone-visible alert the same morning.
 - **Size:** M (Premortem)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #85, RED→green — Wave 1 complete): `com.homebase.heartbeat` (09:00 + login) runs dependency-free `heartbeat.sh` — newest ledger ts (mtime fallback), >36h silent → Desktop flag file first, then notification; flag auto-clears on recovery; missing ledger alerts. install-schedule.sh manages both agents. Mac install + forced-stale live verify same session._
 
 #### [Exploration] The Grading Week Was an Inspection, Not a Warranty
 - **Why:** Sweep trustworthiness rests entirely on a single graded week (M0, which closes today 2026-07-19); nothing after it re-checks accuracy against sources on any cadence, so prompt rot, source-markup changes, or a model update degrade sourcin... See [`docs/ideas/sweep-trust-warranty.md`](docs/ideas/sweep-trust-warranty.md) for the full write-up.
