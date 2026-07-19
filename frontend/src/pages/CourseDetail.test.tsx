@@ -15,6 +15,9 @@ const courseFlashcards = vi.fn();
 const courseMaterial = vi.fn();
 const courseNext = vi.fn();
 const assessProject = vi.fn();
+const editLessonObjectives = vi.fn();
+const reorderCourse = vi.fn();
+const regenerateMaterial = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     course: (s: string) => course(s),
@@ -23,6 +26,10 @@ vi.mock("../api/client", () => ({
     courseMaterial: (s: string, p: string) => courseMaterial(s, p),
     courseNext: (s: string) => courseNext(s),
     assessProject: (s: string, p: string, b: unknown) => assessProject(s, p, b),
+    editLessonObjectives: (s: string, l: string, b: unknown) => editLessonObjectives(s, l, b),
+    reorderCourse: (s: string, b: unknown) => reorderCourse(s, b),
+    regenerateMaterial: (s: string, l: string, b: unknown) => regenerateMaterial(s, l, b),
+    courseExportUrl: (s: string) => `/api/courses/${s}/export`,
   },
 }));
 
@@ -43,6 +50,7 @@ const COURSE: Detail = {
   material_counts: { quiz: 1 },
   completed_lessons: 0,
   progress_pct: 0,
+  editable: true,
   modules: [
     {
       id: "m2",
@@ -84,6 +92,9 @@ beforeEach(() => {
   courseNext.mockReset();
   courseNext.mockResolvedValue({ slug: SLUG, generated_at: "now", all_done: false, items: [] });
   assessProject.mockReset();
+  editLessonObjectives.mockReset();
+  reorderCourse.mockReset();
+  regenerateMaterial.mockReset();
 });
 
 describe("CourseDetail — course quizzes (M2)", () => {
@@ -388,5 +399,116 @@ describe("CourseDetail — notebooklm cross-link (M4)", () => {
     await user.click(await screen.findByRole("button", { name: /Putting It Together/i }));
     expect(await screen.findByText(/Link a notebook later/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Open notebook/i })).not.toBeInTheDocument();
+  });
+});
+
+const TWO_LESSON_COURSE: Detail = {
+  ...COURSE,
+  lesson_count: 2,
+  modules: [
+    {
+      id: "m2",
+      title: "Evidence-Based Techniques",
+      summary: "",
+      lessons: [
+        {
+          id: "m2l1",
+          title: "First steps",
+          objectives: [],
+          estimated_minutes: 5,
+          completed: false,
+          materials: [],
+        },
+        ...COURSE.modules[0].lessons,
+      ],
+    },
+  ],
+};
+
+describe("CourseDetail — authoring loop (M5)", () => {
+  it("hides Edit course for a read-only course but always offers Export", async () => {
+    course.mockResolvedValue({ ...COURSE, editable: false });
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+
+    renderPage();
+
+    const exportLink = await screen.findByRole("link", { name: /Export/i });
+    expect(exportLink).toHaveAttribute("href", `/api/courses/${SLUG}/export`);
+    expect(screen.queryByRole("button", { name: /Edit course/i })).not.toBeInTheDocument();
+  });
+
+  it("saves edited objectives through the writer", async () => {
+    course.mockResolvedValue(COURSE);
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+    editLessonObjectives.mockResolvedValue({ ok: true, errors: [], warnings: [] });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /Edit course/i }));
+    await user.click(await screen.findByRole("button", { name: /Edit objectives/i }));
+    const box = screen.getByRole("textbox", { name: /Objectives for Putting It Together/i });
+    await user.clear(box);
+    await user.type(box, "Apply retrieval practice{enter}Compare methods");
+    await user.click(screen.getByRole("button", { name: /Save objectives/i }));
+
+    expect(editLessonObjectives).toHaveBeenCalledWith(SLUG, "m2l2", {
+      objectives: ["Apply retrieval practice", "Compare methods"],
+    });
+  });
+
+  it("reorders lessons by sending the complete permutation", async () => {
+    course.mockResolvedValue(TWO_LESSON_COURSE);
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+    reorderCourse.mockResolvedValue({ ok: true, errors: [], warnings: [] });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /Edit course/i }));
+    await user.click(screen.getByRole("button", { name: /Move lesson First steps down/i }));
+
+    expect(reorderCourse).toHaveBeenCalledWith(SLUG, {
+      modules: [{ id: "m2", lessons: ["m2l2", "m2l1"] }],
+    });
+  });
+
+  it("regenerates a deck after warning that stats reset", async () => {
+    course.mockResolvedValue(DECK_COURSE);
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+    regenerateMaterial.mockResolvedValue({
+      ok: true,
+      path: "flashcards/m1l2.json",
+      rolled_back: false,
+      errors: [],
+      warnings: [],
+      count: 3,
+      duration_ms: 60000,
+      total_cost_usd: 0.05,
+    });
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /Edit course/i }));
+    // Anchor to the expand toggle — in edit mode the Move-lesson arrows also carry the title.
+    await user.click(await screen.findByRole("button", { name: /^Encoding vs\. Retrieval/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Regenerate this flashcards/i }),
+    );
+    expect(screen.getByText(/resets review\/attempt stats/i)).toBeInTheDocument();
+    await user.type(
+      screen.getByRole("textbox", { name: /Guidance for regenerating Core vocabulary/i }),
+      "harder cards",
+    );
+    await user.click(screen.getByRole("button", { name: /^Regenerate$/ }));
+
+    expect(regenerateMaterial).toHaveBeenCalledWith(SLUG, "m1l2", {
+      path: "flashcards/m1l2.json",
+      guidance: "harder cards",
+    });
   });
 });

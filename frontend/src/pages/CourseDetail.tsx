@@ -49,9 +49,34 @@ export default function CourseDetail() {
   // next-up row can open the lesson it points at).
   const [next, setNext] = useState<CourseNextItem[]>([]);
   const [openLessons, setOpenLessons] = useState<Set<string>>(new Set());
+  // M5 authoring loop: edit mode is offered only when the API says the course is editable
+  // (a user copy exists under COURSES_DIR — bundled examples are read-only).
+  const [editing, setEditing] = useState(false);
+  const [editErr, setEditErr] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  // Bumped per material path after a regeneration so the file viewers refetch their content.
+  const [matVersion, setMatVersion] = useState<Record<string, number>>({});
 
   const loadNext = useCallback(
     () => api.courseNext(slug).then((r) => setNext(r.items)).catch(() => setNext([])),
+    [slug],
+  );
+
+  const loadQuizzes = useCallback(
+    () =>
+      api
+        .courseQuizzes(slug)
+        .then((r) => setQuizzes(Object.fromEntries(r.quizzes.map((q) => [q.path, q]))))
+        .catch(() => {}),
+    [slug],
+  );
+
+  const loadDecks = useCallback(
+    () =>
+      api
+        .courseFlashcards(slug)
+        .then((r) => setDecks(Object.fromEntries(r.decks.map((d) => [d.path, d]))))
+        .catch(() => {}),
     [slug],
   );
 
@@ -99,6 +124,64 @@ export default function CourseDetail() {
       loadNext(),
     ]);
   }, [slug, loadNext]);
+
+  // M5: after a structural edit, re-pull everything derived from the manifest.
+  const reload = useCallback(async () => {
+    await Promise.all([
+      api.course(slug).then(setCourse).catch(() => {}),
+      loadQuizzes(),
+      loadDecks(),
+      loadNext(),
+    ]);
+  }, [slug, loadQuizzes, loadDecks, loadNext]);
+
+  const onRegenerated = useCallback(
+    async (path: string) => {
+      setMatVersion((v) => ({ ...v, [path]: (v[path] ?? 0) + 1 }));
+      await reload();
+    },
+    [reload],
+  );
+
+  // One in-flight reorder at a time: optimistic apply, PUT the COMPLETE order, revert on failure.
+  const applyOrder = useCallback(
+    async (nextModules: Detail["modules"]) => {
+      if (reordering || !course) return;
+      setReordering(true);
+      setEditErr(null);
+      const prev = course;
+      setCourse({ ...course, modules: nextModules });
+      try {
+        const res = await api.reorderCourse(slug, {
+          modules: nextModules.map((m) => ({ id: m.id, lessons: m.lessons.map((l) => l.id) })),
+        });
+        if (!res.ok) throw new Error(res.errors.join("; ") || "Validation failed");
+        void loadNext();
+      } catch (e) {
+        setCourse(prev); // the manifest didn't change — put the view back
+        setEditErr((e as Error).message ?? "Couldn't save the new order");
+      } finally {
+        setReordering(false);
+      }
+    },
+    [course, reordering, slug, loadNext],
+  );
+
+  const moveModule = (mi: number, delta: number) => {
+    if (!course) return;
+    const nextModules = [...course.modules];
+    const [m] = nextModules.splice(mi, 1);
+    nextModules.splice(mi + delta, 0, m);
+    void applyOrder(nextModules);
+  };
+
+  const moveLesson = (mi: number, li: number, delta: number) => {
+    if (!course) return;
+    const nextModules = course.modules.map((m) => ({ ...m, lessons: [...m.lessons] }));
+    const [l] = nextModules[mi].lessons.splice(li, 1);
+    nextModules[mi].lessons.splice(li + delta, 0, l);
+    void applyOrder(nextModules);
+  };
 
   const toggleLessonOpen = useCallback((lessonId: string) => {
     setOpenLessons((s) => {
@@ -185,6 +268,35 @@ export default function CourseDetail() {
               <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${clampPct(course.progress_pct)}%` }} />
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              href={api.courseExportUrl(slug)}
+              download
+              className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-ink hover:border-accent"
+            >
+              ⬇ Export
+            </a>
+            {course.editable && (
+              <button
+                onClick={() => {
+                  setEditing((e) => !e);
+                  setEditErr(null);
+                }}
+                className={
+                  editing
+                    ? "rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                    : "rounded-lg border border-accent px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/10"
+                }
+              >
+                {editing ? "Done editing" : "✏️ Edit course"}
+              </button>
+            )}
+          </div>
+          {editErr && (
+            <div className="mt-3 max-w-2xl">
+              <Banner tone="warning">{editErr}</Banner>
+            </div>
+          )}
         </div>
       </div>
 
@@ -192,14 +304,32 @@ export default function CourseDetail() {
 
       {course.modules.map((m, mi) => (
         <section key={m.id} className="space-y-3">
-          <div>
-            <h2 className="text-lg font-semibold text-ink">
-              <span className="text-muted">Module {mi + 1}.</span> {m.title}
-            </h2>
-            {m.summary && <p className="mt-1 text-sm text-muted">{m.summary}</p>}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-ink">
+                <span className="text-muted">Module {mi + 1}.</span> {m.title}
+              </h2>
+              {m.summary && <p className="mt-1 text-sm text-muted">{m.summary}</p>}
+            </div>
+            {editing && (
+              <span className="flex shrink-0 gap-1">
+                <MoveButton
+                  label={`Move module ${m.title} up`}
+                  disabled={mi === 0 || reordering}
+                  onClick={() => moveModule(mi, -1)}
+                  dir="up"
+                />
+                <MoveButton
+                  label={`Move module ${m.title} down`}
+                  disabled={mi === course.modules.length - 1 || reordering}
+                  onClick={() => moveModule(mi, 1)}
+                  dir="down"
+                />
+              </span>
+            )}
           </div>
           <div className="space-y-3">
-            {m.lessons.map((l) => (
+            {m.lessons.map((l, li) => (
               <LessonCard
                 key={l.id}
                 slug={slug}
@@ -211,6 +341,17 @@ export default function CourseDetail() {
                 open={openLessons.has(l.id)}
                 onToggleOpen={() => toggleLessonOpen(l.id)}
                 onAssessed={onAssessed}
+                editing={editing}
+                matVersion={matVersion}
+                onEdited={reload}
+                onEditError={setEditErr}
+                onRegenerated={onRegenerated}
+                reorder={{
+                  up: () => moveLesson(mi, li, -1),
+                  down: () => moveLesson(mi, li, 1),
+                  canUp: li > 0 && !reordering,
+                  canDown: li < m.lessons.length - 1 && !reordering,
+                }}
               />
             ))}
           </div>
@@ -284,6 +425,31 @@ function NextUp({
   );
 }
 
+type LessonReorder = { up: () => void; down: () => void; canUp: boolean; canDown: boolean };
+
+function MoveButton({
+  label,
+  disabled,
+  onClick,
+  dir,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  dir: "up" | "down";
+}) {
+  return (
+    <button
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-lg border border-stone-200 px-2 py-1 text-sm text-ink hover:border-accent disabled:opacity-30"
+    >
+      {dir === "up" ? "↑" : "↓"}
+    </button>
+  );
+}
+
 function LessonCard({
   slug,
   lesson,
@@ -294,6 +460,12 @@ function LessonCard({
   open,
   onToggleOpen,
   onAssessed,
+  editing,
+  matVersion,
+  onEdited,
+  onEditError,
+  onRegenerated,
+  reorder,
 }: {
   slug: string;
   lesson: CourseLesson;
@@ -304,6 +476,12 @@ function LessonCard({
   open: boolean;
   onToggleOpen: () => void;
   onAssessed: () => void | Promise<void>;
+  editing: boolean;
+  matVersion: Record<string, number>;
+  onEdited: () => Promise<void>;
+  onEditError: (msg: string | null) => void;
+  onRegenerated: (path: string) => Promise<void>;
+  reorder: LessonReorder;
 }) {
   return (
     <div
@@ -320,19 +498,37 @@ function LessonCard({
           aria-label={`Mark "${lesson.title}" complete`}
         />
         <div className="min-w-0 flex-1">
-          <button
-            onClick={onToggleOpen}
-            aria-expanded={open}
-            className="flex w-full items-center justify-between gap-2 text-left"
-          >
-            <span className={lesson.completed ? "font-medium text-muted line-through" : "font-medium text-ink"}>
-              {lesson.title}
-            </span>
-            <span className="shrink-0 text-xs text-muted">
-              {lesson.estimated_minutes ? `${lesson.estimated_minutes} min · ` : ""}
-              {open ? "Hide" : "Open"} <span aria-hidden>{open ? "▴" : "▾"}</span>
-            </span>
-          </button>
+          <div className="flex items-start gap-2">
+            <button
+              onClick={onToggleOpen}
+              aria-expanded={open}
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+            >
+              <span className={lesson.completed ? "font-medium text-muted line-through" : "font-medium text-ink"}>
+                {lesson.title}
+              </span>
+              <span className="shrink-0 text-xs text-muted">
+                {lesson.estimated_minutes ? `${lesson.estimated_minutes} min · ` : ""}
+                {open ? "Hide" : "Open"} <span aria-hidden>{open ? "▴" : "▾"}</span>
+              </span>
+            </button>
+            {editing && (
+              <span className="flex shrink-0 gap-1">
+                <MoveButton
+                  label={`Move lesson ${lesson.title} up`}
+                  disabled={!reorder.canUp}
+                  onClick={reorder.up}
+                  dir="up"
+                />
+                <MoveButton
+                  label={`Move lesson ${lesson.title} down`}
+                  disabled={!reorder.canDown}
+                  onClick={reorder.down}
+                  dir="down"
+                />
+              </span>
+            )}
+          </div>
 
           {lesson.objectives.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -342,6 +538,9 @@ function LessonCard({
                 </li>
               ))}
             </ul>
+          )}
+          {editing && (
+            <ObjectivesEditor slug={slug} lesson={lesson} onSaved={onEdited} onError={onEditError} />
           )}
 
           {open && (
@@ -354,6 +553,10 @@ function LessonCard({
                   quizState={mat.path ? quizzes[mat.path] : undefined}
                   deck={mat.path ? decks[mat.path] : undefined}
                   onAssessed={onAssessed}
+                  editing={editing}
+                  lessonId={lesson.id}
+                  version={mat.path ? matVersion[mat.path] ?? 0 : 0}
+                  onRegenerated={onRegenerated}
                 />
               ))}
             </div>
@@ -364,70 +567,287 @@ function LessonCard({
   );
 }
 
+// M5: edit a lesson's objectives in place — one per line, saved through the transactional
+// writer (a validation failure leaves the course untouched and surfaces the errors).
+function ObjectivesEditor({
+  slug,
+  lesson,
+  onSaved,
+  onError,
+}: {
+  slug: string;
+  lesson: CourseLesson;
+  onSaved: () => Promise<void>;
+  onError: (msg: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => {
+          setText(lesson.objectives.join("\n"));
+          setOpen(true);
+        }}
+        className="mt-2 text-xs font-medium text-accent hover:underline"
+      >
+        ✏️ Edit objectives
+      </button>
+    );
+  }
+
+  const save = async () => {
+    setSaving(true);
+    onError(null);
+    try {
+      const res = await api.editLessonObjectives(slug, lesson.id, {
+        objectives: text.split("\n").map((s) => s.trim()).filter(Boolean),
+      });
+      if (!res.ok) throw new Error(res.errors.join("; ") || "Validation failed");
+      setOpen(false);
+      await onSaved();
+    } catch (e) {
+      onError((e as Error).message ?? "Couldn't save objectives");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 space-y-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={Math.max(2, text.split("\n").length)}
+        placeholder="One objective per line — use assessable verbs (apply, explain, build…)"
+        aria-label={`Objectives for ${lesson.title}`}
+        className="w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+        disabled={saving}
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save objectives"}
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          disabled={saving}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-muted hover:border-accent"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// The file-backed types M5's regeneration lane can author (mirrors the backend's set).
+const REGENERABLE = new Set(["lesson", "exercise", "diagram", "flashcards", "quiz"]);
+
 function MaterialView({
   slug,
   material,
   quizState,
   deck,
   onAssessed,
+  editing,
+  lessonId,
+  version,
+  onRegenerated,
 }: {
   slug: string;
   material: CourseMaterial;
   quizState?: CourseQuizState;
   deck?: CourseFlashcardDeck;
   onAssessed: () => void | Promise<void>;
+  editing: boolean;
+  lessonId: string;
+  version: number;
+  onRegenerated: (path: string) => Promise<void>;
 }) {
   const label = material.title || material.type;
 
-  // A quiz is launched into the answer-key-free in-hub player — never fetch its keyed JSON here.
-  if (material.type === "quiz") {
-    return <QuizMaterial slug={slug} material={material} label={label} state={quizState} />;
-  }
+  const body = (() => {
+    // A quiz is launched into the answer-key-free in-hub player — never fetch its keyed JSON here.
+    if (material.type === "quiz") {
+      return <QuizMaterial slug={slug} material={material} label={label} state={quizState} />;
+    }
 
-  // Flashcards get a dedicated review session (per-card SM-2); the inline grid stays for browsing.
-  if (material.type === "flashcards") {
-    return <FlashcardsMaterial slug={slug} material={material} label={label} deck={deck} />;
-  }
+    // Flashcards get a dedicated review session (per-card SM-2); the inline grid stays for browsing.
+    if (material.type === "flashcards") {
+      return (
+        <FlashcardsMaterial
+          slug={slug}
+          material={material}
+          label={label}
+          deck={deck}
+          version={version}
+        />
+      );
+    }
 
-  // Materials with no file body — render from manifest metadata directly.
-  if (material.type === "reading") {
+    // Materials with no file body — render from manifest metadata directly.
+    if (material.type === "reading") {
+      return (
+        <div>
+          <MaterialHeader type="reading" label={label} />
+          <a href={material.url ?? "#"} target="_blank" rel="noreferrer" className="text-sm text-accent hover:underline">
+            {material.url} ↗
+          </a>
+          {material.note && <p className="mt-1 text-xs text-muted">{material.note}</p>}
+        </div>
+      );
+    }
+    if (material.type === "notebooklm") {
+      return <NotebookLmMaterial material={material} label={label} />;
+    }
+
+    // Project / capstone — the markdown brief, plus a rubric self-assessment widget when one is set.
+    if (material.type === "project" || material.type === "capstone") {
+      return (
+        <div className="space-y-3">
+          <FileMaterial slug={slug} material={material} label={label} version={version} />
+          {material.rubric && (
+            <RubricAssessment slug={slug} material={material} onAssessed={onAssessed} />
+          )}
+        </div>
+      );
+    }
+
+    return <FileMaterial slug={slug} material={material} label={label} version={version} />;
+  })();
+
+  if (!editing || !material.path || !REGENERABLE.has(material.type)) return body;
+  return (
+    <div>
+      {body}
+      <RegenControl slug={slug} lessonId={lessonId} material={material} onRegenerated={onRegenerated} />
+    </div>
+  );
+}
+
+// M5: regenerate one material via the backend's headless claude lane. Slow by web standards
+// (a real authoring call, ~1–3 min), so the confirm button becomes a busy state; a deck/quiz
+// warns that replaced items reset their review stats. ok:false means the model's output failed
+// validation and the course is untouched.
+function RegenControl({
+  slug,
+  lessonId,
+  material,
+  onRegenerated,
+}: {
+  slug: string;
+  lessonId: string;
+  material: CourseMaterial;
+  onRegenerated: (path: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [guidance, setGuidance] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const path = material.path ?? "";
+  const resets = material.type === "flashcards" || material.type === "quiz";
+
+  if (!open) {
     return (
-      <div>
-        <MaterialHeader type="reading" label={label} />
-        <a href={material.url ?? "#"} target="_blank" rel="noreferrer" className="text-sm text-accent hover:underline">
-          {material.url} ↗
-        </a>
-        {material.note && <p className="mt-1 text-xs text-muted">{material.note}</p>}
-      </div>
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-2 text-xs font-medium text-accent hover:underline"
+      >
+        ↻ Regenerate this {material.type}
+      </button>
     );
   }
-  if (material.type === "notebooklm") {
-    return <NotebookLmMaterial material={material} label={label} />;
-  }
 
-  // Project / capstone — the markdown brief, plus a rubric self-assessment widget when one is set.
-  if (material.type === "project" || material.type === "capstone") {
-    return (
-      <div className="space-y-3">
-        <FileMaterial slug={slug} material={material} label={label} />
-        {material.rubric && (
-          <RubricAssessment slug={slug} material={material} onAssessed={onAssessed} />
+  const run = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.regenerateMaterial(slug, lessonId, { path, guidance });
+      if (!res.ok) {
+        setErr(
+          res.error ??
+            (res.errors.length
+              ? `The regenerated content failed validation — nothing was changed: ${res.errors.join("; ")}`
+              : "Regeneration failed — nothing was changed."),
+        );
+        return;
+      }
+      setOpen(false);
+      setGuidance("");
+      await onRegenerated(path);
+    } catch (e) {
+      setErr((e as Error).message ?? "Regeneration failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border border-accent/30 bg-accent/5 p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+        Regenerate {material.type}
+      </div>
+      {resets && (
+        <p className="mt-1 text-xs text-muted">
+          Heads up: replacing this {material.type} resets review/attempt stats for changed items.
+        </p>
+      )}
+      <textarea
+        value={guidance}
+        onChange={(e) => setGuidance(e.target.value)}
+        rows={2}
+        maxLength={2000}
+        placeholder="Optional guidance — e.g. go deeper on X, add harder questions"
+        aria-label={`Guidance for regenerating ${material.title || material.type}`}
+        className="mt-2 w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+        disabled={busy}
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          onClick={run}
+          disabled={busy}
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? "Regenerating…" : "Regenerate"}
+        </button>
+        <button
+          onClick={() => setOpen(false)}
+          disabled={busy}
+          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-muted hover:border-accent"
+        >
+          Cancel
+        </button>
+        {busy && (
+          <span className="text-xs text-muted">
+            A real authoring call — this can take a minute or two.
+          </span>
         )}
       </div>
-    );
-  }
-
-  return <FileMaterial slug={slug} material={material} label={label} />;
+      {err && (
+        <div className="mt-2">
+          <Banner tone="warning">{err}</Banner>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function FileMaterial({
   slug,
   material,
   label,
+  version = 0,
 }: {
   slug: string;
   material: CourseMaterial;
   label: string;
+  version?: number;
 }) {
   const [text, setText] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -445,7 +865,7 @@ function FileMaterial({
     return () => {
       alive = false;
     };
-  }, [slug, material.path]);
+  }, [slug, material.path, version]); // version bumps after a regeneration (M5)
 
   if (err) {
     return (
@@ -499,11 +919,13 @@ function FlashcardsMaterial({
   material,
   label,
   deck,
+  version = 0,
 }: {
   slug: string;
   material: CourseMaterial;
   label: string;
   deck?: CourseFlashcardDeck;
+  version?: number;
 }) {
   const [cards, setCards] = useState<Flashcard[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -521,7 +943,7 @@ function FlashcardsMaterial({
     return () => {
       alive = false;
     };
-  }, [slug, material.path]);
+  }, [slug, material.path, version]); // version bumps after a regeneration (M5)
 
   const path = material.path ?? "";
   const count = deck?.card_count ?? material.count ?? cards?.length ?? null;
