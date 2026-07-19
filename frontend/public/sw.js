@@ -1,15 +1,38 @@
-// Home Base service worker — v2 (M6).
+// Home Base service worker — v3 (M6, + real-iPhone offline fix).
 // Installable shell (network-first, as v1) + the offline morning read: exactly two API
 // responses — GET /api/brief and (opportunistically) GET /api/brief/audio — are cached and
 // replayed ONLY when the network fails, marked X-Served-From-Cache so the page can show an
 // honest "offline copy" banner and disable writes. Every other /api route is never cached.
-const SHELL_CACHE = "home-base-shell-v2";
+//
+// v3, after the 2026-07-19 phone pass found offline blank-paging: the shell cache may only
+// ever hold full 200 bodies — WebKit revalidates cached assets and a 304 has an EMPTY body,
+// so blindly caching "whatever fetch returned" stored husks. The hashed /assets bundle is
+// now pre-cached at install (parsed out of index.html — runtime caching alone never sees a
+// 200 for an asset the HTTP cache is revalidating), and the index.html offline fallback is
+// navigation-only — answering a missed asset with HTML renders a silent blank page.
+const SHELL_CACHE = "home-base-shell-v3";
 const BRIEF_CACHE = "home-base-brief-v1";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 const OFFLINE_API = ["/api/brief", "/api/brief/audio"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((c) => c.addAll(SHELL)).catch(() => {}));
+  event.waitUntil(
+    (async () => {
+      const c = await caches.open(SHELL_CACHE);
+      await c.addAll(SHELL).catch(() => {});
+      // Pre-cache the exact hashed assets this index.html references, so the offline shell
+      // is a consistent snapshot from day one instead of depending on runtime cache luck.
+      // Best-effort like the shell addAll: a failed pre-cache must never block install.
+      try {
+        const idx = await c.match("/index.html");
+        const html = idx ? await idx.text() : "";
+        const assets = [...new Set(html.match(/\/assets\/[^"']+/g) || [])];
+        if (assets.length) await c.addAll(assets);
+      } catch {
+        // Online behavior is unaffected either way.
+      }
+    })()
+  );
   self.skipWaiting();
 });
 
@@ -65,14 +88,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App shell: network-first with cache fallback (v1 behavior, rebranded cache).
+  // App shell: network-first with cache fallback. Store full 200s only — a 304
+  // revalidation has no body, and caching one poisons the offline copy.
   event.respondWith(
     fetch(event.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(SHELL_CACHE).then((c) => c.put(event.request, copy)).catch(() => {});
+        if (res.status === 200) {
+          const copy = res.clone();
+          caches.open(SHELL_CACHE).then((c) => c.put(event.request, copy)).catch(() => {});
+        }
         return res;
       })
-      .catch(() => caches.match(event.request).then((m) => m || caches.match("/index.html")))
+      .catch(() =>
+        caches.match(event.request).then((m) => {
+          if (m) return m;
+          // SPA offline entry is for navigations only — serving HTML for a missed asset
+          // would execute nothing and blank the page instead of failing visibly.
+          if (event.request.mode === "navigate") return caches.match("/index.html");
+          return Response.error();
+        })
+      )
   );
 });
