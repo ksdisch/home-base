@@ -108,18 +108,23 @@ def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
 
 def parse_rss(xml_bytes: bytes) -> List[Dict[str, Any]]:
     """Normalize one RSS 2.0 document into item dicts. An item without a headline or an
-    http link is useless and gets skipped; an unparseable document raises."""
+    http link is useless and gets skipped; an unparseable document raises.
+
+    Per-item ``<source>`` is a Google News extra; plain outlet feeds (WordPress etc. —
+    the Uplifting category's good-news sites) don't carry it, so those items fall back
+    to the feed's channel title ("Good News Network") for attribution."""
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError as e:
         raise NewsFeedError(f"unparseable feed XML: {e}")
+    channel_title = (root.findtext("channel/title") or "").strip() or None
     items: List[Dict[str, Any]] = []
     for node in root.iter("item"):
         title = (node.findtext("title") or "").strip()
         link = (node.findtext("link") or "").strip()
         if not title or not link.startswith("http"):
             continue
-        source = (node.findtext("source") or "").strip() or None
+        source = (node.findtext("source") or "").strip() or channel_title
         items.append(
             {
                 # sha1(link)[:12] — the same read-time id shape brief items use.

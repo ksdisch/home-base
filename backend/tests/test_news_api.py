@@ -168,6 +168,28 @@ def test_items_parsed_cleaned_and_sorted(tmp_path, monkeypatch):
     assert first["id"] == hashlib.sha1(b"https://g/2").hexdigest()[:12]
 
 
+def test_outlet_feed_items_fall_back_to_channel_title_for_source(tmp_path, monkeypatch):
+    """Plain outlet feeds (the Uplifting category's good-news sites) carry no per-item
+    <source>; attribution falls back to the channel title. Google-style items with their
+    own <source> are untouched — and an outlet headline is never suffix-stripped."""
+    _env(tmp_path, monkeypatch)
+    outlet_rss = (
+        '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
+        "<title>Good News Network</title>"
+        "<item><title>Daughter Saves Dad's Shoe Shop - With TikTok</title>"
+        "<link>https://gnn.example/shop</link>"
+        "<pubDate>Sat, 18 Jul 2026 09:00:00 GMT</pubDate></item>"
+        + _item("Google style story", link="https://g/gs")
+        + "</channel></rss>"
+    ).encode("utf-8")
+    body = _client(FakeFetcher({ONE_FEED: outlet_rss})).get("/api/news/top").json()
+    by_url = {i["url"]: i for i in body["items"]}
+    outlet = by_url["https://gnn.example/shop"]
+    assert outlet["source"] == "Good News Network"
+    assert outlet["headline"] == "Daughter Saves Dad's Shoe Shop - With TikTok"  # no stripping
+    assert by_url["https://g/gs"]["source"] == "AP News"  # per-item <source> still wins
+
+
 def test_item_without_link_skipped(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     good = _item("Kept", link="https://g/keep")

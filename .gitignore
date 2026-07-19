@@ -45,3 +45,6 @@ backend/*_report.md
 backend/*_flashcards.*
 
 # Keep the curated reference fixtures (docs/fixtures/*) tracked.
+
+# Playwright MCP browser session artifacts (snapshots/console logs)
+.playwright-mcp/
