@@ -13,6 +13,16 @@
     ]
   },
   {
+    "slug": "uplifting",
+    "title": "Uplifting",
+    "feeds": [
+      "https://www.goodnewsnetwork.org/feed/",
+      "https://www.positive.news/feed/",
+      "https://reasonstobecheerful.world/feed/",
+      "https://news.google.com/rss/search?q=%22good%20news%22%20OR%20uplifting%20OR%20heartwarming&hl=en-US&gl=US&ceid=US:en"
+    ]
+  },
+  {
     "slug": "us",
     "title": "U.S.",
     "feeds": ["https://news.google.com/rss/headlines/section/topic/NATION?hl=en-US&gl=US&ceid=US:en"]

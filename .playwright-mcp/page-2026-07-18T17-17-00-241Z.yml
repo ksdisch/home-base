@@ -1,0 +1,309 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "Home Base" [ref=e6] [cursor=pointer]:
+      - /url: /
+  - main [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - heading "News" [level=1] [ref=e10]
+        - paragraph [ref=e11]: The wider world, by section — your personalized brief stays on Today.
+      - navigation "News categories" [ref=e12]:
+        - button "For You" [ref=e13] [cursor=pointer]
+        - button "Top stories" [ref=e14] [cursor=pointer]
+        - button "Local" [ref=e15] [cursor=pointer]
+        - button "U.S." [ref=e16] [cursor=pointer]
+        - button "World" [ref=e17] [cursor=pointer]
+        - button "Business" [ref=e18] [cursor=pointer]
+        - button "Technology" [ref=e19] [cursor=pointer]
+        - button "Science" [ref=e20] [cursor=pointer]
+        - button "Health" [ref=e21] [cursor=pointer]
+        - button "Sports" [ref=e22] [cursor=pointer]
+        - button "Entertainment" [ref=e23] [cursor=pointer]
+      - status [ref=e32]:
+        - paragraph [ref=e33]: Still learning you
+        - generic [ref=e34]: For You warms up as you read — clicks, section visits, and the feedback buttons all teach it (0 of 20 signals so far). Until then, here are the top stories.
+      - generic [ref=e35]:
+        - article [ref=e36]:
+          - generic [ref=e37]: BBC · 50m agoTop stories
+          - link "US strikes hit Iran for seventh consecutive night" [ref=e38] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiWkFVX3lxTE8yaGhLUndVdDNoZERNejRHOEQ4cUc0RS15bFo4YkV5bEtCb2NFSHB4T1NFM2FBSHFMVnNjX2I2TWNVWWlESFpoRTAxdGR6SkxMZjQybUw4djRpUQ?oc=5
+          - generic [ref=e39]:
+            - button "More like US strikes hit Iran for seventh consecutive night" [ref=e40] [cursor=pointer]: More like this
+            - button "Not interested in US strikes hit Iran for seventh consecutive night" [ref=e41] [cursor=pointer]: Not interested
+        - article [ref=e42]:
+          - generic [ref=e43]: NBC New York · 59m agoTop stories
+          - 'link "Live updates: Flash flood warning issued for NYC metro area as conditions worsen" [ref=e44] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMiygFBVV95cUxPVXk3SDZrQXhaM2VrUnl1UnRUenpTckUxZU9KYTgtczliODVfb0hVdDc3T0hlYTNuUlZ5WGNOZHJMNXNtUGZEZXZLc1RwVFFIVlBwZkloblhhdUMzdklxTGVFOUctUHdLd1lDUmhUb1c0YnlrX2Z3Z0tMQWZJU290SDZ6VXN3dURyaHJIMUd4SHVjN25DOUpKYW9KTGgwWWg2RlN3cm5EVHF5b2lyRm9TTE9sTkFfWTREbXhYQXVXcHJsZEdIUXNkXzdR0gHSAUFVX3lxTFBHakE2NEJXYUlCb3NCTncydE0xY1F5R19PSUwxVWdDVHlocXhoQ0VOSGpvM3dadHB3RGlWbHdTS0FObWdFV2djUWQ0Szl3eWd1bFpRc2RkcHF2LVE1aXJTMmtvb014S1FWOWozZ1BPeWloRDhwb25WT3RncmZjWVcwWDNYSXJ4LVJjRHZWNFVVZmNlWS0zUHFyZTF1bW94cTBTWk9uZ0pzUUtGTnRsZEtIUVI2d2Ftc0NOVDl1d3JiTzE3RDNCZkFnUTYxc2RrM0otUQ?oc=5
+          - generic [ref=e45]:
+            - 'button "More like Live updates: Flash flood warning issued for NYC metro area as conditions worsen" [ref=e46] [cursor=pointer]': More like this
+            - 'button "Not interested in Live updates: Flash flood warning issued for NYC metro area as conditions worsen" [ref=e47] [cursor=pointer]': Not interested
+        - article [ref=e48]:
+          - generic [ref=e49]: The Washington Post · 1h agoTop stories
+          - link "Taylor Farms launches recall in 27 states after iceberg lettuce tied to outbreak" [ref=e50] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMivgFBVV95cUxQWU1fVTJtSDA3Z1BhVEdSaE96MmstME5pd2ZfNDZzeHVkYWJSSjhreE84aE41cTQwZWd5WDlDbndPME8yTnc2U0V1N2kwWWFNa1JVYVAtVlhJMVRkRW0wdkxLQVpFeFZyYlI3ampIRzQzclEzUGVSTV9NbThFdGtwbXdGV0FaamVRcmQxUlZDV0NMOGdyU0tuaGk1U05ZMWJzYkZZTzdPY0tUcXdrMjhVM01hWUF5cVpzdnZDcURn?oc=5
+          - generic [ref=e51]:
+            - button "More like Taylor Farms launches recall in 27 states after iceberg lettuce tied to outbreak" [ref=e52] [cursor=pointer]: More like this
+            - button "Not interested in Taylor Farms launches recall in 27 states after iceberg lettuce tied to outbreak" [ref=e53] [cursor=pointer]: Not interested
+        - article [ref=e54]:
+          - generic [ref=e55]: Variety · 1h agoTop stories
+          - 'link "Box Office: ‘The Odyssey’ Has Epic Opening Day With $51 Million" [ref=e56] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMiqAFBVV95cUxOcmRpdnczRktCR0UxN2xtRGtsZUhuX3AtbXNYVUJhNGw5eDl4aDBKajQxcXZuT0d0bzd3ZlB3SThGYjVFQ1FnVEtzVnJTbXFBZ2J1LU1GTDNxY19NUzVabVdHdm8xaEFDOTRuTlpGWlRHOHRwd0l3VEFMdkpGMXBrTXMwc09jaDhDNDN3OWowTGNDaUpkaF9IWEllNk5KQ3dmMXRVdVZRVXo?oc=5
+          - generic [ref=e57]:
+            - 'button "More like Box Office: ‘The Odyssey’ Has Epic Opening Day With $51 Million" [ref=e58] [cursor=pointer]': More like this
+            - 'button "Not interested in Box Office: ‘The Odyssey’ Has Epic Opening Day With $51 Million" [ref=e59] [cursor=pointer]': Not interested
+        - article [ref=e60]:
+          - generic [ref=e61]: Motorsport.com · 2h agoTop stories
+          - 'link "F1 Belgian GP: Kimi Antonelli beats Max Verstappen to pole by 0.317s" [ref=e62] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMiggFBVV95cUxNbllGMFE4d1VNOTJyX0lEclgycm91OFE5M3RkUGhFM2xOTy1qVnhmZHl5ZE1vS3VlczFMRXlKY3VGeVBfWHhxSlcxZDNmczJzeVhwRERaR0N3RzlraFdpbGRMVkd6VlJLQUNZY09RbzIxZzhVZXR2WElmbzhyNVZhanFB?oc=5
+          - generic [ref=e63]:
+            - 'button "More like F1 Belgian GP: Kimi Antonelli beats Max Verstappen to pole by 0.317s" [ref=e64] [cursor=pointer]': More like this
+            - 'button "Not interested in F1 Belgian GP: Kimi Antonelli beats Max Verstappen to pole by 0.317s" [ref=e65] [cursor=pointer]': Not interested
+        - article [ref=e66]:
+          - generic [ref=e67]: Gothamist · 2h agoTop stories
+          - link "1 dead in Upper East Side Legionnaires' outbreak" [ref=e68] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMif0FVX3lxTE1GTTlIeEZHU3JRZnI2TTE1STg5c3RqTU1ZOU9zZENsUDZOWFFSbUJlUk9zOWt6YjR2aG0wcm0wbUx3LWV0Y2liWDRjX0xNS3RnYlBDYWJyN29acG5TRk5nREIzb2haSU9IbUxxazI5MXd2VlNONGtyWEJORDFMQUE?oc=5
+          - generic [ref=e69]:
+            - button "More like 1 dead in Upper East Side Legionnaires' outbreak" [ref=e70] [cursor=pointer]: More like this
+            - button "Not interested in 1 dead in Upper East Side Legionnaires' outbreak" [ref=e71] [cursor=pointer]: Not interested
+        - article [ref=e72]:
+          - generic [ref=e73]: Golf Channel · 2h agoTop stories
+          - 'link "The Open 2026, live updates: Leaderboard, scores, highlights, news from Round 3" [ref=e74] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMivAFBVV95cUxNcG9EX1BoT1EwcDk0RXlGVWI0Uk5waExFcHc2WnJwSW03cWZpMUhVcktfY01fT1pOS2tsZ2xZcDB5N1RfaG5SdmJBUzdfY0JDZV9XU1BWekd1NDFYT0tJUTJJUW8yQm5uTl9Sc0xRTkdKeFhId1d6cFhQMkNqaHJYT29LSGgweWFLNW5Xek5OUFA0N18tWXBjVTRNWndiUVhNaDczLV9VQ2thVGVqQ3NMZzY3ZkU2ZlozQTQ2WQ?oc=5
+          - generic [ref=e75]:
+            - 'button "More like The Open 2026, live updates: Leaderboard, scores, highlights, news from Round 3" [ref=e76] [cursor=pointer]': More like this
+            - 'button "Not interested in The Open 2026, live updates: Leaderboard, scores, highlights, news from Round 3" [ref=e77] [cursor=pointer]': Not interested
+        - article [ref=e78]:
+          - generic [ref=e79]: TMZ · 2h agoTop stories
+          - link "Larry David Tells RFK Jr. to 'Drop Dead' in New HBO Show" [ref=e80] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMifEFVX3lxTE9JR1FkMGJhYl93WEUyaWlRSGg5eFRqYlBKOEIyQnlHY3h2aEdMckhCN0tLMnQ2cVFKQ0NNczF3UzhUZU40cnBDcTVMRjc3c3BNa2YwdGhQY0VHdHBkMlA1RXlnYnJsSVVkR244TEUydnFITFlsQUV4ZmhpZ2o?oc=5
+          - generic [ref=e81]:
+            - button "More like Larry David Tells RFK Jr. to 'Drop Dead' in New HBO Show" [ref=e82] [cursor=pointer]: More like this
+            - button "Not interested in Larry David Tells RFK Jr. to 'Drop Dead' in New HBO Show" [ref=e83] [cursor=pointer]: Not interested
+        - article [ref=e84]:
+          - generic [ref=e85]: The Guardian · 2h agoTop stories
+          - link "Trump’s deep public health cuts hinder response to record US cyclosporiasis outbreak" [ref=e86] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMigwFBVV95cUxPZUpQV0FvWlJKV1VnTWt5M2dDODM3S01TOFM3VHpqMUF6NU44UVd6cVdEZmtLcS1xclpiNG1OXzRQWDVsZmZ5YUhwVVdOOHl5eDJVbmkyamU3YWZ0NGk5NzdZNFFFMEV0TGJ4aFhlaXJNYXhCNGtPdEZYUHJZWkFnT0U1Yw?oc=5
+          - generic [ref=e87]:
+            - button "More like Trump’s deep public health cuts hinder response to record US cyclosporiasis outbreak" [ref=e88] [cursor=pointer]: More like this
+            - button "Not interested in Trump’s deep public health cuts hinder response to record US cyclosporiasis outbreak" [ref=e89] [cursor=pointer]: Not interested
+        - article [ref=e90]:
+          - generic [ref=e91]: AP News · 3h agoTop stories
+          - link "9 killed and more than 60 wounded in Ukrainian drone attacks on Russian regions" [ref=e92] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMilwFBVV95cUxNQldSVzRUSldGOFFxMWdpb2FFdm9oZURyN1VNakRvcVpBVlA1QmJJT0E0RUJPOVYxRTc5NEkwZEk1b1Q1dGlIWGRFd1RxMEcyUWlXMngzYTJmQTVVd0tESmJJN2doOHFwYVlzcnpYaF93MUtseFR1dmpzQVRHdld0bnY5WHljRkdWWTdUUEVFbTBZeVZZUmlZ?oc=5
+          - generic [ref=e93]:
+            - button "More like 9 killed and more than 60 wounded in Ukrainian drone attacks on Russian regions" [ref=e94] [cursor=pointer]: More like this
+            - button "Not interested in 9 killed and more than 60 wounded in Ukrainian drone attacks on Russian regions" [ref=e95] [cursor=pointer]: Not interested
+        - article [ref=e96]:
+          - generic [ref=e97]: Forbes · 3h agoTop stories
+          - link "Where Wildfire Smoke Remains—And What To Do About It" [ref=e98] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi4gFBVV95cUxObk9CVkpqbWp4cG1yemFEVlJ0OWxCMjZHX1A5ZUhzbGhsVTk1QVlnUm0xdkhUTW8xM25lT1BkV2Q4UHVzZU9JRENCeVFYcllsZlZxNkRTd3JJREZwWThhRnctc2dYUHBvVzlKdEtqZ0ttaHBPOUNyOFJpRnowVmhPdTNuZEhDdGVpdklra2xaMlFJZDhRMW1rQVZBSnMxX2FuMG40T2NYVlFXUjUwTk5xMjdsaS1sSFRMMFI3T2J5RGVpSXFTTzNEVWRYUlQyc2tleTNVbk9WZWt4R1V0VHFVWEd3?oc=5
+          - generic [ref=e99]:
+            - button "More like Where Wildfire Smoke Remains—And What To Do About It" [ref=e100] [cursor=pointer]: More like this
+            - button "Not interested in Where Wildfire Smoke Remains—And What To Do About It" [ref=e101] [cursor=pointer]: Not interested
+        - article [ref=e102]:
+          - generic [ref=e103]: NBC News · 3h agoTop stories
+          - link "Before Nolan Wells’ death, Mississippi island was full of fun, friends and an unspoken danger" [ref=e104] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMikwFBVV95cUxQOEs0cUtpN2tOUWttclkzVXlMZUlYdWVSS3NabjVHZkc5bmJjSlpRNVJ3RV9xY3REcl85UlNrUHZHTnpFZUZ0U05kd21rUnRJYTRvMTZ0WGRFODhHZTRHVzlneTZzMkFlc3o1aFpVSGo3aXVHcEVHLTRHdjdxQUJvQm50WVRZdDN5OVRYVXBjR0Q2cEk?oc=5
+          - generic [ref=e105]:
+            - button "More like Before Nolan Wells’ death, Mississippi island was full of fun, friends and an unspoken danger" [ref=e106] [cursor=pointer]: More like this
+            - button "Not interested in Before Nolan Wells’ death, Mississippi island was full of fun, friends and an unspoken danger" [ref=e107] [cursor=pointer]: Not interested
+        - article [ref=e108]:
+          - generic [ref=e109]: Page Six · 4h agoTop stories
+          - link "‘The Bear’ star Abby Elliott files for divorce after nearly 10 years of marriage" [ref=e110] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMilgFBVV95cUxObTlpcDZmR2tXXzA0QnpNU2lPb3k1UzhkdG9ieGxjMGxDeF9RNkN4QWhFa1V4ekFmTGMyS2hJRUFHUkdSRjFqaHBEODZ2VHhKejVlUjNwX1pRX2p5TmZaZVJhWHIwMzB5VXkzMGZsTzI3TTFDZ0g5X2ZMNi1vVG9IN0sxSUw3RGpOZFRSV0VyUXhuT2lFX1E?oc=5
+          - generic [ref=e111]:
+            - button "More like ‘The Bear’ star Abby Elliott files for divorce after nearly 10 years of marriage" [ref=e112] [cursor=pointer]: More like this
+            - button "Not interested in ‘The Bear’ star Abby Elliott files for divorce after nearly 10 years of marriage" [ref=e113] [cursor=pointer]: Not interested
+        - article [ref=e114]:
+          - generic [ref=e115]: CBS Sports · 4h agoTop stories
+          - 'link "France vs. England live stream: How to watch FIFA World Cup third place, odds, prediction, pick, lineups" [ref=e116] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMi0wFBVV95cUxPOU8xVTRfb29pMGRoQUxrcFBpVGRHNThUQkNtZmlqZjFHVUVtdTB5NkdkWjFFQzZvcVkyOWkxNVFlckhYZUpYdEd6MGZwMUVZQ2g2MUhtVWhHQ1dQNHZjbXk3LURHQ3ZJbkNrbXBoSUFuZWUtbXdaZE9PWWRTb19OOWRIUkZxWnJZSmlvSC1nOGJPNTB1bU9SdnNnaEVEMDlhX05SbFQ1UDJaQ29Jd201VDZjSlpJTHhINXMwMmJVVHdpbWs0a3pYY0JFalZIdC1odlp3?oc=5
+          - generic [ref=e117]:
+            - 'button "More like France vs. England live stream: How to watch FIFA World Cup third place, odds, prediction, pick, lineups" [ref=e118] [cursor=pointer]': More like this
+            - 'button "Not interested in France vs. England live stream: How to watch FIFA World Cup third place, odds, prediction, pick, lineups" [ref=e119] [cursor=pointer]': Not interested
+        - article [ref=e120]:
+          - generic [ref=e121]: GSMArena.com · 5h agoTop stories
+          - link "New leak by Evan Blass shows the Z Fold8, Z Fold8 Ultra and Galaxy Watch9, confirms some specs - GSMArena.com news" [ref=e122] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMizAFBVV95cUxPY2c0a2FCREJMczJ2bjd6M3oxMnRWUEhzRzBLYkZUVnUtbnBSMmF4V1lscmFMbVdGdHZzOXpia2FQMS1LSl9TWDUyeUdHbkcxN2pKWFZMUGJGRTdEQWl2SUFMTXVnWFUydXJHbFZySXRNeFh0M3JaTmMwTi1mX0s2WThFWjZPbGRFT3dsaXFTMUlSQjhpSEhLbV9HdmFGV0VMWVlwdEN6cTRBQ2p5bGgwSWswSldVdDlrUjdkVTBoWld0T3J6aEtBREg1SGPSAcgBQVVfeXFMUGx4djk5TDRzZWpaVS0yLXEteXg0TmVWY05CV0hVeDdqZXFmYzEySmlfQ3Y1TFZUVmwzZndldktrMkFWVmg5b2pWS1RYTDE0ZnRHQXowTVBxZzJ2dnNIb2p3RktvTHlQZkZiNGlGdHBvdVc5emlJampQandHMDJKRWV5cWREX1FZQzhEZDFJd3Nab05tUnVrUDRDTndnbGpBTXpWMnRwcDAyM3ZmdElFWGlEaTBjYWROblRCaVlva1JUZkJ6SVNYWXE?oc=5
+          - generic [ref=e123]:
+            - button "More like New leak by Evan Blass shows the Z Fold8, Z Fold8 Ultra and Galaxy Watch9, confirms some specs - GSMArena.com news" [ref=e124] [cursor=pointer]: More like this
+            - button "Not interested in New leak by Evan Blass shows the Z Fold8, Z Fold8 Ultra and Galaxy Watch9, confirms some specs - GSMArena.com news" [ref=e125] [cursor=pointer]: Not interested
+        - article [ref=e126]:
+          - generic [ref=e127]: Fox News · 5h agoTop stories
+          - link "Golf analyst Brandel Chamblee disgustingly buries Bryson DeChambeau after British Open penalty" [ref=e128] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqwFBVV95cUxQOGh1UWw2dzQ5SVlWZXk2a0V6Y2hZdzZGNmQwNE5NQXp3ckc2d2h0Wkx2V2hzek52RXRVb2FRS2RFTkFQVlFMQVpBemJncnVXNkd4QTdfNW5xSzBNYmVlZ1U1UUs3NHZvZGdLdWlIeHh2aG5OOFdWa2ZGdzA2S1hvQ0ZLUnFnSlNhT0JnZ2FxcEYtU08tbDNRZnhQLXhjRzA4bkEyZms5YUl2cFE?oc=5
+          - generic [ref=e129]:
+            - button "More like Golf analyst Brandel Chamblee disgustingly buries Bryson DeChambeau after British Open penalty" [ref=e130] [cursor=pointer]: More like this
+            - button "Not interested in Golf analyst Brandel Chamblee disgustingly buries Bryson DeChambeau after British Open penalty" [ref=e131] [cursor=pointer]: Not interested
+        - article [ref=e132]:
+          - generic [ref=e133]: AP News · 6h agoTop stories
+          - link "Texas Hill Country floods test new warning systems after last year’s deadly disaster" [ref=e134] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqgFBVV95cUxNNTFQUXc4SW5NM0FjbGo4THZJSFZhUzZod2I2Z0UwQXNQWFFuSlI4RWpKT2o0YUM2aHhqRHQ2N3E4bUNJdWJBV0E0QWk3d1ZnV3E5VW1OYWR3cktUV1dEQlk1Sl9yN1cteDEtdjF3b2RPX2ktUWVtWTRPeEdjQUNueU1wMEhnb3duRzFZRDJ0SVZKTW1ja3BTS2JMZExtN0hFS1dhZ0ttNXpnUQ?oc=5
+          - generic [ref=e135]:
+            - button "More like Texas Hill Country floods test new warning systems after last year’s deadly disaster" [ref=e136] [cursor=pointer]: More like this
+            - button "Not interested in Texas Hill Country floods test new warning systems after last year’s deadly disaster" [ref=e137] [cursor=pointer]: Not interested
+        - article [ref=e138]:
+          - generic [ref=e139]: Reuters · 6h agoTop stories
+          - link "Delayed orders, confusion slowed Venezuelan military's response to quakes, sources say" [ref=e140] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi0wFBVV95cUxORklyRm83dTkxX2JtYTRsVkJhVWl4X2JDaHZob25TUEhONXhxWlMxdlNZTnlaNzIyeEdvMHhJMVM3T2xXT2hQR1NhRWlfeGlvdGt3QWk1bW96Zjc1YlRsUl9uNkJudDBmSVJoZFVfS1Z6RTVlRDZ4YV93MTFaQnI5YXZQRy0xdGxVZzZFWHRNLV9aY3JjbGtZZVk5VHFTTFdxU3VsalFSWng5U3FDY2ViWDlXWGtsWVVmdjkxcUlxTDNuSmlGS2l1TTJxbE5qbWUxNGNJ?oc=5
+          - generic [ref=e141]:
+            - button "More like Delayed orders, confusion slowed Venezuelan military's response to quakes, sources say" [ref=e142] [cursor=pointer]: More like this
+            - button "Not interested in Delayed orders, confusion slowed Venezuelan military's response to quakes, sources say" [ref=e143] [cursor=pointer]: Not interested
+        - article [ref=e144]:
+          - generic [ref=e145]: Politico · 6h agoTop stories
+          - 'link "‘Pulte got really scared’: Inside the White House debate over Trump’s elections speech" [ref=e146] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMizAFBVV95cUxQN0N4UUtJQ1h4cHRyclNFQkNKUDJPUXBHNXhpVmxXd2FWbHZ0R3lUcnIxMHlmcHJTS3V1eXk3NlluOGs1NFItQkpSYlJfeVQzdnNFcjFWLU5ZR1lBT1NteWNiWmd0VWVqS3paSHhGQnRZRWozRXJ4SWxHMUMtQWYtbE0tcFNVZW1HdW5LNi1MZ0w2T1VJdXVic1RKWkQxZ2hGNmlvTXZiNTlxcUtxS2RoMHpIeGlFeVF4djBXblhzQ2RpR1VaaC1tVThKQ3k?oc=5
+          - generic [ref=e147]:
+            - 'button "More like ‘Pulte got really scared’: Inside the White House debate over Trump’s elections speech" [ref=e148] [cursor=pointer]': More like this
+            - 'button "Not interested in ‘Pulte got really scared’: Inside the White House debate over Trump’s elections speech" [ref=e149] [cursor=pointer]': Not interested
+        - article [ref=e150]:
+          - generic [ref=e151]: Seeking Alpha · 6h agoTop stories
+          - 'link "Big box breakout: Costco debuts gas pumps as a standalone concept (COST:NASDAQ)" [ref=e152] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMipAFBVV95cUxOa2dabHhqVXpuQ2pPNTZ4MWs0N3hLOXlsbU5YaWM1Q3hOamZRRXpNSkVkeU5DTURMUDhRbGdOd2E2QldBblN1VFM2cU1IelBsbjdGcUlWSW1iQ2JHbGpxQmpPbUtpWk9ReDRWdUROX3gzZEk2ODRDd29IeWxzeW9ucmFLOUZSOUtGUmZQU0syTzllNmxQOF93Y1gtaVMwanpSanhicw?oc=5
+          - generic [ref=e153]:
+            - 'button "More like Big box breakout: Costco debuts gas pumps as a standalone concept (COST:NASDAQ)" [ref=e154] [cursor=pointer]': More like this
+            - 'button "Not interested in Big box breakout: Costco debuts gas pumps as a standalone concept (COST:NASDAQ)" [ref=e155] [cursor=pointer]': Not interested
+        - article [ref=e156]:
+          - generic [ref=e157]: bgr.com · 6h agoTop stories
+          - link "4 Disadvantages Of Using Microsoft Word Instead Of Google Docs" [ref=e158] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiiwFBVV95cUxNcEFrSUNORGktMU9YSmNSTXdXdzROYmFQT0ZiOVZ0MUxiX01WUFVGc29JaTdWX24yOEhIM2pOSE80bzQ2aW1FaEZUaWFhcVVtVDVqM0RIYUt3RjNtMzRBM2F1b0ZWV2k1THRMb1Jra0NNc2JEVW5sNTJfTXJLY29Vd2ZsUmIwTGNqNDZN?oc=5
+          - generic [ref=e159]:
+            - button "More like 4 Disadvantages Of Using Microsoft Word Instead Of Google Docs" [ref=e160] [cursor=pointer]: More like this
+            - button "Not interested in 4 Disadvantages Of Using Microsoft Word Instead Of Google Docs" [ref=e161] [cursor=pointer]: Not interested
+        - article [ref=e162]:
+          - generic [ref=e163]: Financial Times · 7h agoTop stories
+          - link "Zelenskyy considers sacking commander-in-chief as protests swell" [ref=e164] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMihAFBVV95cUxOQUhjZ3pZMTU0ZG4xVGRDaDVFYnAySU9USzVPQlgwTExOdXVwN2VpeXhJbkJiRk5HT3poZTdSUHdSRGdoM190cjRGT2NicU94MDlobGZCRWdkclBxY1JCb0gyVmJ5VV84VDE1OHk2STgyOTN4Mkx2U3lxcUhZVVNpMHliMjg?oc=5
+          - generic [ref=e165]:
+            - button "More like Zelenskyy considers sacking commander-in-chief as protests swell" [ref=e166] [cursor=pointer]: More like this
+            - button "Not interested in Zelenskyy considers sacking commander-in-chief as protests swell" [ref=e167] [cursor=pointer]: Not interested
+        - article [ref=e168]:
+          - generic [ref=e169]: The Boston Globe · 7h agoTop stories
+          - link "Advocates push to make alpha gal the 10th major food allergen" [ref=e170] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiogFBVV95cUxOX2RnZGF0ZHJQUGl1MG5sVUNFYk9DVFhGTlowZzhTR1QtdFdKQjRNT3lDdnFGVXpvZ0hjTEQxaHJjRzZRdU94VDJZbWg1UjJRR3lNWFJURGpfbDRkeGYtbEt3T3JiSFdST2pHTlhqcm9pSFAxYy1ObWdKQ0pMa0YwMnZlZ3h2TGZZSm1hQmZSc2k2MlpZYm0tTVl3RHYyOTUyMHc?oc=5
+          - generic [ref=e171]:
+            - button "More like Advocates push to make alpha gal the 10th major food allergen" [ref=e172] [cursor=pointer]: More like this
+            - button "Not interested in Advocates push to make alpha gal the 10th major food allergen" [ref=e173] [cursor=pointer]: Not interested
+        - article [ref=e174]:
+          - generic [ref=e175]: Yahoo · 8h agoTop stories
+          - link "You’ll Never Guess What Tasty Molecule Astronomers Just Detected In Space" [ref=e176] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMikgFBVV95cUxORXhfQ2swOEEwa0xiSURRQTZXQTVXMFFTNUJMQkhZSVNjUWdRNFJQREF3Q3JvYzEzT0Nqc2ViTUFrOEJLYmpILV9GZ3k1MXdJb2tpU3l5TFRmM1A0Q1RlUE9LeEVVR19WY2huS3RHWXItczJqckdLNVIzUTNpUVZrbjlhRjRsS2JrY2JLbUlkMmg4QQ?oc=5
+          - generic [ref=e177]:
+            - button "More like You’ll Never Guess What Tasty Molecule Astronomers Just Detected In Space" [ref=e178] [cursor=pointer]: More like this
+            - button "Not interested in You’ll Never Guess What Tasty Molecule Astronomers Just Detected In Space" [ref=e179] [cursor=pointer]: Not interested
+        - article [ref=e180]:
+          - generic [ref=e181]: Yahoo · 8h agoTop stories
+          - link "First atmosphere found on Earth-like planet in habitable zone of distant star" [ref=e182] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMimgFBVV95cUxNNFhTUFFTNXA4bTI0THBuMUxjWjFpMXc5SGhmWkpockk2cXVmNkx6emFFTnJwNzN5bTJHdnFDeFBpTGhxOW5zbnN2ei13ZFY0MjNUdEU4V1NHeFg5dXZXYnpzdUJlMHExVGZJTUkxc0c0aXVZaC1GMjd6R3BJS3EzZGNwWVo0VkpaUWhNRVJEQUNERm84cXYzVUhn?oc=5
+          - generic [ref=e183]:
+            - button "More like First atmosphere found on Earth-like planet in habitable zone of distant star" [ref=e184] [cursor=pointer]: More like this
+            - button "Not interested in First atmosphere found on Earth-like planet in habitable zone of distant star" [ref=e185] [cursor=pointer]: Not interested
+        - article [ref=e186]:
+          - generic [ref=e187]: The New York Times · 8h agoTop stories
+          - link "ICE Agent Defended Shooting of Immigrant in Maine, Ex-Wife Says" [ref=e188] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiggFBVV95cUxPbjM5d1JZQnFIMWpzOWxYMklKbmFnNE0wTERNS0NxWm16blVKLWFfRTZ5SVF3SXBXRjgtSk5iVmNnWVpaOVBmLVdFZ2VhSDNKYzhyckJ5SVNKdWFrQ2FoYUNmQWhNOGFSakRVWGFEN010Qk81eUxxdnhFaHV5azBLN3pn?oc=5
+          - generic [ref=e189]:
+            - button "More like ICE Agent Defended Shooting of Immigrant in Maine, Ex-Wife Says" [ref=e190] [cursor=pointer]: More like this
+            - button "Not interested in ICE Agent Defended Shooting of Immigrant in Maine, Ex-Wife Says" [ref=e191] [cursor=pointer]: Not interested
+        - article [ref=e192]:
+          - generic [ref=e193]: CNN · 9h agoTop stories
+          - link "Iran’s hardliners warn of a ‘coup’ as US truce comes under pressure" [ref=e194] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMikgFBVV95cUxON01jUTB3R2QxNDVJeHVFWE8yRUwzQUZ6YmhpWTVyOGVkck9LVEVnLUxTSVhoWjlkQmJpTDR5VHQyR3NYMU9zVFMxWThOMElsNjZEb0NvQ2hVQzAwMWphU3lkZDNlWUhDMVBNaHRMcms4WnJ5TnlNZERBQzZMVUdrQ3NXOFUwOHNEQ1J2QXpnZ1MxZw?oc=5
+          - generic [ref=e195]:
+            - button "More like Iran’s hardliners warn of a ‘coup’ as US truce comes under pressure" [ref=e196] [cursor=pointer]: More like this
+            - button "Not interested in Iran’s hardliners warn of a ‘coup’ as US truce comes under pressure" [ref=e197] [cursor=pointer]: Not interested
+        - article [ref=e198]:
+          - generic [ref=e199]: Tech Xplore · 9h agoTop stories
+          - link "Chinese AI model takes US tech industry by surprise with abilities rivaling Claude and ChatGPT" [ref=e200] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMigAFBVV95cUxPS285bENyek5TdXFLSkNoSmpjdkRrRnFaUHRhTUltNnotZzZHVGlOVkxzbC1UMDB1VnB0YlZXZThlRXpMSk45MHNsMzRFT1ZTYkNRVmd5R0NJMldhSnNNSVB1Tl81MDV1V3NnNDhObERIamZfbVAtcUlldnBJR2VQSQ?oc=5
+          - generic [ref=e201]:
+            - button "More like Chinese AI model takes US tech industry by surprise with abilities rivaling Claude and ChatGPT" [ref=e202] [cursor=pointer]: More like this
+            - button "Not interested in Chinese AI model takes US tech industry by surprise with abilities rivaling Claude and ChatGPT" [ref=e203] [cursor=pointer]: Not interested
+        - article [ref=e204]:
+          - generic [ref=e205]: The Washington Post · 11h agoTop stories
+          - link "Trump says 278,000 noncitizens are on voting rolls. Experts say that’s wrong." [ref=e206] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMivwFBVV95cUxPekkwVjJiY2hrRnRrZGwyTy1TYk5zcmVqU2docDhMV1ZqOHhEb3IxS3RPcjl6LUdLTDJxSGk5QlNiWGJlSy02eHRGUnhrNFJ6TE1HR3R0LVEtWVg1eWxKeFNmNXdnWUtGSlNkVzhXcEVwMVBjRFJLeWVPUXRIWDhZaGtwdVRlejVYcWtaRDdtQzdLTHN2WTdRc3BPOGo1YkZWdVlPbWE5S1M1SzRSTVR5a1RUWF9iMmdSU1cteGRaRQ?oc=5
+          - generic [ref=e207]:
+            - button "More like Trump says 278,000 noncitizens are on voting rolls. Experts say that’s wrong." [ref=e208] [cursor=pointer]: More like this
+            - button "Not interested in Trump says 278,000 noncitizens are on voting rolls. Experts say that’s wrong." [ref=e209] [cursor=pointer]: Not interested
+        - article [ref=e210]:
+          - generic [ref=e211]: WISN · 14h agoTop stories
+          - link "Milwaukee County Executive David Crowley rejoins governor's race" [ref=e212] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMirgFBVV95cUxOQXkyQnh4eFlaN3lMWlpjWURHVWtvVVpGMXB1WkdCZEoyOU93ZVUwMXRSY3VYU1JEMDBVcy0tbHVvUkx3RzdleVNtV2tfUkxsZFgwYlVKcUJubTNfcGVkY2ZINHk0N1ppNDRVenJGbC1hd1U5NXBiR2tiRjVuYW1kbVNGNzIzOUtEVHV5cHlHMmZJWjRiSXFTZmpXZWpCSXg5dlVxYlQ2LU1zNXJsS1E?oc=5
+          - generic [ref=e213]:
+            - button "More like Milwaukee County Executive David Crowley rejoins governor's race" [ref=e214] [cursor=pointer]: More like this
+            - button "Not interested in Milwaukee County Executive David Crowley rejoins governor's race" [ref=e215] [cursor=pointer]: Not interested
+        - article [ref=e216]:
+          - generic [ref=e217]: Yahoo · 15h agoTop stories
+          - link "Savannah Guthrie reportedly left deeply shaken, seen leaving NYC after ‘Today’ show intruder incident" [ref=e218] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMipAFBVV95cUxNUHZlLXpwWHR0Z3hGQXIxVUk1R3M4RWVqYmlVVkNwUlE4YWhmeklwNGhjUGNwVXYyWTlMY2FoTUpsT2RsUExET2lfQU9fQjJMdTJ5ZndXSEVMelRjcVpORHRyX0QxRlBYYjVlNmwwejZaMEF4al9pcTZxMUk3S1dLNDhQWDRYeWRzYnlxYmxRREtNZ3N0aDlLNXVUZnJCd2p6QWlySw?oc=5
+          - generic [ref=e219]:
+            - button "More like Savannah Guthrie reportedly left deeply shaken, seen leaving NYC after ‘Today’ show intruder incident" [ref=e220] [cursor=pointer]: More like this
+            - button "Not interested in Savannah Guthrie reportedly left deeply shaken, seen leaving NYC after ‘Today’ show intruder incident" [ref=e221] [cursor=pointer]: Not interested
+        - article [ref=e222]:
+          - generic [ref=e223]: ScienceDaily · 15h agoTop stories
+          - link "Mediterranean diet may activate tiny proteins that protect the heart and brain" [ref=e224] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMib0FVX3lxTE4tcVphYkxUWVhPM0xrWFZPLThUN0dnelFqZldmWWMzUUswYUlLRHpPUm5WNVJIbjJKX0FSemwwTkxVdXJ3V001MEVRWWVWcXQ3U0JmcWxjeEh4SG5vWmotdTN0Ul9MTFVEZ2x6cFlJWQ?oc=5
+          - generic [ref=e225]:
+            - button "More like Mediterranean diet may activate tiny proteins that protect the heart and brain" [ref=e226] [cursor=pointer]: More like this
+            - button "Not interested in Mediterranean diet may activate tiny proteins that protect the heart and brain" [ref=e227] [cursor=pointer]: Not interested
+        - article [ref=e228]:
+          - generic [ref=e229]: The New York Times · 20h agoTop stories
+          - link "Rudolph Marcus, Who Illuminated Electrochemical Processes, Dies at 102" [ref=e230] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMidkFVX3lxTE5XWHNZLXNNY2VXdjRkYUxockNRRHpKU3pjS2RXNGRMRVdhY3ByWDFZSnJEc0pkc1Zjc29zSmVjdnZfUlJiSTI2VHozNi16R2dnRUw1Um5PdjlNS0YzajJFMGlCSzBIMUxRZWpVejJpVVA2UkRqcEE?oc=5
+          - generic [ref=e231]:
+            - button "More like Rudolph Marcus, Who Illuminated Electrochemical Processes, Dies at 102" [ref=e232] [cursor=pointer]: More like this
+            - button "Not interested in Rudolph Marcus, Who Illuminated Electrochemical Processes, Dies at 102" [ref=e233] [cursor=pointer]: Not interested
+        - article [ref=e234]:
+          - generic [ref=e235]: Android Authority · 22h agoTop stories
+          - link "Google Pixel 11a key specs might have just leaked" [ref=e236] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMibkFVX3lxTFBLa1JZaERORFhLQXVONXZ3Sm9UVVQxeWRPQ2p1cVZPaXdlZnFPOEFRemxEQnlRd2E3aVMxRGVRbmJ6dWxvYlM2U2FhZ3BJUlRHS0FMb3lJY3RWRWNRWFduT3ZTNkhXdUhoSjdmWi1n?oc=5
+          - generic [ref=e237]:
+            - button "More like Google Pixel 11a key specs might have just leaked" [ref=e238] [cursor=pointer]: More like this
+            - button "Not interested in Google Pixel 11a key specs might have just leaked" [ref=e239] [cursor=pointer]: Not interested
+        - article [ref=e240]:
+          - generic [ref=e241]: MS NOW · 1d agoTop stories
+          - link "Trump Media to sell Wall Street access to market-moving Truth Social posts" [ref=e242] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMifEFVX3lxTFAxcGF6QmRaMHkwaEx0anRsNmJUWXZoZVhqTnpZZTM2bzdQSW15VVFWNFh6aGpGZ2drQlR1d0NqbndxaHliMzBELU9aLWRLaXFqd1FBVDhqTHU5d1UwdTBUM1RtTkpwaXVHdXRNbjhFSy1tMHdaZGhGbU8yRWc?oc=5
+          - generic [ref=e243]:
+            - button "More like Trump Media to sell Wall Street access to market-moving Truth Social posts" [ref=e244] [cursor=pointer]: More like this
+            - button "Not interested in Trump Media to sell Wall Street access to market-moving Truth Social posts" [ref=e245] [cursor=pointer]: Not interested
+        - article [ref=e246]:
+          - generic [ref=e247]: KTLA · 1d agoTop stories
+          - 'link "Perseid meteor shower begins Friday: Best times, places to watch in SoCal" [ref=e248] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMiqAFBVV95cUxQYm1BcTB5Umwtakl3aThzU0ptbmdqdU90NVBLVWhfUjZlZTA4OVlFVU1VMmdXbTBTSWdCQmEzdWhBblNOQUUyM3Q0QUREOHE4ZVdhNGFHQjA0UDNETnE0ZWdwb0JFNU40bXRELVJBTjg1a1Q5dFJCR0l3d3FuM3NhN0gtT0NUbk9UQURlU0c1SlVrLXVULVhIbEEyY0tXV0dwOGx5dE41WXHSAa4BQVVfeXFMUGZiSTYtRmotcU9iS09oanpnR09KUGt5RGxRVjc0a05rcnhacURLM0dqMUhGbUtVaTVIaGgyLTlpd2xNUHdqYXFtOGtackFXMHl3WHB0NDdMaDQ2ZnNabGFqSVZwOTRhUnVtX1NPMi00Mjc2cnRVaUJ0T1M5Ri0xYUZVSHBJcV9NbGY2M0h4ZS1tZG9CR2N1aGNGMThUamR0X1V2d2EzREx1X01qaVZB?oc=5
+          - generic [ref=e249]:
+            - 'button "More like Perseid meteor shower begins Friday: Best times, places to watch in SoCal" [ref=e250] [cursor=pointer]': More like this
+            - 'button "Not interested in Perseid meteor shower begins Friday: Best times, places to watch in SoCal" [ref=e251] [cursor=pointer]': Not interested
+        - article [ref=e252]:
+          - generic [ref=e253]: 9to5Google · 1d agoTop stories
+          - link "Google explains the design of Android’s new Noto 3D emoji" [ref=e254] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiaEFVX3lxTE9FdjAxWmRQT181LVpUX1VtTVlmdjlHNkM0V2NfQkpnNjBDdEdTZEZVVkpfbjZLaUlCVHVKYzJhaDNPOFVKWV93NnVSMXV3aHdwQ2djU3lUUmIzeVJacmdjYjBuQ2RiTGRB?oc=5
+          - generic [ref=e255]:
+            - button "More like Google explains the design of Android’s new Noto 3D emoji" [ref=e256] [cursor=pointer]: More like this
+            - button "Not interested in Google explains the design of Android’s new Noto 3D emoji" [ref=e257] [cursor=pointer]: Not interested
+        - article [ref=e258]:
+          - generic [ref=e259]: Al Jazeera · 1d agoTop stories
+          - 'link "China’s Xi Jinping launches new AI alliance: What is it?" [ref=e260] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMimgFBVV95cUxNRlU0UE9IRjBrSkVJbDhpVlptQmRGRE9RV0dqLW04UjVoRU8yV041QmYyZVZ6bXNVaFkyQ205WUVCWnZObHdWNzl6ek5qVHFoV1UydkF1RlZ6RzBJTXBvcm5YYmlMdHN6ZFpsamFJbFk4Y21qSjBickc4THh2ajFOdDFIVWZyMUpRd2xlMTJ4SEVfbzRXR3daYUdn0gGfAUFVX3lxTFBxeFFLYTdKYXBrVDU2R3ZKNUR3aVc4aVFGTWw4VUtmanM5ZWd2cFlSRkI0bjZoSUJsY1VkR1drdFJBTmRVdTlWRDV5ajNQaHZ4MkFYQmRHZFdHeEVhMWlaT3Z5UGgxd3VpZWQtR1NyXzJvYzVkOTFnYlRreXdzRmo5aU4xQnl3bVctUHF6UHpLak0zSVN3WmthS01aOTdWYw?oc=5
+          - generic [ref=e261]:
+            - 'button "More like China’s Xi Jinping launches new AI alliance: What is it?" [ref=e262] [cursor=pointer]': More like this
+            - 'button "Not interested in China’s Xi Jinping launches new AI alliance: What is it?" [ref=e263] [cursor=pointer]': Not interested
+  - navigation "Primary" [ref=e25]:
+    - generic [ref=e264]:
+      - link "News" [ref=e265] [cursor=pointer]:
+        - /url: /news
+      - link "Plan" [ref=e266] [cursor=pointer]:
+        - /url: /plan
+      - link "Courses" [ref=e267] [cursor=pointer]:
+        - /url: /courses
+      - link "Progress" [ref=e268] [cursor=pointer]:
+        - /url: /progress
+    - generic [ref=e26]:
+      - link "Today" [ref=e27] [cursor=pointer]:
+        - /url: /
+      - link "Notes" [ref=e28] [cursor=pointer]:
+        - /url: /notes
+      - link "Learning" [ref=e29] [cursor=pointer]:
+        - /url: /learning
+      - button "More" [expanded] [active] [ref=e30] [cursor=pointer]

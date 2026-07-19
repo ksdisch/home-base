@@ -1,0 +1,390 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "Home Base" [ref=e6] [cursor=pointer]:
+      - /url: /
+  - main [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - heading "News" [level=1] [ref=e10]
+        - paragraph [ref=e11]: The wider world, by section — your personalized brief stays on Today.
+      - navigation "News categories" [ref=e12]:
+        - button "For You" [ref=e13] [cursor=pointer]
+        - button "Top stories" [ref=e14] [cursor=pointer]
+        - button "Local" [active] [ref=e15] [cursor=pointer]
+        - button "U.S." [ref=e16] [cursor=pointer]
+        - button "World" [ref=e17] [cursor=pointer]
+        - button "Business" [ref=e18] [cursor=pointer]
+        - button "Technology" [ref=e19] [cursor=pointer]
+        - button "Science" [ref=e20] [cursor=pointer]
+        - button "Health" [ref=e21] [cursor=pointer]
+        - button "Sports" [ref=e22] [cursor=pointer]
+        - button "Entertainment" [ref=e23] [cursor=pointer]
+      - generic [ref=e269]:
+        - article [ref=e270]:
+          - generic [ref=e271]: WGN-TV · 4h ago
+          - link "Man shot during attempted carjacking on West Side overnight" [ref=e272] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMinAFBVV95cUxNNHctSnB4YmstMXFiaVJnekRwWmhsUUFkN3FEOFFvRzB6Rk80RXdEdDdOSnNWUFZMdlpMaXlkQjBjRG1VUy1pUTd4dDBSUEhOTXQ5T0kwbEtyX2RGTGtSOHJoem96Y1lHd1M4ZFROTmd6UmZDa2hXa3BVUDlaWVlNa2F0a3dQZ0lYcG91NTdDTTNJWktvVmlfMXUtQXHSAaIBQVVfeXFMTUZKRFhHbnhETURqV3I5Y29Na0lLVUt2cXVEb0RMSWZrdjNoX2MyNWxNR3lKVmZMRi1yQWV6RDg0WlRYS0dNSDVLTFNDOG4wdEdscmJxWFlJMlpuSUZVU3JaREdZeXBjVHlSX2s5dlRqb0RwWUVhLXBTNzlZY0VmWTNTMFhwOGFtRWFuWDV6dUZCdW5oSFl5aWd2dTE5ZFZEUmRn?oc=5
+          - generic [ref=e273]:
+            - button "More like Man shot during attempted carjacking on West Side overnight" [ref=e274] [cursor=pointer]: More like this
+            - button "Not interested in Man shot during attempted carjacking on West Side overnight" [ref=e275] [cursor=pointer]: Not interested
+        - article [ref=e276]:
+          - generic [ref=e277]: Chicago YIMBY · 5h ago
+          - link "Brick-Clad Mixed-Use Proposal Brought Forward In Logan Square" [ref=e278] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMioAFBVV95cUxOWklnR0cyZFExY1NPeEdnMHE3RWFneTUyRE1zbkdnTENCQldlV1dWVVo3UUlHMnlLSUhPSlF5VFdOakxSQTVYWnJrQXd3TVJDSmZSeFgwZkdENGNfOEFjUW84dDcxMDJnVzRvY3p1ZmFSN2xWSDFZdTFWX1ZOanBXYnJ5RlNGUUdkUmRVanctQTYwdE9iUVE3ZHFtZENKaDgy?oc=5
+          - generic [ref=e279]:
+            - button "More like Brick-Clad Mixed-Use Proposal Brought Forward In Logan Square" [ref=e280] [cursor=pointer]: More like this
+            - button "Not interested in Brick-Clad Mixed-Use Proposal Brought Forward In Logan Square" [ref=e281] [cursor=pointer]: Not interested
+        - article [ref=e282]:
+          - generic [ref=e283]: ABC7 Chicago · 6h ago
+          - link "Chicago air quality to drop again Saturday, smoky conditions from Canadian wildfires to move back and worsen AQI" [ref=e284] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiyAFBVV95cUxPZlhDTEFfOG1iTnR5WjU3Q21seE9CWVViSzBuSjl2UzlOMUdDbktfcFBIZ3Ixci1DbnBCRGlfeFh2RUFYV1pLTWFPRExCTDhJY1BUeEpwTFNDRVBnM0lScWVNWGo3cDRjdUV5S1luTXJ0cUd5c1lka05yRFpnQUotaWotOFpVMFN3aGhSdDBPd1Y0a0Z5RFdMbGhUR09BbGRJZFl1WTBVaENHT3A5ZXhpY2xyNHBaZDhlcHp5RHpWRmk5bkpIcHdFSNIBzgFBVV95cUxORkg4LVlNbnJWUlB3ZDJqQ2p3MDRVc2NhaHdUSk40akZhTzNRSmRBbFg3cWxMNElXYlpVYkxwaURxVEFZcnRRYmJCNkFQRG5VdXN6VTlTWExHZnREWjVtaGswS3ZCRS02NDNXOGRXaGpGLWNTTkFWRVg4NXVLTVpRczFCQ1R2Sm5kY1dJUEQ1eDhIaVhhWC0tTWl6Q1pRN2lwS3FqbEtjS3B0NlF0WFMwVzJZTVZzc1ZMejNYa2NqMlZFMUdaWFdCS3JHZEZhUQ?oc=5
+          - generic [ref=e285]:
+            - button "More like Chicago air quality to drop again Saturday, smoky conditions from Canadian wildfires to move back and worsen AQI" [ref=e286] [cursor=pointer]: More like this
+            - button "Not interested in Chicago air quality to drop again Saturday, smoky conditions from Canadian wildfires to move back and worsen AQI" [ref=e287] [cursor=pointer]: Not interested
+        - article [ref=e288]:
+          - generic [ref=e289]: FOX 32 Chicago · 6h ago
+          - 'link "Chicago crime: Man fatally shot after stabbing woman, police say" [ref=e290] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMigAFBVV95cUxQTlJSZEVwemxwZUVyTUgyQXJWdU9WVklWUm92UE5lclc1ejloTk5MZkE4VHN1T1gtRzloQWdWQzVVbkNoRW5hb29YSy02d1N4bElidVB4VVpHVzBlc0RxZ1VWd2FNS3pMbW03TEFKbW9yU2ZtWEpTQmM5OE9PbjVfadIBhgFBVV95cUxQUThDUXJoaTFpTGZrU04zbDFNQWpFQUpNcUxoMmVPWGs1QTF1Tm1NVU13SVhJbVV6b0VMMmxOUFBGa3BBWGxxLXlEZThmc210RTY2TFVmODhRRUdsTHpwSWtZTXUwSml4Nnp5NDJUNXJLUVdQbnZjREJpc1FRT3o2OXhyM1drZw?oc=5
+          - generic [ref=e291]:
+            - 'button "More like Chicago crime: Man fatally shot after stabbing woman, police say" [ref=e292] [cursor=pointer]': More like this
+            - 'button "Not interested in Chicago crime: Man fatally shot after stabbing woman, police say" [ref=e293] [cursor=pointer]': Not interested
+        - article [ref=e294]:
+          - generic [ref=e295]: Chicago Sun-Times · 7h ago
+          - 'link "Separate classrooms, more staff: How CPS is coping with a staggering rise in special ed needs and costs" [ref=e296] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMinwFBVV95cUxQaE01VmpxREpWSU0tTHlrUFkwVGFZR0Z0UmtWMzVGSkhRbml1UC12dWVCWW1sSVh4X2RTak5nd1FFbWFJSHY1Z3Q4LVpCOGlqeXVXalpkQzBNa1JfVmlfZ3g3S2Z6dnY4TDlIZnIzWXBzUE9ibHk1NGRMdFA5cGgtS2hneHBibi1URnRYWGFPd0JzRDZLdmVadnR6eC1SblE?oc=5
+          - generic [ref=e297]:
+            - 'button "More like Separate classrooms, more staff: How CPS is coping with a staggering rise in special ed needs and costs" [ref=e298] [cursor=pointer]': More like this
+            - 'button "Not interested in Separate classrooms, more staff: How CPS is coping with a staggering rise in special ed needs and costs" [ref=e299] [cursor=pointer]': Not interested
+        - article [ref=e300]:
+          - generic [ref=e301]: ABC7 Chicago · 13h ago
+          - link "Chicago-area man Luis Alberto Ramirez Zavala, father of Air Force airman, detained by ICE after immigration status interview" [ref=e302] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi4wFBVV95cUxNUWVqaFpHSlh0Zmlyc2ZNRlBROHNSNnJGb2ZBT3o3bVJQdmVrSlRxZ25CUngtWm5wNjdyNXFoZGF5LUVQTDNxR0NKRi1JNDRHUjdhMm9jQmtFN0MzdUlFRXFWeVh6eFRvUkZqN2dCUmFfd09TOTBCUEdKWXJHaWgwXzI2aXNLc3NsVi1mX0x1ZWN4cjQzMm02UU1Ud2hyV3M1ZmRvd2Q2WmNaNk5oOG9sdy1KNVpJUEYxQW16TDM0My00Um1NZ3dQUkxMN0R2RVQ3ZXN6OWpCQUVFUmJjdWFyT09ZONIB6AFBVV95cUxPQ1dnZFk0NmVWUlp6TXZwUzgzWnBLVS0xLWRvYllJcTBTSHcwTVYyWVhPallnU1EyMnlDZGJVaWc2SjRGWmdud19GSzFHTlh6Z0xLbjU3SlBMay1BSjRaRm9nREg3YVN6c1BKcTJIUzRsOVdIQ2I1ZGEzRWM2U0djQXNNQlpSeTh3SDI5Vi1FX1A1bGhFMVB3V1FJZ20zUXd2UkRWS29QU0E0YkZYYUwzcDYzQThLTHloOTZweXBVc2xTZ1NUa1pmN3dRM0hGeXVkc2UxRWIyVVdvM0t4TGlHY1lrejY2eXpN?oc=5
+          - generic [ref=e303]:
+            - button "More like Chicago-area man Luis Alberto Ramirez Zavala, father of Air Force airman, detained by ICE after immigration status interview" [ref=e304] [cursor=pointer]: More like this
+            - button "Not interested in Chicago-area man Luis Alberto Ramirez Zavala, father of Air Force airman, detained by ICE after immigration status interview" [ref=e305] [cursor=pointer]: Not interested
+        - article [ref=e306]:
+          - generic [ref=e307]: ABC7 Chicago · 14h ago
+          - link "Chicago consumers react to potential cyclosporiasis outbreak source identified by FDA as Taylor Farms, linked to Taco Bell lettuce" [ref=e308] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi7AFBVV95cUxPM2Fybm5XaUxISkx4STBhcmI4Nmp2NVM4bTFOS0ozRW5McFAxc2dpRlRMdUhjVjFja1YyR1NWRnc1V1J5Z3k2WHM4N1lNZFBtNE10WHExaWlNTjVyRnhEQU5nUThiM1lOTjAwaHdzMG1mTndSa1dFeFVxZmpWQ3ZtWjQ2QlJRaUZOeXplZk9wQ3RpNTNJaDh6cFZCU1h4QlVZMjFLYnU3X1JvMzFHVWxGSHZfeGtSbnRYeURuTVlsS0hPbmxxTkFxZWNSVFAtMVZtVHJvdGwydVdYd2hHOTcyLTdEaldFSmVoZ0lrQdIB8gFBVV95cUxPS2dFelVNbDNRNWZGX2Y0M0tSUFhlNmc1c21xS3QtbTVhSm5YWFNoY3hES1Q2M1BzTzI2bGZBdTRuY3BtX3JrU2F4UFJuWE8wNnRxZnhxclBnRTAxX3VUXy1iNE5PMlF0YnJZM2dTY3RNUk1xdld4c1Y2RHNqamg2b2tuYnNnMUV2R2dEb1FNZUE3N195MDM0a3Y2WXoxM3ZsMUpfX0lNUWxmSGtLZlN0TW8yYU1UNG1jM2VJNUFLanFKeFZoWWpXVU4zZEdaaTlVNi1ZTHlTVXdzZkNmZUJmemlCQzZiSl9UdFo5VmltQXY4UQ?oc=5
+          - generic [ref=e309]:
+            - button "More like Chicago consumers react to potential cyclosporiasis outbreak source identified by FDA as Taylor Farms, linked to Taco Bell lettuce" [ref=e310] [cursor=pointer]: More like this
+            - button "Not interested in Chicago consumers react to potential cyclosporiasis outbreak source identified by FDA as Taylor Farms, linked to Taco Bell lettuce" [ref=e311] [cursor=pointer]: Not interested
+        - article [ref=e312]:
+          - generic [ref=e313]: ABC7 Chicago · 17h ago
+          - link "Chicago woman confronted by federal agents for filming immigration arrest; new lawsuit seeks directives behind confrontations" [ref=e314] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi7AFBVV95cUxNZU5ld0N5cXJFbHJaN2l4QnB5dHg0aTZVTW9VZkJibnkxNWg0Mkl1dExYSVlISVJSRi00N20zNGtCYU9EWVc4c2M4NWpjTVNsY3IyVW0xOTVzLWFVU3FkdV9vczJTUm1qNENralhpSUNpQmZhR3kwWVVMcC1Pd2ZNQkNILXVKcV9DSlVIMHNJSE1qQ3hWdTU4dWFBdVVwYVZWU3lZbks4MHNwaE9qWW1EUWtiQ2JzUVI4ZU9zd2FwNS0yUzlndGJHQ0Nhc0FzRWVDeG5jY2JwWGxFdm9QS2FKZ1ZMZmJzT0VZOUZmV9IB8gFBVV95cUxOQkZISnVJVFl5U25wT0lUOWliYlNSbGJjbkZVX3FUNWhKYmxaeHZrRGRUWm5DUEw2ZE1yWk5KY2hqWmlNUG05RGpGbXQ5YkJFN0QzNFZUZ1gxcFA5VmlxN2Rnb0Jxb1ZoQXgyTmIzWnpQOEFsUkdLcjlGd2RlbU5vNlE4Z29CNVpMbXZfX082eXd5V2xCUHJ1UTUwQWNEcnJFYnI5QjF5Vlc0eEYwUC1xbmJiVk1SM09mWW5tT1d3eHYzUGRqa2wtcUV6VWZZZ21xbzZqdi1SMUU0NWgyRzJwYnM2QXBNNUI3X20xdWM5X3ZEZw?oc=5
+          - generic [ref=e315]:
+            - button "More like Chicago woman confronted by federal agents for filming immigration arrest; new lawsuit seeks directives behind confrontations" [ref=e316] [cursor=pointer]: More like this
+            - button "Not interested in Chicago woman confronted by federal agents for filming immigration arrest; new lawsuit seeks directives behind confrontations" [ref=e317] [cursor=pointer]: Not interested
+        - article [ref=e318]:
+          - generic [ref=e319]: FOX 32 Chicago · 18h ago
+          - link "Teen shot seven times while sitting in vehicle on Chicago's West Side, police say" [ref=e320] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqwFBVV95cUxOWVVmQ3RZeWQ3TzNINzZNalFoNi1oV0JwWGhYSVFILTZnRy1IMXZnZUxpeVlnTHVBNUdfTlJ0eEswZ1d3Vkw4aWRlQWVwYXV1aGZhakdDMy1tMWJWd3g2WkZFN1JGWTBNa3dNNWdiOS1JX1ByS01FNzNUbGpyOEFEOFMtWmRFaVVVXzNVT2s1UmVIYlVXTlozbC0xMV9wTUtkRmpYdzNtZnFKbWs?oc=5
+          - generic [ref=e321]:
+            - button "More like Teen shot seven times while sitting in vehicle on Chicago's West Side, police say" [ref=e322] [cursor=pointer]: More like this
+            - button "Not interested in Teen shot seven times while sitting in vehicle on Chicago's West Side, police say" [ref=e323] [cursor=pointer]: Not interested
+        - article [ref=e324]:
+          - generic [ref=e325]: nwitimes.com · 18h ago
+          - link "5 Chicago experiences most Region residents never notice" [ref=e326] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMipAFBVV95cUxOT3Y1SFVIX1I3Q3BLc3VGdDloX2U5VlBSaDBDODlzQ0lXMWRobXFiZU1pV2tlZ24tVWFmbExidkoxRjlSWFRqYkYzRWVxemJ2elB2UjRtejNFdHU4Ukx1ZXFSeDNhUlRaQ29kTHdOXzFvbGJsSWJSdEc1dVVnOGlNVWdyRmRLQXZXeWhQZHFSekV6WkQxVzhJU0hqaFdrb29MajB4Sg?oc=5
+          - generic [ref=e327]:
+            - button "More like 5 Chicago experiences most Region residents never notice" [ref=e328] [cursor=pointer]: More like this
+            - button "Not interested in 5 Chicago experiences most Region residents never notice" [ref=e329] [cursor=pointer]: Not interested
+        - article [ref=e330]:
+          - generic [ref=e331]: NBC 5 Chicago · 19h ago
+          - link "Where are the Canadian wildfires and where do things stand? What to know" [ref=e332] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiugFBVV95cUxPRGNDTzZmQnRFZlpVMnZLOEY5RDRmZ2k4dFZnQ1VNTmJFczFwU1dTNW81SmZjZHN0d1M5WDFtM3hsaXhtbkM3WlVvMkpNbTlDMXM3R0c5RjZGUnZxOTVRQVkxbFFHYUc0dUpIU1dzYWR5aDU0cVBUQUY0RVZXNmpHb25iaHN2bjBJZ215T0RldnlyZW9BQ2lkZW9ZYV96a25kS3pURlFyM2ZodUZDcWlLWHBZYzZaY01qb0HSAcIBQVVfeXFMUDQxd3k5NnRsVFViYWxfQ0FILURGVnd2akV0Z09DajdzamZobE1EdkVmVGlfMENOUlB3OHo5UGd0bE5hckZxSEFrZkF3SkMwa0Z5dkw1RFRmSmlRQnZ0Q0VkN0gxRlY5MUhHQl9lOTZjV1BIMWNmbTIzZUkzTHFodzg2dzRENVA2MHNfck1hOEhVVXJMc0swQTh3WHBjYW1VWjFQTXVEU05Yb18zUkt6YXJ5S0dRdXUxSUZfZ1lxZ1JOcmc?oc=5
+          - generic [ref=e333]:
+            - button "More like Where are the Canadian wildfires and where do things stand? What to know" [ref=e334] [cursor=pointer]: More like this
+            - button "Not interested in Where are the Canadian wildfires and where do things stand? What to know" [ref=e335] [cursor=pointer]: Not interested
+        - article [ref=e336]:
+          - generic [ref=e337]: Chicago Sun-Times · 19h ago
+          - link "At council hearing, Chicago police say they’ve implemented mayor’s order to target ICE — 6 months later" [ref=e338] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMingFBVV95cUxOUkd6WDh0blYwcC1KRm9DRC15bWxQcTBvbXpaWk96QW5qLUN4U18wWW1PUWR0SUpzVDJ0RHdvWUppVkdiQ3lKNi0zTlROOXZucmxiMEVoSGpCS21YT3NlN1YzV3NMSWZkekpVbEJDZV84N05pTUlBUWZCUTNSQkdEakZoSy1wcTc3X084dHo4ajlTTHo2TTRJVFJNMThKdw?oc=5
+          - generic [ref=e339]:
+            - button "More like At council hearing, Chicago police say they’ve implemented mayor’s order to target ICE — 6 months later" [ref=e340] [cursor=pointer]: More like this
+            - button "Not interested in At council hearing, Chicago police say they’ve implemented mayor’s order to target ICE — 6 months later" [ref=e341] [cursor=pointer]: Not interested
+        - article [ref=e342]:
+          - generic [ref=e343]: Eater Chicago · 19h ago
+          - link "A Decade-Old Loop Steakhouse Rises From the Ashes" [ref=e344] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiogFBVV95cUxNQkRZRy1uOHZOQ0x4TllkaXJoZVljZ2JrdVEyb3k3RGdZMGx2QlhmNDJ6SjRLdFdYZ2VNd0lMWE0yWm0wSUdVdDVRM0pOb1hfSUdCQWpZeHJrY3RMc3Fxcm16VFV0NVFreVEzaFBMSGR5QklRcXVfLU5HM0FRekN6WEtXQ0h4YTBpb2FGVE5XelhnV0N1bXJLaDFhRmNoVHZwTHc?oc=5
+          - generic [ref=e345]:
+            - button "More like A Decade-Old Loop Steakhouse Rises From the Ashes" [ref=e346] [cursor=pointer]: More like this
+            - button "Not interested in A Decade-Old Loop Steakhouse Rises From the Ashes" [ref=e347] [cursor=pointer]: Not interested
+        - article [ref=e348]:
+          - generic [ref=e349]: Chicago Tribune · 20h ago
+          - 'link "‘It’s created fear’: As cyclosporiasis surges, Chicagoans rethink what’s on their plates" [ref=e350] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMilwFBVV95cUxPR1RlSXpoRkhQaGR0YUVZMDFNS1dnRkRpa05vOTVIcE1zTnBWVDY2aHBPRkZFZGptS1NDYzhmZmxHSGRSN0dSZmQzWWZSZVlJUnVfMzl0VHlJS1pSb0h2bU9BWE1nTk85U3BaeHpyQVM4aldmZEtjdURwdHg3c1lFWFZBOXNPZmFTSGdKUG5ZLWNHMjBGTzBB?oc=5
+          - generic [ref=e351]:
+            - 'button "More like ‘It’s created fear’: As cyclosporiasis surges, Chicagoans rethink what’s on their plates" [ref=e352] [cursor=pointer]': More like this
+            - 'button "Not interested in ‘It’s created fear’: As cyclosporiasis surges, Chicagoans rethink what’s on their plates" [ref=e353] [cursor=pointer]': Not interested
+        - article [ref=e354]:
+          - generic [ref=e355]: ABC7 Chicago · 20h ago
+          - 'link "Chicago drowning: 39-year-old man Justin Kramarczyk died after being pulled from Lake Michigan near ''Playpen,'' Ohio Street Beach" [ref=e356] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMi4AFBVV95cUxPWElEN1ozbkRiZGJfM0ZrWXNjMGl2RkJoSFBlMGlvOFh2Q3czZjljS2hpZDVFTlpXVVpyTG1GNXQtRTMzZ3NKUnZFbElGblNDeVZEVXBPdGRKTmNVQWZVS2dmNTkwc0J2YTlxZ2dmYlBvQlJRTlI1NzFzZmpXVFh5a2d1T2JfOUJVVkx3LWxCOFVvdlhLckJadFJZQUI2ZllwM1hORWlDMXNTdjM0Z1BJaFhDeFBtMGJFeWoyeFp5eWNVT3RrRjdVNnM1YUhWZGFjM29VOGdfOUlsbUE1SzFEadIB5gFBVV95cUxQaGkxTXJ0QnIzczI0TWgyUEo1MVh2TlJTYWI5U25YaDU0NDFVTkJwbTNoaUdxZ0Q2UzE5QW9uZFVEbXQ1ZGduY2VpN0Myek9OYVZGbkRIaGdIU3Z3RTNzY1duNXdXUGFienhWeVpnYk5ReTFjdnFjbk9FcXAwckFYdmlmendEZno4UDJXajRjZXVsVXRjUjNFclpGaG5tTXU1aGx0R2JlTC1TSGtfdk9ZQTVFTkRkUUVzUlZpVTZLdTcyYzJtT1EwUk1HQ1dnMTA5ZGpJU0Z4ajBtaHhTYWFxYkhtamJEUQ?oc=5
+          - generic [ref=e357]:
+            - 'button "More like Chicago drowning: 39-year-old man Justin Kramarczyk died after being pulled from Lake Michigan near ''Playpen,'' Ohio Street Beach" [ref=e358] [cursor=pointer]': More like this
+            - 'button "Not interested in Chicago drowning: 39-year-old man Justin Kramarczyk died after being pulled from Lake Michigan near ''Playpen,'' Ohio Street Beach" [ref=e359] [cursor=pointer]': Not interested
+        - article [ref=e360]:
+          - generic [ref=e361]: The Chicago Crusader · 20h ago
+          - link "Internationally renowned audience development expert returns to Chicago" [ref=e362] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiigFBVV95cUxPdTg0RGhrNnlXMFp2emE2SmNISGJzY1RabXh2Ni1lRUJBQ3ZleFd5QUtTa0tPVkRzM3hZTGEyUFptRUFIRUc0aXVpMHVyY09CWW4tcE9uN1Z6ZHNMai1GQ2R5c0c4X0tVNVJFcTZkMGNTZGpaVm5LVmZhSmhQdUIta0Juald1SnF2eWc?oc=5
+          - generic [ref=e363]:
+            - button "More like Internationally renowned audience development expert returns to Chicago" [ref=e364] [cursor=pointer]: More like this
+            - button "Not interested in Internationally renowned audience development expert returns to Chicago" [ref=e365] [cursor=pointer]: Not interested
+        - article [ref=e366]:
+          - generic [ref=e367]: ABC7 Chicago · 20h ago
+          - link "Chicago Mayor Brandon Johnson, City Council budget accountability coalition trade blame on projected $98 million budget shortfall" [ref=e368] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi7AFBVV95cUxPQ3ZScENlWk9Ec2ZscjhKWTQxVldRcFpjbkNWYXlZOFcxYzV2eEpvVnczcjU2ME1uMmRDbmkyaWYwQ0RUQUIzZDBUcWVUS3lEUGVwSnBFMzBoY0dWQ2VURk5hY1VWclRzdWJnd0lPUlNfNzk3cTZuUm1BbE0zb19YVGQxWnhpTmY4blVlNW5YVmFQZkdwejVraWUtTlI2ZEIyckNKTnQ5aldTX05SQkRYRl91cHV1LVcwZGU5TndBbGJmYkIzXzRJbHk2UHhUdjdMdXNZa2h3dGxsTkVRVTRZY2tKT3JOeC1uMzhfdNIB8gFBVV95cUxPOTlSeEFTcXdoeDNNaXdRbXU0dVVQQS1YYUh5ZFdsbkNvbHdtMHFLTWxHR2VqVElmcUVUTFpZM0dDWDZOczhTdEk5alE2ZVJVMkR1U1NERnZDaXhNUkNWQThWVHMwdU1HQzVVNkRyMkRRcW1FSTU3WGwzbVVYZ2kxaFZkeGEzbW5NMjFNMkFEU0kzVGxuN2NxSVRyQm91MXVSZW9rbFViWW5Gb3BUanUwX1VrQ0MwQVpLRGFDdHVKaWZUcDUtQi1WWHFJWXIxNHlpaFB0SjRScVhHTTBwVVJzS01pNmFjQzhvYTBrZXZLZ0hzQQ?oc=5
+          - generic [ref=e369]:
+            - button "More like Chicago Mayor Brandon Johnson, City Council budget accountability coalition trade blame on projected $98 million budget shortfall" [ref=e370] [cursor=pointer]: More like this
+            - button "Not interested in Chicago Mayor Brandon Johnson, City Council budget accountability coalition trade blame on projected $98 million budget shortfall" [ref=e371] [cursor=pointer]: Not interested
+        - article [ref=e372]:
+          - generic [ref=e373]: Chicago Tribune · 21h ago
+          - 'link "Afternoon Briefing: Sigcho-Lopez shouldn’t be on 4th District ballot, election officer says" [ref=e374] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMiywFBVV95cUxNWmpwRFhjdldDdzhXc1ZBOTB0TXliX21RLUVZOHlFSUZHcDdTcVBOTUlTR0lKazZxUWp0c0Z6X0o3VUVzZDNfd08xZmlLeUx4SGpyZjMwelhNQXpqXzhMRldSbi03ZHljU2F6TThlNjIydVRoU2l3dnN3Mk51SE16bUYxX0I2TmxqZUVnNXhjaDRia0xzTm9fa19QSmxHQmJOeTZlVDlEdzY1S1BLLUlsOFlROGsteUV0aVd3Vi1WdWQ0U09aZzN3TGhFWQ?oc=5
+          - generic [ref=e375]:
+            - 'button "More like Afternoon Briefing: Sigcho-Lopez shouldn’t be on 4th District ballot, election officer says" [ref=e376] [cursor=pointer]': More like this
+            - 'button "Not interested in Afternoon Briefing: Sigcho-Lopez shouldn’t be on 4th District ballot, election officer says" [ref=e377] [cursor=pointer]': Not interested
+        - article [ref=e378]:
+          - generic [ref=e379]: Chicago Tribune · 22h ago
+          - link "Five Condos Under $400,000" [ref=e380] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMidkFVX3lxTE1obzljTlJaM3NKRHNqZll6dG9teGxuRnYtdE55VGQxb3hyalctclhaaUhjZ0RlNktxaXl3OEVxWGdwVFBjZmxHZEgwYzk4WlVRcHQ3cm83Z2ZkWC1HVll5VmZTY3RIN3Q1VnZqcmJReElKbkFGYkE?oc=5
+          - generic [ref=e381]:
+            - button "More like Five Condos Under $400,000" [ref=e382] [cursor=pointer]: More like this
+            - button "Not interested in Five Condos Under $400,000" [ref=e383] [cursor=pointer]: Not interested
+        - article [ref=e384]:
+          - generic [ref=e385]: WGN-TV · 23h ago
+          - link "Man charged with reckless homicide after allegedly racing on Stony Island" [ref=e386] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMirwFBVV95cUxNamlJLWF0ZXdIcVRVSkR6NEgtN0QyTTRZbXNnT3NsQWJiNWhQQ1VkNDRVWUpKYVJ4eGVFb1JDN3g2VTc0QXVSSEU5Q2NsR2ZndUtFYXlSa3FYaGVtYVM5OEpleEw4aTdRWm9ycTBQWkFlbkIzNnF0dDcwYjlETlpZNFU1UGFVX0F2MWhmRHpPYjk5RHZwVE5SMmN3ejBxRmtCYmhDelpVNEVnSEpHNW1B0gG0AUFVX3lxTFB2R05qejViSEhhYjZiSkQ1YTIzNVo1Sy1BaVJRLUhSYzNPZ1MzaDQ3ZGJuVHJLWncxdHMySk5nemJ1bGxfMXhoVVItbExvVHNyYWxkLXRCZEgzT0xnalh3ZVhEM2xIcEl1VTR5cjBoNXpoVi0tVUpyNjVZZDRtb0pNdExjcmU2YlNUQV8zeXNmeV91NEY1TjRLdmxkcFNPaW8yc2FPLURMZnk3a1k1TlBKcjVaRQ?oc=5
+          - generic [ref=e387]:
+            - button "More like Man charged with reckless homicide after allegedly racing on Stony Island" [ref=e388] [cursor=pointer]: More like this
+            - button "Not interested in Man charged with reckless homicide after allegedly racing on Stony Island" [ref=e389] [cursor=pointer]: Not interested
+        - article [ref=e390]:
+          - generic [ref=e391]: ABC7 Chicago · 23h ago
+          - 'link "Fairlife news: Chicago-based company owned by Coca-Cola pauses production after ransomware cyberattack breaches milk brand systems" [ref=e392] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMi8AFBVV95cUxQd2U2R19halBmOEJPTWo0T0VTVm5lVkdqNDAzNGpqZWRWeVNNa3JROHRSRzZFc3drYmZGV3BVS1RmNUxxVHVWSmFacldCZFJJN1B2VW44UUVDS3FkdzJqcTZTaWRSTlJXV3psN2gtUGp6X1RNUElqaWRmYVptTU0zeGltM19fX00tM19VTklaakRxa2NZMWhqQkhUVXpoSUVUc3lHdWw5dVNtZjk4RjNaUkMwU1hONlRYVEl1TDloam5iVERsM2taaTZRbE9FTkg4SHkyVmMxc25CNnhZbWJiTWJ3V2pHcUg2OXlDcmRNWjjSAfYBQVVfeXFMTnhBSHZSR01KcDdCRlcxa0YzRzlzWDUxYnljdjFuQUNZWTRlczNNRHphQjNUQ05faU5FWmYweVFzbmMtRzhUaXV1UFptTnRYSnNZb0VUajJhTUd3WWQtQ0hVWVY4YmtjVlIwdFV4NVF1LXVIR1U3WEVVeEd5ejJoXzR5T2V4RnZzNU5Ed2tnckphaGV0TmFLeHJVLUQxNENJNzd1WVJNbFNOX01wRGYyVVdNMkc5Y01DYzFDVzV1NEtSSEtLZzFwbEk1QklZbTQyakpDaTZOYVZKTW9JTFZIVnBDaFdlbEgxYzM1WWl2WlY0N1FhVDJn?oc=5
+          - generic [ref=e393]:
+            - 'button "More like Fairlife news: Chicago-based company owned by Coca-Cola pauses production after ransomware cyberattack breaches milk brand systems" [ref=e394] [cursor=pointer]': More like this
+            - 'button "Not interested in Fairlife news: Chicago-based company owned by Coca-Cola pauses production after ransomware cyberattack breaches milk brand systems" [ref=e395] [cursor=pointer]': Not interested
+        - article [ref=e396]:
+          - generic [ref=e397]: Crain's Chicago Business · 1d ago
+          - link "Shore Capital unloads veterinary real estate portfolio for $268M" [ref=e398] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiowFBVV95cUxNeGV3LWpOdTJ6QWo2YTRva3I1aVpNX1ZwVXlnUDJGNzBoOWRkWDJEOGdaeF9yV3RhQjJIQjZ4c0lUUi0zRDUyQUItaXc5THB5czhwQ2JwWmZiaUZmeFV2RVpDQU80RjJKczRmbk4zenpvLXpYelNfN09EYVdjdGtYWjhJRThOczI4UTBTdjJfWnR3aDFPMHlzelRZRVlMc09OalBz?oc=5
+          - generic [ref=e399]:
+            - button "More like Shore Capital unloads veterinary real estate portfolio for $268M" [ref=e400] [cursor=pointer]: More like this
+            - button "Not interested in Shore Capital unloads veterinary real estate portfolio for $268M" [ref=e401] [cursor=pointer]: Not interested
+        - article [ref=e402]:
+          - generic [ref=e403]: WGN-TV · 1d ago
+          - 'link "The Weekender: Rush, Paul Simon, Summer of ’99 and Beyond Festival and more" [ref=e404] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMixgFBVV95cUxPcGpWa3hYNE5vbUhrb05yVzYyZHNLTmFkZnpIVmswYjhISWRuQ2pIV3JXV0tqQmt0ZXpZOHByNzcwQ0Y1OXo2c25hYjFNa1J2NGRZZUN1b3lTSVVvMW5zT25wVjVlcjMyYi05TGZtTVJDMGVjbjNKWDNZcEpNNjlSelpiYmF4b0xlNVBISWNGSy11OHVtN0hXTnVtTnIweDFMRlZ5N0REbXFLSnVLelV3cTRZS2E3Q1M2aVNGa2xneUd1TEx5a2fSAcsBQVVfeXFMTTBQX011WDFpMU41OFRoVUxHWGlfbkRmUmtCVExFcmNOUU5ENVVEMHFTdHVIYV94UU1DRGRxLW9GZW5VLTlCTUFWUnloaWRoNHNScTlQSDA4TldjOU5vekt3dlY3eXlmX0RDbm5wSEFud1FDRW5qV3lyalZYZEJnQjJQaGN2V0pPV1U3VEs1azdhZlFfS2lDQUhHT29qblp4Q2lyTm5oZExMY2pmYUFaVlBJTFZQWWRkeUNSOEhtWDRWZEgzaVgxZlJOUnc?oc=5
+          - generic [ref=e405]:
+            - 'button "More like The Weekender: Rush, Paul Simon, Summer of ’99 and Beyond Festival and more" [ref=e406] [cursor=pointer]': More like this
+            - 'button "Not interested in The Weekender: Rush, Paul Simon, Summer of ’99 and Beyond Festival and more" [ref=e407] [cursor=pointer]': Not interested
+        - article [ref=e408]:
+          - generic [ref=e409]: Block Club Chicago · 1d ago
+          - link "Jinsei Motto Sushi Brings Live-Fire Cooking To Former Testaccio Space In Logan Square" [ref=e410] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMixAFBVV95cUxNTUQ3QUNzQ1FPTFhGMFNmWXNDLW5UdnJxMXQ0RGExY19SZ0RiSm1lM25kWkk1RGpIaE5UOTl0NkdRS1RrNUUtdzhrY1FsOHl3cVB2clZsY0hYNXNoWlJSTWtZRWFZUTBVVkhpTkdVVnBUZkxrVVFaNEJuZ0pSNXZnMllBWWNSR0FUQkVieXpySi1EYXRRRkk3TjNNT0Y3bXA4b2h1eXg3bEwwUVgxZXZLZ0NMc2NPTjdDN0MwRWk4ZEd2NWFH?oc=5
+          - generic [ref=e411]:
+            - button "More like Jinsei Motto Sushi Brings Live-Fire Cooking To Former Testaccio Space In Logan Square" [ref=e412] [cursor=pointer]: More like this
+            - button "Not interested in Jinsei Motto Sushi Brings Live-Fire Cooking To Former Testaccio Space In Logan Square" [ref=e413] [cursor=pointer]: Not interested
+        - article [ref=e414]:
+          - generic [ref=e415]: Block Club Chicago · 1d ago
+          - link "Off Color Brewing’s Wild Ale From Iconic pH1 Barrel Is Ready. Block Club Got A 1st Taste" [ref=e416] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMixgFBVV95cUxNTUFQaGtLT1p6Vm9zX01MM00tQVNIaVhOemNtX2NLbDZoTkNQMjNqYjZnUnp3am5qeldGc0NkQ3BmWUtTYmJuZl83di1PUVNpRVVDZ0haczc5Z1VRVDd0eUhoTFFUY05rLV9hdGMzeFBsY2d0S082d19XMTVXUU5yVi1lWXhsd1ZFdFZUNVZralg3ZWRDcU1OVzJmTTNBN0hRTnVzSVNDQmRXMGx6RUdLREFWMlFzdDhuY3B0d3p5b2VGS2l1YlE?oc=5
+          - generic [ref=e417]:
+            - button "More like Off Color Brewing’s Wild Ale From Iconic pH1 Barrel Is Ready. Block Club Got A 1st Taste" [ref=e418] [cursor=pointer]: More like this
+            - button "Not interested in Off Color Brewing’s Wild Ale From Iconic pH1 Barrel Is Ready. Block Club Got A 1st Taste" [ref=e419] [cursor=pointer]: Not interested
+        - article [ref=e420]:
+          - generic [ref=e421]: FOX 32 Chicago · 1d ago
+          - link "Driver sought after crashing into suburban Chicago home in hit-and-run" [ref=e422] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiY0FVX3lxTE9IdlpyVnhFcTF4alNYdGxteFBmemZfTTRIZkljVHJndlNiV2UybUt1c1k3elFTS3k4YWtNbXZIMzlWOTN5bXBOMG1XUWUxRmRtSkY5aGhsb1kwMXltV2E4Wmczb9IBaEFVX3lxTE52OXExdEtHUWIwNk01UnpfWjlsWEJKTFNQQ1Bfa19Wek82blZoR01WLW8xd1lCdl8yZC1VNHBwclc2eEtrVWVIc0VsQURqOGNadGJZbzZUbjhrdnF0MlFXNnpxQTFBTDRv?oc=5
+          - generic [ref=e423]:
+            - button "More like Driver sought after crashing into suburban Chicago home in hit-and-run" [ref=e424] [cursor=pointer]: More like this
+            - button "Not interested in Driver sought after crashing into suburban Chicago home in hit-and-run" [ref=e425] [cursor=pointer]: Not interested
+        - article [ref=e426]:
+          - generic [ref=e427]: Block Club Chicago · 1d ago
+          - 'link "Chicagoans Mourn Victims Of ICE Killings In Candlelight Vigil: ''We''re Still Waiting For Justice''" [ref=e428] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMizgFBVV95cUxNbVd0aGZ4aTlyTHlmSkVsdFRBejFsRXJoN0NCSld5TG9obFk0dTdQYUgtY18tZUlLSkI3VkVZM3ZuaGk3dUs1WjdZSHhxNXE0WmhEZkc5VEtKeHRjU3BuR21kSjFtLVZwS2ZWREVtdHNoV1Fob0tLVklqUXFublBBTE5UWUF3NE5KcHk1dlptTXFZeGptOFNjOVdTcks4cVhSeWx5LUZzTlBtNGNkTzdkLVg1TVZxZ2drQ2Z5OV84ZUp2RVlpU0VUbk14aHNPdw?oc=5
+          - generic [ref=e429]:
+            - 'button "More like Chicagoans Mourn Victims Of ICE Killings In Candlelight Vigil: ''We''re Still Waiting For Justice''" [ref=e430] [cursor=pointer]': More like this
+            - 'button "Not interested in Chicagoans Mourn Victims Of ICE Killings In Candlelight Vigil: ''We''re Still Waiting For Justice''" [ref=e431] [cursor=pointer]': Not interested
+        - article [ref=e432]:
+          - generic [ref=e433]: Chicago YIMBY · 1d ago
+          - link "Residential Development Proposed At 1133 West Kinzie Street West Loop" [ref=e434] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqwFBVV95cUxNSGpWbXpUbzdxN1dia0hzM1BoRVFnV2lTZVRFYWM1bjd1a2tiLTJjd3NpVl9EWkdUOExRVlE2dmVnX3hKemtNQ2NxUURqNm10T2JxaWVSVFFjSzRUR1pkck9JSW5NQmdUSkhfa2Q1NEs0Q3Jod2ZPUjI4TWZJVTRlRGU5LUl6RGxaQkxlem9YdFJjdkZQVkR0QTYzVzRRZWFGV0lPb2VRZWRWanc?oc=5
+          - generic [ref=e435]:
+            - button "More like Residential Development Proposed At 1133 West Kinzie Street West Loop" [ref=e436] [cursor=pointer]: More like this
+            - button "Not interested in Residential Development Proposed At 1133 West Kinzie Street West Loop" [ref=e437] [cursor=pointer]: Not interested
+        - article [ref=e438]:
+          - generic [ref=e439]: Illinois Policy · 1d ago
+          - link "Falling birth rates could worsen Illinois’ declining public school enrollment" [ref=e440] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqwFBVV95cUxNWUZRbTU4VVd5ZzduMGVpRDFjRnhxRXd3OEJzTW8yR3NuOGZoMnBjNUdrdXc5aTVVYXhjLVZsaG00TVl4RmRDc29KTE80aVdXcjdqeEQ3RXJ1MklRQjRtcVQ3YnlXRmtRYnRGR1ZBWko1YnRpa3dxZFV3cWswZzQ5YUs1Q3pxX2JCaHZUbzhCN3NCOFdMQXktck5CME8wbDFZLWdHaU96WGl2ZFU?oc=5
+          - generic [ref=e441]:
+            - button "More like Falling birth rates could worsen Illinois’ declining public school enrollment" [ref=e442] [cursor=pointer]: More like this
+            - button "Not interested in Falling birth rates could worsen Illinois’ declining public school enrollment" [ref=e443] [cursor=pointer]: Not interested
+        - article [ref=e444]:
+          - generic [ref=e445]: FOX 32 Chicago · 1d ago
+          - 'link "Chicago crime wrap: 2 killed, several others wounded in overnight shootings" [ref=e446] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMibkFVX3lxTE9KblpVNmcwNTB4UlZZZnFacUphOGRHTjhhVnhkUHc0NUNRZnF6R1Zwc2t4MmlldTNjT2dicUtYMW1jWWFuNzBpRjRtTngzeHp0cXdvZHpicUljX1lQc1hYdlI0TjNIYUNHRlBvSVp3?oc=5
+          - generic [ref=e447]:
+            - 'button "More like Chicago crime wrap: 2 killed, several others wounded in overnight shootings" [ref=e448] [cursor=pointer]': More like this
+            - 'button "Not interested in Chicago crime wrap: 2 killed, several others wounded in overnight shootings" [ref=e449] [cursor=pointer]': Not interested
+        - article [ref=e450]:
+          - generic [ref=e451]: NBC 5 Chicago · 1d ago
+          - link "When will the smoke clear? Hour-by-hour look as ‘hazardous' air quality continues for Chicago area" [ref=e452] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi1gFBVV95cUxQaHNqSmNMS2trR0M1SjJxdWtfZWNEdllJMUxLNFpLZXJ6alM5ZGxmSWZOOEtCUm0tb3hpcXFvQktEdUpZVkxPd0tKWE91anJCQkN2bzdCQ1FQLWlna3l2eG5SVjAxdTU4QklPWWEyOWRJUDFsejhCa2RHWkR1VmdMeEw1UFNlNUlFTUltZGVubTFPTUZrYTdtdmRyalNLOEVONC1yTUMtQkJSV0FoV1ZPWk5CSXJac3RObmFWV1U5NVNpRFprb3FodmxCSXVZaDBRaUE0czN30gHeAUFVX3lxTFBFSFdsTEFnLThFaGhpbjc1S1BrZUQ2VVIzVHdrckJLS0xBVXk3OHJsdDFCaURucVBDQy1MRUtvMUo0S3NoZXdGaVcyaHZTbTRLN0ZZeUZQelhJQmI2ZFVXUnVtTkF0QTVXdlEwd2ZYWXdLSmljOFJENDI2WWVlM3laVER1WlFSTWU4WDRtQVg3M2F1em1mdVNBNVUyWUFqbVBxYm43UUc5TW9sOG9KUlI1QkVfeGZsS3EtMmw3Q2F2akJtZlhwdFMyc3pibDV3YzJJdTktemk1WXFLbHZGUQ?oc=5
+          - generic [ref=e453]:
+            - button "More like When will the smoke clear? Hour-by-hour look as ‘hazardous' air quality continues for Chicago area" [ref=e454] [cursor=pointer]: More like this
+            - button "Not interested in When will the smoke clear? Hour-by-hour look as ‘hazardous' air quality continues for Chicago area" [ref=e455] [cursor=pointer]: Not interested
+        - article [ref=e456]:
+          - generic [ref=e457]: Chicago Tribune · 1d ago
+          - 'link "Stuart Loren: Chicago’s pensions had a great year, but that won’t save them" [ref=e458] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMilAFBVV95cUxPT0YwaWloSTlxZ3ZtNW5nWjcta1g3clJjdHlDZ2NVSENjSVJsalFRaU5fNTh6b1Y5dzNHcUVMTUhuTm1DeVAyZW1pWHotMklYWFdOS2JtZ2gzZDIxNEIxa0VPcXROZzljMTRoRlFSQkNDZTB3WnktVXhpVmhRS1lTcUd4bTNtbGlmNDhVMEZ2N2pDTkdO?oc=5
+          - generic [ref=e459]:
+            - 'button "More like Stuart Loren: Chicago’s pensions had a great year, but that won’t save them" [ref=e460] [cursor=pointer]': More like this
+            - 'button "Not interested in Stuart Loren: Chicago’s pensions had a great year, but that won’t save them" [ref=e461] [cursor=pointer]': Not interested
+        - article [ref=e462]:
+          - generic [ref=e463]: Crain's Chicago Business · 1d ago
+          - link "Amazon nears deal for vertical warehouse next to Goose Island" [ref=e464] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMivgFBVV95cUxOcjY2WEFnamRfSHY4UzN6b2p2T0F4RXhUeGQzbHJRaEhabG95YnFZU0ZWWjRFNVVfM0lDemd0dF9fRkxTdVFWbWpMRkhfQkxCRGhrQzhlaVAtSno2YmpIWkRnTHk0bWFHN1RIM1FTOEVXbnFnbzBtR0ZYclliSVphZjVhUEEzOVA3aENUNXdKTmhrS0tDc3dYcFdxR1QzbGg3bmNIeS1ibVlmUlZOMDN5MTVOdVVEOGpQTkJWWi1B?oc=5
+          - generic [ref=e465]:
+            - button "More like Amazon nears deal for vertical warehouse next to Goose Island" [ref=e466] [cursor=pointer]: More like this
+            - button "Not interested in Amazon nears deal for vertical warehouse next to Goose Island" [ref=e467] [cursor=pointer]: Not interested
+        - article [ref=e468]:
+          - generic [ref=e469]: Crain's Chicago Business · 1d ago
+          - link "Chicago homes sell for $7 million-plus in highest-priced sales so far this year" [ref=e470] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMirwFBVV95cUxPV3JTTGdiTVdxVjNFWXZHNzY4QlBzV2RDTmd2ckJxNHdPOGFTSGNvMVpqMlAwdGZUUmxjMTE0YnJWenFINUdpQmUtUk1JakQ0LXhXQ0lyY3NocDQzbWc4OVQ2c2FIYU5yekh6UElTRGtBZTQ4SFFMejF0RTZDZ1hMSVQ3aEo4MWViQVpMLWNqWEhxNlVCS0RUdFU5ZUJZWkIwR2Y5QTVCaG9BUHlEWDhF?oc=5
+          - generic [ref=e471]:
+            - button "More like Chicago homes sell for $7 million-plus in highest-priced sales so far this year" [ref=e472] [cursor=pointer]: More like this
+            - button "Not interested in Chicago homes sell for $7 million-plus in highest-priced sales so far this year" [ref=e473] [cursor=pointer]: Not interested
+        - article [ref=e474]:
+          - generic [ref=e475]: Crain's Chicago Business · 1d ago
+          - link "Logan Square tenants sue landlord in first case under anti-gentrification ordinance" [ref=e476] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMipAFBVV95cUxPWXhXd0Vad0pYZi1pbnFxYU5ubklCcFJCSkRSWjdWdndsdTN4QVk5YTZqU2lobVNta1FycHFGd0FHUG90T1R6QUM4dU5CVVh3cy1RbTFSZEQ2ZmNzbW9PNkRiQU4xQ2RUaElvcG1jSW1PYklTaGM2a2RiV1JVb2lLaU1laDZLM3V5UkNLNW9HcHZtZXRvRlFlRUlMLXBkNGoxSE5XNw?oc=5
+          - generic [ref=e477]:
+            - button "More like Logan Square tenants sue landlord in first case under anti-gentrification ordinance" [ref=e478] [cursor=pointer]: More like this
+            - button "Not interested in Logan Square tenants sue landlord in first case under anti-gentrification ordinance" [ref=e479] [cursor=pointer]: Not interested
+        - article [ref=e480]:
+          - generic [ref=e481]: Chicago Sun-Times · 1d ago
+          - link "Chicago's food giants look to entice consumers back to legacy brands" [ref=e482] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiwwFBVV95cUxQdDFKSURBRVhCOTJHQnBfNDAzaHdPUWMwMW9wZzladVQtd1d4dzdyblpzTGZYNVRHMHZuOXNLQ1hnZ2U1ckl5S0kxUWFTS3pWT1ZCbThPLVgzNmxkcmtSZkx2NUVOTVl6NldTU3JRTDhmV3FVY1U0QlYyVVNhWk9Jakl1dEJzNE5QdXRld05qRTJJdHJSVmtZZ2VhU1I5RjRfeV9MYlJEWnFPRm1xdnl3U3FFak9oUUNENzVMNGY5ZlZLcGc?oc=5
+          - generic [ref=e483]:
+            - button "More like Chicago's food giants look to entice consumers back to legacy brands" [ref=e484] [cursor=pointer]: More like this
+            - button "Not interested in Chicago's food giants look to entice consumers back to legacy brands" [ref=e485] [cursor=pointer]: Not interested
+        - article [ref=e486]:
+          - generic [ref=e487]: Chicago Sun-Times · 1d ago
+          - link "Chicago police failed to place troubled cop under strict supervision before he fatally shot partner" [ref=e488] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiqwFBVV95cUxQZFBlWXlWN3RuM1QzckdsOHdIZWZKQU1samdUQUNFbnRGTGMtVGJlX3ZVVjkyOVZfMWxlU0ZWczd2enJCTUhFMGVxTnZEYnFTVUJqeHBGa3ZvV0FUdEdNYzNOWXdLZ3FZclowdTdGWW82MUJ0eDdvRWs4TFotS2txdDZZSnhDTG1PSUVDOEctM1lNQTUtN2dydXNyb0hvU1UzQlR2UzFZckZOLVk?oc=5
+          - generic [ref=e489]:
+            - button "More like Chicago police failed to place troubled cop under strict supervision before he fatally shot partner" [ref=e490] [cursor=pointer]: More like this
+            - button "Not interested in Chicago police failed to place troubled cop under strict supervision before he fatally shot partner" [ref=e491] [cursor=pointer]: Not interested
+        - article [ref=e492]:
+          - generic [ref=e493]: ABC7 Chicago · 1d ago
+          - link "Boil order in effect in Cicero, Illinois" [ref=e494] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMifEFVX3lxTE5VMWdDdXNSakJsWXZOUHRCM1hLci05X3JVVmJBa1Q1MEd4YjhDWFBKYklRazM3YllTZ2pkTXhrR09qc0xuZmc1MTRqMG8ydjlBOG5YZ25mMk9zS1pnakhJNjZ1S1RaM3dmdVJCaTR2M0VkRlpaekd0ZlNNN3HSAYIBQVVfeXFMT0hoQXBNVkV0MHNTR3plRW94a3BrMTkxZGVLbHdlV09STlE0TTFaRlU4WkpBOTI1ZGZVWUZJWFZVVzFNd2xVTzBCR1RoQzRjRkVpZ19DQm9QU3ltMmFWcFQ4WGFDaDEzaDk2NFMxcFNKMHlwSThhdWlYVk9CamhHdS1CQQ?oc=5
+          - generic [ref=e495]:
+            - button "More like Boil order in effect in Cicero, Illinois" [ref=e496] [cursor=pointer]: More like this
+            - button "Not interested in Boil order in effect in Cicero, Illinois" [ref=e497] [cursor=pointer]: Not interested
+        - article [ref=e498]:
+          - generic [ref=e499]: The TRiiBE · 1d ago
+          - link "Did your Chicago alderperson reject Mayor Johnson’s millionaire tax referendum?" [ref=e500] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMirAFBVV95cUxPT3o1TFgzX3dRSFpvdER2cHFvU3FaQU5DV0VzdEhCZEo4WGZ5YWRNbTVZZDYtbzBpcjVYajNLdVZrWVhyU29QWnhyekZpVFp0SGNtSlRoS213UGpENWZoWUdidmY4UGJsRlZ1WVh1YkcwVTBHSjg5cGN5N3YwWEVQbUdvUXY4aURCQ3BocnNiLVZHckdSR0lDQmtSZzhZNmZmeXp2VUFwOGhBT3Rq?oc=5
+          - generic [ref=e501]:
+            - button "More like Did your Chicago alderperson reject Mayor Johnson’s millionaire tax referendum?" [ref=e502] [cursor=pointer]: More like this
+            - button "Not interested in Did your Chicago alderperson reject Mayor Johnson’s millionaire tax referendum?" [ref=e503] [cursor=pointer]: Not interested
+        - article [ref=e504]:
+          - generic [ref=e505]: ABC7 Chicago · 2d ago
+          - link "State of Illinois issues cease, desist order against new business promoted by Chicago businessman Brandon 'Mr. Finance' Ellington" [ref=e506] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi5AFBVV95cUxPNU5uVFFKY1FUWTBsRDluazdveUk4WE1ZVS1lYUJhdk9SM25EdjJtUlVlMUdROUVCVjYwWE9TcDh3MWdCSjRUb3RSN0JDdFJFRzR4U0JIQllLSXhLdTgzWi0tQ0Q0RWNmWGVtUWtrbVl4WkVRNWh1Mk5rLTc1X2R1bkMzTWJJNFhNcHNwS2doelF4Y3FvS0tzZDYwaF9zM0pfMVM4SUtONnhOdVZKRTJnLTRBYWxIVjdhVWZmNXp3bE9RSEp6QjB2Y2E5M05IeXl4R2JvTGlaLVUyNmZ3OFVCTjBNSGTSAeoBQVVfeXFMTVd4cWIzbnF5cGV0bmVfUzlpWFluckw5NENHNkgwdTVDRDJrNU9pZ09EcmQxN3ZtdzN1S2xzWXBCYnEwSkthVU03cmxIR042NVJSQy1BbGxpMTNiMkNfblJUUjYyQWdiOWJCVFJldjluRWdOOUJ5NXBjUk1UMEY4MWNyckYzT2pQaVNrVGdIMjNfNHUzbGFwYXN0VmRucS1Xd2tWWGY4N1RGZEFWS3BoTVAtR0U2MGgyZEF3aDBBelI1T1NMb3lscmViczVoUnZPZGlmX1FzblAzQUFlMUQxZXpzR3VsRF81SHV3?oc=5
+          - generic [ref=e507]:
+            - button "More like State of Illinois issues cease, desist order against new business promoted by Chicago businessman Brandon 'Mr. Finance' Ellington" [ref=e508] [cursor=pointer]: More like this
+            - button "Not interested in State of Illinois issues cease, desist order against new business promoted by Chicago businessman Brandon 'Mr. Finance' Ellington" [ref=e509] [cursor=pointer]: Not interested
+        - article [ref=e510]:
+          - generic [ref=e511]: ABC7 Chicago · 2d ago
+          - 'link "Chicago Mag Mile comeback: Magnificent Mile vacancy rates decline as new retailers on Michigan Avenue fuel comeback" [ref=e512] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMizgFBVV95cUxOMkZpaWQtNkx6OVNnTkdkSEY5LXh2LVNhZjIyRk83S0xSQ1d2eDJ6RUtMQTFOdTRzT3ZaNU1LV2tJZ1dEMXdlZnJRNDFtcUtlLVZrSjJIR19GaXFxcUE1VEJxdFZMcjcxeHlqSXJLSXNIYmJzMFZ0WnNwZTVMMzdISEhkaFZSV0xwNFJCaWpsc0xIeU5vazFIMzR1TnFZczRMZHUtWEFEZFNWMDJubjVBOTNEdVNtaDRaUk9pNldfczA3LTliUUdMMC0zcHdmZ9IB0wFBVV95cUxOV3VCSC1keTl0U1NQWk9Kb2VMZkF1RHBvUnZqR09wS1ExNHBhc3NHYWo5NHZ6NEhsdHlFVFRmYWYxYV9pM1duSDJ0MkJuY1dJQTB3bXBIcnR4MllyejF4dFZUT3RWb09uOGVhMkYtRHpDT1F1OURRNHU0bFhfNm54eVlKb0otRHlFcm9lY2xNNHIwVGNEalhyb211akdvNzVWbEtQbjFBeXRLN19pSTVvNjlGbjJyMno5VmdzWDJBeW5xbDViRXRYOHlFdENRWmNzamZJ?oc=5
+          - generic [ref=e513]:
+            - 'button "More like Chicago Mag Mile comeback: Magnificent Mile vacancy rates decline as new retailers on Michigan Avenue fuel comeback" [ref=e514] [cursor=pointer]': More like this
+            - 'button "Not interested in Chicago Mag Mile comeback: Magnificent Mile vacancy rates decline as new retailers on Michigan Avenue fuel comeback" [ref=e515] [cursor=pointer]': Not interested
+        - article [ref=e516]:
+          - generic [ref=e517]: FOX 32 Chicago · 2d ago
+          - link "Rare state-endangered bird spotted in downtown Chicago goes viral" [ref=e518] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMinAFBVV95cUxNcDBCRElhU0RpREo1TlVoTFN2RWhwSldkX1Z2c2ZSVVBxNkF6SDhMZWFYZ0ZuRC14QmVRQUtuNElvR2JDY2lDZUtOYTZ2MWdMdkdVTjEycWVkMEJBQTJaTkJkZHNENm54WlprS09TMlJhYlllbjFITndxWjJ5Y0dOV0F6a1NKUm1idURtd2FUYTRYTWxmdXUyVEdZZl_SAaIBQVVfeXFMUG9lM1R3QnlmaGRscnptMnpCeVFVYlBaSDJrdGk1R2NPelFVenRxQktjVVg4WnJINThZNGFpT2hoTHhDbkhna25GanJSRXNLV21XN1dBRndGeEVidzlGMWN0ZTkxeV9CZUNrZEZ1VUZhMUt2RF9MR2t0cmFCYlZ3U0F2cXE4bHQ3X2FmZDNKNHFhWTJJWjNzX2JFdFIxYUdaZTNR?oc=5
+          - generic [ref=e519]:
+            - button "More like Rare state-endangered bird spotted in downtown Chicago goes viral" [ref=e520] [cursor=pointer]: More like this
+            - button "Not interested in Rare state-endangered bird spotted in downtown Chicago goes viral" [ref=e521] [cursor=pointer]: Not interested
+        - article [ref=e522]:
+          - generic [ref=e523]: NBC 5 Chicago · 2d ago
+          - link "Chicago-area DMVs won't have same-day road tests on Friday because of air quality" [ref=e524] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMixgFBVV95cUxNOFVCWkh0TWVFMzlCY3M2VjFscmdkVXV3REJMcjEtNUVoNnY0Vk9tb21xNUZaSlJoR2FfMzlPdk9lVXM3RFQxT040aFc1VV95XzBrQzdqdWROTGMtQVBvRmVEUzR2VWVWZ2hxQkdzOUkyTXE3TTFEWndpSExFd0lYTnUwSWx5SjBSWGdqbmM5SXYzWjNPMWxQS2dKbEhGeGlTeDBDeC1rOEs4R2dtQUE3a2ZCRzI2WXRVVVhxX2N0a2g0c2REN2fSAc4BQVVfeXFMT2U5U1VWaUtSSDhoU2RnamN2cVhaS2FtV1FKWDY0QVMzel9DdVJlVDg0UDBvRElZVXo0VEJfbXFBQ1VhMjFZRmstSnBQTWc2R01xQ0VpUEhtbDVZY1dVdEpSRmRhYXN5NWhvcDJuQ0djaDNSdmJBekdITmpQcmhTVlZFc29SZ01BUzlvRE5HUlQzeTBDZVlXUy1hTTlnS09STXZlSFFxb1JBVkpWTjFuZ25HeDdvOVRxUVV2algzZl9DWlVRUGhQaXRReWJaOUE?oc=5
+          - generic [ref=e525]:
+            - button "More like Chicago-area DMVs won't have same-day road tests on Friday because of air quality" [ref=e526] [cursor=pointer]: More like this
+            - button "Not interested in Chicago-area DMVs won't have same-day road tests on Friday because of air quality" [ref=e527] [cursor=pointer]: Not interested
+        - article [ref=e528]:
+          - generic [ref=e529]: Time Out Worldwide · 2d ago
+          - link "I Paid $20 to Argue with Strangers in Old Town—And It Was Surprisingly Heartwarming" [ref=e530] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMiwwFBVV95cUxNUGN2YlRCTnJNYmxSbG5mNWZFSFV2dUZ0Q2ZBX0tfR1M5SmU1dWQ5WGxfcVVRdUdBcG1qWlI4UkdxYV9mNll6S19selVmc280SXc1bTJXdmRCLU5QRDZyN1cta1FTMDRqaTBEOVNra2ZzRzQyU0VoekdieV9tX2tJVWpyVnpJc0pjUHlhN2FTQng0R2liY3FpWjBsejJkcExCall2TWxxU2VVLUNDMHVvQzJyb2FqZGhkSW95Ty1hd0JJY0k?oc=5
+          - generic [ref=e531]:
+            - button "More like I Paid $20 to Argue with Strangers in Old Town—And It Was Surprisingly Heartwarming" [ref=e532] [cursor=pointer]: More like this
+            - button "Not interested in I Paid $20 to Argue with Strangers in Old Town—And It Was Surprisingly Heartwarming" [ref=e533] [cursor=pointer]: Not interested
+        - article [ref=e534]:
+          - generic [ref=e535]: WGN-TV · 2d ago
+          - 'link "‘Clown show diversion’: Lori Lightfoot responds after GOP Senator mentions her during Blanche confirmation hearing" [ref=e536] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMikgJBVV95cUxQalhaT1NyejRkWlNma25mOXZNckpoUWVxV3YtaVVvWmQ3bG5wWFQ3Z2JEWEpBckdxcWZnYnpWVUUyT21ENUgwWmQwSER5eWZfYVk2V1ZBel8tME9Qc2toc0QzbVNKR1FBd2EzaVZlbS1FRE9ucWsyNU8zX1VFQjBZcXZxUTE1bU4wX0NDcUpQNGpuTXZsNzdsdGxLZ0NSd001R05ia1M0U2cxNjRWZHdGdTVBdDhTVzR5NHItbWNZQWdsc2c1dFFUREswMXUyZHJIQzlpSjRYX3JyYTVoSHZ3UzJmRVl4cnlnc3FwOFJnSjBwNGhNelFWUklfV21yRlJ1MHYwMkc2VFItTVVJZjR2bmx30gGXAkFVX3lxTE1vOFR5UEVuX3Bfc1FfNkctUGNvLWJ3U1ZiOGVER2t4ZFk3ak5Vdm11X29MVXF4aldkQ29acV9tejdheVhxX0I2WUQyc0ZjRDhPcm5GN0FXWmtGdnFjQXQ0S0JYX1NUenZHRXhtVVRKcVRuQlJWY1dSU0tfMGhzZW9TRm80dWVibEYwdXRmbHBkMWwtM3R0ckFjWjVRNjJCNVZva05ibTkzZDY5RXQ3Umk0NjVzWkNlS3k1RGxQX3BJLWJsMUNXYm4yZjVyaS00TWJsbUVqbXBDNFA5UUIwUnZRRzF3cHhDS0RlTXQ0NkotdC0wOF9wRlMySk9TRXl5ZkFYaGg4bUVrNU5YRHhTNDlZZWJMdlpVRQ?oc=5
+          - generic [ref=e537]:
+            - 'button "More like ‘Clown show diversion’: Lori Lightfoot responds after GOP Senator mentions her during Blanche confirmation hearing" [ref=e538] [cursor=pointer]': More like this
+            - 'button "Not interested in ‘Clown show diversion’: Lori Lightfoot responds after GOP Senator mentions her during Blanche confirmation hearing" [ref=e539] [cursor=pointer]': Not interested
+        - article [ref=e540]:
+          - generic [ref=e541]: Chicago Sun-Times · 2d ago
+          - link "Spending in Chicago school board election exceeds $1.6 million as limits lift in race for board president" [ref=e542] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi-AFBVV95cUxOdmJtZUlubkZocDVjbEJYcmxudWRib1lZd0pwUWY2enFfZTRKX0llM1Btd0Q4Q1lLaEV5Z2ljUUFxdndqNi1Tb3JnYTZQQ1BYaHJIOGpXVjFvX2NjQWdtVWdybkJkQXd1aGpwcnRwSmM5RmhSVG5LTGFwM25EbWtjdHFWajlnQUlPb2x0UklrSGFQcmhaQldNUDVadGdicGNFaHdSX2Y0aFFaVWNnSEVKMjUtaFpYZTlud2lkZmpmam1YZzFKcUdsMDlnN09IdUxkVGQ5NGI0ak5qckNhempOalNud2NfM3ZxbXlGTFpoN05lRzdFRnBDOA?oc=5
+          - generic [ref=e543]:
+            - button "More like Spending in Chicago school board election exceeds $1.6 million as limits lift in race for board president" [ref=e544] [cursor=pointer]: More like this
+            - button "Not interested in Spending in Chicago school board election exceeds $1.6 million as limits lift in race for board president" [ref=e545] [cursor=pointer]: Not interested
+        - article [ref=e546]:
+          - generic [ref=e547]: ABC7 Chicago · 2d ago
+          - link "Chicago federal judge back on the bench says he likely had Legionnaires' disease from potentially contaminated water at courthouse" [ref=e548] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi3wFBVV95cUxQQkEzZy1qcThTUzB4X3RRMGxyTHcwOEhnRjJzRHhuaE9YRHAzYUpPb0xCem5WNlZ5U1lnWVJGUExpS1pqNWE2QTF2RTFwVE8ybGQzNG9LZDRrMjUwOEFjTi1EaXY4TndISjVSc0hTYXVmb3BWclBOVFd0RnJIVE0zaHJkR05KWkFxWG9vUFlxcm1SR0d6bXZnRWI2X0ctZjNPbFdEN1p1X3RSRWNOZVVDcS16d1MtNXd2Vjdtd19BU1BUQXo3cjFhcm1Ca0RYNnVseVlhOFVkcGJaZ1lGLTIw0gHkAUFVX3lxTFBBZ0Z4U3ZmR3RWMFA1OW5SS2R6bVNmcl9KWW1UVElQTks4VkVvckowOENhSHd3anpYSnhMYVJ1bUVpNzNacWJVM2ZDZWU0QVhGMjE1c3BxVmFGRlNJWGRPUng2cnZVbUNmTlhBcEZ2OUN4UTlSZHRyVzRuRFg4VDVmTGVmTDdZSUo4RG12TFhBYXprSEVndDZMZ1B1M0s1SGdBTVhQa0VqVXM4M3B6aTdGdjVQeDMtS2luMVk4RlRiaGZXS29aVkxuWVROOG4zNk5yOHRTbXJ0ZE0yUWZ6Q1dxLXlGcA?oc=5
+          - generic [ref=e549]:
+            - button "More like Chicago federal judge back on the bench says he likely had Legionnaires' disease from potentially contaminated water at courthouse" [ref=e550] [cursor=pointer]: More like this
+            - button "Not interested in Chicago federal judge back on the bench says he likely had Legionnaires' disease from potentially contaminated water at courthouse" [ref=e551] [cursor=pointer]: Not interested
+        - article [ref=e552]:
+          - generic [ref=e553]: NBC 5 Chicago · 2d ago
+          - link "New $50 million in Woodlawn targeted by vandals twice in recent weeks" [ref=e554] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMitgFBVV95cUxPSlR5SUtoT3NxV3hwcmtMN2pPczlaNktTRUplZ25qU0RJMndKQmJwNzgycHY4QVBwbkwxSnBXNG0tcl9xVkZoYzZwV2dfVWFVcElRVmdoS0RoQk1lSE1hbzRNOC1iZklxNnVrMXc4QTBSMi1FTGpTSGV6TEMzZjNQd0h5cGxyMHpma0xfdlp5OWJ3dEJCVFhYck94QV9Ba3UwNEFJWFZiY2tQZzc3dWRienlkakpKQdIBvgFBVV95cUxQdlhPLWp5Tk1lQktZQnRxS3RZNGVnWWJwMGN1Sk5GWWNqczJESXo1b1BSc21wSkF1cVFmQ2NwZl80bW5POW1WdmVYcHQ2Nk1ZWXVfakYyRktXVGxrcUIxS2NPNFI1NVNZT3lrX3owN2w1UDdwdHpyOG83N0oxNTRuZUxhX01UNE9PcE5WVEw3U2h0UUw1d0l5WjFRam12Y1BfVS1NUmFhd1FJZW1xb3ctay1zLVJpOUdIS1ZlMG13?oc=5
+          - generic [ref=e555]:
+            - button "More like New $50 million in Woodlawn targeted by vandals twice in recent weeks" [ref=e556] [cursor=pointer]: More like this
+            - button "Not interested in New $50 million in Woodlawn targeted by vandals twice in recent weeks" [ref=e557] [cursor=pointer]: Not interested
+        - article [ref=e558]:
+          - generic [ref=e559]: Chicago Tribune · 2d ago
+          - 'link "Mayor Brandon Johnson bats away low fundraising: ‘My confidence will always remain strong’" [ref=e560] [cursor=pointer]':
+            - /url: https://news.google.com/rss/articles/CBMihwFBVV95cUxNVlNqcmhtS0JqcXVTUTdkbVNIQmpuaGJOQTQtMmROMDNraXVVdl9PNU9zaEJwY0REQXdOaEZkbXZ0aXNtWTViZmt6YVd2S0p2RXJRdnlYU0VyampScDlfSDltNGw0ZFVzZ1BfNTR1bXJnMVR6TzJPeDZlSWMxellid05WNW5CSGs?oc=5
+          - generic [ref=e561]:
+            - 'button "More like Mayor Brandon Johnson bats away low fundraising: ‘My confidence will always remain strong’" [ref=e562] [cursor=pointer]': More like this
+            - 'button "Not interested in Mayor Brandon Johnson bats away low fundraising: ‘My confidence will always remain strong’" [ref=e563] [cursor=pointer]': Not interested
+        - article [ref=e564]:
+          - generic [ref=e565]: Chicago Tribune · 2d ago
+          - link "Substitute teacher fired by Chicago Archdiocese pleads guilty to aggravated battery of Orland Park child" [ref=e566] [cursor=pointer]:
+            - /url: https://news.google.com/rss/articles/CBMi4AFBVV95cUxQc05xRUszMFN2d3BGYU1jVGFuYXRSOXlTcngxZGZrY0NkSE1XamFmbjd0RGEtNGtKTkpCZzVYWEZPQkczQ0lyWEJSN1ZZWjFES240enRXUkhHWmhaNUJXQld3VVZacDBvWFgySGZMd1p0LUFWd3VYMDVOR2JEUzVTblk5N1JubWxKNHpLOUxtcXQzVlBkT1VHcWNFd1lFbEFUa2xKT1d4LTdlZzZZRy11RFotUDgtVnFMbTQtRl9DOW53RV90WDRDSkxjSFRCbW1mX1UwTU1vZ2poRndPRVhSeg?oc=5
+          - generic [ref=e567]:
+            - button "More like Substitute teacher fired by Chicago Archdiocese pleads guilty to aggravated battery of Orland Park child" [ref=e568] [cursor=pointer]: More like this
+            - button "Not interested in Substitute teacher fired by Chicago Archdiocese pleads guilty to aggravated battery of Orland Park child" [ref=e569] [cursor=pointer]: Not interested
+  - navigation "Primary" [ref=e25]:
+    - generic [ref=e264]:
+      - link "News" [ref=e265] [cursor=pointer]:
+        - /url: /news
+      - link "Plan" [ref=e266] [cursor=pointer]:
+        - /url: /plan
+      - link "Courses" [ref=e267] [cursor=pointer]:
+        - /url: /courses
+      - link "Progress" [ref=e268] [cursor=pointer]:
+        - /url: /progress
+    - generic [ref=e26]:
+      - link "Today" [ref=e27] [cursor=pointer]:
+        - /url: /
+      - link "Notes" [ref=e28] [cursor=pointer]:
+        - /url: /notes
+      - link "Learning" [ref=e29] [cursor=pointer]:
+        - /url: /learning
+      - button "More" [expanded] [ref=e30] [cursor=pointer]
