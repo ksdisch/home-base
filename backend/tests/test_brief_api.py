@@ -215,6 +215,54 @@ def test_brief_bad_json_without_md_still_lists_topic(tmp_path, monkeypatch):
         get_settings.cache_clear()
 
 
+def test_brief_unreadable_json_degrades_to_md_fallback_not_500(tmp_path, monkeypatch):
+    """Bug #7: a permission-denied <topic>.json (bad perms, mid-swap replacement) must
+    degrade that one topic to the md fallback — never take down the whole Today page.
+    Every other read in the module already catches OSError; this is the read that serves."""
+    sweeps = _env(tmp_path, monkeypatch, "unreadablejson")
+    day = _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "ai-llms.md": LEGACY_MD.replace("fantasy-football", "ai-llms"),
+        },
+    )
+    (day / "ai-llms.json").chmod(0o000)
+    from app.config import get_settings
+
+    try:
+        resp = _client().get("/api/brief")
+        assert resp.status_code == 200
+        topic = resp.json()["topics"][0]
+        assert topic["error"] is not None and "ai-llms.json" in topic["error"]
+        assert topic["raw_markdown"] is not None
+        assert topic["items"] == []
+    finally:
+        (day / "ai-llms.json").chmod(0o644)
+        get_settings.cache_clear()
+
+
+def test_brief_unreadable_md_in_fallback_degrades_not_500(tmp_path, monkeypatch):
+    """Bug #7's second site: the designated fallback path itself. An md-only day whose
+    .md can't be read must fall through to the 'no readable brief' card, not 500."""
+    sweeps = _env(tmp_path, monkeypatch, "unreadablemd")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.md": LEGACY_MD})
+    (day / "ai-llms.md").chmod(0o000)
+    from app.config import get_settings
+
+    try:
+        resp = _client().get("/api/brief")
+        assert resp.status_code == 200
+        topic = resp.json()["topics"][0]
+        assert topic["error"] is not None and "no readable brief" in topic["error"]
+        assert topic["raw_markdown"] is None
+        assert topic["items"] == []
+    finally:
+        (day / "ai-llms.md").chmod(0o644)
+        get_settings.cache_clear()
+
+
 def test_brief_skips_raw_txt_failures(tmp_path, monkeypatch):
     """A sweep that failed validation left only .raw.txt — it must not reach the page.
 
@@ -423,10 +471,11 @@ def test_brief_flags_repeat_as_developing(tmp_path, monkeypatch):
 
 
 def test_brief_developing_matches_on_shared_source_url(tmp_path, monkeypatch):
-    """A reworded headline is still caught as developing when it shares a source URL (query stripped)."""
+    """A reworded headline is still caught as developing when it shares a source URL
+    (tracking params like utm_* are noise, not identity)."""
     sweeps = _env(tmp_path, monkeypatch, "dev_url")
     day1 = _dev_item("DeepSeek eyes IPO", "https://techcrunch.com/deepseek-ipo")
-    day2 = _dev_item("DeepSeek: what the IPO means", "https://techcrunch.com/deepseek-ipo?utm=x")
+    day2 = _dev_item("DeepSeek: what the IPO means", "https://techcrunch.com/deepseek-ipo?utm_source=x")
     _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day1]})})
     _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day2]})})
     from app.config import get_settings
@@ -435,6 +484,25 @@ def test_brief_developing_matches_on_shared_source_url(tmp_path, monkeypatch):
         item = _client().get("/api/brief").json()["topics"][0]["items"][0]
         assert item["developing"] is True
         assert item["first_seen"] == "2026-07-13"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_dedup_url_identity_keeps_the_query_string(tmp_path, monkeypatch):
+    """Bug #6: watch?v=AAA and watch?v=ZZZ are different stories — the query string is part
+    of URL identity, so distinct query-keyed URLs must not collide into a false 'developing'
+    (the docstring invariant: conservative, a fresh item is never mislabeled)."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_query")
+    day1 = _dev_item("Highlight reel: game one", "https://youtube.com/watch?v=AAA")
+    day2 = _dev_item("Postgame presser: game two", "https://youtube.com/watch?v=ZZZ")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day1]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day2]})})
+    from app.config import get_settings
+
+    try:
+        item = _client().get("/api/brief").json()["topics"][0]["items"][0]
+        assert item["developing"] is False
+        assert item["first_seen"] is None
     finally:
         get_settings.cache_clear()
 
