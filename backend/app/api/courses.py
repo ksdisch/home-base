@@ -13,16 +13,20 @@ never in reach). Progress still lives exclusively in SQLite.
 
 from __future__ import annotations
 
+import io
+import zipfile
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 
 from ..catalog.build import to_card
 from ..catalog.ingest import load_sidecars
 from ..config import get_settings
 from ..courses import (
     CourseError,
+    course_dir,
     course_notebook_id,
     get_course,
     list_courses,
@@ -262,7 +266,14 @@ def get_courses() -> CoursesResponse:
         course = get_course(s["slug"])  # safe: the summary came from a valid manifest
         ids = _lesson_ids(course) if course else []
         completed, pct = _progress(ids, get_course_progress(s["slug"]))
-        summaries.append(CourseSummary(**s, completed_lessons=completed, progress_pct=pct))
+        summaries.append(
+            CourseSummary(
+                **s,
+                completed_lessons=completed,
+                progress_pct=pct,
+                editable=user_course_dir(s["slug"]) is not None,
+            )
+        )
     return CoursesResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         courses=summaries,
@@ -290,7 +301,12 @@ def get_course_detail(slug: str) -> CourseDetail:
     _attach_notebook_refs(course)  # M4: notebooklm materials cross-link to the catalog
     ids = _lesson_ids(course)
     completed, pct = _progress(ids, done)
-    return CourseDetail(**course, completed_lessons=completed, progress_pct=pct)
+    return CourseDetail(
+        **course,
+        completed_lessons=completed,
+        progress_pct=pct,
+        editable=user_course_dir(slug) is not None,
+    )
 
 
 @router.get("/courses/{slug}/materials", response_model=CourseMaterialResponse)
@@ -514,6 +530,30 @@ def prepare_course_quiz(
             error=f"Couldn't load this quiz: {msg}",
         )
     return QuizPrepareResponse(ok=True, **out)
+
+
+@router.get("/courses/{slug}/export")
+def export_course(slug: str) -> Response:
+    """M5: download the whole course dir as a zip — read-only (works for bundled examples too)
+    and the safety valve before a risky edit. Hidden files (``.DS_Store`` and friends) are
+    skipped; course dirs are small text, so the zip is built in memory."""
+    cdir = course_dir(slug)
+    if cdir is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in sorted(cdir.rglob("*")):
+            if not f.is_file():
+                continue
+            rel = f.relative_to(cdir)
+            if any(part.startswith(".") for part in rel.parts):
+                continue
+            zf.write(f, arcname=f"{slug}/{rel.as_posix()}")
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{slug}-course.zip"'},
+    )
 
 
 @router.get("/courses/{slug}/quizzes", response_model=CourseQuizzesResponse)

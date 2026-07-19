@@ -7,6 +7,7 @@ progress lives in SQLite. See ``docs/COURSE_PIPELINE_SPEC.md``."""
 from .manifest import (
     COURSE_NB_PREFIX,
     CourseError,
+    course_dir,
     course_notebook_id,
     get_course,
     list_courses,
@@ -20,6 +21,7 @@ from .next_actions import next_actions
 __all__ = [
     "COURSE_NB_PREFIX",
     "CourseError",
+    "course_dir",
     "course_notebook_id",
     "get_course",
     "list_courses",

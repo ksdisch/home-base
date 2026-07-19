@@ -433,6 +433,7 @@ class CourseSummary(BaseModel):
     material_counts: Dict[str, int] = {}
     completed_lessons: int = 0
     progress_pct: int = 0
+    editable: bool = False  # a user copy exists under COURSES_DIR, so M5 edits can land
 
 
 class CourseDetail(CourseSummary):
