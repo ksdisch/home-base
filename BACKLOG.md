@@ -11,10 +11,11 @@ The repo's next arc: evolve the hub into Kyle's daily home base — a self-updat
 brief across his topics with inline notes, learning riding along. Full contract:
 [`docs/KICKOFF-home-base.md`](docs/KICKOFF-home-base.md).
 
-- [ ] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
+- [x] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
       manual runs on pilot topics (AI/LLMs · fantasy football · market/tech news); 2-min A–F
-      grade each morning. Go/no-go gate before ANY UI work. _In flight — grading through
-      ~2026-07-19 in `docs/M0-sweep-grades.md`._
+      grade each morning. Go/no-go gate before ANY UI work.
+      _✅ closed 2026-07-19 — **verdict PASS** (zero fabrications all week; AI sweep prompt
+      tuned). Grades + audit in `docs/M0-sweep-grades.md`._
 - [x] **M1 — the brief page:** home route renders stored sweeps (topic sections · digests ·
       sources · as-of stamp) + manual refresh + visit log; current home → "Learning" tab.
       _✅ shipped 2026-07-13 (PR #36, `docs/M1_PLAN.md`; deliberate Day-0 override of the M0 gate)._

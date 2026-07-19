@@ -6,9 +6,9 @@
 > roster + notes** shipped (`docs/M2_PLAN.md`): config-file roster `sweeps/topics.json`
 > (8 topics, manual pause flags), read-time item ids + inline notes (`brief_notes` v5,
 > browsable at `/notes`), "Your learning" strip on Today. M1 record: `docs/M1_PLAN.md`.
-> **M0's grading week continues in parallel** — grade daily in `docs/M0-sweep-grades.md`
-> (Kyle overrode the "no UI until M0 passes" gate for M1 on Day 0, M2 on Day 1, and **M3 on
-> 2026-07-15** — deliberate, in writing; the go/no-go still rides on the 3 pilot topics).
+> **M0 closed 2026-07-19 — verdict PASS** (`docs/M0-sweep-grades.md`: full week graded +
+> source-verified audit, zero fabrications; AI sweep prompt tuned so exclusion carries the
+> same sourcing bar as inclusion. The five deliberate gate overrides are vindicated).
 > **M3 — hands-off** shipped 2026-07-15 (PR #43, `docs/M3_PLAN.md`): launchd 06:00 CT
 > scheduler + on-wake catch-up, read-time `developing` dedup labels, cost/usage ledger —
 > first unattended fire verified clean 2026-07-16 (8/8 topics). **M4 — audio brief** shipped
@@ -23,14 +23,16 @@
 > `com.homebase.server` KeepAlive LaunchAgent (+ printed pmset wake) · sw.js v2
 > cached-last-brief offline honesty (writes never queue) · bottom tab bar below `sm` +
 > Today/Notes phone pass (desktop untouched) · Tailscale tailnet reach. Mac-side live
-> verify clean incl. audio Range 206; phone-side proof pending Kyle (tailnet-serve enable
-> + iPhone install). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#63,
+> verify clean incl. audio Range 206; real-iPhone reach verified from the phone's tailnet
+> IP (PR #64) — remaining: Kyle's eyes-on trio (standalone install · airplane banner · iOS
+> scrub). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#63 + polish #65–#67,
 > `docs/M7_PLAN.md`; fifth gate override, zero LLM, $0 pure-RSS): Google-News-style
 > second mode at `/news` — config categories (`sweeps/news_categories.json`, Local =
 > Chicago/Lake Co.) → Google News RSS w/ 15-min cache · `news_events` signal log +
 > card feedback · For You decaying-profile ranker (default tab, per-term search-feed
 > reach, honest cold start) · topic scout → one-click adds to the Mode-A roster
-> (dismiss-remembered). Next: M6 phone proof + the M0 verdict (~2026-07-19).
+> (dismiss-remembered). Next: M6 phone eyes-on proof (Kyle) + the ~08-03 v1
+> success-criteria check (≥5 mornings/week · events reach Kyle first · ≥3 notes/week).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
