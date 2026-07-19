@@ -2,14 +2,19 @@
 
 Course *content* is read from disk (``app.courses.manifest``, read-only); per-lesson completion
 comes from the SQLite store and is merged in here, with course progress % derived from it —
-exactly how the catalog merges ``episode_progress`` into NotebookLM topics. The hub never writes
-to a course dir; the only write is the lesson-complete checkbox, which lands in SQLite.
+exactly how the catalog merges ``episode_progress`` into NotebookLM topics.
+
+M5 narrows the old "the hub never writes to a course dir" rule instead of keeping it absolute:
+the authoring-loop endpoints (objectives, order, regenerate) write through
+``app.courses.writer`` — the same transactional validate-or-rollback core the CLI bridge uses —
+and only ever under ``COURSES_DIR`` (bundled examples stay read-only; NotebookLM sidecars were
+never in reach). Progress still lives exclusively in SQLite.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -25,16 +30,20 @@ from ..courses import (
     next_actions,
     read_material,
 )
+from ..courses.writer import edit_manifest, pin_ids, user_course_dir
 from ..models import (
     CourseAssessment,
     CourseAssessmentRequest,
     CourseDetail,
+    CourseEditResponse,
     CourseFlashcardDeck,
     CourseFlashcardsResponse,
     CourseFlashcardStateResponse,
     CourseMaterialResponse,
     CourseNextItem,
     CourseNextResponse,
+    CourseObjectivesUpdate,
+    CourseOrderUpdate,
     CourseQuizState,
     CourseQuizzesResponse,
     CoursesResponse,
@@ -187,6 +196,53 @@ def _progress(lesson_ids: List[str], done: Dict[str, bool]) -> Tuple[int, int]:
     return completed, pct
 
 
+def _editable_course(slug: str, lesson_id: Optional[str] = None) -> Dict[str, Any]:
+    """The loaded course, guaranteed editable — the shared front door of every M5 write:
+    404 unknown course / 422 malformed / 409 bundled-only (no user copy under ``COURSES_DIR``),
+    plus 404 for a ``lesson_id`` the course doesn't contain."""
+    try:
+        course = get_course(slug)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if course is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+    if user_course_dir(slug) is None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"'{slug}' is a bundled example — read-only. Its files ship with the app.",
+        )
+    if lesson_id is not None and lesson_id not in _lesson_ids(course):
+        raise HTTPException(status_code=404, detail=f"No lesson '{lesson_id}' in '{slug}'.")
+    return course
+
+
+def _raw_lesson(raw: Dict[str, Any], lesson_id: str) -> Optional[Dict[str, Any]]:
+    """The raw manifest's lesson whose EFFECTIVE id is ``lesson_id`` — call ``pin_ids`` first so
+    fallback-id lessons are findable. The loader strips explicit ids, so compare stripped."""
+    for m in raw.get("modules") or []:
+        if not isinstance(m, dict):
+            continue
+        for lsn in m.get("lessons") or []:
+            if isinstance(lsn, dict) and str(lsn.get("id", "")).strip() == lesson_id:
+                return lsn
+    return None
+
+
+def _edit(slug: str, mutate: Callable[[Dict[str, Any]], None]) -> CourseEditResponse:
+    """Run one manifest edit through the transactional writer. A ``CourseError`` (bad addressing,
+    a rejected permutation) is a 422 with nothing written; a validation failure comes back as a
+    calm ``ok=False`` + errors with the course rolled back untouched."""
+    try:
+        report = edit_manifest(slug, mutate)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return CourseEditResponse(
+        ok=bool(report.get("ok")),
+        errors=report.get("errors", []),
+        warnings=report.get("warnings", []),
+    )
+
+
 @router.get("/courses", response_model=CoursesResponse)
 def get_courses() -> CoursesResponse:
     summaries: List[CourseSummary] = []
@@ -248,6 +304,70 @@ def complete_lesson(slug: str, lesson_id: str, body: LessonComplete) -> Dict[str
     completed, pct = _progress(ids, get_course_progress(slug))
     return {"lesson_id": lesson_id, "completed": body.completed, "progress_pct": pct,
             "completed_lessons": completed}
+
+
+@router.put(
+    "/courses/{slug}/lessons/{lesson_id}/objectives", response_model=CourseEditResponse
+)
+def edit_lesson_objectives(
+    slug: str, lesson_id: str, body: CourseObjectivesUpdate
+) -> CourseEditResponse:
+    """M5: replace one lesson's objectives. Objectives key nothing in the store, so this can
+    never orphan progress; the edit still rides the transactional writer so a course that fails
+    validation (e.g. a missing material file) bounces with the course untouched."""
+    _editable_course(slug, lesson_id=lesson_id)
+    objectives = [o.strip() for o in body.objectives if o.strip()]
+
+    def mutate(raw: Dict[str, Any]) -> None:
+        pin_ids(raw)
+        lesson = _raw_lesson(raw, lesson_id)
+        if lesson is None:  # the manifest changed underneath us between check and write
+            raise CourseError(f"no lesson '{lesson_id}' in '{slug}'")
+        lesson["objectives"] = objectives
+
+    return _edit(slug, mutate)
+
+
+@router.put("/courses/{slug}/order", response_model=CourseEditResponse)
+def reorder_course(slug: str, body: CourseOrderUpdate) -> CourseEditResponse:
+    """M5: reorder modules, and lessons within their module. The body must be a complete
+    bijection of the current structure — every module id exactly once, and per module every one
+    of its current lesson ids exactly once (cross-module moves are out of scope). Ids are pinned
+    before permuting, so ``course_lesson_progress`` rows and the ``course:<slug>``
+    material-path stats can never re-key. Any mismatch is a 422 with nothing written."""
+    _editable_course(slug)
+
+    def mutate(raw: Dict[str, Any]) -> None:
+        pin_ids(raw)
+        modules = raw.get("modules")
+        if not isinstance(modules, list):
+            raise CourseError("manifest has no modules list")
+        by_id: Dict[str, Dict[str, Any]] = {
+            str(m.get("id", "")).strip(): m for m in modules if isinstance(m, dict)
+        }
+        want = [m.id for m in body.modules]
+        if sorted(want) != sorted(by_id):
+            raise CourseError(
+                f"module ids must be exactly {sorted(by_id)} in some order (got {want})"
+            )
+        new_modules: List[Dict[str, Any]] = []
+        for om in body.modules:
+            m = by_id[om.id]
+            lesson_by_id = {
+                str(lsn.get("id", "")).strip(): lsn
+                for lsn in (m.get("lessons") or [])
+                if isinstance(lsn, dict)
+            }
+            if sorted(om.lessons) != sorted(lesson_by_id):
+                raise CourseError(
+                    f"module '{om.id}' lessons must be exactly {sorted(lesson_by_id)} in "
+                    f"some order (got {om.lessons})"
+                )
+            m["lessons"] = [lesson_by_id[lid] for lid in om.lessons]
+            new_modules.append(m)
+        raw["modules"] = new_modules
+
+    return _edit(slug, mutate)
 
 
 @router.post("/courses/{slug}/quiz/prepare", response_model=QuizPrepareResponse)

@@ -559,6 +559,37 @@ class CourseNextResponse(BaseModel):
     items: List[CourseNextItem] = []
 
 
+class CourseObjectivesUpdate(BaseModel):
+    """The body of ``PUT /courses/{slug}/lessons/{id}/objectives`` (M5). Blank entries are
+    dropped server-side; an empty list is allowed (the validator just warns)."""
+
+    objectives: List[str] = []
+
+
+class CourseOrderModule(BaseModel):
+    """One module's place in a reorder: its id + the complete order of its lesson ids."""
+
+    id: str
+    lessons: List[str] = []
+
+
+class CourseOrderUpdate(BaseModel):
+    """The body of ``PUT /courses/{slug}/order`` — the COMPLETE desired order: every module id
+    exactly once, and per module every one of its lesson ids exactly once (a bijection; moving
+    a lesson between modules is out of M5's scope)."""
+
+    modules: List[CourseOrderModule] = []
+
+
+class CourseEditResponse(BaseModel):
+    """The outcome of an M5 structural edit. ``ok=False`` means validation failed and the
+    course was rolled back untouched — ``errors`` say why."""
+
+    ok: bool
+    errors: List[str] = []
+    warnings: List[str] = []
+
+
 class BriefSource(BaseModel):
     title: str
     url: str
