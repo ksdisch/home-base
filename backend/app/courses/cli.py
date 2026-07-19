@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from ..config import get_settings
 from .manifest import CourseError, list_courses, validate_dir
+from .writer import write_manifest
 
 _VALID_LEVELS = ("beginner", "intermediate", "advanced")
 # Kebab-case with alphanumeric boundaries — rejects '-', '--', '-x', 'x-' so a slug always names
@@ -96,7 +97,8 @@ def cmd_write(slug: str, manifest_file: Optional[str]) -> Dict[str, Any]:
     The write is transactional: if validation fails, the prior ``course.json`` (or nothing, on a
     first write) is restored, so a failed write never leaves a broken manifest where a good one
     was. ``validate`` must run against the real dir (alongside the authored material files), so we
-    write-then-validate-then-maybe-rollback rather than validating in isolation."""
+    write-then-validate-then-maybe-rollback rather than validating in isolation. The transactional
+    core lives in ``writer.py`` (M5), shared with the hub's in-app edits."""
     slug = _check_slug(slug)
     text = Path(manifest_file).read_text(encoding="utf-8") if manifest_file else sys.stdin.read()
     try:
@@ -105,22 +107,7 @@ def cmd_write(slug: str, manifest_file: Optional[str]) -> Dict[str, Any]:
         raise ValueError(f"manifest is not valid JSON: {e}")
     if not isinstance(manifest, dict):
         raise ValueError("manifest must be a JSON object")
-    manifest["slug"] = slug
-
-    base = get_settings().courses_dir / slug
-    base.mkdir(parents=True, exist_ok=True)
-    target = base / "course.json"
-    backup = target.read_bytes() if target.exists() else None
-    target.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    report = validate_dir(base)
-    if not report.get("ok"):
-        # Roll back so a failed write doesn't clobber a previously-valid manifest.
-        if backup is not None:
-            target.write_bytes(backup)
-        else:
-            target.unlink(missing_ok=True)
-        return {"written": None, "rolled_back": True, **report}
-    return {"written": str(target), "rolled_back": False, **report}
+    return write_manifest(slug, manifest)
 
 
 def _build_parser() -> argparse.ArgumentParser:
