@@ -12,15 +12,33 @@ Do the checks in order — each sets up the next.
 
 ## 1 · Home-screen standalone
 
-- [ ] In iOS **Safari**, open the URL. Confirm Today loads with **today's brief (2026-07-19)**.
-- [ ] Share sheet → **Add to Home Screen**. Expect name **"Home Base"** + the teal icon. Add it.
-- [ ] Launch from the **home-screen icon**. **PASS =** opens full-screen app-like: **no Safari
+- [x] In iOS **Safari**, open the URL. Confirm Today loads with **today's brief (2026-07-19)**.
+- [x] Share sheet → **Add to Home Screen**. Expect name **"Home Base"** + the teal icon. Add it.
+- [x] Launch from the **home-screen icon**. **PASS =** opens full-screen app-like: **no Safari
   URL bar or toolbars**, bottom tab bar visible (Today · News · Notes · Learning · More).
-- Evidence (what you saw): _…_
+- Evidence: **PASS — Kyle, 2026-07-19 ~13:3x CT.** One usability detour recorded: Add to
+  Home Screen is NOT in Safari's tab-overview long-press menu or the tab-group share sheet —
+  it's in the **page** share sheet, in the action list below the contact/app rows. Added,
+  launched from the icon, full-screen standalone confirmed. Server log corroborates the
+  icon fetches + first standalone launches from `100.96.118.39`.
 
 ## 2 · Airplane-mode "Offline copy" banner
 
+> **Attempt 1 (2026-07-19 ~13:45 CT): FAIL — blank white page offline** (screenshots in
+> session). Root-caused same hour: sw.js v2 never held usable JS/CSS bodies — the only
+> SW-intercepted asset fetches were WebKit revalidations answered `304 Not Modified`
+> (empty body; server log shows the phone's 304s), install pre-cached no hashed assets,
+> and the index.html offline fallback answered missed assets with HTML → executed nothing.
+> **Fixed in PR #71 (sw.js v3**: 200-only puts · install-time asset pre-cache parsed from
+> index.html · navigation-only fallback**), merged + deployed + verified**: live Chromium
+> run against the ts.net URL shows both hashed assets in `home-base-shell-v3`, and an
+> offline relaunch renders Today + "Offline copy" banner (offline console errors are the
+> four by-design loud API failures). **Phone re-test pending — boxes stay unticked until
+> Kyle's iPhone passes.**
+
 Stay in the standalone app you just opened — that online visit re-cached today's brief.
+Post-fix note: open the app **online once more first** so the v3 service worker installs
+(it pre-caches the assets at install).
 
 - [ ] Turn on **Airplane Mode**, then check Control Center: **Wi-Fi must be off too** (iOS
   likes to keep it on). Tailscale dropping is expected — that's the test.
@@ -37,14 +55,16 @@ Stay in the standalone app you just opened — that online visit re-cached today
 
 Back online, in the standalone app, on Today:
 
-- [ ] Tap 🎧 **play** on the audio brief (~5 min, rendered 06:25 CDT today). It plays.
-- [ ] **Drag the scrubber forward** (say ~3:00): **PASS =** playback jumps there and continues
+- [x] Tap 🎧 **play** on the audio brief (~5 min, rendered 06:25 CDT today). It plays.
+- [x] **Drag the scrubber forward** (say ~3:00): **PASS =** playback jumps there and continues
   — it does **not** restart from 0:00. Scrub **backward** once too.
-- [ ] Tell Claude when you've scrubbed — corroboration is server-side: fresh
+- [x] Tell Claude when you've scrubbed — corroboration is server-side: fresh
   `100.96.118.39 … GET /api/brief/audio … 206 Partial Content` lines in
   `backend/data/logs/launchd.log` at scrub time.
-- Evidence (phone): _…_
-- Evidence (server log): _…_
+- Evidence (phone): **PASS — Kyle, 2026-07-19**: played + scrubbed in the standalone app.
+- Evidence (server log): **3× `GET /api/brief/audio → 206 Partial Content` from
+  `100.96.118.39`** during the pass window (grep verified this session) — iOS issued real
+  Range requests and the server answered partials. Corroborated.
 
 ## 4 · Reboot survival (deferred — closes at the next Mac restart)
 
@@ -58,6 +78,21 @@ and `tailscale serve --bg` persists across reboots. Kyle's observation closes it
 
 > Want it closed today? Reboot the Mac after this session ends (it kills live Claude
 > sessions), log in, phone-check, done.
+
+Mid-pass corroborating (not a substitute): the deploy's `launchctl kickstart -k` restart
+(2026-07-19) came back clean on KeepAlive — new pid, health ok — re-proving the
+restart-survival half; boot-survival still needs the real reboot observation.
+
+## Mid-pass addendum (2026-07-19, same session)
+
+The pass earned its keep twice beyond the sw bug:
+- **Stale backend caught**: the LaunchAgent process predated PR #52's merge (started
+  07-18 22:34 vs merge 07-19 10:57 CT) — the phone's `GET /api/brief/habit` 404s exposed
+  it. `launchctl kickstart -k` onto current main (`7c71a88`); habit now 200; a "Habit
+  check" strip may newly appear on Today.
+- **sw.js v3 shipped** (PR #71, see check 2) — offline shell is now a consistent
+  install-time snapshot; dist rebuilt (asset hashes unchanged, so phone HTTP caches
+  stayed valid); ts.net serves v3.
 
 ## TL;DR
 
