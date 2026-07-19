@@ -25,6 +25,7 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from .foryou import dedup_by_headline
 from .store import get_news_cache, set_news_cache
 
 CACHE_TTL_SECONDS = 15 * 60
@@ -189,9 +190,11 @@ def get_category_items(
             return {"fetched_at": cached["fetched_at"], "stale": True, "items": cached["items"]}
         raise
 
-    # Newest first; undated items (ISO string None → "") sort last.
+    # Newest first; undated items (ISO string None → "") sort last. Then collapse the
+    # same story syndicated across outlets (newest copy wins), before the cap so dupes
+    # never eat the category's 50 slots.
     items = sorted(merged.values(), key=lambda i: i["published_at"] or "", reverse=True)
-    items = items[:MAX_ITEMS_PER_CATEGORY]
+    items = dedup_by_headline(items)[:MAX_ITEMS_PER_CATEGORY]
     fetched_at = now_dt.isoformat(timespec="seconds")
     set_news_cache(category["slug"], items, fetched_at=fetched_at, db_path=db_path)
     return {"fetched_at": fetched_at, "stale": False, "items": items}

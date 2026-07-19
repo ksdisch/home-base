@@ -178,6 +178,22 @@ def rank_candidates(
     return out
 
 
+def dedup_by_headline(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Order-preserving near-duplicate collapse (≥ 0.6 headline-term Jaccard): the same
+    story syndicated across outlets keeps only the first copy. Callers pass newest-first
+    lists (category pages) so the freshest copy wins; ``rank_candidates`` keeps its own
+    interwoven score-aware dedup."""
+    out: List[Dict[str, Any]] = []
+    kept_terms: List[set] = []
+    for item in items:
+        terms = extract_terms(item.get("headline"))
+        if any(_jaccard(terms, kt) >= DEDUP_JACCARD for kt in kept_terms):
+            continue
+        kept_terms.append(terms)
+        out.append(item)
+    return out
+
+
 def top_search_terms(profile: Dict[str, Any]) -> List[str]:
     """The strongest positive profile terms — the API pulls a Google News search feed per
     term so For You can surface interests no standard section covers. Bigrams win ties
