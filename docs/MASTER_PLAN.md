@@ -40,6 +40,11 @@ items are M6's phone-side eyes-on evidence (Kyle) and the ~08-03 v1 success-crit
 ## Kanban
 
 ```mermaid
+---
+config:
+  kanban:
+    sectionWidth: 300
+---
 kanban
   done["✅ Done"]
     lh15["LH Phases 1–5 — SPEC<br/>build order: catalog ·<br/>quiz player · progress<br/>· review queue ·<br/>custom topics"]
