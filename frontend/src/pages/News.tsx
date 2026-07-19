@@ -23,6 +23,14 @@ type FeedView = {
 
 const FOR_YOU: NewsCategory = { slug: "foryou", title: "For You" };
 
+// Today as local YYYY-MM-DD (same helper the Brief page uses) — a news note's brief_date
+// snapshots the morning Kyle saw it, since a news item has no sweep folder of its own.
+function localToday(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 export default function News() {
   const [categories, setCategories] = useState<NewsCategory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +46,14 @@ export default function News() {
   const [added, setAdded] = useState<Map<string, string>>(new Map());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  // QU5 note state: one open composer at a time; saved ids keep their "✓ Saved" ack.
+  // Notes write through the SAME POST /brief/notes path as Today, so a news item becomes
+  // a durable note interleaved on /notes — the snapshot columns make it self-contained.
+  const [noting, setNoting] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [noted, setNoted] = useState<Set<string>>(new Set());
 
   const hasCategories = categories !== null && categories.length > 0;
   const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
@@ -99,6 +115,31 @@ export default function News() {
       alive = false;
     };
   }, [selected]);
+
+  // Same origin-crediting rule as signal(): a For You item's note lands under the
+  // section it actually came from, not the synthetic "foryou" tab.
+  const saveNote = (item: FeedItem) => {
+    if (!selected || noteSaving) return;
+    const body = noteDraft.trim();
+    if (!body) return;
+    setNoteSaving(true);
+    setNoteError(null);
+    api
+      .addBriefNote({
+        item_id: item.id,
+        topic_slug: item.category_slug ?? selected,
+        brief_date: localToday(),
+        item_headline: item.headline,
+        body,
+      })
+      .then(() => {
+        setNoted((prev) => new Set(prev).add(item.id));
+        setNoting(null);
+        setNoteDraft("");
+      })
+      .catch((e) => setNoteError(e.message ?? "Couldn't save the note"))
+      .finally(() => setNoteSaving(false));
+  };
 
   const originLabel = (item: FeedItem): string | null => {
     if (selected !== FOR_YOU.slug || !item.category_slug) return null;
@@ -303,7 +344,50 @@ export default function News() {
                   >
                     Not interested
                   </button>
+                  <button
+                    onClick={() => {
+                      if (noted.has(item.id)) return;
+                      setNoteError(null);
+                      setNoteDraft("");
+                      setNoting(noting === item.id ? null : item.id);
+                    }}
+                    aria-label={`Note on ${item.headline}`}
+                    className={`transition ${
+                      noted.has(item.id) ? "text-accent" : "hover:text-ink"
+                    }`}
+                  >
+                    {noted.has(item.id) ? "✓ Saved" : "Note"}
+                  </button>
                 </div>
+                {noting === item.id && !noted.has(item.id) && (
+                  <div className="mt-2">
+                    {noteError && (
+                      <p className="mb-1 text-xs text-red-600">{noteError}</p>
+                    )}
+                    <textarea
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="Your take — lands in your notes"
+                      rows={2}
+                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-sm text-ink"
+                    />
+                    <div className="mt-1 flex gap-3 text-xs">
+                      <button
+                        onClick={() => saveNote(item)}
+                        disabled={noteSaving || !noteDraft.trim()}
+                        className="font-medium text-accent transition hover:underline disabled:opacity-50"
+                      >
+                        Save note
+                      </button>
+                      <button
+                        onClick={() => setNoting(null)}
+                        className="text-muted transition hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </article>
             ))}
         </div>
