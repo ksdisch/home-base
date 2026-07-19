@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -100,6 +101,13 @@ def _env(tmp_path, monkeypatch):
     )
     roster = tmp_path / "topics.json"
     roster.write_text(json.dumps(ROSTER, indent=2), encoding="utf-8")
+    # The synthetic stand-in for sweeps/prompts/_template.md — prompts live next to the
+    # roster file, exactly like the real sweeps/ layout sweep.sh reads.
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "_template.md").write_text(
+        "Sweep **{{TITLE}}** with sourced items only.\n", encoding="utf-8"
+    )
     monkeypatch.setenv("NEWS_CATEGORIES_FILE", str(cfg))
     monkeypatch.setenv("ROSTER_FILE", str(roster))
     monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / "hub"))
@@ -194,6 +202,56 @@ def test_add_duplicate_slug_is_409_not_an_overwrite(tmp_path, monkeypatch):
 def test_add_blank_term_400(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     assert _client().post("/api/news/suggestions/add", json={"term": "  "}).status_code == 400
+
+
+# -- the add must produce a sweepable topic, not just a roster entry (P1 bug #2) ------
+# sweep.sh requires prompts/<slug>.md per roster topic and counts its absence as a
+# failure — a roster entry alone means the topic never sweeps and every 06:00 run
+# exits 1 forever after (docs/bug-hunt/2026-07-19-post-m7.md).
+
+
+def test_add_stamps_a_sweep_prompt_from_the_template(tmp_path, monkeypatch):
+    """The one-click add writes prompts/<slug>.md from _template.md with the title
+    filled in — otherwise the advertised 'tomorrow's sweep picks it up' is false."""
+    roster_file = _env(tmp_path, monkeypatch)
+    res = _client().post("/api/news/suggestions/add", json={"term": "quantum computing"})
+    assert res.status_code == 200
+    prompt = (roster_file.parent / "prompts" / "quantum-computing.md").read_text(encoding="utf-8")
+    assert prompt == "Sweep **Quantum Computing** with sourced items only.\n"
+
+
+def test_add_never_overwrites_a_hand_written_prompt(tmp_path, monkeypatch):
+    """A prompt file that already exists (hand-tuned) wins — the add only fills gaps."""
+    roster_file = _env(tmp_path, monkeypatch)
+    hand = roster_file.parent / "prompts" / "quantum-computing.md"
+    hand.write_text("Hand-tuned prompt.\n", encoding="utf-8")
+    res = _client().post("/api/news/suggestions/add", json={"term": "quantum computing"})
+    assert res.status_code == 200
+    assert hand.read_text(encoding="utf-8") == "Hand-tuned prompt.\n"
+
+
+def test_add_without_template_fails_closed_roster_untouched(tmp_path, monkeypatch):
+    """No usable template → 400 and NO roster entry — a promptless roster topic is
+    exactly the rc=1-forever failure this guard exists to prevent."""
+    roster_file = _env(tmp_path, monkeypatch)
+    (roster_file.parent / "prompts" / "_template.md").unlink()
+    res = _client().post("/api/news/suggestions/add", json={"term": "quantum computing"})
+    assert res.status_code == 400
+    assert json.loads(roster_file.read_text(encoding="utf-8")) == ROSTER
+    assert not (roster_file.parent / "prompts" / "quantum-computing.md").exists()
+
+
+def test_repo_prompt_template_matches_the_m0_sourcing_bar():
+    """The checked-in template the add stamps out carries the real contract: the
+    {{TITLE}} placeholder, the strict-JSON output rule, and the M0-tuned hard rules
+    (exclusion carries the same sourcing bar as inclusion)."""
+    template = (
+        Path(__file__).resolve().parents[2] / "sweeps" / "prompts" / "_template.md"
+    ).read_text(encoding="utf-8")
+    assert "{{TITLE}}" in template
+    assert "first character must be `{`" in template
+    assert "Never fabricate" in template
+    assert "Excluding a story carries the same sourcing bar" in template
 
 
 def test_dismiss_persists_and_silences(tmp_path, monkeypatch):
