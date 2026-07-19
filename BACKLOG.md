@@ -200,6 +200,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Note button on News/For-You cards writes through POST /brief/notes; confirm the note appears interleaved on /notes.
 - **Size:** M (QuickWin)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #84, RED→green — Wave 1): Note button + inline composer on every News/For-You card through the existing POST /brief/notes (origin category slug credited, mirroring signal(); local-today brief_date; "✓ Saved" ack; inline error keeps the composer). Zero backend changes; one backend test pins the non-roster-slug round-trip + humanized /notes title._
 
 #### [Improvement] Say when a topic didn't run
 - **Why:** A server-side diff of the active (non-paused) roster against the slugs that actually produced a file for the served date, surfaced as one Banner on Today so a silently-failed topic is visible instead of just absent. Complements bug #1 (adjacent, different fix). See [`docs/ideas/topic-didnt-run-banner.md`](docs/ideas/topic-didnt-run-banner.md) for the full write-up.
