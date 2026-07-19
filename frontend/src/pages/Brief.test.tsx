@@ -367,4 +367,47 @@ describe("Brief (Today page)", () => {
     await screen.findByText("AI / LLMs"); // page settled
     expect(screen.queryByText("Habit check:")).not.toBeInTheDocument();
   });
+
+  // PR5 sweep-trust gauge: the last accuracy re-grade rides the habit strip so an
+  // ungraded stretch is visible instead of assumed fine.
+
+  const isoDaysAgo = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  };
+
+  const HABIT_SIGNAL = {
+    generated_at: "now",
+    weeks: [{ week_start: "2026-07-13", mornings: 3, notes: 1 }],
+  };
+
+  it("shows the last accuracy-graded date on the habit strip (fresh — no re-grade nag)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    briefHabit.mockResolvedValue({ ...HABIT_SIGNAL, last_graded: isoDaysAgo(3) });
+    renderBrief();
+
+    expect(await screen.findByText(/Sweep trust:/)).toBeInTheDocument();
+    expect(screen.getByText(/last accuracy-graded/)).toBeInTheDocument();
+    expect(screen.queryByText(/re-grade due/)).not.toBeInTheDocument();
+  });
+
+  it("flags a stale grade (>30 days) as re-grade due", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    briefHabit.mockResolvedValue({ ...HABIT_SIGNAL, last_graded: "2020-01-01" });
+    renderBrief();
+
+    expect(await screen.findByText(/Sweep trust:/)).toBeInTheDocument();
+    expect(screen.getByText(/re-grade due/)).toBeInTheDocument();
+  });
+
+  it("says so honestly when there's no accuracy grade on record", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    briefHabit.mockResolvedValue({ ...HABIT_SIGNAL, last_graded: null });
+    renderBrief();
+
+    expect(await screen.findByText(/no accuracy grade on record/)).toBeInTheDocument();
+  });
 });

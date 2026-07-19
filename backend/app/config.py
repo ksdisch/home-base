@@ -51,6 +51,15 @@ class Settings:
             )
         ).expanduser()
 
+        # PR5 sweep-trust gauge: the hand-appended accuracy re-grade log. The newest
+        # `## YYYY-MM-DD` heading is served as last_graded on GET /brief/habit so an
+        # ungraded stretch is visible on Today instead of assumed fine.
+        self.trust_log = Path(
+            os.environ.get(
+                "TRUST_LOG", str(backend_dir.parent / "docs" / "sweep-trust-log.md")
+            )
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 

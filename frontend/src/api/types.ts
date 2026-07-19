@@ -650,6 +650,9 @@ export interface BriefHabitWeek {
 export interface BriefHabitResponse {
   generated_at: string;
   weeks: BriefHabitWeek[]; // oldest first; the last entry is the current week
+  // PR5 sweep-trust gauge: date of the last manual accuracy re-grade (newest dated
+  // heading in docs/sweep-trust-log.md); null when there's no grade on record.
+  last_graded?: string | null;
 }
 
 // M5 chat-with-the-brief: one grounded follow-up answer about a served item. item_id is
