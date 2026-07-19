@@ -216,14 +216,17 @@ def test_brief_bad_json_without_md_still_lists_topic(tmp_path, monkeypatch):
 
 
 def test_brief_skips_raw_txt_failures(tmp_path, monkeypatch):
-    """A sweep that failed validation left only .raw.txt — it must not reach the page."""
+    """A sweep that failed validation left only .raw.txt — it must not reach the page.
+
+    With no other day to fall back to, the whole day is unservable and the brief
+    honestly reports no data at all (latest_sweep_date skips contentless dirs)."""
     sweeps = _env(tmp_path, monkeypatch, "rawtxt")
     _write_day(sweeps, "2026-07-14", {"ai-llms.raw.txt": "unvalidated model output"})
     from app.config import get_settings
 
     try:
         body = _client().get("/api/brief").json()
-        assert body["date"] == "2026-07-14"
+        assert body["date"] is None
         assert body["topics"] == []
         assert body["has_data"] is False
     finally:
