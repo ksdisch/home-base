@@ -319,6 +319,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Before launching uvicorn, detect the taken port (lsof -ti tcp:8000 or a health-check curl) and fail loudly naming com.homebase.server; or move dev backend + Vite proxy to a distinct port (8001) so dev and the agent ne... Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #77, RED→green): port guard at the top of dev.sh (`lsof -ti`) refuses loudly naming com.homebase.server + the bootout/reinstall commands; `BACKEND_PORT` drives guard + uvicorn so they can't drift. **Closes the P1 set (PRs #73–#77).**_
 
 #### [Bug] #6: Read-time dedup URL identity strips the whole query string
 - **Where:** `backend/app/sweeps.py:152-158` · severity low · confidence high
