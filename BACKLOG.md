@@ -311,6 +311,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Write activity.day as the local day mirroring record_brief_visit: date('now','localtime') in the six raw-SQL writers, local-day derivation in record_attempt/record_flashcard_review, and datetime.now().astimezone().dat... Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #76, RED→green): all six raw-SQL writers on `date('now','localtime')`, `_local_day()` derivation in the injected-now writers, local `today` in `/api/progress`; SM-2/attempt timestamps stay UTC (boundary pinned by a far-TZ test fixture). Bug #13 (foryou gate) stays its own stub._
 
 #### [Bug] [P1] #5: make dev silently runs against the KeepAlive prod server
 - **Where:** `dev.sh:64` · severity medium · confidence medium
