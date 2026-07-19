@@ -303,6 +303,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Catch NewsFeedError per feed and continue; serve/cache the merged result as fresh when at least one feed succeeded; only fall back to stale cache / 502 when every feed failed. Add a partial-failure test. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #75, RED→green): per-feed NewsFeedError catch in `get_category_items`; healthy feeds serve + cache fresh (category unfreezes); stale/502 honesty now scoped to every-feed-failed._
 
 #### [Bug] [P1] #4: Learning-activity days are bucketed on the UTC calendar day
 - **Where:** `backend/app/store/db.py:80 (also :108, :356, :443, :510, :645, :756, :978, :1054; reader api/progress.py:64)` · severity medium · confidence high

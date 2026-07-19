@@ -203,22 +203,31 @@ def get_category_items(
     db_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """One category's items: fresh cache when young, live fetch otherwise, expired cache
-    marked ``stale`` when the live fetch fails. Multi-feed categories (Local) merge and
-    dedupe by item id. ``now`` is injected for deterministic TTL tests."""
+    marked ``stale`` when the live fetch fails. Multi-feed categories (Local, Uplifting)
+    merge and dedupe by item id — and fail per feed: one dead host must not discard the
+    feeds that succeeded, or the category freezes on an ever-staler cache while that
+    host stays down. Stale-cache/raise honesty applies only when *every* feed failed.
+    ``now`` is injected for deterministic TTL tests."""
     now_dt = now or datetime.now(timezone.utc)
     cached = get_news_cache(category["slug"], db_path=db_path)
     if cached is not None and _age_seconds(cached["fetched_at"], now_dt) < CACHE_TTL_SECONDS:
         return {"fetched_at": cached["fetched_at"], "stale": False, "items": cached["items"]}
 
-    try:
-        merged: Dict[str, Dict[str, Any]] = {}
-        for url in category["feeds"]:
+    merged: Dict[str, Dict[str, Any]] = {}
+    ok_feeds = 0
+    last_error: Optional[NewsFeedError] = None
+    for url in category["feeds"]:
+        try:
             for item in parse_rss(fetcher.fetch(url)):
                 merged.setdefault(item["id"], item)
-    except NewsFeedError:
+        except NewsFeedError as e:
+            last_error = e
+            continue
+        ok_feeds += 1
+    if ok_feeds == 0 and last_error is not None:
         if cached is not None:
             return {"fetched_at": cached["fetched_at"], "stale": True, "items": cached["items"]}
-        raise
+        raise last_error
 
     # Newest first; undated items (ISO string None → "") sort last. Then collapse the
     # same story syndicated across outlets (newest copy wins), before the cap so dupes
