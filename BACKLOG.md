@@ -219,6 +219,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Antibody: last-graded date surfaced next to the habit strip + a re-grade cadence; confirm the gauge decays visibly after the grading week closes.
 - **Size:** M (Premortem)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #83, RED→green — Wave 1): `last_graded` on `GET /brief/habit` from the newest dated heading in the new seeded `docs/sweep-trust-log.md` + a "Sweep trust:" line on the habit strip (amber "re-grade due" past 30 days; loud "no grade on record" state). Grading stays manual by design._
 
 #### [Exploration] The Ritual Already Lives Elsewhere
 - **Why:** Kyle's actual daily-check-in habit consolidates in the always-reachable Cowork/vault stack (morning-briefing, daily-plan, habit-check, evening-reflection — all reading Obsidian vault + Todoist + Calendar from any device, already schedule... See [`docs/ideas/feed-the-vault-ritual.md`](docs/ideas/feed-the-vault-ritual.md) for the full write-up.

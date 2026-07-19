@@ -725,6 +725,9 @@ class BriefHabitWeek(BaseModel):
 class BriefHabitResponse(BaseModel):
     generated_at: str
     weeks: List[BriefHabitWeek] = []  # oldest first; the last entry is the current week
+    # PR5 sweep-trust gauge: newest `## YYYY-MM-DD` heading in docs/sweep-trust-log.md —
+    # the last manual accuracy re-grade. None when the log is missing or has no entries.
+    last_graded: Optional[str] = None
 
 
 class BriefChatRequest(BaseModel):

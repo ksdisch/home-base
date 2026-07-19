@@ -14,7 +14,9 @@ their snapshot columns, so they outlive the sweep files they point at).
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -173,16 +175,35 @@ def log_brief_visit() -> BriefVisitResponse:
     return BriefVisitResponse(ok=True, day=row["day"], visited_at=row["visited_at"])
 
 
+_GRADE_HEADING = re.compile(r"^##\s+(\d{4}-\d{2}-\d{2})\b")
+
+
+def _last_graded(trust_log: Path) -> Optional[str]:
+    """Newest ``## YYYY-MM-DD`` heading in the sweep-trust log, or None.
+
+    The log (PR5 — docs/sweep-trust-log.md) is hand-appended at each monthly re-grade
+    against the M0 rubric, so parse defensively: a missing or mangled file degrades to
+    None — never a fabricated date, never a failed habit response."""
+    try:
+        text = trust_log.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    dates = [m.group(1) for line in text.splitlines() if (m := _GRADE_HEADING.match(line))]
+    return max(dates) if dates else None
+
+
 @router.get("/brief/habit", response_model=BriefHabitResponse)
-def get_brief_habit(weeks: int = 4) -> BriefHabitResponse:
+def get_brief_habit(weeks: int = 4, settings=Depends(get_app_settings)) -> BriefHabitResponse:
     """Weekly visit/note counts — the first read surface for the visit log M1 only wrote.
 
     Feeds the kickoff's v1 success check (~3 weeks in: ≥5 mornings/week · ≥3 notes/week)
     so the evaluation is a glance at the Today strip, not a manual sqlite dig. ``weeks``
-    is clamped in the store layer (1–12)."""
+    is clamped in the store layer (1–12). Also carries the PR5 trust gauge: the date of
+    the last manual sweep-accuracy re-grade, so trust reads as measured, not assumed."""
     return BriefHabitResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         weeks=[BriefHabitWeek(**w) for w in brief_habit_weeks(weeks)],
+        last_graded=_last_graded(settings.trust_log),
     )
 
 

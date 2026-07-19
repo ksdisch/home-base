@@ -84,6 +84,83 @@ def test_weeks_clamped_and_empty_store_zero_fills(tmp_path):
     assert capped[0]["week_start"] == "2026-04-27"
 
 
+# -- PR5 sweep-trust gauge: last_graded from docs/sweep-trust-log.md ----------------
+# (docs/ideas/sweep-trust-warranty.md — M0 was an inspection, not a warranty; the habit
+# endpoint surfaces the newest dated re-grade heading so an ungraded stretch is visible.)
+
+
+def _trust_env(tmp_path, monkeypatch, name: str, content=None):
+    monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / name / "hub"))
+    log = tmp_path / name / "sweep-trust-log.md"
+    if content is not None:
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text(content, encoding="utf-8")
+    monkeypatch.setenv("TRUST_LOG", str(log))
+    from app.config import get_settings
+    from app.store import init_db as init_default
+
+    get_settings.cache_clear()
+    init_default()
+
+
+def test_habit_last_graded_is_newest_dated_heading(tmp_path, monkeypatch):
+    """Entries may be appended in any order — the newest date wins, prose is ignored."""
+    _trust_env(
+        tmp_path,
+        monkeypatch,
+        "trustlog",
+        content=(
+            "# Sweep trust log\n\nIntro prose mentioning 2099-01-01 inline (not a heading).\n\n"
+            "## 2026-07-19 — M0 close-out, verdict PASS\n\nnotes\n\n"
+            "## 2026-06-30 — earlier spot check\n\nnotes\n"
+        ),
+    )
+    from app.config import get_settings
+
+    try:
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        assert TestClient(app).get("/api/brief/habit").json()["last_graded"] == "2026-07-19"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_habit_last_graded_none_when_log_missing(tmp_path, monkeypatch):
+    _trust_env(tmp_path, monkeypatch, "trustnone", content=None)
+    from app.config import get_settings
+
+    try:
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        assert TestClient(app).get("/api/brief/habit").json()["last_graded"] is None
+    finally:
+        get_settings.cache_clear()
+
+
+def test_habit_last_graded_none_when_no_dated_headings(tmp_path, monkeypatch):
+    """A hand-mangled log degrades to None — never a 500, never a fabricated date."""
+    _trust_env(
+        tmp_path,
+        monkeypatch,
+        "trustgarbage",
+        content="# Sweep trust log\n\nno dated headings here, just 2026-07-19 in prose\n",
+    )
+    from app.config import get_settings
+
+    try:
+        from fastapi.testclient import TestClient
+
+        from app.main import app
+
+        assert TestClient(app).get("/api/brief/habit").json()["last_graded"] is None
+    finally:
+        get_settings.cache_clear()
+
+
 def test_habit_endpoint_wires_store_to_response(tmp_path, monkeypatch):
     monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / "hub"))
     from app.config import get_settings
