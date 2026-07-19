@@ -292,3 +292,92 @@ def test_unparseable_xml_with_no_cache_is_502(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     res = _client(FakeFetcher({ONE_FEED: b"<html>not rss"})).get("/api/news/top")
     assert res.status_code == 502
+
+
+# -- partial feed failure must not sink a multi-feed category (P1 bug #3) -----------
+# The try used to wrap the whole feed loop, so one flaky host (Uplifting has 4 small
+# WordPress sites, Local has 2 geo feeds) discarded every feed that succeeded and froze
+# the category on an ever-staler cache (docs/bug-hunt/2026-07-19-post-m7.md).
+
+
+def test_one_dead_feed_still_serves_the_healthy_feeds_fresh(tmp_path, monkeypatch):
+    """One dead host in a multi-feed category: the merged healthy result serves —
+    and caches — as fresh, not stale, and never a 502."""
+    _env(tmp_path, monkeypatch)
+    from app.news import NewsFeedError
+
+    fetcher = FakeFetcher(
+        {
+            ONE_FEED: _rss(_item("Healthy feed story", link="https://g/a")),
+            TWO_FEED: NewsFeedError("host down"),
+        }
+    )
+    res = _client(fetcher).get("/api/news/local")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["stale"] is False
+    assert [i["headline"] for i in body["items"]] == ["Healthy feed story"]
+
+
+def test_one_dead_feed_does_not_freeze_the_category_on_expired_cache(tmp_path, monkeypatch):
+    """The freeze: with an expired cache and one feed permanently down, the category
+    could never refresh. The healthy feeds must rewrite the cache as fresh."""
+    _env(tmp_path, monkeypatch)
+    from app.news import NewsFeedError
+
+    ok = FakeFetcher(
+        {
+            ONE_FEED: _rss(_item("Old story", link="https://g/a")),
+            TWO_FEED: _rss(_item("Old B", link="https://g/b")),
+        }
+    )
+    assert _client(ok).get("/api/news/local").status_code == 200
+    _expire_cache("local")
+
+    half_dead = FakeFetcher(
+        {
+            ONE_FEED: _rss(_item("New story", link="https://g/new")),
+            TWO_FEED: NewsFeedError("host still down"),
+        }
+    )
+    body = _client(half_dead).get("/api/news/local").json()
+    assert body["stale"] is False
+    assert [i["headline"] for i in body["items"]] == ["New story"]
+
+    # The rewritten cache serves within TTL — the category is unfrozen (an empty
+    # FakeFetcher would KeyError on any fetch attempt).
+    body2 = _client(FakeFetcher({})).get("/api/news/local").json()
+    assert body2["stale"] is False
+    assert [i["headline"] for i in body2["items"]] == ["New story"]
+
+
+def test_all_feeds_dead_still_serves_expired_cache_as_stale(tmp_path, monkeypatch):
+    """Total failure keeps today's honesty: expired cache marked stale."""
+    _env(tmp_path, monkeypatch)
+    from app.news import NewsFeedError
+
+    ok = FakeFetcher(
+        {
+            ONE_FEED: _rss(_item("Cached story", link="https://g/a")),
+            TWO_FEED: _rss(_item("Cached B", link="https://g/b")),
+        }
+    )
+    assert _client(ok).get("/api/news/local").status_code == 200
+    _expire_cache("local")
+
+    dead = FakeFetcher(
+        {ONE_FEED: NewsFeedError("down"), TWO_FEED: NewsFeedError("down")}
+    )
+    body = _client(dead).get("/api/news/local").json()
+    assert body["stale"] is True
+    assert sorted(i["headline"] for i in body["items"]) == ["Cached B", "Cached story"]
+
+
+def test_all_feeds_dead_with_no_cache_is_502(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    from app.news import NewsFeedError
+
+    dead = FakeFetcher(
+        {ONE_FEED: NewsFeedError("down"), TWO_FEED: NewsFeedError("down")}
+    )
+    assert _client(dead).get("/api/news/local").status_code == 502
