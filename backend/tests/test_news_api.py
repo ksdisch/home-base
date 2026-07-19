@@ -207,6 +207,27 @@ def test_undated_items_served_last(tmp_path, monkeypatch):
     assert body["items"][1]["published_at"] is None
 
 
+def test_near_duplicate_headlines_collapse_keeping_newest(tmp_path, monkeypatch):
+    """The same story from two outlets (different links, near-identical headlines)
+    renders once on a category page — the fresher copy wins; distinct stories survive."""
+    _env(tmp_path, monkeypatch)
+    newer = _item(
+        "Good News: Man reunites with nurses who saved his life",
+        link="https://g/nbc", source="NBC News", pub="Fri, 17 Jul 2026 12:00:00 GMT",
+    )
+    older = _item(
+        "Man reunites with nurses who saved his life",
+        link="https://g/ghana", source="Modern Ghana", pub="Fri, 17 Jul 2026 08:00:00 GMT",
+    )
+    distinct = _item(
+        "Chicago air quality worsens as smoke returns",
+        link="https://g/aq", source="ABC7", pub="Fri, 17 Jul 2026 11:00:00 GMT",
+    )
+    body = _client(FakeFetcher({ONE_FEED: _rss(older, newer, distinct)})).get("/api/news/top").json()
+    assert [i["url"] for i in body["items"]] == ["https://g/nbc", "https://g/aq"]
+    assert body["items"][0]["source"] == "NBC News"  # the fresher copy was kept
+
+
 def test_multi_feed_merge_dedupes_by_link(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     shared = _item("Same story", link="https://g/same")
