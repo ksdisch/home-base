@@ -28,6 +28,14 @@ import type {
   FlashcardReviewRequest,
   HealthResponse,
   LessonCompleteResponse,
+  NewsCategoriesResponse,
+  NewsCategoryResponse,
+  NewsEventCreate,
+  NewsEventResponse,
+  NewsForYouResponse,
+  NewsSuggestionActionRequest,
+  NewsSuggestionAddResponse,
+  NewsSuggestionDismissResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -125,6 +133,25 @@ async function del<T>(path: string): Promise<T> {
 export const api = {
   health: () => get<HealthResponse>("/health"),
   brief: () => get<BriefResponse>("/brief"),
+  // M6: same GET /api/brief, but also surfaces whether the service worker replayed it from
+  // the offline cache (X-Served-From-Cache) — frontend-only metadata, never in types.ts.
+  briefWithMeta: async (): Promise<{ brief: BriefResponse; fromCache: boolean }> => {
+    const res = await fetch(`${API_BASE}/brief`, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        const body = await res.json();
+        detail = body.detail ?? detail;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(res.status, detail);
+    }
+    return {
+      brief: (await res.json()) as BriefResponse,
+      fromCache: res.headers.get("X-Served-From-Cache") === "1",
+    };
+  },
   // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
   briefAudioUrl: () => `${API_BASE}/brief/audio`,
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
@@ -138,6 +165,19 @@ export const api = {
   // M5: one grounded follow-up answer about a served item (subscription lane, no web) —
   // slow by web standards (a real model call, ~5–20s), so callers show a thinking state.
   briefChat: (body: BriefChatRequest) => post<BriefChatResponse>("/brief/chat", body),
+  // M7 news mode: the category roster + one category's RSS-backed articles.
+  newsCategories: () => get<NewsCategoriesResponse>("/news/categories"),
+  newsCategory: (slug: string) =>
+    get<NewsCategoryResponse>(`/news/${encodeURIComponent(slug)}`),
+  // M7 Phase 2: For-You signals — fire-and-forget from the page (callers swallow errors).
+  logNewsEvent: (body: NewsEventCreate) => post<NewsEventResponse>("/news/events", body),
+  // M7 Phase 3: the personalized feed (cold start returns Top stories, learning=true).
+  newsForYou: () => get<NewsForYouResponse>("/news/foryou"),
+  // M7 Phase 4: the topic scout's actions — add to the morning-brief roster, or never again.
+  addNewsTopic: (body: NewsSuggestionActionRequest) =>
+    post<NewsSuggestionAddResponse>("/news/suggestions/add", body),
+  dismissNewsSuggestion: (body: NewsSuggestionActionRequest) =>
+    post<NewsSuggestionDismissResponse>("/news/suggestions/dismiss", body),
   catalog: () => get<CatalogResponse>("/catalog"),
   progress: () => get<ProgressResponse>("/progress"),
   review: () => get<ReviewResponse>("/review"),

@@ -1,0 +1,316 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import News from "./News";
+
+const newsCategories = vi.fn();
+const newsCategory = vi.fn();
+const newsForYou = vi.fn();
+const logNewsEvent = vi.fn();
+const addNewsTopic = vi.fn();
+const dismissNewsSuggestion = vi.fn();
+vi.mock("../api/client", () => ({
+  api: {
+    newsCategories: () => newsCategories(),
+    newsCategory: (slug: string) => newsCategory(slug),
+    newsForYou: () => newsForYou(),
+    logNewsEvent: (body: unknown) => logNewsEvent(body),
+    addNewsTopic: (body: unknown) => addNewsTopic(body),
+    dismissNewsSuggestion: (body: unknown) => dismissNewsSuggestion(body),
+  },
+}));
+
+const CATEGORIES = {
+  generated_at: "now",
+  categories: [
+    { slug: "top", title: "Top stories" },
+    { slug: "local", title: "Local" },
+  ],
+};
+
+const TOP_FEED = {
+  generated_at: "now",
+  slug: "top",
+  title: "Top stories",
+  fetched_at: "2026-07-18T12:00:00+00:00",
+  stale: false,
+  items: [
+    {
+      id: "abc123abc123",
+      headline: "Big national story",
+      url: "https://news.example/1",
+      source: "AP News",
+      published_at: "2026-07-18T11:00:00+00:00",
+    },
+    {
+      id: "def456def456",
+      headline: "Undated story",
+      url: "https://news.example/2",
+      source: null,
+      published_at: null,
+    },
+  ],
+};
+
+const LOCAL_FEED = {
+  ...TOP_FEED,
+  slug: "local",
+  title: "Local",
+  items: [
+    {
+      id: "loc111loc111",
+      headline: "Lake County story",
+      url: "https://news.example/3",
+      source: "Patch",
+      published_at: "2026-07-18T10:00:00+00:00",
+    },
+  ],
+};
+
+const FORYOU_WARM = {
+  generated_at: "now",
+  learning: false,
+  event_count: 42,
+  suggestions: [],
+  items: [
+    {
+      id: "fy1fy1fy1fy1",
+      headline: "Ranked quantum story",
+      url: "https://news.example/q",
+      source: "Wire",
+      published_at: "2026-07-18T11:30:00+00:00",
+      category_slug: "top",
+    },
+    {
+      id: "fy2fy2fy2fy2",
+      headline: "Searched interest story",
+      url: "https://news.example/s",
+      source: "Blog",
+      published_at: "2026-07-18T09:00:00+00:00",
+      category_slug: "search:quantum computing",
+    },
+  ],
+};
+
+function renderNews(path = "/news") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <News />
+    </MemoryRouter>,
+  );
+}
+
+const SUGGESTION = {
+  term: "quantum computing",
+  score: 11.6,
+  days_seen: 3,
+  example_headlines: ["Quantum computing breakthrough at the lab"],
+};
+
+beforeEach(() => {
+  newsCategories.mockReset();
+  newsCategory.mockReset();
+  newsForYou.mockReset();
+  logNewsEvent.mockReset();
+  addNewsTopic.mockReset();
+  dismissNewsSuggestion.mockReset();
+  logNewsEvent.mockResolvedValue({ ok: true, id: 1, created_at: "now" });
+});
+
+describe("News (M7)", () => {
+  it("lands on For You by default with origin chips", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    expect(await screen.findByText("Ranked quantum story")).toBeInTheDocument();
+    expect(newsForYou).toHaveBeenCalled();
+    expect(newsCategory).not.toHaveBeenCalled();
+    // Origin chips: a section title for section items, the quoted term for search finds.
+    expect(screen.getAllByText("Top stories").length).toBeGreaterThanOrEqual(2); // tab + chip
+    expect(screen.getByText("“quantum computing”")).toBeInTheDocument();
+  });
+
+  it("shows the learning banner during cold start", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({
+      ...FORYOU_WARM,
+      learning: true,
+      event_count: 3,
+      items: FORYOU_WARM.items.slice(0, 1),
+    });
+    renderNews();
+
+    expect(await screen.findByText("Still learning you")).toBeInTheDocument();
+    expect(screen.getByText(/3 of 20 signals/)).toBeInTheDocument();
+    expect(screen.getByText("Ranked quantum story")).toBeInTheDocument();
+  });
+
+  it("renders a category feed with articles opening at the source", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+
+    expect(await screen.findByText("Big national story")).toBeInTheDocument();
+    expect(newsCategory).toHaveBeenCalledWith("top");
+    expect(newsForYou).not.toHaveBeenCalled();
+    expect(screen.getByText("AP News")).toBeInTheDocument();
+    const link = screen.getByText("Big national story").closest("a");
+    expect(link).toHaveAttribute("href", "https://news.example/1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(screen.getByText("Undated story")).toBeInTheDocument();
+  });
+
+  it("switches categories via the tabs", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockImplementation((slug: string) =>
+      Promise.resolve(slug === "local" ? LOCAL_FEED : TOP_FEED),
+    );
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    fireEvent.click(screen.getByText("Local"));
+    expect(await screen.findByText("Lake County story")).toBeInTheDocument();
+    expect(newsCategory).toHaveBeenLastCalledWith("local");
+  });
+
+  it("flags a stale category payload honestly", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue({ ...TOP_FEED, stale: true });
+    renderNews("/news?cat=top");
+
+    expect(await screen.findByText("Showing saved articles")).toBeInTheDocument();
+    expect(screen.getByText("Big national story")).toBeInTheDocument();
+  });
+
+  it("shows the section error without killing the tabs", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockRejectedValue(new Error("news feed unavailable: down"));
+    renderNews("/news?cat=top");
+
+    expect(await screen.findByText("Couldn't load this section")).toBeInTheDocument();
+    expect(screen.getByText("For You")).toBeInTheDocument(); // tabs survive
+  });
+
+  it("shows the empty state when no categories are configured", async () => {
+    newsCategories.mockResolvedValue({ generated_at: "now", categories: [] });
+    renderNews();
+
+    expect(await screen.findByText("No news categories configured")).toBeInTheDocument();
+    expect(newsCategory).not.toHaveBeenCalled();
+    expect(newsForYou).not.toHaveBeenCalled();
+    expect(logNewsEvent).not.toHaveBeenCalled(); // no tab, no visit signal
+  });
+
+  // -- Phase 2 signals ------------------------------------------------------------
+
+  it("logs a visit per tab opened, including For You", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "foryou" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Top stories" }));
+    await waitFor(() =>
+      expect(logNewsEvent).toHaveBeenCalledWith({ kind: "visit", category_slug: "top" }),
+    );
+  });
+
+  it("logs a click with the full item snapshot", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+
+    fireEvent.click(await screen.findByText("Big national story"));
+    expect(logNewsEvent).toHaveBeenCalledWith({
+      kind: "click",
+      category_slug: "top",
+      item_id: "abc123abc123",
+      headline: "Big national story",
+      source: "AP News",
+      url: "https://news.example/1",
+    });
+  });
+
+  it("credits For You item signals to their origin section", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    fireEvent.click(await screen.findByText("Ranked quantum story"));
+    expect(logNewsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "click", category_slug: "top" }),
+    );
+  });
+
+  it("more-like-this logs once and acknowledges", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    const btn = screen.getByLabelText("More like Big national story");
+    fireEvent.click(btn);
+    fireEvent.click(btn); // second click is a no-op, not a double signal
+    expect(logNewsEvent.mock.calls.filter(([b]) => b.kind === "more_like")).toHaveLength(1);
+    expect(screen.getByText("Noted ✓")).toBeInTheDocument();
+  });
+
+  // -- Phase 4 topic scout ----------------------------------------------------------
+
+  it("renders a scout suggestion with its evidence", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    renderNews();
+
+    expect(await screen.findByText("quantum computing")).toBeInTheDocument();
+    expect(screen.getByText(/across 3 days/)).toBeInTheDocument();
+    expect(screen.getByText(/Quantum computing breakthrough/)).toBeInTheDocument();
+  });
+
+  it("add-to-brief calls the API and confirms in place", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    addNewsTopic.mockResolvedValue({ ok: true, slug: "quantum-computing", title: "Quantum Computing" });
+    renderNews();
+    await screen.findByText("quantum computing");
+
+    fireEvent.click(screen.getByText("Add to my brief"));
+    expect(await screen.findByText(/Added ✓/)).toBeInTheDocument();
+    expect(addNewsTopic).toHaveBeenCalledWith({ term: "quantum computing" });
+  });
+
+  it("dismiss calls the API and drops the card", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({ ...FORYOU_WARM, suggestions: [SUGGESTION] });
+    dismissNewsSuggestion.mockResolvedValue({ ok: true, term: "quantum computing" });
+    renderNews();
+    await screen.findByText("quantum computing");
+
+    fireEvent.click(screen.getByText("Don't suggest this"));
+    await waitFor(() =>
+      expect(screen.queryByText("quantum computing")).not.toBeInTheDocument(),
+    );
+    expect(dismissNewsSuggestion).toHaveBeenCalledWith({ term: "quantum computing" });
+    expect(screen.getByText("Ranked quantum story")).toBeInTheDocument(); // feed unaffected
+  });
+
+  it("not-interested logs and hides the card", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    fireEvent.click(screen.getByLabelText("Not interested in Big national story"));
+    expect(logNewsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "not_interested", item_id: "abc123abc123" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Big national story")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Undated story")).toBeInTheDocument(); // only that card hides
+  });
+});

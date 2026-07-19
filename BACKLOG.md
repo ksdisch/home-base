@@ -11,10 +11,11 @@ The repo's next arc: evolve the hub into Kyle's daily home base — a self-updat
 brief across his topics with inline notes, learning riding along. Full contract:
 [`docs/KICKOFF-home-base.md`](docs/KICKOFF-home-base.md).
 
-- [ ] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
+- [x] **M0 — sweep quality week:** per-topic sweep prompts + a `make sweep` runner; ~5–7 daily
       manual runs on pilot topics (AI/LLMs · fantasy football · market/tech news); 2-min A–F
-      grade each morning. Go/no-go gate before ANY UI work. _In flight — grading through
-      ~2026-07-19 in `docs/M0-sweep-grades.md`._
+      grade each morning. Go/no-go gate before ANY UI work.
+      _✅ closed 2026-07-19 — **verdict PASS** (zero fabrications all week; AI sweep prompt
+      tuned). Grades + audit in `docs/M0-sweep-grades.md`._
 - [x] **M1 — the brief page:** home route renders stored sweeps (topic sections · digests ·
       sources · as-of stamp) + manual refresh + visit log; current home → "Learning" tab.
       _✅ shipped 2026-07-13 (PR #36, `docs/M1_PLAN.md`; deliberate Day-0 override of the M0 gate)._
@@ -30,9 +31,15 @@ brief across his topics with inline notes, learning riding along. Full contract:
 - [x] **M5 — chat with the brief:** ask follow-ups on brief items. _✅ shipped 2026-07-16
       (PR #47, `docs/M5_PLAN.md`; approach A from its explore-plan — per-item Ask, no web
       tools, save-as-note)._
+- [x] **M6 — mobile:** the brief in your pocket — Tailscale tailnet reach, FastAPI serves
+      the built frontend on one port + KeepAlive LaunchAgent, installed PWA with
+      cached-last-brief offline honesty, mobile-first pass on the morning loop.
+      _✅ shipped 2026-07-18 (PRs #55 + #56, `docs/M6_PLAN.md`; fourth deliberate override
+      of the M0-verdict gate, zero new LLM surface; Mac-side live verify clean, phone-side
+      proof pending Kyle)._
 
-Deferred by the brief: mobile · ESPN league integration · auto-courses ·
-breaking-news alerts · public writing.
+Deferred by the brief: ESPN league integration · auto-courses ·
+breaking-news alerts · public writing. _(Mobile was promoted to M6 on 2026-07-18.)_
 
 ---
 
@@ -94,8 +101,11 @@ study-planner subagent (which would read it as context). Stub now, populate as t
 
 - **"Generate from hub" button** — kick off a new NotebookLM audio series from the hub UI
   (today that lives in the `audio-series` skill; SPEC marks it explicitly out of v1).
-- **Hosted phone access** — remove the "Mac must be running on the same LAN" constraint.
-- **Migration ledger hardening** — ✅ shipped 2026-07-17 (PR #52): `init_db` now re-runs every forward
+- **Hosted phone access** — remove the "Mac must be running" constraint entirely (true
+  hosting; an architecture split — sweeps, Kokoro, `nlm`, and SQLite are Mac-local by
+  design). _M6 (shipped 2026-07-18) retires the same-LAN half via Tailscale; this parked
+  item is now only the remaining half._
+- **Migration ledger hardening** — ✅ shipped (PR #52, drafted 2026-07-17): `init_db` now re-runs every forward
   migration unconditionally instead of gating on `schema_migrations` — the ledger records when
   a version was first seen, but the table's real shape decides what gets altered (`_safe_alter`
   already swallows "duplicate column"), so a poisoned/orphaned ledger row can no longer

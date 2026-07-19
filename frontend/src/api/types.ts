@@ -610,3 +610,86 @@ export interface BriefChatRequest {
 export interface BriefChatResponse {
   answer: string; // markdown, grounded in the served item — ephemeral unless saved as a note
 }
+
+// -- news mode (M7) --------------------------------------------------------------
+
+export interface NewsItem {
+  id: string; // sha1(link)[:12] — stable across refetches, Phase 2's event anchor
+  headline: string;
+  url: string; // a Google News redirect link — opens the original article
+  source?: string | null;
+  published_at?: string | null; // UTC ISO 8601; null when the feed omitted it
+}
+
+export interface NewsCategory {
+  slug: string;
+  title: string;
+}
+
+export interface NewsCategoriesResponse {
+  generated_at: string;
+  categories: NewsCategory[]; // display order = sweeps/news_categories.json order
+}
+
+export interface NewsCategoryResponse {
+  generated_at: string;
+  slug: string;
+  title: string;
+  fetched_at?: string | null; // when this payload was pulled from Google News
+  stale: boolean; // true = refresh failed, serving the expired cache honestly
+  items: NewsItem[];
+}
+
+// M7 Phase 2: one For-You signal — click | visit | more_like | not_interested. Item kinds
+// carry the item snapshot (the feed cache rolls over in minutes, so events are self-contained).
+export interface NewsEventCreate {
+  kind: "click" | "visit" | "more_like" | "not_interested";
+  category_slug: string;
+  item_id?: string | null;
+  headline?: string | null;
+  source?: string | null;
+  url?: string | null;
+}
+
+export interface NewsEventResponse {
+  ok: boolean;
+  id: number;
+  created_at: string;
+}
+
+// M7 Phase 3: a ranked For You item — category_slug is its origin section, or
+// "search:<term>" when the profile pulled it from beyond the standard categories.
+export interface ForYouItem extends NewsItem {
+  category_slug?: string | null;
+}
+
+// M7 Phase 4: a topic-scout find — a persistent interest the morning brief doesn't cover.
+export interface NewsTopicSuggestion {
+  term: string;
+  score: number;
+  days_seen: number;
+  example_headlines: string[];
+}
+
+export interface NewsForYouResponse {
+  generated_at: string;
+  learning: boolean; // cold start: fewer than 20 positive signals so far
+  event_count: number;
+  items: ForYouItem[];
+  suggestions: NewsTopicSuggestion[]; // the Mode-A bridge, dismissible
+}
+
+export interface NewsSuggestionActionRequest {
+  term: string;
+}
+
+export interface NewsSuggestionAddResponse {
+  ok: boolean;
+  slug: string; // the roster entry tomorrow's sweep picks up
+  title: string;
+}
+
+export interface NewsSuggestionDismissResponse {
+  ok: boolean;
+  term: string;
+}

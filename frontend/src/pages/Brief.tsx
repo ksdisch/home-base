@@ -38,10 +38,12 @@ function ItemNotes({
   item,
   slug,
   date,
+  readOnly = false,
 }: {
   item: BriefItem;
   slug: string;
   date: string;
+  readOnly?: boolean;
 }) {
   const [notes, setNotes] = useState<BriefNote[]>(item.notes ?? []);
   const [composing, setComposing] = useState(false);
@@ -137,10 +139,11 @@ function ItemNotes({
               className="group flex items-start justify-between gap-3 rounded-lg bg-accent-soft/40 px-3 py-1.5"
             >
               <p className="whitespace-pre-wrap text-sm text-ink/90">{n.body}</p>
+              {/* Touch screens have no hover: always visible below sm, hover-revealed ≥sm. */}
               <button
                 onClick={() => remove(n.id)}
                 aria-label={`Delete note ${n.id}`}
-                className="text-xs text-muted opacity-0 transition group-hover:opacity-100"
+                className="-m-2 p-2 text-xs text-muted transition sm:m-0 sm:p-0 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 ✕
               </button>
@@ -159,11 +162,11 @@ function ItemNotes({
             autoFocus
             className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
           />
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1 flex flex-wrap items-center gap-3">
             <button
               onClick={save}
               disabled={!draft.trim() || saving}
-              className="rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
+              className="rounded-lg bg-accent-soft px-4 py-2 text-xs font-medium text-accent disabled:opacity-50 sm:px-3 sm:py-1"
             >
               {saving ? "Saving…" : "Save note"}
             </button>
@@ -172,7 +175,7 @@ function ItemNotes({
                 setComposing(false);
                 setDraft("");
               }}
-              className="text-xs text-muted hover:text-ink"
+              className="min-h-[44px] text-xs text-muted hover:text-ink sm:min-h-0"
             >
               Cancel
             </button>
@@ -189,15 +192,18 @@ function ItemNotes({
             autoFocus
             className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
           />
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1 flex flex-wrap items-center gap-3">
             <button
               onClick={ask}
               disabled={!question.trim() || thinking}
-              className="rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent disabled:opacity-50"
+              className="rounded-lg bg-accent-soft px-4 py-2 text-xs font-medium text-accent disabled:opacity-50 sm:px-3 sm:py-1"
             >
               {thinking ? "Thinking…" : answer ? "Ask again" : "Ask"}
             </button>
-            <button onClick={closeAsk} className="text-xs text-muted hover:text-ink">
+            <button
+              onClick={closeAsk}
+              className="min-h-[44px] text-xs text-muted hover:text-ink sm:min-h-0"
+            >
               Close
             </button>
             {thinking && <span className="text-xs text-muted">usually 10–20 seconds</span>}
@@ -212,7 +218,7 @@ function ItemNotes({
                 <button
                   onClick={saveAnswerAsNote}
                   disabled={qaSaved}
-                  className="text-xs font-medium text-accent disabled:text-muted"
+                  className="min-h-[44px] text-xs font-medium text-accent disabled:text-muted sm:min-h-0"
                 >
                   {qaSaved ? "Saved to notes ✓" : "Save as note"}
                 </button>
@@ -224,16 +230,20 @@ function ItemNotes({
           )}
         </div>
       ) : (
-        <div className="mt-1 flex items-center gap-3">
+        <div className="mt-1 flex flex-wrap items-center gap-3">
           <button
             onClick={() => setComposing(true)}
-            className="text-xs text-muted transition hover:text-accent"
+            disabled={readOnly}
+            title={readOnly ? "Offline — notes need the hub" : undefined}
+            className="min-h-[44px] text-xs text-muted transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted sm:min-h-0"
           >
             + Add note
           </button>
           <button
             onClick={() => setAsking(true)}
-            className="text-xs text-muted transition hover:text-accent"
+            disabled={readOnly}
+            title={readOnly ? "Offline — Ask needs the hub" : undefined}
+            className="min-h-[44px] text-xs text-muted transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted sm:min-h-0"
           >
             Ask about this
           </button>
@@ -244,7 +254,15 @@ function ItemNotes({
   );
 }
 
-function TopicSection({ topic, date }: { topic: BriefTopic; date: string | null }) {
+function TopicSection({
+  topic,
+  date,
+  readOnly = false,
+}: {
+  topic: BriefTopic;
+  date: string | null;
+  readOnly?: boolean;
+}) {
   return (
     <section className="rounded-2xl border border-stone-200 bg-white/60 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -315,7 +333,9 @@ function TopicSection({ topic, date }: { topic: BriefTopic; date: string | null 
                   ))}
                 </p>
               )}
-              {item.id && date && <ItemNotes item={item} slug={topic.slug} date={date} />}
+              {item.id && date && (
+                <ItemNotes item={item} slug={topic.slug} date={date} readOnly={readOnly} />
+              )}
             </article>
           ))}
         </div>
@@ -333,14 +353,19 @@ function TopicSection({ topic, date }: { topic: BriefTopic; date: string | null 
 
 export default function Brief() {
   const [brief, setBrief] = useState<BriefResponse | null>(null);
+  const [fromCache, setFromCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     api
-      .brief()
-      .then((b) => alive && setBrief(b))
+      .briefWithMeta()
+      .then((r) => {
+        if (!alive) return;
+        setBrief(r.brief);
+        setFromCache(r.fromCache);
+      })
       .catch((e) => alive && setError(e.message ?? "Failed to load the brief"))
       .finally(() => alive && setLoading(false));
     // The habit metric — fire-and-forget so logging can never block the morning read.
@@ -384,7 +409,19 @@ export default function Brief() {
         </div>
       )}
 
-      {stale && (
+      {/* M6 offline honesty: the SW replayed the cached last brief because the hub was
+          unreachable. Writes need the hub, so composers below render disabled. */}
+      {fromCache && (
+        <div className="mb-6">
+          <Banner tone="warning" title="Offline copy">
+            The hub is unreachable, so this is your cached last brief
+            {brief?.date ? ` — as of ${humanDate(brief.date)}` : ""}. Notes and Ask are
+            disabled until you're back online.
+          </Banner>
+        </div>
+      )}
+
+      {stale && !fromCache && (
         <div className="mb-6">
           <Banner tone="info" title="This brief is from a previous day">
             Run{" "}
@@ -416,7 +453,12 @@ export default function Brief() {
       {brief && brief.topics.length > 0 && (
         <div className="space-y-4">
           {brief.topics.map((t) => (
-            <TopicSection key={t.slug} topic={t} date={brief.date ?? null} />
+            <TopicSection
+              key={t.slug}
+              topic={t}
+              date={brief.date ?? null}
+              readOnly={fromCache}
+            />
           ))}
         </div>
       )}

@@ -42,6 +42,15 @@ class Settings:
             os.environ.get("ROSTER_FILE", str(backend_dir.parent / "sweeps" / "topics.json"))
         ).expanduser()
 
+        # The news-mode category roster (M7): ordered slugs/titles + their Google News RSS
+        # feed URLs, shared shape with the topic roster above. Overridable for tests.
+        self.news_categories_file = Path(
+            os.environ.get(
+                "NEWS_CATEGORIES_FILE",
+                str(backend_dir.parent / "sweeps" / "news_categories.json"),
+            )
+        ).expanduser()
+
         # The nlm binary (overridable so tests never touch the real CLI).
         self.nlm_bin = os.environ.get("NLM_BIN", "nlm")
 
@@ -58,6 +67,12 @@ class Settings:
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ]
+
+        # The built frontend (M6): when this dir exists, main.py serves it on the same port
+        # (one-port prod path); when absent — every dev flow — behavior is unchanged.
+        self.frontend_dist = Path(
+            os.environ.get("FRONTEND_DIST", str(backend_dir.parent / "frontend" / "dist"))
+        ).expanduser()
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)

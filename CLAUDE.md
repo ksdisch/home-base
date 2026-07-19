@@ -6,9 +6,9 @@
 > roster + notes** shipped (`docs/M2_PLAN.md`): config-file roster `sweeps/topics.json`
 > (8 topics, manual pause flags), read-time item ids + inline notes (`brief_notes` v5,
 > browsable at `/notes`), "Your learning" strip on Today. M1 record: `docs/M1_PLAN.md`.
-> **M0's grading week continues in parallel** — grade daily in `docs/M0-sweep-grades.md`
-> (Kyle overrode the "no UI until M0 passes" gate for M1 on Day 0, M2 on Day 1, and **M3 on
-> 2026-07-15** — deliberate, in writing; the go/no-go still rides on the 3 pilot topics).
+> **M0 closed 2026-07-19 — verdict PASS** (`docs/M0-sweep-grades.md`: full week graded +
+> source-verified audit, zero fabrications; AI sweep prompt tuned so exclusion carries the
+> same sourcing bar as inclusion. The five deliberate gate overrides are vindicated).
 > **M3 — hands-off** shipped 2026-07-15 (PR #43, `docs/M3_PLAN.md`): launchd 06:00 CT
 > scheduler + on-wake catch-up, read-time `developing` dedup labels, cost/usage ledger —
 > first unattended fire verified clean 2026-07-16 (8/8 topics). **M4 — audio brief** shipped
@@ -18,7 +18,21 @@
 > `docs/M5_PLAN.md`): "Ask about this" on every brief item — one grounded headless
 > `claude -p` answer per question (subscription lane, API key scrubbed, no web tools),
 > save-as-note via the existing notes API, usage ledger at `backend/data/brief-chat.jsonl`.
-> Next: the M0 verdict (~2026-07-19).
+> **M6 — mobile** shipped 2026-07-18 (PRs #55 + #56, `docs/M6_PLAN.md`; fourth deliberate
+> gate override, zero new LLM surface): FastAPI serves the built frontend on one port +
+> `com.homebase.server` KeepAlive LaunchAgent (+ printed pmset wake) · sw.js v2
+> cached-last-brief offline honesty (writes never queue) · bottom tab bar below `sm` +
+> Today/Notes phone pass (desktop untouched) · Tailscale tailnet reach. Mac-side live
+> verify clean incl. audio Range 206; real-iPhone reach verified from the phone's tailnet
+> IP (PR #64) — remaining: Kyle's eyes-on trio (standalone install · airplane banner · iOS
+> scrub). **M7 — news mode** shipped 2026-07-18 (PRs #58/#60/#62/#63 + polish #65–#67,
+> `docs/M7_PLAN.md`; fifth gate override, zero LLM, $0 pure-RSS): Google-News-style
+> second mode at `/news` — config categories (`sweeps/news_categories.json`, Local =
+> Chicago/Lake Co.) → Google News RSS w/ 15-min cache · `news_events` signal log +
+> card feedback · For You decaying-profile ranker (default tab, per-term search-feed
+> reach, honest cold start) · topic scout → one-click adds to the Mode-A roster
+> (dismiss-remembered). Next: M6 phone eyes-on proof (Kyle) + the ~08-03 v1
+> success-criteria check (≥5 mornings/week · events reach Kyle first · ≥3 notes/week).
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
@@ -35,9 +49,9 @@ to its checklist, board, and doc map. The detailed per-phase docs stay authorita
 These slash commands and skills are vendored into `.claude/` so they work in cloud/web
 sessions and for collaborators, not just on the original author's machine.
 
-Legend: ✅ cloud-safe · 💻 local-only (needs a browser/screenshots/dev server — won't run
-in cloud/web sessions) · ⚠️ needs the `nlm` CLI + NotebookLM auth (runs locally; in a cloud
-session only if `nlm`/MCP is configured there).
+Legend: ✅ cloud-safe · 💻 local-only (needs a browser/screenshots/dev server or local
+TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + NotebookLM auth
+(runs locally; in a cloud session only if `nlm`/MCP is configured there).
 
 ### Commands (`.claude/commands/`)
 
@@ -51,6 +65,18 @@ session only if `nlm`/MCP is configured there).
 | ✅ `/trim-context` | Find/fix CLAUDE.md + memory "token bloat" in the repo. |
 | ✅ `/autonomous-milestone` | Autonomously plan/build/test a milestone, or triage the backlog (ultracode multi-agent). |
 | ✅ `/build-course` | Plan-then-autonomous course creation — propose a syllabus, then author lessons/diagrams/flashcards/quizzes into a hub course (thin entry to `course-builder`). |
+| ✅ `/brainstorm` | Multi-mode structured brainstorm (Moonshot default) → `docs/ideas/` vision docs + backlog stubs. |
+| ✅ `/claudify-repo` | Vendor global commands/skills into this repo and/or brainstorm repo-specific automations. |
+| ✅ `/prompt-optimize` | One-shot prompt rewrite: workflow archetype + model + effort + ready-to-paste prompt. Advisory only. |
+| ✅ `/reframe-orchestrator` | Reframe `.claude/orchestrator.md` into a mode-independent invariants & gates doc. |
+| ✅ `/mock-sql-demo` | Text self-play mock SQL interview (interviewer + ideal candidate), then a debrief. |
+| 💻 `/boot_server` | Detect how the project is served, start the dev server, open it in Chrome. |
+| 💻 `/catchup` | Mid-session audio catch-up as an MP3 (local TTS); keeps working after. |
+| 💻 `/envsetup` | Open `.env` in the editor + the credential's generation page in Chrome, key stub pre-added. |
+| 💻 `/mock-sql-audio` | Full simulated SQL mock interview as an MP3 (local two-voice TTS). |
+| 💻 `/mock-sql-interview` | Live voice mock SQL interview (local voice mode). |
+| 💻 `/screenshot-iterate` | Visual loop: implement against a mock, screenshot the running app, compare, iterate. |
+| 💻 `/smoke-test` | Manual smoke test setup: opens pages in Chrome, checklist saved under `docs/smoke/`. |
 
 ### Skills (`.claude/skills/`)
 
@@ -64,6 +90,17 @@ session only if `nlm`/MCP is configured there).
 | ⚠️ `notebook-init` | Initialize a new NotebookLM notebook end-to-end. |
 | ⚠️ `notebook-assist` | Refine / brainstorm / manage sources for an existing NotebookLM notebook. |
 | ⚠️ `audio-series` | Generate an episodic NotebookLM audio series for a notebook. |
+| ✅ `bug-hunt` | Proactive bug hunt: fan out finder agents, adversarially verify findings, ranked triage list. |
+| ✅ `kickoff` | Deep discovery interview → approved kickoff brief + phased plan → scaffold a new project + GitHub repo. |
+| ✅ `mini` | Kick off a new mini project under `~/Projects/mini/` (short interview + scaffold). |
+| ✅ `project-guide` | Comprehensive point-in-time guide to the project (architecture, history, interview lens); dated file. |
+| ✅ `research-paper` | End-of-project research paper + presenter pack from recorded results; opens a PR, never merges. |
+| ✅ `seed-hunt` | End-of-project seed hunt: verify closure, harvest lessons, sweep arXiv, decision brief. |
+| ✅ `ship-and-route` | Land outstanding git work behind a review gate, walk findings, route the next move. |
+| 💻 `narrate` | Turn a short brief into a single-voice MP3 narration (local Kokoro TTS). |
+| ⚠️ `interview-prep` | Init/maintain a NotebookLM interview-prep notebook from the local job-search dossier. |
+| ⚠️ `notebook-merge` | Merge 2+ overlapping NotebookLM notebooks into one unified notebook. |
+| ⚠️ `video-series` | Generate an episodic NotebookLM video series for a notebook. |
 
 #### Repo-specific skills (scaffolded via `/claudify-repo` brainstorm)
 

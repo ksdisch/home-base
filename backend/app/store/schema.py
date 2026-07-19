@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 9
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -162,6 +162,46 @@ STATEMENTS = [
     # ``quiz_artifact_id = path``). ``ratings`` is a JSON map of criterion-name -> chosen level
     # label. Kept out of ``reflections`` on purpose so course self-assessments never leak into the
     # notebook reflection surfaces. v6 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER.
+    # M7 (news mode, Phase 1): per-category parsed-feed cache. ``payload`` is the JSON list of
+    # normalized items GET /api/news/<slug> serves; the ~15-min TTL (see ``app.news``) keeps
+    # loads instant without hammering Google News. Pure cache — rows are safely deletable, the
+    # next request refetches. v7 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER
+    # migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS news_feed_cache (
+        category_slug TEXT PRIMARY KEY,
+        payload       TEXT NOT NULL,
+        fetched_at    TEXT NOT NULL
+    )
+    """,
+    # M7 Phase 2 (news mode): the For-You signal log — one row per interaction in the news
+    # mode (click · visit · more_like · not_interested). Item events snapshot headline/source/
+    # url because ``news_feed_cache`` payloads roll over in minutes (same reasoning as
+    # ``brief_notes``' snapshots); Phase 3's decaying interest profile is derived from these
+    # rows and nothing else — Mode-A data (notes, chat, topics.json) is deliberately never an
+    # input. Not ``activity`` rows: that table feeds learning streaks. v8 adds this table; a
+    # plain CREATE IF NOT EXISTS needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS news_events (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        kind          TEXT NOT NULL,
+        category_slug TEXT NOT NULL,
+        item_id       TEXT,
+        headline      TEXT,
+        source        TEXT,
+        url           TEXT,
+        created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
+    # M7 Phase 4 (news mode): dismissed topic-scout suggestions — "don't suggest this term
+    # again". Terms are stored lowercased; the scout checks membership case-insensitively.
+    # v9 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS news_topic_dismissals (
+        term         TEXT PRIMARY KEY,
+        dismissed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+    """,
     """
     CREATE TABLE IF NOT EXISTS course_rubric_assessment (
         course_slug   TEXT NOT NULL,

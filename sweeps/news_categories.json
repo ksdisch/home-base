@@ -1,0 +1,65 @@
+[
+  {
+    "slug": "top",
+    "title": "Top stories",
+    "feeds": ["https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "local",
+    "title": "Local",
+    "feeds": [
+      "https://news.google.com/rss/headlines/section/geo/Chicago?hl=en-US&gl=US&ceid=US:en",
+      "https://news.google.com/rss/headlines/section/geo/Lake%20County%2C%20Illinois?hl=en-US&gl=US&ceid=US:en"
+    ]
+  },
+  {
+    "slug": "uplifting",
+    "title": "Uplifting",
+    "feeds": [
+      "https://www.goodnewsnetwork.org/feed/",
+      "https://www.positive.news/feed/",
+      "https://reasonstobecheerful.world/feed/",
+      "https://news.google.com/rss/search?q=%22good%20news%22%20OR%20uplifting%20OR%20heartwarming&hl=en-US&gl=US&ceid=US:en"
+    ]
+  },
+  {
+    "slug": "us",
+    "title": "U.S.",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/NATION?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "world",
+    "title": "World",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "business",
+    "title": "Business",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "technology",
+    "title": "Technology",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "science",
+    "title": "Science",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "health",
+    "title": "Health",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/HEALTH?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "sports",
+    "title": "Sports",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-US&gl=US&ceid=US:en"]
+  },
+  {
+    "slug": "entertainment",
+    "title": "Entertainment",
+    "feeds": ["https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en"]
+  }
+]

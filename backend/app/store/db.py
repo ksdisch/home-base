@@ -772,6 +772,166 @@ def set_course_assessment(
     }
 
 
+# -- news feed cache (M7) --------------------------------------------------------
+# The news mode's per-category parsed-feed cache (see ``app.news`` for TTL semantics).
+# Pure cache: a corrupt payload reads as "no cache" so the next request just refetches.
+
+
+def get_news_cache(
+    category_slug: str, db_path: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT payload, fetched_at FROM news_feed_cache WHERE category_slug = ?",
+            (category_slug,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return None
+    try:
+        items = json.loads(row["payload"])
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(items, list):
+        return None
+    return {"items": items, "fetched_at": row["fetched_at"]}
+
+
+def set_news_cache(
+    category_slug: str,
+    items: List[Dict[str, Any]],
+    *,
+    fetched_at: str,
+    db_path: Optional[Path] = None,
+) -> None:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO news_feed_cache (category_slug, payload, fetched_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(category_slug)
+            DO UPDATE SET payload = excluded.payload, fetched_at = excluded.fetched_at
+            """,
+            (category_slug, json.dumps(items), fetched_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# -- news events (M7 Phase 2) ----------------------------------------------------
+# The For-You signal log. Item events snapshot headline/source/url — cache payloads roll
+# over in minutes, and Phase 3's profile builder needs the headline terms after that.
+
+NEWS_EVENT_KINDS = ("click", "visit", "more_like", "not_interested")
+_NEWS_ITEM_KINDS = ("click", "more_like", "not_interested")
+
+
+def record_news_event(
+    kind: str,
+    category_slug: str,
+    *,
+    item_id: Optional[str] = None,
+    headline: Optional[str] = None,
+    source: Optional[str] = None,
+    url: Optional[str] = None,
+    db_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Append one interaction row. Item-scoped kinds require the item id + headline
+    snapshot (a term-less event is useless to the profile builder); ``visit`` needs only
+    the category. Returns the new row's id + created_at."""
+    if kind not in NEWS_EVENT_KINDS:
+        raise ValueError(f"kind must be one of {sorted(NEWS_EVENT_KINDS)}")
+    if not category_slug or not category_slug.strip():
+        raise ValueError("category_slug must be a non-empty string")
+    if kind in _NEWS_ITEM_KINDS:
+        if not item_id or not item_id.strip():
+            raise ValueError(f"a '{kind}' event requires item_id")
+        if not headline or not headline.strip():
+            raise ValueError(f"a '{kind}' event requires the item headline snapshot")
+    conn = connect(db_path)
+    try:
+        cur = conn.execute(
+            """
+            INSERT INTO news_events (kind, category_slug, item_id, headline, source, url)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                kind,
+                category_slug.strip(),
+                (item_id or "").strip() or None,
+                (headline or "").strip() or None,
+                (source or "").strip() or None,
+                (url or "").strip() or None,
+            ),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT id, created_at FROM news_events WHERE id = ?", (int(cur.lastrowid),)
+        ).fetchone()
+    finally:
+        conn.close()
+    return {"id": int(row["id"]), "created_at": row["created_at"]}
+
+
+def list_news_events(
+    *, limit: int = 2000, db_path: Optional[Path] = None
+) -> List[Dict[str, Any]]:
+    """Newest-first events — Phase 3's profile builder reads these (and nothing else)."""
+    limit = max(1, min(10000, int(limit)))
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT id, kind, category_slug, item_id, headline, source, url, created_at "
+            "FROM news_events ORDER BY created_at DESC, id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return [
+        {
+            "id": int(r["id"]),
+            "kind": r["kind"],
+            "category_slug": r["category_slug"],
+            "item_id": r["item_id"],
+            "headline": r["headline"],
+            "source": r["source"],
+            "url": r["url"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+def add_news_dismissal(term: str, db_path: Optional[Path] = None) -> str:
+    """Remember a dismissed topic-scout suggestion (M7 Phase 4) — stored lowercased,
+    re-dismissing is a no-op. Returns the normalized term."""
+    normalized = (term or "").strip().lower()
+    if not normalized:
+        raise ValueError("term must be a non-empty string")
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO news_topic_dismissals (term) VALUES (?)", (normalized,)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return normalized
+
+
+def list_news_dismissals(db_path: Optional[Path] = None) -> List[str]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute("SELECT term FROM news_topic_dismissals").fetchall()
+    finally:
+        conn.close()
+    return [r["term"] for r in rows]
+
+
 # -- custom topics -------------------------------------------------------------
 # Non-NotebookLM interests (a book, a YouTube series, a loose thread) tracked loosely with
 # manual progress + notes. The first writer for the Phase-5 ``custom_topics`` table; like all

@@ -1,7 +1,7 @@
 {
-  "name": "Learning Hub",
-  "short_name": "Learning Hub",
-  "description": "A calm dashboard over your NotebookLM notebooks.",
+  "name": "Home Base",
+  "short_name": "Home Base",
+  "description": "Kyle's daily home base — morning brief, notes, and the Learning Hub.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f6f3",

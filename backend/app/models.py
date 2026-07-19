@@ -670,3 +670,95 @@ class BriefChatRequest(BaseModel):
 
 class BriefChatResponse(BaseModel):
     answer: str  # markdown, grounded in the served item — ephemeral unless saved as a note
+
+
+# -- news mode (M7) --------------------------------------------------------------
+
+
+class NewsItem(BaseModel):
+    """One real article from a Google News RSS feed — ``url`` is a Google redirect link
+    that opens the original piece. Text-first: the feeds carry no images."""
+
+    id: str  # sha1(link)[:12] — stable across refetches, Phase 2's event anchor
+    headline: str
+    url: str
+    source: Optional[str] = None
+    published_at: Optional[str] = None  # UTC ISO 8601; None when the feed omitted it
+
+
+class NewsCategory(BaseModel):
+    slug: str
+    title: str
+
+
+class NewsCategoriesResponse(BaseModel):
+    generated_at: str
+    categories: List[NewsCategory] = []  # display order = sweeps/news_categories.json order
+
+
+class NewsCategoryResponse(BaseModel):
+    generated_at: str
+    slug: str
+    title: str
+    fetched_at: Optional[str] = None  # when this payload was pulled from Google News
+    stale: bool = False  # True = refresh failed, serving the expired cache honestly
+    items: List[NewsItem] = []
+
+
+class NewsEventCreate(BaseModel):
+    """One For-You signal (M7 Phase 2): click | visit | more_like | not_interested.
+    Item-scoped kinds carry the item snapshot — the feed cache rolls over in minutes,
+    so the profile builder can't join back to it later."""
+
+    kind: str
+    category_slug: str
+    item_id: Optional[str] = None
+    headline: Optional[str] = None
+    source: Optional[str] = None
+    url: Optional[str] = None
+
+
+class NewsEventResponse(BaseModel):
+    ok: bool = True
+    id: int
+    created_at: str
+
+
+class ForYouItem(NewsItem):
+    """A ranked item plus where it came from — a section slug, or ``search:<term>``
+    when the profile pulled it from beyond the standard categories (M7 Phase 3)."""
+
+    category_slug: Optional[str] = None
+
+
+class NewsTopicSuggestion(BaseModel):
+    """A topic-scout find (M7 Phase 4): a persistent interest the morning brief doesn't
+    cover yet, with the evidence the card shows."""
+
+    term: str
+    score: float
+    days_seen: int
+    example_headlines: List[str] = []
+
+
+class NewsForYouResponse(BaseModel):
+    generated_at: str
+    learning: bool  # cold start: fewer than the threshold of positive signals so far
+    event_count: int  # positive signals collected — the page shows progress toward warm
+    items: List[ForYouItem] = []
+    suggestions: List[NewsTopicSuggestion] = []  # the Mode-A bridge, dismissible
+
+
+class NewsSuggestionActionRequest(BaseModel):
+    term: str
+
+
+class NewsSuggestionAddResponse(BaseModel):
+    ok: bool = True
+    slug: str  # the roster entry the next 06:00 sweep will pick up
+    title: str
+
+
+class NewsSuggestionDismissResponse(BaseModel):
+    ok: bool = True
+    term: str  # normalized (lowercased) — never suggested again
