@@ -206,6 +206,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** BriefResponse gains a missing-topics field + one banner on Today; confirm a deliberately-failed topic shows as 'didn't run' instead of vanishing.
 - **Size:** S (QuickWin)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #82, RED→green — Wave 1): `BriefResponse.missing_topics` (active roster minus renderable slugs; `.raw.txt`-only counts, paused excluded, empty when no served day) + a warning Banner on Today, suppressed offline, tolerant of pre-QU12 cached payloads._
 
 #### [Exploration] The Silence Nobody Hears
 - **Why:** The whole Mac-local stack (both LaunchAgents, Tailscale, Kokoro, launchd, the nvm/venv/Homebrew paths baked into the plists) can stop firing with zero notification, so the first signal of death is an empty morning brief — by which point ... See [`docs/ideas/heartbeat-outside-the-app.md`](docs/ideas/heartbeat-outside-the-app.md) for the full write-up.
