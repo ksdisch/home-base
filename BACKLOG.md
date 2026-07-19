@@ -105,15 +105,17 @@ study-planner subagent (which would read it as context). Stub now, populate as t
   hosting; an architecture split — sweeps, Kokoro, `nlm`, and SQLite are Mac-local by
   design). _M6 (shipped 2026-07-18) retires the same-LAN half via Tailscale; this parked
   item is now only the remaining half._
-- **Migration ledger hardening** — found 2026-07-16: the live store's `question_mastery` was
-  missing the five v3 SM-2 columns even though `schema_migrations` recorded v3 as applied
-  (the table was empty and in its Phase-1 shape — most plausibly dropped/recreated outside the
-  app, e.g. via the sqlite MCP or a manual session; every SM-2 surface 500'd against the real
-  store until the columns were re-added by hand, with a file backup at
-  `backend/data/learning-hub.sqlite.bak-pre-v3-repair-20260716`). Idea: make `init_db` verify
-  reality instead of trusting the ledger — e.g. check `PRAGMA table_info` for each migration's
-  columns (or re-run the idempotent ALTERs unconditionally, since `_safe_alter` already
-  tolerates duplicates) so a poisoned/orphaned ledger row can't silently skip a migration.
+- **Migration ledger hardening** — ✅ shipped (PR #52, drafted 2026-07-17): `init_db` now re-runs every forward
+  migration unconditionally instead of gating on `schema_migrations` — the ledger records when
+  a version was first seen, but the table's real shape decides what gets altered (`_safe_alter`
+  already swallows "duplicate column"), so a poisoned/orphaned ledger row can no longer
+  silently skip a migration. Consequence, documented at `MIGRATIONS` in `app/store/schema.py`:
+  entries must stay idempotent-under-re-run (additive `ADD COLUMN`); a one-shot data backfill
+  would need its own gate. Regression tests in `backend/tests/test_migrations.py` (poisoned-
+  ledger heal + unknown-version ledger rows). _Original incident, 2026-07-16: the live store's
+  `question_mastery` lost its five v3 SM-2 columns to a drop/recreate outside the app while the
+  ledger still said v3 — every SM-2 surface 500'd until the columns were re-added by hand
+  (file backup at `backend/data/learning-hub.sqlite.bak-pre-v3-repair-20260716`)._
 
 ### ✅ Shipped: `custom_topics` CLI writer + Phase-5 UI
 

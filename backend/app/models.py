@@ -644,6 +644,21 @@ class BriefVisitResponse(BaseModel):
     visited_at: str
 
 
+class BriefHabitWeek(BaseModel):
+    """One local Monday-start week of the kickoff's habit metrics: ``mornings`` = distinct
+    days the Today page was opened (v1 target ≥5/week), ``notes`` = brief notes attached
+    (target ≥3/week)."""
+
+    week_start: str  # Monday, YYYY-MM-DD, local calendar
+    mornings: int = 0
+    notes: int = 0
+
+
+class BriefHabitResponse(BaseModel):
+    generated_at: str
+    weeks: List[BriefHabitWeek] = []  # oldest first; the last entry is the current week
+
+
 class BriefChatRequest(BaseModel):
     """One follow-up question about a served brief item (M5). The item_id is date-scoped
     (sha1(date|slug|headline)), so a stale tab's question naturally 404s after rollover."""

@@ -585,6 +585,20 @@ export interface BriefVisitResponse {
   visited_at: string;
 }
 
+// Habit instrumentation for the kickoff's v1 success check (~3 weeks in): mornings =
+// distinct local days the Today page was opened (target ≥5/week), notes = brief notes
+// attached (target ≥3/week). Weeks are local Monday-start.
+export interface BriefHabitWeek {
+  week_start: string; // Monday, YYYY-MM-DD, local calendar
+  mornings: number;
+  notes: number;
+}
+
+export interface BriefHabitResponse {
+  generated_at: string;
+  weeks: BriefHabitWeek[]; // oldest first; the last entry is the current week
+}
+
 // M5 chat-with-the-brief: one grounded follow-up answer about a served item. item_id is
 // date-scoped, so a stale tab's question 404s after the brief rolls to a new day.
 export interface BriefChatRequest {

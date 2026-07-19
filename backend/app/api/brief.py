@@ -25,6 +25,8 @@ from ..deps import get_app_settings, get_brief_chat_client
 from ..models import (
     BriefChatRequest,
     BriefChatResponse,
+    BriefHabitResponse,
+    BriefHabitWeek,
     BriefNote,
     BriefNoteCreate,
     BriefNoteDeleteResponse,
@@ -33,7 +35,13 @@ from ..models import (
     BriefTopic,
     BriefVisitResponse,
 )
-from ..store import add_brief_note, delete_brief_note, list_brief_notes, record_brief_visit
+from ..store import (
+    add_brief_note,
+    brief_habit_weeks,
+    delete_brief_note,
+    list_brief_notes,
+    record_brief_visit,
+)
 from ..sweeps import latest_sweep_date, load_brief_topics, load_roster, topic_title
 
 router = APIRouter()
@@ -148,6 +156,19 @@ def chat_about_brief_item(
 def log_brief_visit() -> BriefVisitResponse:
     row = record_brief_visit()
     return BriefVisitResponse(ok=True, day=row["day"], visited_at=row["visited_at"])
+
+
+@router.get("/brief/habit", response_model=BriefHabitResponse)
+def get_brief_habit(weeks: int = 4) -> BriefHabitResponse:
+    """Weekly visit/note counts — the first read surface for the visit log M1 only wrote.
+
+    Feeds the kickoff's v1 success check (~3 weeks in: ≥5 mornings/week · ≥3 notes/week)
+    so the evaluation is a glance at the Today strip, not a manual sqlite dig. ``weeks``
+    is clamped in the store layer (1–12)."""
+    return BriefHabitResponse(
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        weeks=[BriefHabitWeek(**w) for w in brief_habit_weeks(weeks)],
+    )
 
 
 @router.post("/brief/notes", response_model=BriefNote)
