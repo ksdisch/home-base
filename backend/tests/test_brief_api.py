@@ -216,14 +216,17 @@ def test_brief_bad_json_without_md_still_lists_topic(tmp_path, monkeypatch):
 
 
 def test_brief_skips_raw_txt_failures(tmp_path, monkeypatch):
-    """A sweep that failed validation left only .raw.txt — it must not reach the page."""
+    """A sweep that failed validation left only .raw.txt — it must not reach the page.
+
+    With no other day to fall back to, the whole day is unservable and the brief
+    honestly reports no data at all (latest_sweep_date skips contentless dirs)."""
     sweeps = _env(tmp_path, monkeypatch, "rawtxt")
     _write_day(sweeps, "2026-07-14", {"ai-llms.raw.txt": "unvalidated model output"})
     from app.config import get_settings
 
     try:
         body = _client().get("/api/brief").json()
-        assert body["date"] == "2026-07-14"
+        assert body["date"] is None
         assert body["topics"] == []
         assert body["has_data"] is False
     finally:
@@ -524,5 +527,61 @@ def test_brief_audio_404_when_no_sweeps_exist(tmp_path, monkeypatch):
 
     try:
         assert _client().get("/api/brief/audio").status_code == 404
+    finally:
+        get_settings.cache_clear()
+
+
+# -- newest-dir servability: an in-progress/failed day must not hide a good brief ---
+# (P1 bug #1, docs/bug-hunt/2026-07-19-post-m7.md — sweep.sh mkdir-p's the day folder
+# minutes before the first topic lands, and a fully failed sweep leaves only .raw.txt.)
+
+
+def test_brief_empty_newest_dir_serves_prior_day(tmp_path, monkeypatch):
+    """During the wake window (day dir created, no topic landed yet) yesterday's
+    complete brief must keep serving instead of an empty has_data=false page."""
+    sweeps = _env(tmp_path, monkeypatch, "emptynewest")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-14").mkdir()
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["date"] == "2026-07-13"
+        assert body["has_data"] is True
+        assert body["topics"][0]["slug"] == "ai-llms"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_all_failed_newest_dir_serves_prior_day(tmp_path, monkeypatch):
+    """A day where every topic failed validation (only .raw.txt) is unservable — it
+    must not hide the previous complete brief for the rest of the day."""
+    sweeps = _env(tmp_path, monkeypatch, "failednewest")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.raw.txt": "unvalidated model output"})
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["date"] == "2026-07-13"
+        assert body["has_data"] is True
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_follows_served_day_past_empty_newest_dir(tmp_path, monkeypatch):
+    """Audio tracks the served day: when the empty newest dir is skipped, the flag and
+    the stream both come from the day actually on the page."""
+    sweeps = _env(tmp_path, monkeypatch, "audiofollow")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-13" / "brief.mp3").write_bytes(b"SERVED-DAY-AUDIO")
+    (sweeps / "2026-07-14").mkdir()
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief").json()["audio_available"] is True
+        r = _client().get("/api/brief/audio")
+        assert r.status_code == 200
+        assert r.content == b"SERVED-DAY-AUDIO"
     finally:
         get_settings.cache_clear()

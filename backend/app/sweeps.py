@@ -59,12 +59,35 @@ def topic_title(slug: str, titles: Dict[str, str]) -> str:
     return titles.get(slug) or slug.replace("-", " ").capitalize()
 
 
+def _has_renderable_content(day_dir: Path) -> bool:
+    """True when the day folder holds at least one servable brief file (*.json / *.md).
+
+    sweep.sh mkdir-p's the day folder minutes before the first topic lands, and a fully
+    failed sweep leaves only .raw.txt — neither may count as a servable day, or the
+    morning wake window hides yesterday's complete brief behind has_data=false.
+    """
+    try:
+        return any(p.is_file() and p.suffix in (".json", ".md") for p in day_dir.iterdir())
+    except OSError:
+        return False
+
+
 def latest_sweep_date(sweeps_dir: Path) -> Optional[str]:
-    """Newest YYYY-MM-DD folder name, or None when no sweeps exist yet."""
+    """Newest YYYY-MM-DD folder with renderable content, or None when none exists yet.
+
+    An in-progress or fully-failed day dir (empty, or .raw.txt only) is skipped, so the
+    brief, audio, and chat surfaces all serve the newest day that can actually render.
+    """
     if not sweeps_dir.is_dir():
         return None
-    dates = [p.name for p in sweeps_dir.iterdir() if p.is_dir() and _DATE_DIR.match(p.name)]
-    return max(dates) if dates else None
+    dates = sorted(
+        (p.name for p in sweeps_dir.iterdir() if p.is_dir() and _DATE_DIR.match(p.name)),
+        reverse=True,
+    )
+    for d in dates:
+        if _has_renderable_content(sweeps_dir / d):
+            return d
+    return None
 
 
 def _split_md_header(text: str) -> tuple[Optional[str], str]:

@@ -283,3 +283,22 @@ def test_scrubbed_env_drops_the_api_key(monkeypatch):
     env = _scrubbed_env()
     assert "ANTHROPIC_API_KEY" not in env
     assert env  # everything else survives
+
+
+# -- newest-dir servability (P1 bug #1) ---------------------------------------------
+
+
+def test_chat_resolves_item_past_empty_newest_dir(tmp_path, monkeypatch):
+    """The wake-window empty day dir must not 404 chat for the brief actually on the
+    page — the served day is the newest day with renderable content."""
+    sweeps = _env(tmp_path, monkeypatch, "emptynewest")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (sweeps / "2026-07-14").mkdir()
+    client, app = _client(_fake_runner())
+    try:
+        body = client.get("/api/brief").json()
+        assert body["has_data"] is True  # the wake window must not blank the brief
+        item_id = body["topics"][0]["items"][0]["id"]
+        assert _chat(client, item_id).status_code == 200
+    finally:
+        _teardown(app)
