@@ -282,6 +282,61 @@ describe("Brief (Today page)", () => {
     expect(screen.getByRole("button", { name: "Ask about this" })).toBeEnabled();
   });
 
+  // QU12: a topic that didn't run is named on the page, never just absent.
+
+  it("names the active topics that didn't run in a banner", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        missing_topics: [
+          { slug: "fantasy-football", title: "Fantasy football" },
+          { slug: "st-louis-blues", title: "St. Louis Blues" },
+        ],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText(/2 topics didn't run today/)).toBeInTheDocument();
+    expect(screen.getByText(/Fantasy football · St\. Louis Blues/)).toBeInTheDocument();
+    // The topic that DID run still renders normally below the banner.
+    expect(screen.getByText("AI / LLMs")).toBeInTheDocument();
+  });
+
+  it("uses singular copy for one missing topic", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        missing_topics: [{ slug: "fantasy-football", title: "Fantasy football" }],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText(/1 topic didn't run today/)).toBeInTheDocument();
+  });
+
+  it("shows no didn't-run banner when the field is empty or absent (older cached payloads)", async () => {
+    // STRUCTURED deliberately has no missing_topics key — the pre-QU12 shape a stale
+    // service-worker cache can replay; the page must neither crash nor invent a banner.
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("AI / LLMs")).toBeInTheDocument();
+    expect(screen.queryByText(/didn't run today/)).not.toBeInTheDocument();
+  });
+
+  it("suppresses the didn't-run banner on an offline replay (the cached morning is already flagged)", async () => {
+    briefWithMeta.mockResolvedValue(
+      offline({
+        ...STRUCTURED,
+        missing_topics: [{ slug: "fantasy-football", title: "Fantasy football" }],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("Offline copy")).toBeInTheDocument();
+    expect(screen.queryByText(/didn't run today/)).not.toBeInTheDocument();
+  });
+
   it("shows the habit strip when there's weekly signal, dropping all-zero history weeks", async () => {
     briefWithMeta.mockResolvedValue(online(STRUCTURED));
     briefHabit.mockResolvedValue({

@@ -27,6 +27,7 @@ from ..models import (
     BriefChatResponse,
     BriefHabitResponse,
     BriefHabitWeek,
+    BriefMissingTopic,
     BriefNote,
     BriefNoteCreate,
     BriefNoteDeleteResponse,
@@ -57,10 +58,10 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
     date = latest_sweep_date(settings.sweeps_dir)
     roster = load_roster(settings.roster_file)
     raw_topics = load_brief_topics(settings.sweeps_dir, date, roster) if date else []
+    titles = {t["slug"]: t["title"] for t in roster if t["title"]}
 
     # Join the served day's notes onto their items (oldest first — reading order).
     if date and raw_topics:
-        titles = {t["slug"]: t["title"] for t in roster if t["title"]}
         notes_by_item: Dict[str, List[dict]] = {}
         for note in reversed(list_brief_notes(brief_date=date)):
             note["topic_title"] = topic_title(note["topic_slug"], titles)
@@ -69,12 +70,26 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
             for item in topic.get("items", []):
                 item["notes"] = notes_by_item.get(item["id"], [])
 
+    # QU12: name the active roster topics that produced nothing renderable for the served
+    # day (a .raw.txt-only validation failure counts — load_brief_topics skips it). A quiet
+    # topic and a crashed topic must not look the same on the page. Paused entries are a
+    # legitimate absence; no served day at all is the page-level has_data=false story.
+    missing: List[BriefMissingTopic] = []
+    if date:
+        present = {t["slug"] for t in raw_topics}
+        missing = [
+            BriefMissingTopic(slug=t["slug"], title=topic_title(t["slug"], titles))
+            for t in roster
+            if not t["paused"] and t["slug"] not in present
+        ]
+
     return BriefResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         has_data=len(raw_topics) > 0,
         date=date,
         topics=[BriefTopic(**t) for t in raw_topics],
         audio_available=bool(date) and (settings.sweeps_dir / date / "brief.mp3").is_file(),
+        missing_topics=missing,
     )
 
 

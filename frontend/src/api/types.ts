@@ -613,6 +613,13 @@ export interface BriefTopic {
   error?: string | null;
 }
 
+// QU12: an active roster topic that produced no renderable file for the served day —
+// named on the page so a crashed topic is visible instead of just absent.
+export interface BriefMissingTopic {
+  slug: string;
+  title: string;
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -620,6 +627,9 @@ export interface BriefResponse {
   topics: BriefTopic[];
   // M4: the served day has a narrated brief.mp3 — GET /api/brief/audio streams it.
   audio_available: boolean;
+  // QU12: active (non-paused) roster topics missing from the served day, roster order.
+  // Optional so a pre-QU12 payload replayed from the service-worker cache stays valid.
+  missing_topics?: BriefMissingTopic[];
 }
 
 export interface BriefVisitResponse {
