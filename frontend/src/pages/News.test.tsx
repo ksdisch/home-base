@@ -9,6 +9,7 @@ const newsForYou = vi.fn();
 const logNewsEvent = vi.fn();
 const addNewsTopic = vi.fn();
 const dismissNewsSuggestion = vi.fn();
+const addBriefNote = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     newsCategories: () => newsCategories(),
@@ -17,6 +18,7 @@ vi.mock("../api/client", () => ({
     logNewsEvent: (body: unknown) => logNewsEvent(body),
     addNewsTopic: (body: unknown) => addNewsTopic(body),
     dismissNewsSuggestion: (body: unknown) => dismissNewsSuggestion(body),
+    addBriefNote: (body: unknown) => addBriefNote(body),
   },
 }));
 
@@ -114,6 +116,7 @@ beforeEach(() => {
   logNewsEvent.mockReset();
   addNewsTopic.mockReset();
   dismissNewsSuggestion.mockReset();
+  addBriefNote.mockReset();
   logNewsEvent.mockResolvedValue({ ok: true, id: 1, created_at: "now" });
 });
 
@@ -312,5 +315,73 @@ describe("News (M7)", () => {
       expect(screen.queryByText("Big national story")).not.toBeInTheDocument(),
     );
     expect(screen.getByText("Undated story")).toBeInTheDocument(); // only that card hides
+  });
+
+  // -- QU5 notes-on-News: the note verb reaches the grazing surface -----------------
+
+  const localToday = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  };
+
+  it("saves a note on a category card through the one brief-notes path", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    addBriefNote.mockResolvedValue({ id: 1 });
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    fireEvent.click(screen.getByLabelText("Note on Big national story"));
+    fireEvent.change(screen.getByPlaceholderText(/Your take/), {
+      target: { value: "Worth tracking" },
+    });
+    fireEvent.click(screen.getByText("Save note"));
+
+    expect(await screen.findByText("✓ Saved")).toBeInTheDocument();
+    expect(addBriefNote).toHaveBeenCalledWith({
+      item_id: "abc123abc123",
+      topic_slug: "top",
+      brief_date: localToday(),
+      item_headline: "Big national story",
+      body: "Worth tracking",
+    });
+  });
+
+  it("credits a For You note to its origin section, like the signals", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    addBriefNote.mockResolvedValue({ id: 2 });
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    fireEvent.click(screen.getByLabelText("Note on Ranked quantum story"));
+    fireEvent.change(screen.getByPlaceholderText(/Your take/), {
+      target: { value: "Keep an eye on this" },
+    });
+    fireEvent.click(screen.getByText("Save note"));
+
+    await screen.findByText("✓ Saved");
+    expect(addBriefNote).toHaveBeenCalledWith(
+      expect.objectContaining({ topic_slug: "top", item_id: "fy1fy1fy1fy1" }),
+    );
+  });
+
+  it("a failed note save shows the error and keeps the composer open", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    addBriefNote.mockRejectedValue(new Error("hub unreachable"));
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    fireEvent.click(screen.getByLabelText("Note on Big national story"));
+    fireEvent.change(screen.getByPlaceholderText(/Your take/), {
+      target: { value: "Worth tracking" },
+    });
+    fireEvent.click(screen.getByText("Save note"));
+
+    expect(await screen.findByText(/hub unreachable/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Your take/)).toBeInTheDocument();
+    expect(screen.queryByText("✓ Saved")).not.toBeInTheDocument();
   });
 });

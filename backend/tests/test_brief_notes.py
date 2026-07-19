@@ -270,3 +270,38 @@ def test_note_empty_body_is_400(tmp_path, monkeypatch):
         assert client.get("/api/brief/notes").json()["notes"] == []
     finally:
         get_settings.cache_clear()
+
+
+# -- QU5 notes-on-News: the same write path serves the second surface ----------------
+# (docs/ideas/notes-on-news.md — a News/For-You card's note goes through POST /brief/notes
+# with the category slug as topic_slug; the snapshot columns were built to make a note
+# self-contained, so a slug that never appears in the Mode-A roster must still round-trip.)
+
+
+def test_note_on_a_news_category_slug_round_trips(tmp_path, monkeypatch):
+    """A news-card note (category slug, sha1(link) id, no sweep file anywhere) writes
+    through the one notes path and browses on /notes with the humanized title fallback."""
+    _env(tmp_path, monkeypatch, "newsnote")
+    from app.config import get_settings
+
+    try:
+        client = _client()
+        res = client.post(
+            "/api/brief/notes",
+            json={
+                "item_id": "loc111loc111",
+                "topic_slug": "local",  # a news category — deliberately not in the roster
+                "brief_date": "2026-07-19",
+                "item_headline": "Lake County story",
+                "body": "Worth tracking",
+            },
+        )
+        assert res.status_code == 200
+        assert res.json()["topic_title"] == "Local"  # humanized fallback, not a roster title
+
+        browse = client.get("/api/brief/notes").json()["notes"]
+        assert [n["item_headline"] for n in browse] == ["Lake County story"]
+        assert browse[0]["topic_title"] == "Local"
+        assert browse[0]["topic_slug"] == "local"
+    finally:
+        get_settings.cache_clear()
