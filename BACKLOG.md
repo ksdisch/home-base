@@ -287,6 +287,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Make latest_sweep_date (or a wrapper shared by brief/audio/chat) skip date dirs containing no *.json/*.md, returning the newest day with renderable content; optionally expose the newer folder's in-progress/failed stat... Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #73, RED→green): `latest_sweep_date` skips date dirs with no renderable `*.json`/`*.md` — brief, audio, and chat all serve the newest day that can actually render._
 
 #### [Bug] [P1] #2: Scout one-click add creates a roster topic with no sweep prompt
 - **Where:** `backend/app/news.py:83-107` · severity medium · confidence high
