@@ -157,6 +157,11 @@ def test_progress_streak_agrees_with_local_days_end_to_end(far_tz, tmp_path, mon
     Today's row goes through a real writer and yesterday's is seeded as the fixed
     writers file it; the /api/progress reader's "today" must be on the same local
     calendar — a UTC leak on either side breaks the pair under the far TZ."""
+    # Import app.main BEFORE swapping the env: its one-time module import runs init_db()
+    # against the live settings, and this file sorts first in the suite — importing under
+    # a monkeypatched env would steal the session store's init from every later API test.
+    from app.main import app
+
     monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / "hub"))
     monkeypatch.setenv("NOTEBOOKLM_ROOT", str(tmp_path / "empty-nbs"))
     from app.config import get_settings
@@ -177,8 +182,6 @@ def test_progress_streak_agrees_with_local_days_end_to_end(far_tz, tmp_path, mon
             conn.close()
 
         from fastapi.testclient import TestClient
-
-        from app.main import app
 
         body = TestClient(app).get("/api/progress").json()
         assert body["summary"]["current_streak"] == 2

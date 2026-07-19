@@ -62,6 +62,16 @@ def init_db(db_path: Optional[Path] = None) -> None:
         conn.close()
 
 
+def _local_day(now_dt: datetime) -> str:
+    """The LOCAL calendar day of a (naive-UTC or aware) instant — ``activity.day`` buckets
+    match ``brief_visits``: a 7pm CDT session belongs to today, not tomorrow's UTC date
+    (the hazard store/schema.py documents). Timestamps stay UTC; only day buckets are local.
+    """
+    if now_dt.tzinfo is None:
+        now_dt = now_dt.replace(tzinfo=timezone.utc)
+    return now_dt.astimezone().date().isoformat()
+
+
 def set_episode_listened(
     notebook_id: str, artifact_id: str, listened: bool, db_path: Optional[Path] = None
 ) -> bool:
@@ -77,7 +87,7 @@ def set_episode_listened(
             (notebook_id, artifact_id, 1 if listened else 0),
         )
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), ?, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), ?, ?)",
             (notebook_id, "episode_listened" if listened else "episode_unlistened"),
         )
         conn.commit()
@@ -105,7 +115,7 @@ def save_reflection(
             (notebook_id, episode_artifact_id, body, grasp_rating),
         )
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), ?, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), ?, ?)",
             (notebook_id, "reflection"),
         )
         conn.commit()
@@ -353,7 +363,7 @@ def record_attempt(
     """
     now_dt = now or scheduler.now_utc()
     now_str = scheduler.fmt_ts(now_dt)
-    now_date = now_str[:10]  # "YYYY-MM-DD" — the injected day for activity rows
+    now_date = _local_day(now_dt)  # activity.day is the LOCAL calendar day, timestamps stay UTC
     conn = connect(db_path)
     try:
         cur = conn.execute(
@@ -507,7 +517,7 @@ def set_lesson_completed(
             (course_slug, lesson_id, 1 if completed else 0),
         )
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), NULL, ?)",
             ("lesson_completed" if completed else "lesson_uncompleted",),
         )
         conn.commit()
@@ -641,7 +651,7 @@ def record_flashcard_review(
         )
         conn.execute(
             "INSERT INTO activity (day, notebook_id, kind) VALUES (?, ?, ?)",
-            (now_str[:10], notebook_id, "flashcard_review"),
+            (_local_day(now_dt), notebook_id, "flashcard_review"),
         )
         conn.commit()
     finally:
@@ -753,7 +763,7 @@ def set_course_assessment(
             (course_slug, material_path, self_rating, ratings_json, note or ""),
         )
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), NULL, ?)",
             ("project_assessed",),
         )
         row = conn.execute(
@@ -975,7 +985,7 @@ def add_custom_topic(
         )
         topic_id = int(cur.lastrowid)
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), NULL, ?)",
             ("custom_topic_added",),
         )
         conn.commit()
@@ -1051,7 +1061,7 @@ def update_custom_topic(
             conn.rollback()
             return None
         conn.execute(
-            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now'), NULL, ?)",
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), NULL, ?)",
             ("custom_topic_updated",),
         )
         conn.commit()

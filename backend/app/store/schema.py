@@ -105,7 +105,10 @@ STATEMENTS = [
         PRIMARY KEY (notebook_id, quiz_artifact_id, question_key)
     )
     """,
-    # Daily activity rollup -> streaks.
+    # Daily activity rollup -> streaks. `day` is the LOCAL calendar day, same rule as
+    # brief_visits below (sqlite's date('now') is UTC and would file a 7pm CDT session
+    # under tomorrow): raw-SQL writers use date('now','localtime'), the injected-now
+    # writers derive it via db._local_day, and the /api/progress reader's "today" is local.
     """
     CREATE TABLE IF NOT EXISTS activity (
         day         TEXT NOT NULL,
