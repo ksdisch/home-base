@@ -80,12 +80,41 @@ def load_news_categories(path: Path) -> List[Dict[str, Any]]:
     return out
 
 
+_PROMPT_TEMPLATE_NAME = "_template.md"
+
+
+def _write_topic_prompt(roster_file: Path, slug: str, title: str) -> None:
+    """Ensure ``prompts/<slug>.md`` exists before the roster names the topic (P1 bug #2).
+
+    sweep.sh requires a prompt file per roster topic and counts its absence as a failure
+    (rc=1 every morning), so the add must produce both artifacts or neither. The prompt
+    is stamped from the checked-in ``_template.md`` living next to the hand-written
+    prompts (same strict-JSON contract, same M0-tuned sourcing bar); an existing file —
+    a hand-tuned prompt — is never overwritten. Raises ValueError when no usable
+    template exists: better to refuse the add than to poison every subsequent sweep.
+    """
+    prompts_dir = Path(roster_file).parent / "prompts"
+    prompt_path = prompts_dir / f"{slug}.md"
+    if prompt_path.is_file():
+        return
+    try:
+        template = (prompts_dir / _PROMPT_TEMPLATE_NAME).read_text(encoding="utf-8")
+    except OSError as e:
+        raise ValueError(f"sweep prompt template is unusable ({e}) — topic not added")
+    tmp = Path(f"{prompt_path}.tmp")
+    tmp.write_text(template.replace("{{TITLE}}", title), encoding="utf-8")
+    tmp.replace(prompt_path)
+
+
 def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
     """The topic scout's one write (M7 Phase 4): append a suggested term to the Mode-A
     roster (``sweeps/topics.json``) so the next 06:00 sweep picks it up. The file is the
     hub's own config — this is the single deliberate Mode-B → Mode-A bridge. Preserves
     the existing entries verbatim, refuses duplicates by slug, and writes atomically
-    (sweep.sh reads this file). Raises ValueError on bad input or an unusable roster."""
+    (sweep.sh reads this file). Also stamps ``prompts/<slug>.md`` from the generic
+    template first — prompt then roster, so a failure can never leave a roster topic
+    the sweep counts as a permanent failure (an orphan prompt file is inert and gets
+    reused on retry). Raises ValueError on bad input or an unusable roster/template."""
     term = (term or "").strip()
     if not term:
         raise ValueError("term must be a non-empty string")
@@ -101,6 +130,7 @@ def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
     if any(isinstance(t, dict) and t.get("slug") == slug for t in roster):
         raise ValueError(f"'{slug}' is already on the roster")
     entry = {"slug": slug, "title": term.title(), "paused": False}
+    _write_topic_prompt(roster_file, slug, entry["title"])
     tmp = Path(f"{roster_file}.tmp")
     tmp.write_text(json.dumps(roster + [entry], indent=2) + "\n", encoding="utf-8")
     tmp.replace(roster_file)

@@ -295,6 +295,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Have append_roster_topic also write sweeps/prompts/<slug>.md from a generic template parameterized by the term (matching the M0-tuned sourcing bar), or make sweep.sh fall back to a generic prompt instead of a permanen... QuickWin + Friction lanes converged on this same guard (fold their variants in). Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #74, RED→green): the add stamps `prompts/<slug>.md` from the new checked-in `sweeps/prompts/_template.md` (M0-tuned hard rules verbatim) before the roster append; hand-tuned prompts never overwritten; missing template fails the add closed._
 
 #### [Bug] [P1] #3: One dead feed in a multi-feed category discards all successfully fetched feeds and freezes the category on ...
 - **Where:** `backend/app/news.py:183-191` · severity medium · confidence high
