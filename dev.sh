@@ -9,6 +9,23 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
 
+# Refuse to start when the backend port is already taken — almost always the
+# com.homebase.server KeepAlive LaunchAgent (the always-on prod hub). Without this
+# guard the dev uvicorn dies at bind in its backgrounded subshell while Vite comes
+# up anyway and silently proxies /api to the PROD server: backend edits never apply
+# and dev-frontend writes land in the prod SQLite/ledgers. BACKEND_PORT is
+# overridable so the guard is testable; real runs use the default 8000.
+BACKEND_PORT="${BACKEND_PORT:-8000}"
+if lsof -ti "tcp:${BACKEND_PORT}" >/dev/null 2>&1; then
+  echo "!! port ${BACKEND_PORT} is already in use — most likely com.homebase.server," >&2
+  echo "   the KeepAlive prod hub. Starting dev now would silently point Vite's /api" >&2
+  echo "   proxy at the PROD server (backend edits never apply; dev writes mutate" >&2
+  echo "   prod data)." >&2
+  echo "   Stop it first:   launchctl bootout \"gui/\$(id -u)/com.homebase.server\"" >&2
+  echo "   Bring it back:   ./sweeps/schedule/install-server.sh" >&2
+  exit 1
+fi
+
 pick_python() {
   if [ -n "${PYTHON:-}" ]; then echo "$PYTHON"; return; fi
   for c in python3.12 python3.11 python3; do
@@ -60,8 +77,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "› backend  → http://localhost:8000   (API under /api)"
-( cd "$BACKEND" && exec ./.venv/bin/python -m uvicorn app.main:app --reload --port 8000 ) &
+echo "› backend  → http://localhost:${BACKEND_PORT}   (API under /api)"
+( cd "$BACKEND" && exec ./.venv/bin/python -m uvicorn app.main:app --reload --port "$BACKEND_PORT" ) &
 pids+=($!)
 
 echo "› frontend → http://localhost:5173   ← open this"
