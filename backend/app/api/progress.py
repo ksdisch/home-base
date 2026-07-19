@@ -61,7 +61,9 @@ def get_progress(settings=Depends(get_app_settings)) -> ProgressResponse:
         return labels.get(notebook_id, {})
 
     summary_raw = store_progress.overall_summary()
-    today = datetime.now(timezone.utc).date()
+    # activity.day is bucketed on the LOCAL calendar (see the activity note in store.schema),
+    # so "today" for streaks/the strip must be local too — not the UTC date.
+    today = datetime.now().astimezone().date()
     current, longest = store_progress.compute_streaks(
         store_progress.activity_days(), today
     )
