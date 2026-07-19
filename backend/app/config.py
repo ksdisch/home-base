@@ -62,6 +62,11 @@ class Settings:
         # strictly read-only over data/sweeps.
         self.brief_chat_ledger = self.data_dir / "brief-chat.jsonl"
 
+        # Courses M5 authoring loop: the model for POST /courses/{slug}/lessons/{id}/regenerate
+        # (same claude binary + subscription-lane guards as brief chat) and its usage ledger.
+        self.course_regen_model = os.environ.get("COURSE_REGEN_MODEL", "sonnet")
+        self.course_regen_ledger = self.data_dir / "course-regen.jsonl"
+
         # Vite dev origin(s). CORS also allows private-LAN origins via regex (see main.py).
         self.cors_origins = [
             "http://localhost:5173",

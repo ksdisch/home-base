@@ -590,6 +590,31 @@ class CourseEditResponse(BaseModel):
     warnings: List[str] = []
 
 
+class CourseRegenRequest(BaseModel):
+    """The body of ``POST /courses/{slug}/lessons/{id}/regenerate`` — ONE file-backed material
+    (``path`` must be declared by that lesson), plus optional free-text guidance for the model.
+    The UI sequences multiple materials as separate calls."""
+
+    path: str
+    guidance: str = ""
+
+
+class CourseRegenResponse(BaseModel):
+    """The outcome of a regeneration. ``ok=False`` + ``errors`` means the model's output failed
+    course validation and was rolled back (files untouched); ``error`` is set when the model
+    output itself was unusable. Cost fields come from the claude envelope when available."""
+
+    ok: bool
+    path: str
+    rolled_back: bool = False
+    errors: List[str] = []
+    warnings: List[str] = []
+    error: Optional[str] = None
+    count: Optional[int] = None
+    duration_ms: Optional[int] = None
+    total_cost_usd: Optional[float] = None
+
+
 class BriefSource(BaseModel):
     title: str
     url: str

@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..catalog.build import to_card
 from ..catalog.ingest import load_sidecars
@@ -30,7 +30,17 @@ from ..courses import (
     next_actions,
     read_material,
 )
-from ..courses.writer import edit_manifest, pin_ids, user_course_dir
+from ..courses.regen import (
+    REGENERABLE_TYPES,
+    CourseRegenClient,
+    CourseRegenError,
+    append_regen_ledger,
+    build_prompt,
+    extract_content,
+    max_guidance_chars,
+)
+from ..courses.writer import edit_manifest, pin_ids, user_course_dir, write_material
+from ..deps import get_course_regen_client
 from ..models import (
     CourseAssessment,
     CourseAssessmentRequest,
@@ -45,6 +55,8 @@ from ..models import (
     CourseObjectivesUpdate,
     CourseOrderUpdate,
     CourseQuizState,
+    CourseRegenRequest,
+    CourseRegenResponse,
     CourseQuizzesResponse,
     CoursesResponse,
     CourseSummary,
@@ -368,6 +380,108 @@ def reorder_course(slug: str, body: CourseOrderUpdate) -> CourseEditResponse:
         raw["modules"] = new_modules
 
     return _edit(slug, mutate)
+
+
+def _lesson_material(
+    course: Dict[str, Any], lesson_id: str, path: str
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """(module, lesson, material) for a material THAT lesson declares at ``path`` — you can't
+    regenerate an arbitrary file (same posture as ``assess``). 404 otherwise."""
+    for m in course["modules"]:
+        for lsn in m["lessons"]:
+            if lsn["id"] != lesson_id:
+                continue
+            for mat in lsn["materials"]:
+                if mat.get("path") == path:
+                    return m, lsn, mat
+    raise HTTPException(
+        status_code=404, detail=f"No material '{path}' in lesson '{lesson_id}'."
+    )
+
+
+@router.post(
+    "/courses/{slug}/lessons/{lesson_id}/regenerate", response_model=CourseRegenResponse
+)
+def regenerate_material(
+    slug: str,
+    lesson_id: str,
+    body: CourseRegenRequest,
+    client: CourseRegenClient = Depends(get_course_regen_client),
+) -> CourseRegenResponse:
+    """M5's flagship: rewrite ONE of a lesson's materials on the headless claude lane
+    (subscription billing, API key scrubbed, no tools — the chat.py precedent). Validation is
+    the gate: the new content lands only if the whole course still validates; otherwise it
+    rolls back byte-identical and the errors come back as ``ok=False``. Regenerating a deck or
+    quiz resets the replaced items' SM-2/attempt stats by design (identity is content/path
+    keyed). Every run — success, rollback, or failure — lands in the course-regen ledger."""
+    guidance = body.guidance.strip()
+    if len(guidance) > max_guidance_chars():
+        raise HTTPException(
+            status_code=400,
+            detail=f"guidance is limited to {max_guidance_chars()} characters",
+        )
+    course = _editable_course(slug, lesson_id=lesson_id)
+    module, lesson, material = _lesson_material(course, lesson_id, body.path)
+    if material.get("type") not in REGENERABLE_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"'{material.get('type')}' materials can't be regenerated — only "
+                f"{sorted(REGENERABLE_TYPES)}"
+            ),
+        )
+    try:
+        current = material_path(slug, body.path).read_text(encoding="utf-8")
+    except (CourseError, OSError, UnicodeDecodeError) as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    settings = get_settings()
+
+    def ledger(**kw: Any) -> None:
+        append_regen_ledger(
+            settings.course_regen_ledger,
+            slug=slug,
+            lesson_id=lesson_id,
+            material_path=body.path,
+            material_type=material["type"],
+            model=client.model,
+            **kw,
+        )
+
+    prompt = build_prompt(course, module, lesson, material, current, guidance)
+    try:
+        out = client.ask(prompt)
+    except CourseRegenError as e:
+        ledger(error=f"{e}: {e.detail}"[:300] if e.detail else str(e))
+        raise HTTPException(status_code=502, detail=str(e))
+    envelope = out["envelope"]
+    try:
+        content, count = extract_content(material["type"], out["answer"])
+    except CourseRegenError as e:
+        ledger(envelope=envelope, error=str(e))
+        return CourseRegenResponse(
+            ok=False,
+            path=body.path,
+            error=str(e),
+            duration_ms=envelope.get("duration_ms"),
+            total_cost_usd=envelope.get("total_cost_usd"),
+        )
+    try:
+        report = write_material(slug, body.path, content, count=count)
+    except CourseError as e:
+        ledger(envelope=envelope, error=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
+    ledger(envelope=envelope, rolled_back=bool(report.get("rolled_back")))
+    return CourseRegenResponse(
+        ok=bool(report.get("ok")),
+        path=body.path,
+        rolled_back=bool(report.get("rolled_back")),
+        errors=report.get("errors", []),
+        warnings=report.get("warnings", []),
+        count=count,
+        duration_ms=envelope.get("duration_ms"),
+        total_cost_usd=envelope.get("total_cost_usd"),
+    )
 
 
 @router.post("/courses/{slug}/quiz/prepare", response_model=QuizPrepareResponse)
