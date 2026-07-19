@@ -686,6 +686,14 @@ class BriefTopic(BaseModel):
     error: Optional[str] = None
 
 
+class BriefMissingTopic(BaseModel):
+    """An active roster topic that produced no renderable file for the served day (QU12) —
+    named on the page so a crashed topic is visible instead of just absent."""
+
+    slug: str
+    title: str
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -693,6 +701,9 @@ class BriefResponse(BaseModel):
     topics: List[BriefTopic] = []
     # M4: data/sweeps/<date>/brief.mp3 exists for the served day — GET /brief/audio streams it.
     audio_available: bool = False
+    # QU12: active (non-paused) roster topics missing from the served day, roster order.
+    # Empty when there's no served day at all — has_data=false already tells that story.
+    missing_topics: List[BriefMissingTopic] = []
 
 
 class BriefVisitResponse(BaseModel):

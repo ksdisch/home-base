@@ -376,6 +376,7 @@ export default function Brief() {
   }, []);
 
   const stale = brief?.date != null && brief.date < localToday();
+  const missingTopics = brief?.missing_topics ?? [];
 
   return (
     <div>
@@ -427,6 +428,27 @@ export default function Brief() {
             Run{" "}
             <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
             for a fresh one — it takes a few minutes, then lands here on reload.
+          </Banner>
+        </div>
+      )}
+
+      {/* QU12: active roster topics with nothing renderable for the served day — a quiet
+          topic renders a section, a crashed one gets named here instead of vanishing.
+          Suppressed offline like the stale hint: `make sweep` needs the hub reachable. */}
+      {missingTopics.length > 0 && !fromCache && (
+        <div className="mb-6">
+          <Banner
+            tone="warning"
+            title={
+              missingTopics.length === 1
+                ? "1 topic didn't run today"
+                : `${missingTopics.length} topics didn't run today`
+            }
+          >
+            {missingTopics.map((t) => t.title).join(" · ")} — the sweep failed or didn't
+            validate, so there's no section below. Rerun with{" "}
+            <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
+            if it persists.
           </Banner>
         </div>
       )}

@@ -585,3 +585,108 @@ def test_brief_audio_follows_served_day_past_empty_newest_dir(tmp_path, monkeypa
         assert r.content == b"SERVED-DAY-AUDIO"
     finally:
         get_settings.cache_clear()
+
+
+# -- missing-topic honesty (QU12): a topic that didn't run is named, not just absent ---
+# (docs/ideas/topic-didnt-run-banner.md — server-side diff of the active roster against
+# the slugs that produced a renderable file for the served day. Complements P1 bug #1:
+# that fix covers the whole-day case, this covers the per-topic one.)
+
+
+def test_brief_reports_missing_active_topics(tmp_path, monkeypatch):
+    """Active roster topics with no renderable file for the served day land in
+    missing_topics (roster order, roster titles); a topic that produced ANY renderable
+    file — even a legacy .md fallback — is present, not missing."""
+    sweeps = _env(tmp_path, monkeypatch, "missing")
+    _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "market-tech-news.md": LEGACY_MD.replace("fantasy-football", "market-tech-news"),
+        },
+    )
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["has_data"] is True
+        assert body["missing_topics"] == [
+            {"slug": "fantasy-football", "title": "Fantasy football"}
+        ]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_missing_excludes_paused_topics(tmp_path, monkeypatch):
+    """A paused roster entry that produced nothing is a legitimate absence, never a
+    'didn't run' — the pause flag is the exclusion predicate."""
+    roster = [
+        {"slug": "ai-llms", "title": "AI / LLMs", "paused": False},
+        {"slug": "st-louis-blues", "title": "St. Louis Blues", "paused": True},
+    ]
+    sweeps = _env(tmp_path, monkeypatch, "missingpaused", roster=roster)
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief").json()["missing_topics"] == []
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_missing_empty_when_every_active_topic_ran(tmp_path, monkeypatch):
+    sweeps = _env(tmp_path, monkeypatch, "missingnone")
+    _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "fantasy-football.json": json.dumps({**VALID_BRIEF, "topic": "fantasy-football"}),
+            "market-tech-news.json": json.dumps({**VALID_BRIEF, "topic": "market-tech-news"}),
+        },
+    )
+    from app.config import get_settings
+
+    try:
+        assert _client().get("/api/brief").json()["missing_topics"] == []
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_missing_includes_raw_txt_only_topic(tmp_path, monkeypatch):
+    """A topic whose sweep failed validation (only .raw.txt on disk) produced nothing
+    renderable — it must be named as missing, not silently vanish from the page."""
+    sweeps = _env(tmp_path, monkeypatch, "missingraw")
+    _write_day(
+        sweeps,
+        "2026-07-14",
+        {
+            "ai-llms.json": json.dumps(VALID_BRIEF),
+            "fantasy-football.raw.txt": "unvalidated model output",
+            "market-tech-news.json": json.dumps({**VALID_BRIEF, "topic": "market-tech-news"}),
+        },
+    )
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["missing_topics"] == [
+            {"slug": "fantasy-football", "title": "Fantasy football"}
+        ]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_missing_empty_when_no_sweeps_at_all(tmp_path, monkeypatch):
+    """No servable day → the page-level has_data=false state already tells the story;
+    per-topic missing chatter would be noise on top of it."""
+    _env(tmp_path, monkeypatch, "missingnodata")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["has_data"] is False
+        assert body["missing_topics"] == []
+    finally:
+        get_settings.cache_clear()
