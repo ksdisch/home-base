@@ -2,22 +2,31 @@
 
 Course *content* is read from disk (``app.courses.manifest``, read-only); per-lesson completion
 comes from the SQLite store and is merged in here, with course progress % derived from it —
-exactly how the catalog merges ``episode_progress`` into NotebookLM topics. The hub never writes
-to a course dir; the only write is the lesson-complete checkbox, which lands in SQLite.
+exactly how the catalog merges ``episode_progress`` into NotebookLM topics.
+
+M5 narrows the old "the hub never writes to a course dir" rule instead of keeping it absolute:
+the authoring-loop endpoints (objectives, order, regenerate) write through
+``app.courses.writer`` — the same transactional validate-or-rollback core the CLI bridge uses —
+and only ever under ``COURSES_DIR`` (bundled examples stay read-only; NotebookLM sidecars were
+never in reach). Progress still lives exclusively in SQLite.
 """
 
 from __future__ import annotations
 
+import io
+import zipfile
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 
 from ..catalog.build import to_card
 from ..catalog.ingest import load_sidecars
 from ..config import get_settings
 from ..courses import (
     CourseError,
+    course_dir,
     course_notebook_id,
     get_course,
     list_courses,
@@ -25,17 +34,33 @@ from ..courses import (
     next_actions,
     read_material,
 )
+from ..courses.regen import (
+    REGENERABLE_TYPES,
+    CourseRegenClient,
+    CourseRegenError,
+    append_regen_ledger,
+    build_prompt,
+    extract_content,
+    max_guidance_chars,
+)
+from ..courses.writer import edit_manifest, pin_ids, user_course_dir, write_material
+from ..deps import get_course_regen_client
 from ..models import (
     CourseAssessment,
     CourseAssessmentRequest,
     CourseDetail,
+    CourseEditResponse,
     CourseFlashcardDeck,
     CourseFlashcardsResponse,
     CourseFlashcardStateResponse,
     CourseMaterialResponse,
     CourseNextItem,
     CourseNextResponse,
+    CourseObjectivesUpdate,
+    CourseOrderUpdate,
     CourseQuizState,
+    CourseRegenRequest,
+    CourseRegenResponse,
     CourseQuizzesResponse,
     CoursesResponse,
     CourseSummary,
@@ -187,6 +212,53 @@ def _progress(lesson_ids: List[str], done: Dict[str, bool]) -> Tuple[int, int]:
     return completed, pct
 
 
+def _editable_course(slug: str, lesson_id: Optional[str] = None) -> Dict[str, Any]:
+    """The loaded course, guaranteed editable — the shared front door of every M5 write:
+    404 unknown course / 422 malformed / 409 bundled-only (no user copy under ``COURSES_DIR``),
+    plus 404 for a ``lesson_id`` the course doesn't contain."""
+    try:
+        course = get_course(slug)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    if course is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+    if user_course_dir(slug) is None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"'{slug}' is a bundled example — read-only. Its files ship with the app.",
+        )
+    if lesson_id is not None and lesson_id not in _lesson_ids(course):
+        raise HTTPException(status_code=404, detail=f"No lesson '{lesson_id}' in '{slug}'.")
+    return course
+
+
+def _raw_lesson(raw: Dict[str, Any], lesson_id: str) -> Optional[Dict[str, Any]]:
+    """The raw manifest's lesson whose EFFECTIVE id is ``lesson_id`` — call ``pin_ids`` first so
+    fallback-id lessons are findable. The loader strips explicit ids, so compare stripped."""
+    for m in raw.get("modules") or []:
+        if not isinstance(m, dict):
+            continue
+        for lsn in m.get("lessons") or []:
+            if isinstance(lsn, dict) and str(lsn.get("id", "")).strip() == lesson_id:
+                return lsn
+    return None
+
+
+def _edit(slug: str, mutate: Callable[[Dict[str, Any]], None]) -> CourseEditResponse:
+    """Run one manifest edit through the transactional writer. A ``CourseError`` (bad addressing,
+    a rejected permutation) is a 422 with nothing written; a validation failure comes back as a
+    calm ``ok=False`` + errors with the course rolled back untouched."""
+    try:
+        report = edit_manifest(slug, mutate)
+    except CourseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return CourseEditResponse(
+        ok=bool(report.get("ok")),
+        errors=report.get("errors", []),
+        warnings=report.get("warnings", []),
+    )
+
+
 @router.get("/courses", response_model=CoursesResponse)
 def get_courses() -> CoursesResponse:
     summaries: List[CourseSummary] = []
@@ -194,7 +266,14 @@ def get_courses() -> CoursesResponse:
         course = get_course(s["slug"])  # safe: the summary came from a valid manifest
         ids = _lesson_ids(course) if course else []
         completed, pct = _progress(ids, get_course_progress(s["slug"]))
-        summaries.append(CourseSummary(**s, completed_lessons=completed, progress_pct=pct))
+        summaries.append(
+            CourseSummary(
+                **s,
+                completed_lessons=completed,
+                progress_pct=pct,
+                editable=user_course_dir(s["slug"]) is not None,
+            )
+        )
     return CoursesResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         courses=summaries,
@@ -222,7 +301,12 @@ def get_course_detail(slug: str) -> CourseDetail:
     _attach_notebook_refs(course)  # M4: notebooklm materials cross-link to the catalog
     ids = _lesson_ids(course)
     completed, pct = _progress(ids, done)
-    return CourseDetail(**course, completed_lessons=completed, progress_pct=pct)
+    return CourseDetail(
+        **course,
+        completed_lessons=completed,
+        progress_pct=pct,
+        editable=user_course_dir(slug) is not None,
+    )
 
 
 @router.get("/courses/{slug}/materials", response_model=CourseMaterialResponse)
@@ -248,6 +332,172 @@ def complete_lesson(slug: str, lesson_id: str, body: LessonComplete) -> Dict[str
     completed, pct = _progress(ids, get_course_progress(slug))
     return {"lesson_id": lesson_id, "completed": body.completed, "progress_pct": pct,
             "completed_lessons": completed}
+
+
+@router.put(
+    "/courses/{slug}/lessons/{lesson_id}/objectives", response_model=CourseEditResponse
+)
+def edit_lesson_objectives(
+    slug: str, lesson_id: str, body: CourseObjectivesUpdate
+) -> CourseEditResponse:
+    """M5: replace one lesson's objectives. Objectives key nothing in the store, so this can
+    never orphan progress; the edit still rides the transactional writer so a course that fails
+    validation (e.g. a missing material file) bounces with the course untouched."""
+    _editable_course(slug, lesson_id=lesson_id)
+    objectives = [o.strip() for o in body.objectives if o.strip()]
+
+    def mutate(raw: Dict[str, Any]) -> None:
+        pin_ids(raw)
+        lesson = _raw_lesson(raw, lesson_id)
+        if lesson is None:  # the manifest changed underneath us between check and write
+            raise CourseError(f"no lesson '{lesson_id}' in '{slug}'")
+        lesson["objectives"] = objectives
+
+    return _edit(slug, mutate)
+
+
+@router.put("/courses/{slug}/order", response_model=CourseEditResponse)
+def reorder_course(slug: str, body: CourseOrderUpdate) -> CourseEditResponse:
+    """M5: reorder modules, and lessons within their module. The body must be a complete
+    bijection of the current structure — every module id exactly once, and per module every one
+    of its current lesson ids exactly once (cross-module moves are out of scope). Ids are pinned
+    before permuting, so ``course_lesson_progress`` rows and the ``course:<slug>``
+    material-path stats can never re-key. Any mismatch is a 422 with nothing written."""
+    _editable_course(slug)
+
+    def mutate(raw: Dict[str, Any]) -> None:
+        pin_ids(raw)
+        modules = raw.get("modules")
+        if not isinstance(modules, list):
+            raise CourseError("manifest has no modules list")
+        by_id: Dict[str, Dict[str, Any]] = {
+            str(m.get("id", "")).strip(): m for m in modules if isinstance(m, dict)
+        }
+        want = [m.id for m in body.modules]
+        if sorted(want) != sorted(by_id):
+            raise CourseError(
+                f"module ids must be exactly {sorted(by_id)} in some order (got {want})"
+            )
+        new_modules: List[Dict[str, Any]] = []
+        for om in body.modules:
+            m = by_id[om.id]
+            lesson_by_id = {
+                str(lsn.get("id", "")).strip(): lsn
+                for lsn in (m.get("lessons") or [])
+                if isinstance(lsn, dict)
+            }
+            if sorted(om.lessons) != sorted(lesson_by_id):
+                raise CourseError(
+                    f"module '{om.id}' lessons must be exactly {sorted(lesson_by_id)} in "
+                    f"some order (got {om.lessons})"
+                )
+            m["lessons"] = [lesson_by_id[lid] for lid in om.lessons]
+            new_modules.append(m)
+        raw["modules"] = new_modules
+
+    return _edit(slug, mutate)
+
+
+def _lesson_material(
+    course: Dict[str, Any], lesson_id: str, path: str
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """(module, lesson, material) for a material THAT lesson declares at ``path`` — you can't
+    regenerate an arbitrary file (same posture as ``assess``). 404 otherwise."""
+    for m in course["modules"]:
+        for lsn in m["lessons"]:
+            if lsn["id"] != lesson_id:
+                continue
+            for mat in lsn["materials"]:
+                if mat.get("path") == path:
+                    return m, lsn, mat
+    raise HTTPException(
+        status_code=404, detail=f"No material '{path}' in lesson '{lesson_id}'."
+    )
+
+
+@router.post(
+    "/courses/{slug}/lessons/{lesson_id}/regenerate", response_model=CourseRegenResponse
+)
+def regenerate_material(
+    slug: str,
+    lesson_id: str,
+    body: CourseRegenRequest,
+    client: CourseRegenClient = Depends(get_course_regen_client),
+) -> CourseRegenResponse:
+    """M5's flagship: rewrite ONE of a lesson's materials on the headless claude lane
+    (subscription billing, API key scrubbed, no tools — the chat.py precedent). Validation is
+    the gate: the new content lands only if the whole course still validates; otherwise it
+    rolls back byte-identical and the errors come back as ``ok=False``. Regenerating a deck or
+    quiz resets the replaced items' SM-2/attempt stats by design (identity is content/path
+    keyed). Every run — success, rollback, or failure — lands in the course-regen ledger."""
+    guidance = body.guidance.strip()
+    if len(guidance) > max_guidance_chars():
+        raise HTTPException(
+            status_code=400,
+            detail=f"guidance is limited to {max_guidance_chars()} characters",
+        )
+    course = _editable_course(slug, lesson_id=lesson_id)
+    module, lesson, material = _lesson_material(course, lesson_id, body.path)
+    if material.get("type") not in REGENERABLE_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"'{material.get('type')}' materials can't be regenerated — only "
+                f"{sorted(REGENERABLE_TYPES)}"
+            ),
+        )
+    try:
+        current = material_path(slug, body.path).read_text(encoding="utf-8")
+    except (CourseError, OSError, UnicodeDecodeError) as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    settings = get_settings()
+
+    def ledger(**kw: Any) -> None:
+        append_regen_ledger(
+            settings.course_regen_ledger,
+            slug=slug,
+            lesson_id=lesson_id,
+            material_path=body.path,
+            material_type=material["type"],
+            model=client.model,
+            **kw,
+        )
+
+    prompt = build_prompt(course, module, lesson, material, current, guidance)
+    try:
+        out = client.ask(prompt)
+    except CourseRegenError as e:
+        ledger(error=f"{e}: {e.detail}"[:300] if e.detail else str(e))
+        raise HTTPException(status_code=502, detail=str(e))
+    envelope = out["envelope"]
+    try:
+        content, count = extract_content(material["type"], out["answer"])
+    except CourseRegenError as e:
+        ledger(envelope=envelope, error=str(e))
+        return CourseRegenResponse(
+            ok=False,
+            path=body.path,
+            error=str(e),
+            duration_ms=envelope.get("duration_ms"),
+            total_cost_usd=envelope.get("total_cost_usd"),
+        )
+    try:
+        report = write_material(slug, body.path, content, count=count)
+    except CourseError as e:
+        ledger(envelope=envelope, error=str(e))
+        raise HTTPException(status_code=422, detail=str(e))
+    ledger(envelope=envelope, rolled_back=bool(report.get("rolled_back")))
+    return CourseRegenResponse(
+        ok=bool(report.get("ok")),
+        path=body.path,
+        rolled_back=bool(report.get("rolled_back")),
+        errors=report.get("errors", []),
+        warnings=report.get("warnings", []),
+        count=count,
+        duration_ms=envelope.get("duration_ms"),
+        total_cost_usd=envelope.get("total_cost_usd"),
+    )
 
 
 @router.post("/courses/{slug}/quiz/prepare", response_model=QuizPrepareResponse)
@@ -280,6 +530,30 @@ def prepare_course_quiz(
             error=f"Couldn't load this quiz: {msg}",
         )
     return QuizPrepareResponse(ok=True, **out)
+
+
+@router.get("/courses/{slug}/export")
+def export_course(slug: str) -> Response:
+    """M5: download the whole course dir as a zip — read-only (works for bundled examples too)
+    and the safety valve before a risky edit. Hidden files (``.DS_Store`` and friends) are
+    skipped; course dirs are small text, so the zip is built in memory."""
+    cdir = course_dir(slug)
+    if cdir is None:
+        raise HTTPException(status_code=404, detail=f"No course '{slug}'.")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in sorted(cdir.rglob("*")):
+            if not f.is_file():
+                continue
+            rel = f.relative_to(cdir)
+            if any(part.startswith(".") for part in rel.parts):
+                continue
+            zf.write(f, arcname=f"{slug}/{rel.as_posix()}")
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{slug}-course.zip"'},
+    )
 
 
 @router.get("/courses/{slug}/quizzes", response_model=CourseQuizzesResponse)

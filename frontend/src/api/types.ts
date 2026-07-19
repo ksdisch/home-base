@@ -384,6 +384,7 @@ export interface CourseSummary {
   material_counts: Record<string, number>;
   completed_lessons: number;
   progress_pct: number;
+  editable: boolean; // M5: a user copy exists under COURSES_DIR, so edits can land
 }
 
 export interface CourseDetail extends CourseSummary {
@@ -497,6 +498,48 @@ export interface CourseAssessmentRequest {
   self_rating?: number | null;
   ratings: Record<string, string>;
   note: string;
+}
+
+// -- M5 authoring loop ------------------------------------------------------------
+// Structural edits ride the backend's transactional writer: ok=false means validation
+// bounced and the course rolled back untouched (errors say why).
+
+export interface CourseObjectivesUpdate {
+  objectives: string[];
+}
+
+export interface CourseOrderModule {
+  id: string;
+  lessons: string[];
+}
+
+// The COMPLETE desired order — every module id exactly once, every lesson id exactly once
+// inside its own module (cross-module moves are out of M5's scope).
+export interface CourseOrderUpdate {
+  modules: CourseOrderModule[];
+}
+
+export interface CourseEditResponse {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface CourseRegenRequest {
+  path: string;
+  guidance: string;
+}
+
+export interface CourseRegenResponse {
+  ok: boolean;
+  path: string;
+  rolled_back: boolean;
+  errors: string[];
+  warnings: string[];
+  error?: string | null;
+  count?: number | null;
+  duration_ms?: number | null;
+  total_cost_usd?: number | null;
 }
 
 export interface Flashcard {

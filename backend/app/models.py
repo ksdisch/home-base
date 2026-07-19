@@ -433,6 +433,7 @@ class CourseSummary(BaseModel):
     material_counts: Dict[str, int] = {}
     completed_lessons: int = 0
     progress_pct: int = 0
+    editable: bool = False  # a user copy exists under COURSES_DIR, so M5 edits can land
 
 
 class CourseDetail(CourseSummary):
@@ -557,6 +558,62 @@ class CourseNextResponse(BaseModel):
     generated_at: str
     all_done: bool = False  # course has lessons and nothing is currently actionable
     items: List[CourseNextItem] = []
+
+
+class CourseObjectivesUpdate(BaseModel):
+    """The body of ``PUT /courses/{slug}/lessons/{id}/objectives`` (M5). Blank entries are
+    dropped server-side; an empty list is allowed (the validator just warns)."""
+
+    objectives: List[str] = []
+
+
+class CourseOrderModule(BaseModel):
+    """One module's place in a reorder: its id + the complete order of its lesson ids."""
+
+    id: str
+    lessons: List[str] = []
+
+
+class CourseOrderUpdate(BaseModel):
+    """The body of ``PUT /courses/{slug}/order`` — the COMPLETE desired order: every module id
+    exactly once, and per module every one of its lesson ids exactly once (a bijection; moving
+    a lesson between modules is out of M5's scope)."""
+
+    modules: List[CourseOrderModule] = []
+
+
+class CourseEditResponse(BaseModel):
+    """The outcome of an M5 structural edit. ``ok=False`` means validation failed and the
+    course was rolled back untouched — ``errors`` say why."""
+
+    ok: bool
+    errors: List[str] = []
+    warnings: List[str] = []
+
+
+class CourseRegenRequest(BaseModel):
+    """The body of ``POST /courses/{slug}/lessons/{id}/regenerate`` — ONE file-backed material
+    (``path`` must be declared by that lesson), plus optional free-text guidance for the model.
+    The UI sequences multiple materials as separate calls."""
+
+    path: str
+    guidance: str = ""
+
+
+class CourseRegenResponse(BaseModel):
+    """The outcome of a regeneration. ``ok=False`` + ``errors`` means the model's output failed
+    course validation and was rolled back (files untouched); ``error`` is set when the model
+    output itself was unusable. Cost fields come from the claude envelope when available."""
+
+    ok: bool
+    path: str
+    rolled_back: bool = False
+    errors: List[str] = []
+    warnings: List[str] = []
+    error: Optional[str] = None
+    count: Optional[int] = None
+    duration_ms: Optional[int] = None
+    total_cost_usd: Optional[float] = None
 
 
 class BriefSource(BaseModel):

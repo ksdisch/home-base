@@ -11,7 +11,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-19 · **HB M0 — sweep quality week: ✅ CLOSED, verdict PASS** ([grades + audit](M0-sweep-grades.md)): full week graded (Day-0 audit + Kyle's 07-15 blanket B+ + a source-verified 07-16→18 audit, grades adopted by Kyle 07-19). Zero fabricated items across the week; market/fantasy excellent; AI passed **with a prompt tune** (`sweeps/prompts/ai-llms.md`: exclusion now carries the same sourcing bar as inclusion, after the Gemini-delay story was first missed then falsely dismissed as "low-quality blogs"). The five M0-gate overrides are all retroactively vindicated. · **PR #52 landed** (drafted 07-17): **migration ledger hardening** (`init_db` trusts the store's actual table shape over the `schema_migrations` ledger — re-runs forward migrations idempotently so a poisoned/orphaned ledger row can't silently skip one; poisoned-ledger + unknown-version regression tests) and **habit-metrics instrumentation for the v1 check** (`GET /api/brief/habit` + a self-hiding "Habit check" strip on Today: mornings vs 5 · notes vs 3 per local Monday-start week). · **HB M7 — news mode: ✅ shipped** (`docs/M7_PLAN.md` · PRs #58 RSS shell · #60 signals · #62 For You · #63 topic scout, + post-ship polish **#65** News in the mobile tab bar · **#66** Uplifting category · **#67** headline dedup). · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · PRs #55 + #56). Mac-side live verify clean 2026-07-18 (headless LaunchAgent, one-port serve, audio Range → 206, Tailscale up) and **real-iPhone reach verified 2026-07-18 (PR #64)**: full load over the ts.net HTTPS URL from the phone's tailnet IP, SW registered on the phone, first phone `POST /api/brief/visit` logged. **Remaining M6 evidence — Kyle's eyes-on trio**: home-screen standalone display, airplane-mode "Offline copy" banner, iOS audio scrub (+ reboot survival at next login).
+**Last updated:** 2026-07-19 · **Courses M5 — the authoring loop in the hub: ✅ shipped** ([PHASE7_M5_PLAN](PHASE7_M5_PLAN.md) · PR #69) — **the course epic (M1–M5) is COMPLETE**: `app/courses/writer.py` becomes the ONE transactional write path (the CLI delegates; bundled examples + NotebookLM sidecars stay untouchable), `PUT` objectives + `PUT` order (complete-bijection reorder with fallback-id pinning so `course_lesson_progress` can never re-key), `POST` regenerate on the headless claude lane (per-type output contracts, validate-or-rollback so bad model output can't corrupt a course, `course-regen.jsonl` ledger), `GET` export zip + an `editable` flag, and an edit-mode Course UI (objectives editor · ↑/↓ reorder · Regenerate panel w/ stats-reset warning · Export). 493 backend (+37) & 66 frontend (+4) tests green. · Same-day context: **HB M0 — sweep quality week: ✅ CLOSED, verdict PASS** ([grades + audit](M0-sweep-grades.md)): full week graded (Day-0 audit + Kyle's 07-15 blanket B+ + a source-verified 07-16→18 audit, grades adopted by Kyle 07-19). Zero fabricated items across the week; market/fantasy excellent; AI passed **with a prompt tune** (`sweeps/prompts/ai-llms.md`: exclusion now carries the same sourcing bar as inclusion, after the Gemini-delay story was first missed then falsely dismissed as "low-quality blogs"). The five M0-gate overrides are all retroactively vindicated. · **PR #52 landed** (drafted 07-17): **migration ledger hardening** (`init_db` trusts the store's actual table shape over the `schema_migrations` ledger — re-runs forward migrations idempotently so a poisoned/orphaned ledger row can't silently skip one; poisoned-ledger + unknown-version regression tests) and **habit-metrics instrumentation for the v1 check** (`GET /api/brief/habit` + a self-hiding "Habit check" strip on Today: mornings vs 5 · notes vs 3 per local Monday-start week). · **HB M7 — news mode: ✅ shipped** (`docs/M7_PLAN.md` · PRs #58 RSS shell · #60 signals · #62 For You · #63 topic scout, + post-ship polish **#65** News in the mobile tab bar · **#66** Uplifting category · **#67** headline dedup). · **HB M6 — mobile: ✅ shipped** (`docs/M6_PLAN.md` #54 · PRs #55 + #56). Mac-side live verify clean 2026-07-18 (headless LaunchAgent, one-port serve, audio Range → 206, Tailscale up) and **real-iPhone reach verified 2026-07-18 (PR #64)**: full load over the ts.net HTTPS URL from the phone's tailnet IP, SW registered on the phone, first phone `POST /api/brief/visit` logged. **Remaining M6 evidence — Kyle's eyes-on trio**: home-screen standalone display, airplane-mode "Offline copy" banner, iOS audio scrub (+ reboot survival at next login).
 
 ---
 
@@ -19,8 +19,9 @@ so nobody has to click through a dozen docs to see the state of the project._
 
 The repo has two arcs. **Arc 1 — Learning Hub** (the original SPEC build order, Phases 1–5,
 plus extension Phases 6–7): **fully shipped**, including the SM-2 spaced-repetition core and
-the first three Course-pipeline milestones (M1 read+track · M2 quizzes+SM-2 · M3 generation at
-depth — project/capstone + tracked rubrics + a course-level "what to do next"). **Arc 2 — Home Base** (kickoff 2026-07-13: the
+the **complete five-milestone Course pipeline** (M1 read+track · M2 quizzes+SM-2 · M3
+generation at depth · M4 NotebookLM enrichment · M5 in-hub authoring loop, shipped 2026-07-19
+— the epic's last line). **Arc 2 — Home Base** (kickoff 2026-07-13: the
 morning-brief evolution): **M1, M2, and M3 are shipped** — M3 (hands-off automation, PR #43)
 was built 2026-07-15 under Kyle's third deliberate override of the "wait for the M0 verdict"
 gate, and its **first unattended 06:00 fire ran clean on 2026-07-16** (8/8 topics, rc=0,
@@ -55,13 +56,13 @@ kanban
     hbm5["HB M5 — chat with the brief: per-item Ask · grounded answers, subscription lane, no web · save-as-note · PR 47"]
     hbm6["HB M6 — mobile: one-port serve + LaunchAgent · sw.js v2 cached last brief · bottom tab bar + Today/Notes pass · PRs 55-56 · Mac-side live verify clean 07-18, phone proof pending Kyle"]
     hbm7["HB M7 — news mode: RSS category shell · news_events signal log + card feedback · For You decaying-profile ranker w/ search-feed reach · topic scout → one-click roster adds · PRs 58/60/62/63 + polish 65-67 · live e2e proof clean 07-18"]
-    hbm0["HB M0 — sweep-quality week: CLOSED 07-19, verdict PASS · zero fabrications all week · AI sweep prompt tuned (exclusion = inclusion sourcing bar) · grades + audit in M0-sweep-grades.md"]
+    hbm0["HB M0 — sweep-quality week: CLOSED 07-19, verdict PASS · zero fabrications all week · AI sweep prompt tuned · grades + audit in M0-sweep-grades.md"]
+    cm5["Courses M5 — authoring loop in the hub: objectives editor · reorder w/ id pinning · regenerate on the claude lane w/ validate-or-rollback · zip export · epic complete 07-19"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder — phone eyes-on evidence: home-screen standalone · airplane-mode banner · iOS audio scrub · reboot survival · Kyle"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    cm5["Courses M5 — authoring loop in the hub"]
     defer["Kickoff-deferred: ESPN · auto-courses · alerts · public writing"]
 ```
 
@@ -87,6 +88,7 @@ Phases 1–5 were the SPEC build order; 6–7 extended it.
 | 7-M2 | Courses M2 — course quizzes in the player + per-course SM-2 | ✅ shipped | [PHASE7_M2_PLAN](PHASE7_M2_PLAN.md) | `7f2db03`; `course:<slug>` namespace, notebook aggregates filtered |
 | 7-M3 | Courses M3 — generation at depth: project/capstone + tracked rubrics · course "what to do next" · skill fan-out at depth | ✅ shipped | [PHASE7_M3_PLAN](PHASE7_M3_PLAN.md) | PR #48; `course_rubric_assessment` (schema v6) · `GET /courses/{slug}/next` · `POST /courses/{slug}/assess` · rubric self-assessment UI |
 | 7-M4 | Courses M4 — NotebookLM enrichment in-flow: catalog cross-link on course pages + gated skill flow | ✅ shipped | [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md) | PR #50; `CourseMaterial.notebook` join via `_attach_notebook_refs` · Open-notebook card w/ counts + calm degrades · course-builder §5 two-path flow · **live proof verified 2026-07-16**: `jlens-global-workspace` course (syllabus-gated `/build-course`, `ok:true` zero warnings) links notebook `f84dc873…` via the no-quota path; card resolves against the real catalog |
+| 7-M5 | Courses M5 — the authoring loop in the hub: edit objectives · reorder · regenerate · export (the epic's last line) | ✅ shipped | [PHASE7_M5_PLAN](PHASE7_M5_PLAN.md) | PR #69; `courses/writer.py` = the one transactional write path (CLI delegates; write→validate→byte-identical rollback; bundled examples 409/`editable:false`) · `PUT …/objectives` + `PUT …/order` (complete bijection, `pin_ids` oracle-tested against the loader) · `POST …/regenerate` on the chat.py lane (key scrubbed, no tools, per-type contracts, `course-regen.jsonl`) · `GET …/export` zip · edit-mode UI w/ stats-reset warning · 493 backend + 66 frontend tests |
 
 Also closed in this arc: the **bug-hunt audit** — all 11 low-severity findings resolved
 (PRs #21–#31, [`docs/bug-hunt/`](bug-hunt/)).
@@ -145,10 +147,6 @@ glance instead of a sqlite dig._
 
 ## Parked / deferred (not scheduled — do not build without a decision)
 
-- **Course epic M5** ([roadmap](COURSE_PIPELINE_SPEC.md#roadmap-milestones)): the in-hub
-  authoring loop (regenerate/edit/reorder from the UI — breaks the read-only-course invariant,
-  so it starts with that architectural decision). _(M4 — NotebookLM enrichment — shipped
-  2026-07-16; see [PHASE7_M4_PLAN](PHASE7_M4_PLAN.md).)_
 - **Kickoff-deferred v1 outs**: ESPN league integration · auto-courses from news items ·
   breaking-news alerts · public writing. _(The audio brief became M4 and chat-with-the-brief
   became M5 on 2026-07-16; mobile access became M6 on 2026-07-18.)_
@@ -164,7 +162,7 @@ glance instead of a sqlite dig._
 |---|---|
 | [`SPEC.md`](../SPEC.md) | Arc-1 product spec (Learning Hub) |
 | [`KICKOFF-home-base.md`](KICKOFF-home-base.md) | Arc-2 contract: brief, scope, risks, milestones |
-| [`PHASE1..7_PLAN.md`, `PHASE7_M2_PLAN.md`, `PHASE7_M3_PLAN.md`, `PHASE7_M4_PLAN.md`](.) | Per-phase build plans (Arc 1) |
+| [`PHASE1..7_PLAN.md`, `PHASE7_M2..M5_PLAN.md`](.) | Per-phase build plans (Arc 1) |
 | [`COURSE_PIPELINE_SPEC.md`](COURSE_PIPELINE_SPEC.md) | Course epic vision + M1–M5 roadmap |
 | [`M1_PLAN.md`](M1_PLAN.md) … [`M7_PLAN.md`](M7_PLAN.md) | Home Base milestone plans (record decided design forks — don't relitigate) |
 | [`M0-sweep-grades.md`](M0-sweep-grades.md) | The grading week's durable evidence + running verdict |

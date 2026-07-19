@@ -14,11 +14,16 @@ import type {
   CourseAssessment,
   CourseAssessmentRequest,
   CourseDetail,
+  CourseEditResponse,
   CourseFlashcardsResponse,
   CourseFlashcardStateResponse,
   CourseMaterialResponse,
   CourseNextResponse,
+  CourseObjectivesUpdate,
+  CourseOrderUpdate,
   CourseQuizzesResponse,
+  CourseRegenRequest,
+  CourseRegenResponse,
   CoursesResponse,
   CustomTopic,
   CustomTopicCreate,
@@ -96,6 +101,25 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 async function patch<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const data = await res.json();
+      detail = data.detail ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function put<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -261,4 +285,22 @@ export const api = {
       `/courses/${encodeURIComponent(slug)}/assess?path=${encodeURIComponent(path)}`,
       body,
     ),
+  // M5 authoring loop: structural edits ride the backend's transactional writer — ok:false
+  // means validation bounced and the course rolled back untouched.
+  editLessonObjectives: (slug: string, lessonId: string, body: CourseObjectivesUpdate) =>
+    put<CourseEditResponse>(
+      `/courses/${encodeURIComponent(slug)}/lessons/${encodeURIComponent(lessonId)}/objectives`,
+      body,
+    ),
+  reorderCourse: (slug: string, body: CourseOrderUpdate) =>
+    put<CourseEditResponse>(`/courses/${encodeURIComponent(slug)}/order`, body),
+  // M5: regenerate ONE material on the headless claude lane — slow by web standards (a real
+  // authoring call, ~1–3 min), so callers show a busy state and sequence multiple materials.
+  regenerateMaterial: (slug: string, lessonId: string, body: CourseRegenRequest) =>
+    post<CourseRegenResponse>(
+      `/courses/${encodeURIComponent(slug)}/lessons/${encodeURIComponent(lessonId)}/regenerate`,
+      body,
+    ),
+  // M5: the whole course dir as a zip — a plain URL for an <a download>, not a fetch.
+  courseExportUrl: (slug: string) => `${API_BASE}/courses/${encodeURIComponent(slug)}/export`,
 };

@@ -109,6 +109,13 @@ def _dir_for(slug: str) -> Optional[Path]:
     return _course_dirs().get(slug)
 
 
+def course_dir(slug: str) -> Optional[Path]:
+    """The directory serving ``slug`` (user dir, else the bundled example), or ``None`` — the
+    public read-only counterpart of ``_dir_for`` for callers that need the files themselves
+    (M5's zip export)."""
+    return _dir_for(slug)
+
+
 # -- parsing + validation ------------------------------------------------------
 
 def load_manifest(course_dir: Path) -> Dict[str, Any]:
