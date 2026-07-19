@@ -42,3 +42,4 @@ Shape (field docs inline):
 - Put each item's **publish date** in its `attribution` so recency is checkable at a glance. Prefer the last ~24 hours; never present old news as new.
 - **Deduplicate** — one item per distinct story.
 - If the topic is genuinely quiet in this window, return **fewer items (even one)** and say so in the top line. **Do not pad** with filler or speculation. A short, honest brief is a good brief.
+- **Excluding a story carries the same sourcing bar as including one.** Before dismissing a trending/widely-covered story as badly sourced or stale, run a targeted search for the original report on a top-tier wire (Bloomberg, Reuters, CNBC, AP, FT, WSJ). If a credible original exists — especially for market-moving lab news (model delays, launches, major personnel moves) — **include it with caveats** rather than dropping it; never assert a sourcing judgment ("only low-quality blogs") you haven't verified.
