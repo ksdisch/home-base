@@ -264,6 +264,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Brief payload + audio element lifted above Routes; confirm Today<->News<->back keeps scroll, data, and playing audio intact.
 - **Size:** M (Friction)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #97, RED→green — Wave 3 item 3): new `components/BriefShell.tsx` above `<Routes>` owns the brief payload (stale-while-revalidate — returns render the held payload in the same commit, fresh sweeps still surface; a failed revalidate with data in hand stays silent) and the single `<audio>` element (stable-host portal — React never remounts it, Brief re-slots the live node per visit, playback continues detached on News/Notes). Same-node identity + instant-return pinned in App.test. Honest caveat: per-route scroll memory not included — the instant full-height render removes the skeleton-induced top-clamp, true restoration deferred._
 
 #### [Improvement] Stuck on Stale, Phone in Hand
 - **Why:** When the served brief is a day old, the only recovery the UI offers is a `make sweep` terminal command (Brief.tsx stale banner, lines 424-432) — unusable on the keyboard-less iPhone that M6 shipped Today to. See [`docs/ideas/sweep-from-the-phone.md`](docs/ideas/sweep-from-the-phone.md) for the full write-up.

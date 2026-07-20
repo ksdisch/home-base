@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { BriefShell } from "./components/BriefShell";
 import Brief from "./pages/Brief";
 import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
@@ -118,24 +119,28 @@ export default function App() {
 
       {/* pb-28 keeps content clear of the mobile tab bar; sm:pb-8 restores the desktop py-8. */}
       <main className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:pb-8">
-        <Routes>
-          {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
-          <Route path="/" element={<Brief />} />
-          {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
-          <Route path="/news" element={<News />} />
-          {/* M2: every note attached to a brief item, browsable per topic. */}
-          <Route path="/notes" element={<Notes />} />
-          <Route path="/learning" element={<Home />} />
-          <Route path="/plan" element={<StudyPlan />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:slug" element={<CourseDetail />} />
-          <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
-          <Route path="/courses/:slug/flashcards" element={<FlashcardReview />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/topics/:id" element={<TopicDetail />} />
-          <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
-          <Route path="/topics/:id/guide/:artifactId" element={<StudyGuide />} />
-        </Routes>
+        {/* FR15: BriefShell holds the brief payload + the single persistent audio element
+            above the routes, so Today survives the Today↔News↔Notes bounce mid-walk. */}
+        <BriefShell>
+          <Routes>
+            {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
+            <Route path="/" element={<Brief />} />
+            {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
+            <Route path="/news" element={<News />} />
+            {/* M2: every note attached to a brief item, browsable per topic. */}
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/learning" element={<Home />} />
+            <Route path="/plan" element={<StudyPlan />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:slug" element={<CourseDetail />} />
+            <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
+            <Route path="/courses/:slug/flashcards" element={<FlashcardReview />} />
+            <Route path="/progress" element={<Progress />} />
+            <Route path="/topics/:id" element={<TopicDetail />} />
+            <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
+            <Route path="/topics/:id/guide/:artifactId" element={<StudyGuide />} />
+          </Routes>
+        </BriefShell>
       </main>
 
       <MobileTabBar />

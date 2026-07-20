@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { BriefShell } from "../components/BriefShell";
 import Brief from "./Brief";
 
 // Mock the API client so the page renders deterministically without a backend. The Today
@@ -74,10 +75,14 @@ const STRUCTURED = {
   ],
 };
 
+// FR15: the page consumes BriefShell (payload + persistent audio live above the
+// routes), so the harness mounts the real shell around it — same api mock, same DOM.
 function renderBrief() {
   return render(
     <MemoryRouter>
-      <Brief />
+      <BriefShell>
+        <Brief />
+      </BriefShell>
     </MemoryRouter>,
   );
 }
