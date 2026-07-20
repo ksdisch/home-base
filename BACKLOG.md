@@ -350,6 +350,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Register the catch-all unconditionally and check frontend_dist per request (serve index.html when present, 404 when not), making the README claim true; or amend the installer hint/README to include the kickstart command. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #91, RED→green — W2 batch 4): catch-all registers unconditionally, index.html checked per request (404 until the build lands); hashed assets served by the catch-all's file branch until the /assets mount exists at next start; no-dist behavior byte-identical to before._
 
 #### [Bug] #9: One malformed activity.day row permanently 500s GET /api/progress via compute_streaks
 - **Where:** `backend/app/store/progress.py:32` · severity low · confidence high
@@ -402,6 +403,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** When fromCache, hide or honestly label the player; better, store the brief date alongside the cached audio and have the SW delete the audio entry when it caches a brief with a different date. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #91, RED→green — W2 batch 4): both halves — sw.js date-pairs the cached audio (synthetic marker entry; different-dated brief evicts it) and Brief.tsx hides the player on a media error (covers the iOS never-cached 206 case). sw.js itself now under test via a ?raw harness._
 
 #### [Bug] #16: Per-note delete button stays enabled in offline (fromCache) mode, contradicting the offline banner
 - **Where:** `frontend/src/pages/Brief.tsx:143-149` · severity low · confidence high
@@ -409,6 +411,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** disabled={readOnly} on the delete button with the same title treatment as the composers ('Offline — deletes need the hub'). Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #91, RED→green — W2 batch 4): exactly the acceptance — disabled={readOnly} + 'Offline — deletes need the hub' title + disabled:opacity-50, pinned beside the existing composer-disabling offline test._
 
 #### [Bug] #17: Failed note delete renders under the 'Couldn't load notes' banner title
 - **Where:** `frontend/src/pages/Notes.tsx:72-78` · severity low · confidence high

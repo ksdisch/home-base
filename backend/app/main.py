@@ -71,9 +71,7 @@ def create_app() -> FastAPI:
     def api_root() -> dict:
         return {"name": "Learning Hub API", "version": __version__}
 
-    dist = settings.frontend_dist
-    if dist.is_dir() and (dist / "index.html").is_file():
-        _mount_frontend(app, dist)
+    _mount_frontend(app, settings.frontend_dist)
 
     return app
 
@@ -83,6 +81,12 @@ def _mount_frontend(app: FastAPI, dist: Path) -> None:
 
     Registered after every /api route, so real API paths always win; unknown /api/*
     paths still 404 as JSON instead of falling through to the SPA shell.
+
+    The dist check happens per request (bug #8): install-server.sh and the README
+    promise 'run make build' with no restart, and the KeepAlive agent never restarts on
+    its own — so the catch-all registers unconditionally and 404s until index.html
+    exists. The /assets StaticFiles mount still needs the dir at startup; before it
+    exists, hashed assets are served by the catch-all's file branch instead.
     """
     dist = dist.resolve()
     if (dist / "assets").is_dir():
@@ -91,6 +95,8 @@ def _mount_frontend(app: FastAPI, dist: Path) -> None:
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> FileResponse:
         if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        if not (dist / "index.html").is_file():
             raise HTTPException(status_code=404, detail="Not Found")
         if full_path:
             candidate = (dist / full_path).resolve()
