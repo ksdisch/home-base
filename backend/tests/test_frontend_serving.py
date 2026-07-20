@@ -45,6 +45,24 @@ def _restore_settings():
     get_settings.cache_clear()
 
 
+def test_dist_built_after_startup_serves_without_restart(tmp_path, monkeypatch):
+    """Bug #8: install-server.sh + the README promise 'run make build' with no restart,
+    but the mount was decided once at startup — the KeepAlive agent never restarts, so
+    the phone 404'd on / until a launchctl kickstart nobody mentions. The dist check is
+    per request: 404 before the build, index.html the moment it lands."""
+    dist = tmp_path / "dist"  # does not exist when the app starts
+    client = _make_client(monkeypatch, dist)
+    assert client.get("/").status_code == 404  # honest before the build
+
+    _write_dist(tmp_path)  # `make build` lands while the server keeps running
+
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "home base shell" in r.text
+    r = client.get("/assets/app-abc123.js")  # hashed assets reachable too, no restart
+    assert r.status_code == 200
+
+
 def test_root_serves_index_html(tmp_path, monkeypatch):
     client = _make_client(monkeypatch, _write_dist(tmp_path))
     r = client.get("/")

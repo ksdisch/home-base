@@ -22,6 +22,7 @@ vi.mock("../api/client", () => ({
     briefHabit: () => briefHabit(),
     addBriefNote: (body: unknown) => addBriefNote(body),
     deleteBriefNote: (id: number) => deleteBriefNote(id),
+    briefAudioUrl: () => "/api/brief/audio",
   },
 }));
 
@@ -271,6 +272,55 @@ describe("Brief (Today page)", () => {
     expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Add note" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Ask about this" })).toBeDisabled();
+  });
+
+  it("offline replay disables the per-note delete too — the ✕ escaped the M6 pass (#16)", async () => {
+    briefWithMeta.mockResolvedValue(
+      offline({
+        ...STRUCTURED,
+        topics: [
+          {
+            ...STRUCTURED.topics[0],
+            items: [
+              {
+                ...ITEM,
+                notes: [
+                  {
+                    id: 7,
+                    item_id: ITEM.id,
+                    topic_slug: "ai-llms",
+                    topic_title: "AI / LLMs",
+                    brief_date: "2099-01-01",
+                    item_headline: ITEM.headline,
+                    body: "An earlier take.",
+                    created_at: "t1",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("An earlier take.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete note 7" })).toBeDisabled();
+  });
+
+  it("a failing audio load hides the player instead of leaving a broken one (#15)", async () => {
+    // The cached brief says audio_available, but offline the mp3 may be uncached (iOS
+    // Range probes → 206 → never stored) or evicted — the promise is 'no player, no
+    // broken promise', so a media error removes the player.
+    briefWithMeta.mockResolvedValue(offline({ ...STRUCTURED, audio_available: true }));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const player = document.querySelector("audio");
+    expect(player).not.toBeNull();
+    fireEvent.error(player!);
+    await waitFor(() => expect(document.querySelector("audio")).toBeNull());
+    expect(screen.queryByText(/Listen to this brief/)).not.toBeInTheDocument();
   });
 
   it("online, the composers stay enabled", async () => {
