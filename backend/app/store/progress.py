@@ -29,7 +29,15 @@ def compute_streaks(days: Iterable[str], today: date) -> tuple[int, int]:
     most recent day is ``today`` or yesterday — a streak that lapsed days ago isn't "current".
     Pure (takes ``today``) so it's deterministic to test without time-travel.
     """
-    parsed = sorted({date.fromisoformat(d) for d in days if d})
+    seen: set = set()
+    for d in days:
+        if not d:
+            continue
+        try:
+            seen.add(date.fromisoformat(d))
+        except (TypeError, ValueError):
+            continue  # bug #9: one bad row (out-of-app write) must not sink the dashboard
+    parsed = sorted(seen)
     if not parsed:
         return (0, 0)
 
