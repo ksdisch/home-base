@@ -188,6 +188,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Audio position persists per brief date in localStorage; confirm an interrupted playback resumes within ~2s of where it stopped.
 - **Size:** S (QuickWin)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #95, RED→green — Wave 3 item 1): onTimeUpdate persists currentTime to localStorage keyed `audio-pos-<brief.date>`, onLoadedMetadata seeks back before first play (resume is exact to the last ~250ms tick — inside the ~2s bar), onEnded clears the key (idea-doc open question decided: a finished brief starts fresh). Handlers on the element itself so the FR15 hoist carries them; no backend/API change._
 
 #### [Improvement] Jump straight to the topic you came for
 - **Why:** A thin sticky row of topic-name chips atop the Today brief that scrollIntoView() to each TopicSection's anchor, so the fixed sweeps/topics.json order stops being the only way through the page. Converged in QuickWin + Friction lanes. See [`docs/ideas/jump-to-topic-chips.md`](docs/ideas/jump-to-topic-chips.md) for the full write-up.
