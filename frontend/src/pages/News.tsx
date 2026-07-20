@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
+import { UndoToast, useUndoable } from "../components/undo";
 
 // M7: the Google-News-style general mode. Phase 1: a tab per category from
 // sweeps/news_categories.json, real RSS-backed articles opening at the source, ?cat=
@@ -54,6 +55,9 @@ export default function News() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
   const [noted, setNoted] = useState<Set<string>>(new Set());
+  // FR10: Not-interested sits inches from More-like-this on a one-handed phone — the
+  // card still vanishes now, but the −8 signal holds behind the undo toast.
+  const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
 
   const hasCategories = categories !== null && categories.length > 0;
   const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
@@ -336,8 +340,17 @@ export default function News() {
                   </button>
                   <button
                     onClick={() => {
-                      signal("not_interested", item);
                       setHidden((prev) => new Set(prev).add(item.id));
+                      holdThenFire(
+                        "Marked not interested",
+                        () => signal("not_interested", item),
+                        () =>
+                          setHidden((prev) => {
+                            const next = new Set(prev);
+                            next.delete(item.id);
+                            return next;
+                          }),
+                      );
                     }}
                     aria-label={`Not interested in ${item.headline}`}
                     className="transition hover:text-ink"
@@ -392,6 +405,8 @@ export default function News() {
             ))}
         </div>
       )}
+
+      <UndoToast label={undoLabel} onUndo={undo} />
     </div>
   );
 }

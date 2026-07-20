@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Brief from "./Brief";
@@ -306,6 +306,53 @@ describe("Brief (Today page)", () => {
 
     expect(await screen.findByText("An earlier take.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete note 7" })).toBeDisabled();
+  });
+
+  it("inline note delete holds behind an undo toast — Undo never calls the API (FR10)", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          {
+            ...STRUCTURED.topics[0],
+            items: [
+              {
+                ...ITEM,
+                notes: [
+                  {
+                    id: 7,
+                    item_id: ITEM.id,
+                    topic_slug: "ai-llms",
+                    topic_title: "AI / LLMs",
+                    brief_date: "2099-01-01",
+                    item_headline: ITEM.headline,
+                    body: "An earlier take.",
+                    created_at: "t1",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    deleteBriefNote.mockResolvedValue({ ok: true });
+    renderBrief();
+    await screen.findByText("An earlier take.");
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Delete note 7" }));
+      expect(screen.queryByText("An earlier take.")).not.toBeInTheDocument(); // vanishes now
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+      expect(screen.getByText("An earlier take.")).toBeInTheDocument(); // caught it
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(deleteBriefNote).not.toHaveBeenCalled(); // no API mutation at all
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("a failing audio load hides the player instead of leaving a broken one (#15)", async () => {

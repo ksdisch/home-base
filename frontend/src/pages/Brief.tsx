@@ -4,6 +4,7 @@ import type { BriefItem, BriefNote, BriefResponse, BriefTopic } from "../api/typ
 import { Banner } from "../components/Banner";
 import { HabitStrip } from "../components/HabitStrip";
 import { Markdown } from "../components/Markdown";
+import { UndoToast, useUndoable } from "../components/undo";
 import { YourLearning } from "../components/YourLearning";
 
 // "Sunday, July 13" from the sweep folder's YYYY-MM-DD (parsed as local, not UTC).
@@ -50,6 +51,7 @@ function ItemNotes({
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
 
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
@@ -80,11 +82,26 @@ function ItemNotes({
       .finally(() => setSaving(false));
   };
 
-  const remove = (id: number) => {
-    api
-      .deleteBriefNote(id)
-      .then(() => setNotes((prev) => prev.filter((n) => n.id !== id)))
-      .catch((e) => setError(e.message ?? "Couldn't delete the note"));
+  // FR10: the note vanishes now, the DELETE holds behind the undo toast; Undo restores
+  // it in place and the API is never called. A failed commit restores + reports.
+  const remove = (note: BriefNote) => {
+    const idx = notes.findIndex((n) => n.id === note.id);
+    const restore = () =>
+      setNotes((prev) => {
+        const list = [...prev];
+        list.splice(Math.max(idx, 0), 0, note);
+        return list;
+      });
+    setNotes((prev) => prev.filter((n) => n.id !== note.id));
+    holdThenFire(
+      "Note deleted",
+      () =>
+        void api.deleteBriefNote(note.id).catch((e) => {
+          restore();
+          setError(e.message ?? "Couldn't delete the note");
+        }),
+      restore,
+    );
   };
 
   const ask = () => {
@@ -131,6 +148,7 @@ function ItemNotes({
 
   return (
     <div className="mt-2">
+      <UndoToast label={undoLabel} onUndo={undo} />
       {notes.length > 0 && (
         <ul className="space-y-1">
           {notes.map((n) => (
@@ -141,7 +159,7 @@ function ItemNotes({
               <p className="whitespace-pre-wrap text-sm text-ink/90">{n.body}</p>
               {/* Touch screens have no hover: always visible below sm, hover-revealed ≥sm. */}
               <button
-                onClick={() => remove(n.id)}
+                onClick={() => remove(n)}
                 aria-label={`Delete note ${n.id}`}
                 disabled={readOnly}
                 title={readOnly ? "Offline — deletes need the hub" : undefined}

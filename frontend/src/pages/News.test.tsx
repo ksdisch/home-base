@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import News from "./News";
@@ -301,20 +301,51 @@ describe("News (M7)", () => {
     expect(screen.getByText("Ranked quantum story")).toBeInTheDocument(); // feed unaffected
   });
 
-  it("not-interested logs and hides the card", async () => {
+  it("not-interested hides the card now and logs after the undo window (FR10)", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue(TOP_FEED);
     renderNews("/news?cat=top");
     await screen.findByText("Big national story");
 
-    fireEvent.click(screen.getByLabelText("Not interested in Big national story"));
-    expect(logNewsEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "not_interested", item_id: "abc123abc123" }),
-    );
-    await waitFor(() =>
-      expect(screen.queryByText("Big national story")).not.toBeInTheDocument(),
-    );
-    expect(screen.getByText("Undated story")).toBeInTheDocument(); // only that card hides
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Not interested in Big national story"));
+      expect(screen.queryByText("Big national story")).not.toBeInTheDocument();
+      expect(screen.getByText("Undated story")).toBeInTheDocument(); // only that card hides
+      expect(logNewsEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "not_interested" }),
+      ); // the −8 holds during the window
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(logNewsEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "not_interested", item_id: "abc123abc123" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("undo within the window restores the card and never fires the signal (FR10)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+    await screen.findByText("Big national story");
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Not interested in Big national story"));
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+      expect(screen.getByText("Big national story")).toBeInTheDocument();
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(logNewsEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "not_interested" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // -- QU5 notes-on-News: the note verb reaches the grazing surface -----------------

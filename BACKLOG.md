@@ -286,6 +286,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** One undo-toast helper wraps not_interested + both note-delete paths; confirm undo within ~5s results in no API mutation.
 - **Size:** S (Friction)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #93, RED→green — W2 batch 6, closes the wave): `components/undo.tsx` (`useUndoable` + `UndoToast`, 5s) wraps all three taps — optimistic UI, deferred mutation, Undo = zero API calls (pinned per surface under fake timers), timeout/second-tap/unmount commits. No ranker/weight/layout change._
 
 ### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
 
@@ -398,6 +399,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Derive an effective filter: const effectiveTopic = topics.some(t => t.slug === topic) ? topic : 'all', used for both visible and the select value (or reset topic in remove() when deleting the filtered topic's last note). Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #93, RED→green — W2 batch 6): exactly the acceptance's first form — `effectiveTopic` drives both visibility and the select value, so the filter falls back to All the moment its topic vanishes (and snaps back if an FR10 undo restores it)._
 
 #### [Bug] #15: Offline audio can be a different day's narration (or a broken player) presented as the cached brief's audio
 - **Where:** `frontend/public/sw.js:76-86` · severity low · confidence high
@@ -421,6 +423,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Neutral banner title ('Something went wrong') or a separate delete-error state with an accurate title. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #93, RED→green — W2 batch 6): separate delete-error state with the accurate "Couldn't delete the note" title (the second acceptance form); with FR10 the failed commit also restores the row, so the list below the banner stays truthful. **Closes W2 batch 6 — the wave's last stub.**_
 
 #### [Bug] #18: Course write paths are not exception/crash-safe: an OSError mid-write skips rollback and can destroy course...
 - **Where:** `backend/app/courses/writer.py:52-63, 102-119` · severity low · confidence high
