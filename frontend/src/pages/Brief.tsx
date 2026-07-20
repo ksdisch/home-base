@@ -423,6 +423,27 @@ export default function Brief() {
   const stale = brief?.date != null && brief.date < localToday();
   const missingTopics = brief?.missing_topics ?? [];
 
+  // FR2: the stale banner's recovery becomes a tap — POST /brief/sweep (lock-guarded on
+  // the server), then poll the brief on a timer until the fresh day lands. "running"
+  // covers both a fresh kick and an honest already-running answer; the poll stops the
+  // moment the banner's own condition clears (stale flips false) or the page unmounts.
+  const [sweepState, setSweepState] = useState<null | "running" | "already" | "failed">(null);
+  const [sweepError, setSweepError] = useState<string | null>(null);
+  const kickSweep = () => {
+    api
+      .sweepBrief()
+      .then((r) => setSweepState(r.already_running ? "already" : "running"))
+      .catch((e) => {
+        setSweepError(e.message ?? "unknown error");
+        setSweepState("failed");
+      });
+  };
+  useEffect(() => {
+    if ((sweepState !== "running" && sweepState !== "already") || !stale) return;
+    const t = setInterval(refresh, 30_000);
+    return () => clearInterval(t);
+  }, [sweepState, stale, refresh]);
+
   return (
     <div>
       <div className="mb-6">
@@ -463,9 +484,33 @@ export default function Brief() {
       {stale && !fromCache && (
         <div className="mb-6">
           <Banner tone="info" title="This brief is from a previous day">
-            Run{" "}
-            <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
-            for a fresh one — it takes a few minutes, then lands here on reload.
+            {sweepState === "running" ? (
+              <>Sweep started — it takes a few minutes; this page will refresh itself when
+              the fresh brief lands.</>
+            ) : sweepState === "already" ? (
+              <>A sweep is already running — hang tight; this page will refresh itself when
+              the fresh brief lands.</>
+            ) : (
+              <>
+                {sweepState === "failed" && (
+                  <span className="mb-1 block">
+                    Couldn't start the sweep{sweepError ? ` (${sweepError})` : ""}.
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={kickSweep}
+                  className="mr-2 rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90"
+                >
+                  Refresh now
+                </button>
+                or run{" "}
+                <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">
+                  make sweep
+                </code>{" "}
+                in a terminal — a few minutes either way.
+              </>
+            )}
           </Banner>
         </div>
       )}

@@ -9,6 +9,7 @@ import type {
   BriefNoteDeleteResponse,
   BriefNotesResponse,
   BriefResponse,
+  BriefSweepResponse,
   BriefVisitResponse,
   CatalogResponse,
   CourseAssessment,
@@ -178,6 +179,9 @@ export const api = {
   },
   // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
   briefAudioUrl: () => `${API_BASE}/brief/audio`,
+  // FR2: kick the Mac's sweep pipeline from the stale banner — lock-guarded server-side,
+  // so a double tap (or a tap during the 06:00 run) is an honest no-op.
+  sweepBrief: () => post<BriefSweepResponse>("/brief/sweep"),
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   briefHabit: () => get<BriefHabitResponse>("/brief/habit"),

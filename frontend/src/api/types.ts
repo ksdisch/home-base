@@ -652,6 +652,13 @@ export interface BriefVisitResponse {
   visited_at: string;
 }
 
+// FR2: the phone's stale-morning tap — started = a detached sweep.sh was spawned;
+// already_running = honest no-op because one is in flight. Never both true.
+export interface BriefSweepResponse {
+  started: boolean;
+  already_running: boolean;
+}
+
 // Habit instrumentation for the kickoff's v1 success check (~3 weeks in): mornings =
 // distinct local days the Today page was opened (target ≥5/week), notes = brief notes
 // attached (target ≥3/week). Weeks are local Monday-start.

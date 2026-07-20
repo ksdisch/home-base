@@ -42,6 +42,13 @@ class Settings:
             os.environ.get("ROSTER_FILE", str(backend_dir.parent / "sweeps" / "topics.json"))
         ).expanduser()
 
+        # FR2: the sweep runner POST /brief/sweep re-invokes — the same repo-root
+        # ./sweep.sh that `make sweep` and the 06:00 launchd lane run. Overridable so
+        # tests point it at a sandbox copy (never the real pipeline).
+        self.sweep_script = Path(
+            os.environ.get("SWEEP_SCRIPT", str(backend_dir.parent / "sweep.sh"))
+        ).expanduser()
+
         # The news-mode category roster (M7): ordered slugs/titles + their Google News RSS
         # feed URLs, shared shape with the topic roster above. Overridable for tests.
         self.news_categories_file = Path(
