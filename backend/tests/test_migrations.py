@@ -12,6 +12,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from app.store.db import connect, init_db
 
 
@@ -56,6 +58,59 @@ def _make_v2_store(db: Path) -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+# -- HA11: copy the bytes before you touch them (docs/ideas/pre-migration-snapshot.md) --
+# One Mac, one file, no managed-DB restore: init_db must snapshot the store before any
+# migration can mutate the sole copy of every note/mastery/reflection. Unconditional —
+# NOT gated on the schema_migrations ledger (the 2026-07-16 drift incident is exactly
+# the case where the ledger lies).
+
+
+def test_init_db_snapshots_the_store_before_migrations(tmp_path):
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    before = db.read_bytes()
+
+    init_db(db)
+
+    baks = list(tmp_path.glob("learning-hub.sqlite.bak-*"))
+    assert len(baks) == 1
+    assert baks[0].read_bytes() == before  # the pre-migration bytes, restorable
+
+
+def test_fresh_store_takes_no_snapshot(tmp_path):
+    """Nothing to preserve on a brand-new store — no .bak litter on first run."""
+    db = tmp_path / "fresh.sqlite"
+    init_db(db)
+    assert list(tmp_path.glob("fresh.sqlite.bak-*")) == []
+
+
+def test_snapshot_retention_is_bounded(tmp_path):
+    """Every startup snapshots, so retention must be bounded — newest five kept."""
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    for _ in range(7):
+        init_db(db)
+    assert len(list(tmp_path.glob("learning-hub.sqlite.bak-*"))) == 5
+
+
+def test_failing_migration_leaves_a_restorable_snapshot(tmp_path, monkeypatch):
+    """The exact catastrophe this exists for: a bad ALTER fires against the sole copy —
+    the pre-migration bytes must already be sitting beside it."""
+    import app.store.db as store_db
+
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    before = db.read_bytes()
+    monkeypatch.setitem(store_db.MIGRATIONS, 999, ["ALTER TABLE nope ADD COLUMN broken TEXT"])
+
+    with pytest.raises(sqlite3.OperationalError):
+        init_db(db)
+
+    baks = list(tmp_path.glob("learning-hub.sqlite.bak-*"))
+    assert len(baks) == 1
+    assert baks[0].read_bytes() == before
 
 
 def test_v2_store_upgrades_and_keeps_rows(tmp_path):
