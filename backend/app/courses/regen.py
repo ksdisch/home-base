@@ -231,11 +231,30 @@ def _target_count(material: Dict[str, Any], current_content: str) -> int:
 
 def _strip_fence(text: str) -> str:
     """Remove ONE wrapping ``` fence (with optional language tag) when the whole answer sits
-    inside it — models add these despite instructions; anything else passes through."""
+    inside it — models add these despite instructions; anything else passes through. The outer
+    pair only counts as a wrapper when the interior's own fences stay balanced without it
+    (bug #11): an answer that merely STARTS with one code block and ENDS with another would
+    otherwise lose both outer fences and land garbled. On ambiguity, pass through unchanged."""
     lines = text.splitlines()
     if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].strip() == "```":
-        return "\n".join(lines[1:-1])
+        if _fences_balanced(lines[1:-1]):
+            return "\n".join(lines[1:-1])
     return text
+
+
+def _fences_balanced(lines: Sequence[str]) -> bool:
+    """CommonMark-ish fence walk: an opener may carry a language tag, a closer must be bare
+    backticks, and a tagged fence line inside an open block is just content."""
+    in_block = False
+    for line in lines:
+        s = line.strip()
+        if not s.startswith("```"):
+            continue
+        if not in_block:
+            in_block = True
+        elif s.strip("`") == "":
+            in_block = False
+    return not in_block
 
 
 def extract_content(material_type: str, answer: str) -> Tuple[str, Optional[int]]:
