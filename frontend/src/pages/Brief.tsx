@@ -553,6 +553,47 @@ export default function Brief() {
         </div>
       )}
 
+      {/* Mirror v0 (docs/ideas/the-mirror.md): the deterministic 'You this week'
+          self-read the backend attaches to the LIVE payload — the day's first story is
+          Kyle, not the world. Absent on pre-Mirror cached payloads and ?date= archives;
+          below the signal floor it says so instead of inventing a lean. */}
+      {brief?.mirror && (
+        <section
+          aria-label="You this week"
+          className="mb-4 rounded-2xl border border-accent/30 bg-accent/5 p-4"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+            <span aria-hidden>🪞</span> You this week
+          </div>
+          {brief.mirror.sufficient ? (
+            <>
+              <p className="mt-1 text-sm text-ink">{brief.mirror.sentence}</p>
+              {(brief.mirror.attention.length > 0 ||
+                brief.mirror.paused_topics.length > 0) && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  {brief.mirror.attention.map((a) => (
+                    <span
+                      key={a.slug}
+                      className="rounded-full border border-stone-200 bg-white/70 px-2 py-0.5"
+                    >
+                      {`${a.title} ${a.share_pct}%`}
+                    </span>
+                  ))}
+                  {brief.mirror.paused_topics.length > 0 && (
+                    <span>Paused: {brief.mirror.paused_topics.join(" · ")}</span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted">
+              Not enough signal yet — the Mirror reads your own Home Base use (mornings,
+              notes, asks, news taps) once a week of it exists.
+            </p>
+          )}
+        </section>
+      )}
+
       {loading && !brief && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (

@@ -211,6 +211,17 @@ def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
     return {"day": day, "visited_at": visited_at}
 
 
+def list_brief_visit_days(db_path: Optional[Path] = None) -> List[str]:
+    """Distinct visit days (LOCAL, by contract of record_brief_visit), newest first —
+    the Mirror's mornings read."""
+    conn = connect(db_path)
+    try:
+        rows = conn.execute("SELECT DISTINCT day FROM brief_visits ORDER BY day DESC").fetchall()
+    finally:
+        conn.close()
+    return [r["day"] for r in rows]
+
+
 def brief_habit_weeks(
     weeks: int = 4,
     *,

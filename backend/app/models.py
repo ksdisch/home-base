@@ -707,6 +707,34 @@ class BriefAudioChapter(BaseModel):
     start_seconds: float
 
 
+class BriefMirrorAttention(BaseModel):
+    """One slice of the Mirror's attention split — this topic/category's share of every
+    keyed signal (notes + asks + news events) in the window."""
+
+    slug: str
+    title: str
+    events: int
+    share_pct: int
+
+
+class BriefMirror(BaseModel):
+    """Mirror v0 (docs/ideas/the-mirror.md): a deterministic 'You this week' read over the
+    last 7 LOCAL days of logged behavior — no LLM, no writes, no stored profile.
+    ``sufficient=False`` is the honest cold start: counts still carried, sentence empty,
+    nothing extrapolated from a handful of data points."""
+
+    generated_at: str
+    window_days: int = 7
+    sufficient: bool = False
+    sentence: str = ""
+    mornings: int = 0
+    notes: int = 0
+    asks: int = 0
+    news_events: int = 0
+    attention: List[BriefMirrorAttention] = []
+    paused_topics: List[str] = []
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -725,6 +753,9 @@ class BriefResponse(BaseModel):
     # either edge (or when there's no served day).
     prev_date: Optional[str] = None
     next_date: Optional[str] = None
+    # Mirror v0: the 'You this week' self-read — LIVE view only (None on ?date= archive
+    # payloads; absent from pre-Mirror SW-cached payloads, so the TS side keeps it optional).
+    mirror: Optional[BriefMirror] = None
 
 
 class BriefVisitResponse(BaseModel):

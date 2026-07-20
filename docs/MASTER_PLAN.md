@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **W4 courses correctness batch ✅ (PR #103)** — the wave's one pre-decided build, shipped early on Kyle's call (sixth deliberate gate override): #11 fence-strip guard · #18 crash-safe writer · #20 stale-load token · #21 order-only revert, RED→green in one PR; backend **580** / frontend **106** green. Wave 4's remaining items stay decisions gated on the ~08-03 check (moonshot pick — Mirror v0 recommended · PR10 only-if-wobble); also open: M6 phone trio (Kyle). _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-20 · **Mirror v0 ✅ SHIPPED (PR #104)** — the Wave-4 moonshot, decided and built on Kyle's explicit go (seventh deliberate gate override): deterministic 🪞 "You this week" strip atop Today from the four existing signal exhausts, honest below the signal floor, zero LLM/zero writes; backend **587** / frontend **109** green. **Kyle's decision 2026-07-20: all four moonshots eventually, one at a time** — Readiness/Calibrated/Overnight queue behind their standing gates; next-moonshot call reads the Mirror's own evidence at the ~08-03 check. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -78,12 +78,13 @@ kanban
     wave2["Wave 2 — correctness<br/>sweep COMPLETE 07-19:<br/>6 test-first batches<br/>PRs 87 89 90 91 92 93<br/>· 14 low bugs + 4<br/>hardens + FR10 closed"]
     wave3["Wave 3 — walk and<br/>phone COMPLETE 07-20:<br/>QU3 resume PR 95 ·<br/>QU4 chips PR 96 ·<br/>FR15 nav survival PR<br/>97 · FR4 chapters PR<br/>98 · FR13 what<br/>changed PR 99 · FR2<br/>phone sweep PR 100 ·<br/>QU1 archive PR 101"]
     w4courses["W4 courses batch —<br/>fence-strip guard #11<br/>· crash-safe writer<br/>#18 · stale-load token<br/>#20 · order-only<br/>revert #21 · PR 103 ·<br/>sixth gate override"]
+    w4mirror["W4 moonshot — Mirror<br/>v0 'You this week'<br/>strip: read-time over<br/>4 signal exhausts ·<br/>honest cold start ·<br/>zero LLM zero writes<br/>· PR 104 · seventh<br/>gate override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    wave4["Wave 4 remainder —<br/>post-08-03 decisions:<br/>moonshot pick, Mirror<br/>v0 recommended<br/>(Readiness ·<br/>Calibrated Doubt ·<br/>Overnight CoS on the<br/>bench) · vault feed<br/>PR10 only if habit<br/>wobbles"]
+    wave4["Wave 4 remainder —<br/>next moonshot at the<br/>08-03 check (all four<br/>eventually — Kyle<br/>07-20): Readiness ·<br/>Calibrated · Overnight<br/>queued behind gates ·<br/>vault feed PR10 only<br/>if habit wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
 
@@ -170,17 +171,22 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    sw.js stands aside for ?date= (clobber pin); /brief/:date BriefArchive page outside
    the FR15 shell (notes live, Ask hidden, no stale nag); /notes dates are Links.
    Backend 571 → 574, frontend 100 → 104. **Wave closed.**
-4. **Wave 4 — post-08-03 decision points** (decisions, not commitments — gated on the v1
-   check's verdict): the moonshot pick — **Mirror v0 recommended first** (cheapest
-   deterministic bet, zero LLM/zero writes, doubles as instrumentation of the very behavior
-   the check measures); Readiness Brief / Calibrated Doubt / Overnight Chief of Staff stay
-   on the bench (Calibrated needs an M0-style graded week; Overnight needs its own gate
-   conversation + the out-of-repo vault bridge; Readiness v0 risks feeling thin without the
-   calendar join) · PR10 feed-the-vault **only if** the habit check wobbles (it is the
+4. **Wave 4 — post-08-03 decision points**: the moonshot pick — **DECIDED, Mirror v0
+   ✅ shipped 2026-07-20, PR #104** (Kyle's pick, built on his explicit go — the seventh
+   deliberate gate override: deterministic 'You this week' strip on Today over the four
+   existing signal exhausts, honest cold start, zero LLM/zero writes; the strip doubles as
+   the ~08-03 check's own instrumentation; backend 580 → 587, frontend 106 → 109).
+   **Kyle's decision 2026-07-20: all four moonshots will eventually be built, one at a
+   time** — Readiness Brief / Calibrated Doubt / Overnight Chief of Staff queue behind
+   their standing gates (Calibrated needs an M0-style graded week AND a decision on the
+   frozen render_brief.py field pass-through its first step requires; Overnight needs its
+   own gate conversation + the out-of-repo vault bridge; Readiness v0 risks feeling thin
+   without the calendar join); the next-moonshot call reads the Mirror's own evidence at
+   the ~08-03 check · PR10 feed-the-vault **only if** the habit check wobbles (it is the
    antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR
    — **✅ shipped 2026-07-20, PR #103** (the wave's one pre-decided build, pulled ahead of the
    check on Kyle's call — the sixth deliberate gate override; backend 574 → 580, frontend
-   104 → 106; the decisions above remain gated on the check's verdict).
+   104 → 106).
 
 Waves 1–3 are roughly two weeks at normal cadence, landing at the ~08-03 checkpoint.
 
@@ -293,6 +299,16 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-20 — W4 moonshot · Mirror v0 "You this week" (PR #104)
+The Wave-4 moonshot, decided and built on Kyle's explicit go (seventh deliberate gate
+override; [idea](ideas/the-mirror.md)): `app/mirror.py` deterministically aggregates the last
+7 local days of brief_visits + brief_notes + news_events + brief-chat.jsonl + roster pause
+flags into counts, a capped attention split, and one templated sentence — `mirror` rides the
+live `GET /api/brief` only (never ?date= archives), honest below MIN_SIGNAL=5, each source
+degrading independently. 🪞 strip pinned atop Today. Zero LLM, zero writes. Backend **587** ·
+frontend **109**. **Decision recorded: all four moonshots eventually, one at a time behind
+their gates — the next call reads the Mirror's own evidence at the ~08-03 check.**
 
 ### 2026-07-20 — W4 courses correctness batch (PR #103)
 The wave's one pre-decided build, pulled ahead of the ~08-03 check on Kyle's call (sixth

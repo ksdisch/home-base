@@ -49,6 +49,7 @@ from ..models import (
     BriefTopic,
     BriefVisitResponse,
 )
+from ..mirror import build_mirror
 from ..store import (
     add_brief_note,
     brief_habit_weeks,
@@ -158,6 +159,9 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
         missing_topics=missing,
         prev_date=prev_date,
         next_date=next_date,
+        # Mirror v0: the live view's 'You this week' self-read — an archived ?date=
+        # morning is a record and must not wear today's mirror.
+        mirror=build_mirror(settings, roster) if date is None else None,
     )
 
 

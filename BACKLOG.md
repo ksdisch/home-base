@@ -164,6 +164,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Prototype the credible first step (deterministic 'You this week' strip on Today) and judge whether the bet holds.
 - **Size:** L (Moonshot)
 - **Added:** 2026-07-19
+- _✅ v0 shipped 2026-07-20 (PR #104, RED→green — the Wave-4 moonshot pick, seventh deliberate gate override): `app/mirror.py` deterministically aggregates the last 7 LOCAL days of brief_visits + brief_notes + news_events + brief-chat.jsonl + roster pause flags into counts, a capped attention split, and one templated sentence → `BriefResponse.mirror` on the live view only (never ?date= archives) → the 🪞 "You this week" strip atop Today. MIN_SIGNAL=5 honest cold start; each source degrades independently; zero LLM, zero writes, render_brief.py untouched. v0 reports pause STATE, not churn (topics.json has no history). Kyle's pick same day: all four moonshots eventually, one at a time — the bet-judgment half of the acceptance rides the mornings before the ~08-03 check._
 
 #### [Exploration] The Readiness Brief — tomorrow, not yesterday
 - **Why:** A forward-tense section pinned above the brief that projects Kyle's next ~72 hours by colliding the swept world against his own calendar and job-search/life state, so its unit is a collision that rehearses him for what's coming, not a ca... See [`docs/ideas/readiness-brief.md`](docs/ideas/readiness-brief.md) for the full write-up.
