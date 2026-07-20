@@ -598,6 +598,9 @@ export interface BriefItem {
   // week for this topic; first_seen is that earliest YYYY-MM-DD. Labelled, never dropped.
   developing: boolean;
   first_seen?: string | null;
+  // FR13: the digest as this story read on first_seen day, verbatim — shown behind the
+  // badge and threaded into chat. Optional for stale pre-FR13 SW-cached payloads.
+  prior_digest?: string | null;
 }
 
 // One topic section: either structured (top_line/items from <topic>.json) or a raw_markdown

@@ -284,6 +284,9 @@ function TopicSection({
   date: string | null;
   readOnly?: boolean;
 }) {
+  // FR13: which item's "As written <first_seen>" disclosure is open (one per topic at a
+  // time) — the developing badge finally shows what the story looked like back then.
+  const [priorOpen, setPriorOpen] = useState<string | null>(null);
   return (
     // QU4: slug-keyed anchor for the chip row; scroll-mt clears both sticky bars
     // (app header + chip row) so a jumped-to heading isn't hidden under them.
@@ -320,22 +323,49 @@ function TopicSection({
                     — {item.attribution}
                   </span>
                 )}
-                {item.developing && (
-                  <span
-                    title={
-                      item.first_seen
-                        ? `This story first appeared in your ${topic.title} brief on ${item.first_seen}`
-                        : "This story appeared earlier this week"
-                    }
-                    className="ml-2 inline-block whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted"
-                  >
-                    developing{item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
-                  </span>
-                )}
+                {item.developing &&
+                  // FR13: with a prior digest on record the badge becomes a toggle for
+                  // the verbatim "As written" disclosure below; without one it stays the
+                  // passive label it always was (incl. stale pre-FR13 cached payloads).
+                  (item.prior_digest && item.id ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPriorOpen((open) => (open === item.id ? null : item.id))
+                      }
+                      title={`See how this story read when it first appeared${
+                        item.first_seen ? ` on ${item.first_seen}` : ""
+                      }`}
+                      className="ml-2 inline-block cursor-pointer whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted hover:text-accent"
+                    >
+                      developing
+                      {item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
+                    </button>
+                  ) : (
+                    <span
+                      title={
+                        item.first_seen
+                          ? `This story first appeared in your ${topic.title} brief on ${item.first_seen}`
+                          : "This story appeared earlier this week"
+                      }
+                      className="ml-2 inline-block whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted"
+                    >
+                      developing
+                      {item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
+                    </span>
+                  ))}
               </h3>
               <div className="mt-1 text-sm text-ink/90">
                 <Markdown source={item.digest} inline />
               </div>
+              {item.developing && item.prior_digest && priorOpen === item.id && (
+                <div className="mt-2 rounded-lg bg-stone-50 px-3 py-2 text-sm text-ink/80">
+                  <span className="text-xs font-medium text-muted">
+                    As written {item.first_seen ? humanDateShort(item.first_seen) : "earlier"}:
+                  </span>{" "}
+                  <Markdown source={item.prior_digest} inline />
+                </div>
+              )}
               {item.why_it_matters && (
                 <p className="mt-2 text-sm">
                   <span className="font-semibold text-accent">Why it matters:</span>{" "}
