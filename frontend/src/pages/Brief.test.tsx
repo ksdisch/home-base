@@ -546,4 +546,45 @@ describe("Brief (Today page)", () => {
     fireEvent.ended(document.querySelector("audio")!);
     expect(localStorage.getItem("audio-pos-2099-01-01")).toBeNull();
   });
+
+  // QU4 topic chips: 8 roster topics render in fixed sweeps/topics.json order — a chip
+  // row jumps straight to the one you opened the app for instead of scrolling past the
+  // off-season dead weight.
+
+  it("renders a jump chip per topic that scrolls to that topic's section (QU4)", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          STRUCTURED.topics[0],
+          {
+            ...STRUCTURED.topics[0],
+            slug: "fantasy-football",
+            title: "Fantasy football",
+            items: [],
+          },
+        ],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Jump to topic" })).toBeInTheDocument();
+    // Each section is an anchor target keyed by slug…
+    const target = document.getElementById("fantasy-football");
+    expect(target).not.toBeNull();
+    // …and its chip scrolls to it (scrollIntoView is absent in jsdom — stub the target's).
+    const scrolled = vi.fn();
+    (target as HTMLElement).scrollIntoView = scrolled;
+    fireEvent.click(screen.getByRole("button", { name: "Fantasy football" }));
+    expect(scrolled).toHaveBeenCalled();
+  });
+
+  it("shows no chip row when only one topic rendered — nothing to skip (QU4)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Jump to topic" })).not.toBeInTheDocument();
+  });
 });
