@@ -152,4 +152,32 @@ describe("sw brief/audio date pairing (#15)", () => {
     expect(replay?.headers.get("X-Served-From-Cache")).toBe("1");
     expect(((await replay?.json()) as { date: string }).date).toBe("2026-07-18");
   });
+
+  it("an archived-day request (?date=) never touches the offline morning cache (QU1)", async () => {
+    // The archive is live-only: the SW must stand aside for /api/brief?date=… — caching
+    // it under the same pathname key would clobber the offline last-morning AND move the
+    // date marker, evicting today's paired audio.
+    const responses: Record<string, () => Response> = {
+      "/api/brief": () => briefRes("2026-07-18"),
+      "/api/brief/audio": audioRes,
+    };
+    const { listeners, stores } = loadSw(async (req) => {
+      const u = new URL(req.url);
+      if (u.pathname === "/api/brief" && u.search) return briefRes("2026-07-13");
+      return responses[u.pathname]();
+    });
+
+    await driveFetch(listeners, BRIEF_REQ());
+    await driveFetch(listeners, AUDIO_REQ()); // today's brief + audio pair cached
+
+    const archived = await driveFetch(
+      listeners,
+      new Request("http://hub.local/api/brief?date=2026-07-13"),
+    );
+    expect(archived).toBeUndefined(); // the SW never intercepted it
+
+    const cachedBrief = stores.get(BRIEF_CACHE)?.get("/api/brief");
+    expect(((await cachedBrief?.clone().json()) as { date: string }).date).toBe("2026-07-18");
+    expect(stores.get(BRIEF_CACHE)?.has("/api/brief/audio")).toBe(true);
+  });
 });

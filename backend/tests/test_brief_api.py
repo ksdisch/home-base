@@ -883,3 +883,80 @@ def test_brief_chapters_without_mp3_stay_hidden(tmp_path, monkeypatch):
         assert body["audio_chapters"] == []
     finally:
         get_settings.cache_clear()
+
+
+# -- QU1: yesterday's brief, one tap back ------------------------------------------
+# ?date= opens the never-pruned data/sweeps/<date>/ archive the design always promised
+# was the durable record — read-only time travel; no param keeps today's behavior byte
+# for byte, plus prev/next neighbors so the history is walkable.
+
+
+def test_brief_serves_an_archived_day_with_notes_joined_and_neighbors(tmp_path, monkeypatch):
+    sweeps = _env(tmp_path, monkeypatch, "archive")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        client = _client()
+        old = client.get("/api/brief?date=2026-07-13").json()
+        assert old["date"] == "2026-07-13"
+        assert old["has_data"] is True
+        assert old["prev_date"] is None
+        assert old["next_date"] == "2026-07-14"
+        # A note attached to the archived morning joins onto its item there…
+        item_id = old["topics"][0]["items"][0]["id"]
+        r = client.post(
+            "/api/brief/notes",
+            json={
+                "item_id": item_id,
+                "topic_slug": "ai-llms",
+                "brief_date": "2026-07-13",
+                "item_headline": "OpenAI lifts caps",
+                "body": "archived thought",
+            },
+        )
+        assert r.status_code == 200
+        old = client.get("/api/brief?date=2026-07-13").json()
+        assert old["topics"][0]["items"][0]["notes"][0]["body"] == "archived thought"
+        # …and today's payload names its prev neighbor (no param → behavior unchanged).
+        today = client.get("/api/brief").json()
+        assert today["date"] == "2026-07-14"
+        assert today["prev_date"] == "2026-07-13"
+        assert today["next_date"] is None
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_unknown_or_garbage_date_is_a_404(tmp_path, monkeypatch):
+    """The link promised an archived morning; a day with nothing renderable (or nonsense
+    in the param) gets an honest 404, never a silent fall-back to today."""
+    sweeps = _env(tmp_path, monkeypatch, "archive404")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        client = _client()
+        assert client.get("/api/brief?date=2026-07-01").status_code == 404
+        assert client.get("/api/brief?date=not-a-date").status_code == 404
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_archived_day_hides_audio_even_when_its_mp3_exists(tmp_path, monkeypatch):
+    """No historical audio in v1: GET /brief/audio only serves the latest day, so an
+    archived payload advertising a player would be a broken promise."""
+    sweeps = _env(tmp_path, monkeypatch, "archiveaudio")
+    day = _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbold")
+    (day / "brief.chapters.json").write_text(json.dumps(CHAPTERS), encoding="utf-8")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief?date=2026-07-13").json()
+        assert body["date"] == "2026-07-13"
+        assert body["audio_available"] is False
+        assert body["audio_chapters"] == []
+    finally:
+        get_settings.cache_clear()
