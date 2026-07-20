@@ -455,6 +455,27 @@ export default function Brief() {
   const readiness = brief?.readiness;
   // Calibrated Doubt v0: the same narrowed-type binding for the calls strip below.
   const calibration = brief?.calibration;
+  // Overnight v0: the draft-only queue. Taps overlay the served payload locally
+  // (keyed by proposal id) so a resolution shows without refetching the brief.
+  const overnight = brief?.overnight;
+  const [overnightTaps, setOvernightTaps] = useState<
+    Record<string, { status: "proposed" | "approved" | "discarded"; error?: string }>
+  >({});
+  const overnightStatus = (p: { id: string; status: string }) =>
+    overnightTaps[p.id]?.status ?? p.status;
+  const resolveOvernight = (id: string, verb: "approve" | "discard") => {
+    (verb === "approve" ? api.approveOvernight(id) : api.discardOvernight(id))
+      .then((p) => setOvernightTaps((m) => ({ ...m, [id]: { status: p.status } })))
+      .catch((e) =>
+        setOvernightTaps((m) => ({
+          ...m,
+          [id]: { status: "proposed", error: e.message ?? "unknown error" },
+        })),
+      );
+  };
+  const overnightVisible = (overnight?.proposals ?? []).filter(
+    (p) => overnightStatus(p) !== "discarded",
+  );
 
   // FR2: the stale banner's recovery becomes a tap — POST /brief/sweep (lock-guarded on
   // the server), then poll the brief on a timer until the fresh day lands. "running"
@@ -567,6 +588,67 @@ export default function Brief() {
             if it persists.
           </Banner>
         </div>
+      )}
+
+      {/* Overnight v0 (docs/ideas/overnight-chief-of-staff.md): the draft-only queue —
+          what the nightly pass prepared, each card one tap to approve (a real note via
+          the existing notes path) or discard (the undo). Front door by design: the
+          approve/undo queue IS the acting surface's gate. Live payload only; absent on
+          pre-overnight cached payloads; offline the verbs disable like every composer. */}
+      {overnight && overnightVisible.length > 0 && (
+        <section
+          aria-label="Overnight"
+          className="mb-4 rounded-2xl border border-accent/30 bg-accent/5 p-4"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+            <span aria-hidden>🌙</span> Overnight
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Drafted while you slept — nothing was sent or executed. Approve saves a note
+            on its story; discard deletes the draft.
+          </p>
+          <ul className="mt-2 space-y-3">
+            {overnightVisible.map((p) => {
+              const status = overnightStatus(p);
+              const error = overnightTaps[p.id]?.error;
+              return (
+                <li key={p.id}>
+                  <div className="text-xs text-muted">{`${p.title} · ${p.item_headline}`}</div>
+                  <div className="mt-0.5 text-sm text-ink">{p.body}</div>
+                  {status === "approved" ? (
+                    <div className="mt-1 text-xs font-semibold text-emerald-700">
+                      ✓ Saved to notes
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={fromCache}
+                        onClick={() => resolveOvernight(p.id, "approve")}
+                        className="rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        disabled={fromCache}
+                        onClick={() => resolveOvernight(p.id, "discard")}
+                        className="rounded-lg border border-stone-300 px-3 py-1 text-xs font-semibold text-ink hover:bg-stone-100 disabled:opacity-50"
+                      >
+                        Discard
+                      </button>
+                      {error && (
+                        <span className="text-xs text-rose-700">
+                          Couldn't save — {error}. Reload if this draft went stale.
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {/* Mirror v0 (docs/ideas/the-mirror.md): the deterministic 'You this week'

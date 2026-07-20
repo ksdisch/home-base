@@ -8,6 +8,7 @@ import type {
   BriefNoteCreate,
   BriefNoteDeleteResponse,
   BriefNotesResponse,
+  BriefOvernightProposal,
   BriefResponse,
   BriefSweepResponse,
   BriefVisitResponse,
@@ -196,6 +197,12 @@ export const api = {
   // M5: one grounded follow-up answer about a served item (subscription lane, no web) —
   // slow by web standards (a real model call, ~5–20s), so callers show a thinking state.
   briefChat: (body: BriefChatRequest) => post<BriefChatResponse>("/brief/chat", body),
+  // Overnight v0: resolve one draft-only proposal — single-shot on the server (a second
+  // verb on the same id is a 409, surfaced inline by the strip).
+  approveOvernight: (id: string) =>
+    post<BriefOvernightProposal>(`/brief/overnight/${encodeURIComponent(id)}/approve`),
+  discardOvernight: (id: string) =>
+    post<BriefOvernightProposal>(`/brief/overnight/${encodeURIComponent(id)}/discard`),
   // M7 news mode: the category roster + one category's RSS-backed articles.
   newsCategories: () => get<NewsCategoriesResponse>("/news/categories"),
   newsCategory: (slug: string) =>

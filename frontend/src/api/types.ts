@@ -714,6 +714,31 @@ export interface BriefCalibration {
   yesterday: BriefCalibrationCall[];
 }
 
+// Overnight Chief of Staff v0 (docs/ideas/overnight-chief-of-staff.md): one draft-only
+// proposal on the queue — a note the nightly pass drafted onto the served day's item.
+// Nothing was sent or executed; approve lands `body` through the existing notes path
+// (`note_id` is the result), discard is the undo. Resolution is single-shot.
+export interface BriefOvernightProposal {
+  id: string;
+  type: string;
+  slug: string;
+  title: string;
+  item_id: string;
+  item_headline: string;
+  body: string;
+  status: "proposed" | "approved" | "discarded";
+  note_id?: number | null;
+  created_at: string;
+}
+
+// The draft-only after-action queue reduced from the backend's overnight ledger — what
+// the nightly pass prepared from in-repo data, each proposal wearing its resolution.
+export interface BriefOvernight {
+  generated_at: string;
+  date: string;
+  proposals: BriefOvernightProposal[];
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -741,6 +766,10 @@ export interface BriefResponse {
   // at serve time, so it rides the live view only. Optional so pre-calibration SW-cached
   // payloads stay valid; null on ?date= archives and no-served-day payloads.
   calibration?: BriefCalibration | null;
+  // Overnight v0: the draft-only approve/discard queue — live view only (an archived
+  // ?date= morning is a record, not a to-do list). Optional so pre-overnight SW-cached
+  // payloads stay valid.
+  overnight?: BriefOvernight | null;
 }
 
 export interface BriefVisitResponse {
