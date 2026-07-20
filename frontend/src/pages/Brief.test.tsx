@@ -871,3 +871,127 @@ describe("Readiness v0 — the 'Coming up' strip", () => {
     expect(screen.queryByRole("region", { name: "Coming up" })).not.toBeInTheDocument();
   });
 });
+
+// Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): the graded-wager record the
+// backend attaches to the LIVE payload — yesterday's calls with ✓/✗ outcomes, the
+// running record + Brier, a loud trial-week label while the lane is ungated (the
+// assumption-4 gate made visible), an item chip for this morning's open wagers, and
+// nothing at all for an empty record or a pre-calibration cached payload.
+const CALIBRATION = {
+  generated_at: "now",
+  window_days: 7,
+  resolved: 3,
+  hits: 2,
+  days: 2,
+  brier: 0.15,
+  trial: true,
+  yesterday: [
+    {
+      slug: "ai-llms",
+      title: "AI / LLMs",
+      day: "2026-07-15",
+      headline: "OpenAI lifts caps",
+      prediction: "A rival answers within a day",
+      confidence: 70,
+      outcome: true,
+    },
+    {
+      slug: "celtics",
+      title: "Boston Celtics",
+      day: "2026-07-15",
+      headline: "Tatum extension talks",
+      prediction: "Terms leak before the weekend",
+      confidence: 60,
+      outcome: false,
+    },
+  ],
+};
+
+describe("Calibrated Doubt v0 — the 'Yesterday's calls' strip", () => {
+  it("renders graded calls with outcomes, the running record, and the trial label", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, calibration: CALIBRATION }));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Yesterday's calls" });
+    expect(within(strip).getByText(/2-for-3 lifetime/)).toBeInTheDocument();
+    expect(within(strip).getByText(/Brier 0\.15/)).toBeInTheDocument();
+    expect(within(strip).getByText(/trial week/)).toBeInTheDocument();
+    expect(within(strip).getByText("A rival answers within a day")).toBeInTheDocument();
+    expect(
+      within(strip).getByText("70% — AI / LLMs · OpenAI lifts caps · kept moving"),
+    ).toBeInTheDocument();
+    expect(within(strip).getByText("Terms leak before the weekend")).toBeInTheDocument();
+    expect(
+      within(strip).getByText("60% — Boston Celtics · Tatum extension talks · didn't move"),
+    ).toBeInTheDocument();
+  });
+
+  it("drops the trial label once a graded week is on the books", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({ ...STRUCTURED, calibration: { ...CALIBRATION, days: 7, trial: false } }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Yesterday's calls" });
+    expect(within(strip).getByText(/2-for-3 lifetime/)).toBeInTheDocument();
+    expect(within(strip).queryByText(/trial week/)).not.toBeInTheDocument();
+  });
+
+  it("shows the quiet line when the record exists but the last morning made no calls", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({ ...STRUCTURED, calibration: { ...CALIBRATION, yesterday: [] } }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Yesterday's calls" });
+    expect(
+      within(strip).getByText("No calls to grade from the last morning."),
+    ).toBeInTheDocument();
+  });
+
+  it("renders no strip when the record is empty (honest cold start)", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        calibration: {
+          ...CALIBRATION,
+          resolved: 0,
+          hits: 0,
+          days: 0,
+          brier: null,
+          yesterday: [],
+        },
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Yesterday's calls" })).not.toBeInTheDocument();
+  });
+
+  it("renders no strip for a payload without the field (stale SW-cached shape)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Yesterday's calls" })).not.toBeInTheDocument();
+  });
+
+  it("shows this morning's open wager as a chip on its item", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          {
+            ...STRUCTURED.topics[0],
+            items: [{ ...ITEM, prediction: "A rival answers within a day", confidence: 65 }],
+          },
+        ],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText(/65% call:/)).toBeInTheDocument();
+    expect(screen.getByText("A rival answers within a day")).toBeInTheDocument();
+  });
+});
