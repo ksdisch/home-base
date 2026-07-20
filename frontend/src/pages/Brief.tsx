@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { BriefItem, BriefNote, BriefResponse, BriefTopic } from "../api/types";
+import type { BriefItem, BriefNote, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
+import { useBriefShell } from "../components/BriefShell";
 import { HabitStrip } from "../components/HabitStrip";
 import { Markdown } from "../components/Markdown";
 import { UndoToast, useUndoable } from "../components/undo";
@@ -377,41 +378,20 @@ function TopicSection({
 }
 
 export default function Brief() {
-  const [brief, setBrief] = useState<BriefResponse | null>(null);
-  const [fromCache, setFromCache] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  // Bug #15: audio_available reflects the served (possibly cached) payload, but the mp3
-  // itself can be unreachable — offline with an uncached copy (iOS Range → 206 → never
-  // stored) or evicted by the SW's date pairing. No player beats a broken one.
-  const [audioBroken, setAudioBroken] = useState(false);
+  // FR15: the brief payload and the audio element live in BriefShell above <Routes>,
+  // so a Today→News/Notes→Today hop can't tear them down. This page consumes the held
+  // state, kicks a silent revalidate on every visit (a fresh sweep landing mid-session
+  // still surfaces), and slots the shell's persistent audio card into place below.
+  const { brief, fromCache, error, loading, refresh, registerAudioSlot } = useBriefShell();
 
   useEffect(() => {
-    let alive = true;
-    api
-      .briefWithMeta()
-      .then((r) => {
-        if (!alive) return;
-        setBrief(r.brief);
-        setFromCache(r.fromCache);
-      })
-      .catch((e) => alive && setError(e.message ?? "Failed to load the brief"))
-      .finally(() => alive && setLoading(false));
+    refresh();
     // The habit metric — fire-and-forget so logging can never block the morning read.
     api.logBriefVisit().catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
+  }, [refresh]);
 
   const stale = brief?.date != null && brief.date < localToday();
   const missingTopics = brief?.missing_topics ?? [];
-
-  // QU3: an interrupted walk (call, locked phone, backgrounded PWA reload) must resume,
-  // not restart. Date-keyed so tomorrow's brief self-invalidates yesterday's position;
-  // cleared on ended so a finished brief starts fresh. Handlers live on the element
-  // itself so a later hoist above the router (FR15) carries the behavior along.
-  const audioPosKey = brief?.date ? `audio-pos-${brief.date}` : null;
 
   return (
     <div>
@@ -426,33 +406,9 @@ export default function Brief() {
         </p>
       </div>
 
-      {/* M4: the ~5-min narrated cut of this sweep (sweeps/audio_brief.py + local Kokoro).
-          Only rendered when the served day actually has an mp3 — no player, no 404 noise. */}
-      {brief?.audio_available && !audioBroken && (
-        <div className="mb-6 rounded-2xl border border-stone-200 bg-white/60 p-4">
-          <p className="mb-2 text-xs font-medium text-muted">
-            🎧 Listen to this brief — the ~5-minute cut
-          </p>
-          <audio
-            controls
-            preload="none"
-            src={api.briefAudioUrl()}
-            className="w-full"
-            onError={() => setAudioBroken(true)}
-            onTimeUpdate={(e) => {
-              if (audioPosKey) localStorage.setItem(audioPosKey, String(e.currentTarget.currentTime));
-            }}
-            onLoadedMetadata={(e) => {
-              if (!audioPosKey) return;
-              const saved = Number(localStorage.getItem(audioPosKey));
-              if (saved > 0) e.currentTarget.currentTime = saved;
-            }}
-            onEnded={() => {
-              if (audioPosKey) localStorage.removeItem(audioPosKey);
-            }}
-          />
-        </div>
-      )}
+      {/* M4 audio card (rendered by BriefShell through its portal — see FR15 note
+          above): the shell re-slots the same live element here on every visit. */}
+      <div ref={registerAudioSlot} />
 
       {error && (
         <div className="mb-6">
