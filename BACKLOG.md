@@ -383,6 +383,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Only strip when the fence is plausibly a wrapper (e.g. interior fence markers remain balanced after stripping); on ambiguity pass the text through unchanged. Add the false-positive test. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-20 (PR #103, RED→green — W4 courses batch): `_strip_fence` unwraps only when the interior's own fences stay balanced without the outer pair (CommonMark-ish walk — openers may carry a tag, closers must be bare, a tagged fence inside an open block is content); distinct leading/trailing blocks pass through unchanged, ambiguity passes through. e2e + unit pins, true-wrapper case pinned against overcorrection._
 
 #### [Bug] #12: append_roster_topic read-modify-write race can silently lose a concurrent write to sweeps/topics.json
 - **Where:** `backend/app/news.py:95-106` · severity low · confidence high
@@ -438,6 +439,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** try/except around the write→validate sequence that restores snapshots before re-raising; write each file via tmp + os.replace; in write_material restore the material file if the manifest write raises. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-20 (PR #103, RED→green — W4 courses batch): both write paths wrap write→validate in try/except restoring the byte-identical snapshots before re-raising (write_material restores material AND manifest whichever step raised), and every file lands via same-dir mkstemp + os.replace (the news.py roster idiom) so a mid-write crash can't truncate in place. Three raise-path restores pinned; in-process crash atomicity itself rides on os.replace, not a unit test._
 
 #### [Bug] #19: On-wake catch-up does not cover a powered-off/rebooted Mac
 - **Where:** `sweeps/schedule/com.homebase.sweep.plist.template:24-34` · severity low · confidence medium
@@ -453,6 +455,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Apply the house cancellation pattern: per-invocation token/alive flag, skip all setStates when a newer load has started. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-20 (PR #103, RED→green — W4 courses batch): exactly the acceptance — load() takes a per-invocation ref token, then/catch bail when a newer load has started, and the effect cleanup retires in-flight loads on param change/unmount; the race pin switches decks mid-flight and resolves the stale load last._
 
 #### [Bug] #21: Reorder failure revert restores a whole-course snapshot, clobbering concurrent lesson-completion toggles
 - **Where:** `frontend/src/pages/CourseDetail.tsx:147-168` · severity low · confidence medium
@@ -460,6 +463,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Revert only what the reorder changed via a functional update that restores module order while preserving each lesson's current completed flag. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-20 (PR #103, RED→green — W4 courses batch, closes the batch): exactly the acceptance — applyOrder's catch becomes a functional update restoring prev's module/lesson order while carrying each lesson's current object, so a mid-flight completion whose POST landed survives the revert; progress counters stay current (an order revert changes no counts)._
 
 #### [Bug] #22: render_brief.py writes the live-served <topic>.json non-atomically
 - **Where:** `sweeps/render_brief.py:174-177` · severity low · confidence medium

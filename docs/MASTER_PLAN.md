@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Wave 3 (walk & phone) ✅ COMPLETE** — 7 test-first PRs in one day (#95–#101: audio resume · topic chips · nav survival · audio chapters · what-changed · phone sweep · yesterday's archive); backend **574** / frontend **104** green. Next: the standing open items (M6 phone trio · ~08-03 v1 check) — Wave 4 stays gated on the check's verdict. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-20 · **W4 courses correctness batch ✅ (PR #103)** — the wave's one pre-decided build, shipped early on Kyle's call (sixth deliberate gate override): #11 fence-strip guard · #18 crash-safe writer · #20 stale-load token · #21 order-only revert, RED→green in one PR; backend **580** / frontend **106** green. Wave 4's remaining items stay decisions gated on the ~08-03 check (moonshot pick — Mirror v0 recommended · PR10 only-if-wobble); also open: M6 phone trio (Kyle). _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -77,12 +77,13 @@ kanban
     w2b6["W2 batch 6 — notes<br/>UX: undo toast FR10<br/>(3 destructive taps) ·<br/>filter fallback #14 ·<br/>honest delete error<br/>#17 · PR 93"]
     wave2["Wave 2 — correctness<br/>sweep COMPLETE 07-19:<br/>6 test-first batches<br/>PRs 87 89 90 91 92 93<br/>· 14 low bugs + 4<br/>hardens + FR10 closed"]
     wave3["Wave 3 — walk and<br/>phone COMPLETE 07-20:<br/>QU3 resume PR 95 ·<br/>QU4 chips PR 96 ·<br/>FR15 nav survival PR<br/>97 · FR4 chapters PR<br/>98 · FR13 what<br/>changed PR 99 · FR2<br/>phone sweep PR 100 ·<br/>QU1 archive PR 101"]
+    w4courses["W4 courses batch —<br/>fence-strip guard #11<br/>· crash-safe writer<br/>#18 · stale-load token<br/>#20 · order-only<br/>revert #21 · PR 103 ·<br/>sixth gate override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    wave4["Wave 4 — post-08-03<br/>decisions: moonshot<br/>pick, Mirror v0<br/>recommended (Readiness<br/>· Calibrated Doubt ·<br/>Overnight CoS on the<br/>bench) · vault feed<br/>PR10 only if habit<br/>wobbles · courses bug<br/>batch 11/18/20/21"]
+    wave4["Wave 4 remainder —<br/>post-08-03 decisions:<br/>moonshot pick, Mirror<br/>v0 recommended<br/>(Readiness ·<br/>Calibrated Doubt ·<br/>Overnight CoS on the<br/>bench) · vault feed<br/>PR10 only if habit<br/>wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
 
@@ -176,7 +177,10 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    on the bench (Calibrated needs an M0-style graded week; Overnight needs its own gate
    conversation + the out-of-repo vault bridge; Readiness v0 risks feeling thin without the
    calendar join) · PR10 feed-the-vault **only if** the habit check wobbles (it is the
-   antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR.
+   antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR
+   — **✅ shipped 2026-07-20, PR #103** (the wave's one pre-decided build, pulled ahead of the
+   check on Kyle's call — the sixth deliberate gate override; backend 574 → 580, frontend
+   104 → 106; the decisions above remain gated on the check's verdict).
 
 Waves 1–3 are roughly two weeks at normal cadence, landing at the ~08-03 checkpoint.
 
@@ -289,6 +293,15 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-20 — W4 courses correctness batch (PR #103)
+The wave's one pre-decided build, pulled ahead of the ~08-03 check on Kyle's call (sixth
+deliberate gate override), all four RED→green in one PR: **#11** `_strip_fence` unwraps only a
+balanced wrapper (distinct leading/trailing blocks pass through) · **#18** the course writer
+restores snapshots on ANY raised exception + lands files via mkstemp/os.replace · **#20**
+FlashcardReview load() takes a per-invocation token · **#21** a failed reorder reverts order
+only — concurrent completion toggles survive. Backend **580** · frontend **106**. Wave 4's
+remaining items stay decisions (moonshot pick · PR10 only-if-wobble).
 
 ### 2026-07-20 — W3 7/7 · QU1 yesterday's brief — **WAVE 3 COMPLETE** (PR #101)
 The never-pruned sweep archive opens ([idea](ideas/yesterdays-brief-one-tap-back.md)): `?date=`
