@@ -631,6 +631,31 @@ export interface BriefAudioChapter {
   start_seconds: number;
 }
 
+// Mirror v0 (docs/ideas/the-mirror.md): one slice of the attention split — this
+// topic/category's share of every keyed signal (notes + asks + news events) in the window.
+export interface BriefMirrorAttention {
+  slug: string;
+  title: string;
+  events: number;
+  share_pct: number;
+}
+
+// The deterministic 'You this week' self-read over the last 7 local days of logged
+// behavior — no LLM, no writes. sufficient=false is the honest cold start: counts still
+// carried, sentence empty, nothing extrapolated.
+export interface BriefMirror {
+  generated_at: string;
+  window_days: number;
+  sufficient: boolean;
+  sentence: string;
+  mornings: number;
+  notes: number;
+  asks: number;
+  news_events: number;
+  attention: BriefMirrorAttention[];
+  paused_topics: string[];
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -648,6 +673,9 @@ export interface BriefResponse {
   // for pre-QU1 SW-cached payloads; null at either edge.
   prev_date?: string | null;
   next_date?: string | null;
+  // Mirror v0: the live view's 'You this week' self-read. Optional so pre-Mirror
+  // SW-cached payloads stay valid; null on ?date= archive views.
+  mirror?: BriefMirror | null;
 }
 
 export interface BriefVisitResponse {
