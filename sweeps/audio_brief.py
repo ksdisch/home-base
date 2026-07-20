@@ -131,15 +131,21 @@ def load_topics(day_dir: Path, roster: list[dict]) -> list[dict]:
         if not top_line:
             continue
         title = titles.get(slug) or slug.replace("-", " ").capitalize()
-        topics.append({"title": title, "top_line": top_line, "items": items})
+        topics.append({"slug": slug, "title": title, "top_line": top_line, "items": items})
     return topics
 
 
-def build_script(topics: list[dict], date_iso: str) -> str:
+def build_script(topics: list[dict], date_iso: str) -> tuple[str, list[dict]]:
     """The deterministic ear script: opener, one compact segment per topic, closer.
 
     Trim ladder when over MAX_WORDS: drop the headline sentences from the last topic
     backwards (top lines always survive) — deterministic, never reorders or drops a topic.
+
+    Also returns the FR4 chapter list [{slug, title, start_seconds}] — each topic's start
+    offset from the cumulative word count of everything spoken before it, converted with
+    the same WORDS_PER_MINUTE the duration line trusts. Computed after the trim ladder
+    settles so offsets match the script that actually renders. Titles are the display
+    titles (the page's), not the speakable rewrite — chips must read like the page.
     """
     opener = f"Good morning. It's {human_date(date_iso)}, and this is your Home Base brief."
     closer = "That's the brief. The full stories, sources, and your notes are on the Today page."
@@ -169,7 +175,19 @@ def build_script(topics: list[dict], date_iso: str) -> str:
             break
         seg["extra"] = ""
         script = assemble()
-    return script
+
+    chapters = []
+    words = len(opener.split())
+    for topic, seg in zip(topics, segments):
+        chapters.append(
+            {
+                "slug": topic["slug"],
+                "title": topic["title"],
+                "start_seconds": round(words / WORDS_PER_MINUTE * 60, 1),
+            }
+        )
+        words += len(f"{seg['intro']} {seg['extra']}".strip().split())
+    return script, chapters
 
 
 def is_fresh(out_path: Path, day_dir: Path) -> bool:
@@ -229,7 +247,7 @@ def main() -> int:
         print(f"audio brief: no narratable <topic>.json briefs for {args.date} — nothing to do")
         return 0
 
-    script = build_script(topics, args.date)
+    script, chapters = build_script(topics, args.date)
     words = len(script.split())
     minutes = words / WORDS_PER_MINUTE
 
@@ -237,6 +255,18 @@ def main() -> int:
         print(script)
         print(f"[{words} words ≈ {minutes:.1f} min across {len(topics)} topics]", file=sys.stderr)
         return 0
+
+    # FR4: chapter offsets beside the mp3, written atomically BEFORE the render on
+    # purpose — a down Kokoro still lands them, and the API only serves chapters when the
+    # mp3 actually exists, so an orphan file is inert. Best-effort like everything here:
+    # a failed write warns and never blocks the narration.
+    chapters_path = out_path.with_name(out_path.stem + ".chapters.json")
+    try:
+        tmp = chapters_path.with_name(chapters_path.name + ".tmp")
+        tmp.write_text(json.dumps(chapters), encoding="utf-8")
+        os.replace(tmp, chapters_path)
+    except OSError as e:
+        print(f"!! audio brief: couldn't write {chapters_path} ({e}) — chips skipped", file=sys.stderr)
 
     try:
         size = render(script, args.kokoro_url, args.voice, args.speed, out_path)

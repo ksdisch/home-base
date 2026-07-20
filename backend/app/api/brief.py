@@ -14,6 +14,7 @@ their snapshot columns, so they outlive the sweep files they point at).
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,7 @@ from fastapi.responses import FileResponse
 from ..chat import BriefChatError, append_chat_ledger, build_prompt, max_question_chars
 from ..deps import get_app_settings, get_brief_chat_client
 from ..models import (
+    BriefAudioChapter,
     BriefChatRequest,
     BriefChatResponse,
     BriefHabitResponse,
@@ -53,6 +55,32 @@ router = APIRouter()
 def _roster_titles(settings) -> Dict[str, str]:
     roster = load_roster(settings.roster_file)
     return {t["slug"]: t["title"] for t in roster if t["title"]}
+
+
+def _load_audio_chapters(path: Path) -> List[BriefAudioChapter]:
+    """FR4: [{slug, title, start_seconds}] written by sweeps/audio_brief.py beside the mp3.
+
+    Missing, mangled, or wrong-shape entries degrade to fewer/no chips — the chips are a
+    bonus on top of the player and can never break the morning read."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError):
+        return []
+    if not isinstance(data, list):
+        return []
+    chapters: List[BriefAudioChapter] = []
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        slug, title, start = entry.get("slug"), entry.get("title"), entry.get("start_seconds")
+        if (
+            isinstance(slug, str)
+            and isinstance(title, str)
+            and isinstance(start, (int, float))
+            and not isinstance(start, bool)
+        ):
+            chapters.append(BriefAudioChapter(slug=slug, title=title, start_seconds=float(start)))
+    return chapters
 
 
 @router.get("/brief", response_model=BriefResponse)
@@ -85,12 +113,20 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
             if not t["paused"] and t["slug"] not in present
         ]
 
+    audio_available = bool(date) and (settings.sweeps_dir / date / "brief.mp3").is_file()
+    # FR4: chapters only ride an actually-present mp3 — audio_brief.py writes them before
+    # the render, so a failed Kokoro leaves an orphan file this gate keeps invisible.
+    audio_chapters: List[BriefAudioChapter] = []
+    if audio_available and date:
+        audio_chapters = _load_audio_chapters(settings.sweeps_dir / date / "brief.chapters.json")
+
     return BriefResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         has_data=len(raw_topics) > 0,
         date=date,
         topics=[BriefTopic(**t) for t in raw_topics],
-        audio_available=bool(date) and (settings.sweeps_dir / date / "brief.mp3").is_file(),
+        audio_available=audio_available,
+        audio_chapters=audio_chapters,
         missing_topics=missing,
     )
 

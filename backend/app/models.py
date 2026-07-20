@@ -694,6 +694,15 @@ class BriefMissingTopic(BaseModel):
     title: str
 
 
+class BriefAudioChapter(BaseModel):
+    """FR4: one seek chip over the narrated mp3. start_seconds is a deterministic
+    word-count estimate from sweeps/audio_brief.py — a landmark, not a measured timing."""
+
+    slug: str
+    title: str
+    start_seconds: float
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -701,6 +710,10 @@ class BriefResponse(BaseModel):
     topics: List[BriefTopic] = []
     # M4: data/sweeps/<date>/brief.mp3 exists for the served day — GET /brief/audio streams it.
     audio_available: bool = False
+    # FR4: seek offsets from the day's brief.chapters.json — only populated when
+    # audio_available is true (chapters beside a failed render stay invisible); any file
+    # problem degrades to [] — chips are a bonus, never a 500.
+    audio_chapters: List[BriefAudioChapter] = []
     # QU12: active (non-paused) roster topics missing from the served day, roster order.
     # Empty when there's no served day at all — has_data=false already tells that story.
     missing_topics: List[BriefMissingTopic] = []
