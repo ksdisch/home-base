@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -301,6 +301,98 @@ def _annotate_developing(topics: List[Dict[str, Any]], sweeps_dir: Path, date: s
                 digest = _first_seen_digest(sweeps_dir, topic["slug"], item["first_seen"], keys)
                 if digest:
                     item["prior_digest"] = digest
+
+
+_READINESS_TOP_N = 5
+_READINESS_MIN_HISTORY_DAYS = 2
+
+
+def _readiness_history_dates(sweeps_dir: Path, before_date: str) -> List[str]:
+    """Renderable prior mornings within the dedup window before ``before_date``, oldest→
+    newest — the archive's own renderability bar, so a garbled-but-present day still counts
+    as a morning while an empty/.raw.txt-only dir never does."""
+    if not sweeps_dir.is_dir():
+        return []
+    try:
+        cutoff = (date.fromisoformat(before_date) - timedelta(days=_DEDUP_LOOKBACK_DAYS)).isoformat()
+    except ValueError:
+        return []
+    return sorted(
+        p.name
+        for p in sweeps_dir.iterdir()
+        if p.is_dir()
+        and _DATE_DIR.match(p.name)
+        and cutoff <= p.name < before_date
+        and _has_renderable_content(p)
+    )
+
+
+def _topic_history_keys(sweeps_dir: Path, slug: str, days: List[str]) -> Dict[str, set]:
+    """Per prior morning, the union of identity keys in this topic's file. A missing or
+    garbled day contributes nothing — fewer matches, never a failure."""
+    out: Dict[str, set] = {}
+    for d in days:
+        path = sweeps_dir / d / f"{slug}.json"
+        try:
+            items = json.loads(path.read_text(encoding="utf-8"))["items"]
+        except (OSError, ValueError, KeyError, TypeError, UnicodeDecodeError):
+            continue
+        if not isinstance(items, list):
+            continue
+        keys: set[str] = set()
+        for item in items:
+            if isinstance(item, dict):
+                keys |= _item_identity_keys(item)
+        if keys:
+            out[d] = keys
+    return out
+
+
+def build_readiness(
+    sweeps_dir: Path, date: str, topics: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Readiness v0 (docs/ideas/readiness-brief.md): the 'Coming up' projection for the
+    served morning — which of today's stories are still in motion, read from the same
+    prior-day JSON ``_annotate_developing`` walks. Identity is the badge's own keys, so
+    the strip and the badge can never disagree; ranking is deterministic (mornings seen,
+    then denser streak = later first_seen, then slug/headline). Below
+    ``_READINESS_MIN_HISTORY_DAYS`` renderable prior mornings nothing is projected — an
+    honest cold start, not a trend invented from one day of archive."""
+    days = _readiness_history_dates(sweeps_dir, date)
+    result: Dict[str, Any] = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "window_days": _DEDUP_LOOKBACK_DAYS,
+        "history_days": len(days),
+        "sufficient": len(days) >= _READINESS_MIN_HISTORY_DAYS,
+        "items": [],
+    }
+    if not result["sufficient"]:
+        return result
+
+    candidates: List[Dict[str, Any]] = []
+    for topic in topics:
+        developing = [i for i in topic.get("items") or [] if i.get("developing")]
+        if not developing:
+            continue
+        history = _topic_history_keys(sweeps_dir, topic["slug"], days)
+        for item in developing:
+            keys = _item_identity_keys(item)
+            candidates.append(
+                {
+                    "slug": topic["slug"],
+                    "title": topic["title"],
+                    "item_id": item["id"],
+                    "headline": item["headline"],
+                    "days_seen": 1 + sum(1 for day_keys in history.values() if keys & day_keys),
+                    "first_seen": item["first_seen"],
+                }
+            )
+    # Two stable passes: slug/headline ascending underneath, then the ranking keys
+    # descending on top — full ties keep readable ascending order.
+    candidates.sort(key=lambda c: (c["slug"], c["headline"]))
+    candidates.sort(key=lambda c: (c["days_seen"], c["first_seen"]), reverse=True)
+    result["items"] = candidates[:_READINESS_TOP_N]
+    return result
 
 
 def load_brief_topics(

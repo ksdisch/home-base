@@ -735,6 +735,35 @@ class BriefMirror(BaseModel):
     paused_topics: List[str] = []
 
 
+class BriefReadinessItem(BaseModel):
+    """One projected trajectory on the 'Coming up' strip (readiness v0): a story on the
+    served morning that has appeared on prior mornings in the dedup window. Identity is
+    the same normalized headline/source-URL match that sets the developing badge, so the
+    strip and the badge can never disagree; ``days_seen`` counts distinct mornings
+    including the served one, ``item_id`` is the served item's read-time anchor."""
+
+    slug: str
+    title: str
+    item_id: str
+    headline: str
+    days_seen: int
+    first_seen: str
+
+
+class BriefReadiness(BaseModel):
+    """Readiness v0 (docs/ideas/readiness-brief.md): the deterministic 'Coming up' forward
+    projection over in-repo sweep history — which of the morning's stories are still in
+    motion. No LLM, no writes; ``sufficient=False`` is the honest cold start (fewer than
+    two prior renderable mornings in the window): nothing projected from thin history,
+    ``history_days`` says why."""
+
+    generated_at: str
+    window_days: int = 7
+    history_days: int = 0
+    sufficient: bool = False
+    items: List[BriefReadinessItem] = []
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -756,6 +785,10 @@ class BriefResponse(BaseModel):
     # Mirror v0: the 'You this week' self-read — LIVE view only (None on ?date= archive
     # payloads; absent from pre-Mirror SW-cached payloads, so the TS side keeps it optional).
     mirror: Optional[BriefMirror] = None
+    # Readiness v0: the 'Coming up' projection for the served morning — LIVE view only
+    # (None on ?date= archives and when there's no served day; absent from pre-readiness
+    # SW-cached payloads, so the TS side keeps it optional).
+    readiness: Optional[BriefReadiness] = None
 
 
 class BriefVisitResponse(BaseModel):

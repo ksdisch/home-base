@@ -439,6 +439,8 @@ export default function Brief() {
 
   const stale = brief?.date != null && brief.date < localToday();
   const missingTopics = brief?.missing_topics ?? [];
+  // Readiness v0: a const binding so the row map below keeps the narrowed type.
+  const readiness = brief?.readiness;
 
   // FR2: the stale banner's recovery becomes a tap — POST /brief/sweep (lock-guarded on
   // the server), then poll the brief on a timer until the fresh day lands. "running"
@@ -590,6 +592,46 @@ export default function Brief() {
               Not enough signal yet — the Mirror reads your own Home Base use (mornings,
               notes, asks, news taps) once a week of it exists.
             </p>
+          )}
+        </section>
+      )}
+
+      {/* Readiness v0 (docs/ideas/readiness-brief.md): the deterministic 'Coming up'
+          projection the backend attaches to the LIVE payload — which of this morning's
+          stories are still in motion, from the same prior-day walk as the developing
+          badge. Absent on pre-readiness cached payloads and ?date= archives; below two
+          mornings of archive it says so instead of projecting from thin history. */}
+      {readiness && (
+        <section
+          aria-label="Coming up"
+          className="mb-4 rounded-2xl border border-accent/30 bg-accent/5 p-4"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+            <span aria-hidden>🔭</span> Coming up
+          </div>
+          {!readiness.sufficient ? (
+            <p className="mt-1 text-sm text-muted">
+              Not enough sweep history yet — Coming up projects from multi-day story arcs
+              once a couple of mornings are in the archive.
+            </p>
+          ) : readiness.items.length === 0 ? (
+            <p className="mt-1 text-sm text-muted">Nothing multi-day in motion this morning.</p>
+          ) : (
+            <>
+              <p className="mt-1 text-xs text-muted">
+                Multi-day stories still in motion — expect follow-ups.
+              </p>
+              <ul className="mt-2 space-y-2">
+                {readiness.items.map((r) => (
+                  <li key={r.item_id}>
+                    <div className="text-sm font-medium text-ink">{r.headline}</div>
+                    <div className="text-xs text-muted">
+                      {`${r.title} · seen ${r.days_seen} of the last ${readiness.window_days} mornings · since ${humanDateShort(r.first_seen)}`}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </section>
       )}
