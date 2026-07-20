@@ -130,6 +130,83 @@ def test_render_markdown_matches_gradeable_shape():
     )
 
 
+# -- Calibrated Doubt v0: the optional prediction+confidence pass-through -----------
+# (docs/ideas/calibrated-doubt.md — the ONLY sanctioned edit to this frozen file: a
+# well-formed wager pair survives normalize(); validate(), render_markdown(), and the
+# failure semantics stay byte-identical.)
+
+
+PREDICTED = {
+    **GOOD,
+    "items": [
+        {
+            **GOOD["items"][0],
+            "prediction": " Anthropic answers with a price cut ",
+            "confidence": 70,
+        }
+    ],
+}
+
+
+def test_normalize_passes_the_wager_pair_through():
+    brief = render_brief.normalize(PREDICTED, "ai-llms", "2026-07-14", "a")
+    assert brief["items"][0]["prediction"] == "Anthropic answers with a price cut"
+    assert brief["items"][0]["confidence"] == 70
+
+
+def test_normalize_coerces_confidence_representations():
+    for raw, want in [(0.7, 70), ("70", 70), (70.0, 70)]:
+        src = {**GOOD, "items": [{**GOOD["items"][0], "prediction": "p", "confidence": raw}]}
+        assert render_brief.normalize(src, "t", "d", "a")["items"][0]["confidence"] == want, raw
+
+
+def test_normalize_drops_malformed_or_orphan_pairs():
+    """Lenient in, strict out: a flubbed optional wager becomes no wager — the item (and
+    the sweep) still lands. Both fields ride together or not at all, and a confidence is
+    never rewritten into range (that would fabricate a number the model didn't say)."""
+    cases = [
+        {"prediction": "p"},  # orphan prediction
+        {"confidence": 70},  # orphan confidence
+        {"prediction": "   ", "confidence": 70},  # blank prediction
+        {"prediction": 42, "confidence": 70},  # non-string prediction
+        {"prediction": "p", "confidence": 0},  # certainty is not a wager
+        {"prediction": "p", "confidence": 100},
+        {"prediction": "p", "confidence": 130},
+        {"prediction": "p", "confidence": True},  # bool is not a confidence
+        {"prediction": "p", "confidence": "high"},
+        {"prediction": "p", "confidence": None},
+    ]
+    for extra in cases:
+        src = {**GOOD, "items": [{**GOOD["items"][0], **extra}]}
+        item = render_brief.normalize(src, "t", "d", "a")["items"][0]
+        assert "prediction" not in item and "confidence" not in item, extra
+
+
+def test_normalize_still_strips_every_other_unknown_key():
+    src = {
+        **GOOD,
+        "items": [{**GOOD["items"][0], "prediction": "p", "confidence": 70, "vibes": "x"}],
+    }
+    item = render_brief.normalize(src, "t", "d", "a")["items"][0]
+    assert "vibes" not in item
+    assert item["prediction"] == "p"
+
+
+def test_validate_stays_silent_about_the_pair():
+    """Frozen failure semantics: the pair is invisible to validate() — a malformed wager
+    must never turn a valid brief into a loud per-topic failure."""
+    assert render_brief.validate(PREDICTED) == []
+    bad = {**GOOD, "items": [{**GOOD["items"][0], "prediction": "p", "confidence": "high"}]}
+    assert render_brief.validate(bad) == []
+
+
+def test_render_markdown_untouched_by_the_pair():
+    """The gradeable .md is the M0-graded surface — wagers ride the JSON only."""
+    plain = render_brief.normalize(GOOD, "ai-llms", "2026-07-14", "a")
+    wagered = render_brief.normalize(PREDICTED, "ai-llms", "2026-07-14", "a")
+    assert render_brief.render_markdown(wagered) == render_brief.render_markdown(plain)
+
+
 # -- main(): end-to-end file behaviour ----------------------------------------------
 
 
