@@ -153,11 +153,12 @@ untagged bugs are the verified lows, in report rank order._
 
 ### Ideas (21 — one vision doc each)
 
-#### [Exploration] Overnight Chief of Staff — the brief you approve, not read
+#### ✅ [Exploration] Overnight Chief of Staff — the brief you approve, not read
 - **Why:** A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action... See [`docs/ideas/overnight-chief-of-staff.md`](docs/ideas/overnight-chief-of-staff.md) for the full write-up.
 - **Acceptance:** Prototype the credible first step (draft-only overnight pass -> overnight.jsonl -> Overnight strip) and judge whether the bet holds.
 - **Size:** L (Moonshot)
 - **Added:** 2026-07-19
+- **Shipped:** v0 2026-07-20, PR #107 (tenth gate override, on the gate conversation's recorded scope: in-repo data only · draft-only with a later per-errand-type graded send gate · undo = discard + the reversibility rule). The credible first step exactly: nightly guarded pass → overnight.jsonl → live-only 🌙 approve/discard queue; approve = a real note via the existing notes path. The vault bridge and any real send/execute remain behind their own future gates.
 
 #### [Exploration] The Mirror — the brief reads Kyle, not the world
 - **Why:** A new top strip on Today that renders a candid, sourced read of Kyle himself each morning — 'You asked about agent evals 4 mornings running and wrote zero Celtics notes on the topic you've paused-then-unpaused three times; attention this... See [`docs/ideas/the-mirror.md`](docs/ideas/the-mirror.md) for the full write-up.

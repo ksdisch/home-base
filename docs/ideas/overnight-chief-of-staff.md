@@ -1,6 +1,8 @@
 # Overnight Chief of Staff — the brief you approve, not read
 
-**Status:** Idea — not committed. Added by `/brainstorm` (Moonshot mode) on 2026-07-19.
+**Status:** v0 SHIPPED 2026-07-20 (PR #107, the tenth deliberate gate override) — built on
+Kyle's explicit go at this idea's standing gate conversation, on the recorded scope below.
+Added by `/brainstorm` (Moonshot mode) on 2026-07-19.
 
 _A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action log of what it did — each action one-tap approve, edit, or undo._
 
@@ -17,6 +19,21 @@ That Kyle will trust Home Base enough to let it MOVE on his behalf, not just rep
 ## Decisions / open questions
 
 1) The flagship errands (draft-follow-up, gmail-triage, app-sync, finance-review) live in Kyle's vault/Cowork ecosystem, NOT this repo — does v0 shell out to those local skills, or start with a smaller in-repo-only set of proposals, keeping the identity flip while the external bridge matures? 2) Draft-only forever, or does a later gate (M0-style graded week) unlock genuine send/execute? 3) Where does an 'undo' actually reverse an action that already touched an external account — is undo real, or only 'don't send'?
+
+**ANSWERED at the 2026-07-20 gate conversation (Kyle's picks, recorded scope):**
+
+1. **In-repo data only.** v0's proposals come solely from data Home Base owns; the vault
+   bridge waits behind its own later gate conversation. The unattended lane never reads
+   external accounts.
+2. **Draft-only v0, graded send gate later.** Each errand *type* can earn real
+   send/execute only through its own M0-style graded record + gate conversation — the
+   M0/Calibrated Doubt precedent. Nothing unlocks by default; "draft-only forever" was
+   deliberately not chosen, and neither was unlocking sends now.
+3. **Undo = discard, plus the reversibility rule.** In v0, undo = discard the draft
+   (nothing external exists to reverse — and an approved draft stays reversible too,
+   because the note it creates is deletable in /notes). Recorded invariant: an errand
+   type is only ever *eligible* for the future send gate if its real-world action can
+   genuinely be reversed; irreversible actions stay draft-only permanently.
 
 ## Credible first step
 
