@@ -191,6 +191,62 @@ def test_write_material_rolls_back_file_and_manifest_on_invalid_content(courses_
     assert (cdir / "course.json").read_bytes() == manifest_before
 
 
+# -- crash safety (bug #18): a RAISED exception must restore the snapshots too --
+
+
+def test_write_manifest_restores_manifest_when_validate_raises(courses_dir, monkeypatch):
+    """The byte-identical rollback contract can't hold only for a normal ok:false —
+    validate_dir's own uncaught OSError must put the prior manifest back before re-raising."""
+    from app.courses import writer
+
+    _write_course(courses_dir, "c", {"title": "Good", "modules": []})
+    before = (courses_dir / "c" / "course.json").read_bytes()
+
+    def boom(base):
+        raise OSError("disk went away mid-validate")
+
+    monkeypatch.setattr(writer, "validate_dir", boom)
+    with pytest.raises(OSError):
+        write_manifest("c", {"title": "New", "modules": []})
+    assert (courses_dir / "c" / "course.json").read_bytes() == before
+
+
+def test_write_material_restores_both_files_when_validate_raises(courses_dir, monkeypatch):
+    from app.courses import writer
+
+    cdir = _course_with_deck(courses_dir, count_field=2, cards=2)
+    file_before = (cdir / "flashcards" / "m1l1.json").read_bytes()
+    manifest_before = (cdir / "course.json").read_bytes()
+
+    def boom(base):
+        raise OSError("disk went away mid-validate")
+
+    monkeypatch.setattr(writer, "validate_dir", boom)
+    with pytest.raises(OSError):
+        write_material("c", "flashcards/m1l1.json", _deck(3) + "\n", count=3)
+    assert (cdir / "flashcards" / "m1l1.json").read_bytes() == file_before
+    assert (cdir / "course.json").read_bytes() == manifest_before
+
+
+def test_write_material_restores_the_file_when_the_manifest_step_raises(courses_dir, monkeypatch):
+    """An exception BETWEEN the two writes (ENOSPC, EACCES…) aborts write_material with the
+    material file already replaced — it must come back byte-identical."""
+    from app.courses import writer
+
+    cdir = _course_with_deck(courses_dir, count_field=2, cards=2)
+    file_before = (cdir / "flashcards" / "m1l1.json").read_bytes()
+    manifest_before = (cdir / "course.json").read_bytes()
+
+    def boom(raw, rel_path, count):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(writer, "_sync_count", boom)
+    with pytest.raises(OSError):
+        write_material("c", "flashcards/m1l1.json", _deck(3) + "\n", count=3)
+    assert (cdir / "flashcards" / "m1l1.json").read_bytes() == file_before
+    assert (cdir / "course.json").read_bytes() == manifest_before
+
+
 def test_write_material_leaves_count_free_entries_alone(courses_dir):
     manifest = {
         "title": "T",
