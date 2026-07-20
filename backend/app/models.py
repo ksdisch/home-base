@@ -802,6 +802,36 @@ class BriefCalibration(BaseModel):
     yesterday: List[BriefCalibrationCall] = []
 
 
+class BriefOvernightProposal(BaseModel):
+    """One draft-only proposal on the Overnight queue (v0): a note the nightly pass
+    drafted onto the served day's item. Nothing was sent or executed — approve lands
+    ``body`` through the existing notes path (``note_id`` is the result), discard is
+    the undo. Resolution is single-shot: proposed → approved | discarded, never back."""
+
+    id: str
+    type: str = "draft_note"
+    slug: str
+    title: str = ""
+    item_id: str
+    item_headline: str
+    body: str
+    status: str = "proposed"
+    note_id: Optional[int] = None
+    created_at: str = ""
+
+
+class BriefOvernight(BaseModel):
+    """Overnight Chief of Staff v0 (docs/ideas/overnight-chief-of-staff.md): the
+    draft-only after-action queue reduced from backend/data/overnight.jsonl — what the
+    nightly pass prepared from in-repo data, wearing each proposal's resolution. Scope
+    decisions (2026-07-20 gate): in-repo data only, v0 sends/executes nothing, the
+    approve/undo queue itself is the acting surface's gate."""
+
+    generated_at: str
+    date: str
+    proposals: List[BriefOvernightProposal] = []
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -832,6 +862,10 @@ class BriefResponse(BaseModel):
     # grader). Absent from pre-calibration SW-cached payloads, so the TS side keeps it
     # optional.
     calibration: Optional[BriefCalibration] = None
+    # Overnight v0: the draft-only approve/discard queue — LIVE view only (an archived
+    # ?date= morning is a record, not a to-do list). Absent from pre-overnight SW-cached
+    # payloads, so the TS side keeps it optional.
+    overnight: Optional[BriefOvernight] = None
 
 
 class BriefVisitResponse(BaseModel):

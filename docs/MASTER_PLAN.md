@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Calibrated Doubt v0 ✅ SHIPPED (PR #106)** — the third Wave-4 moonshot, Kyle's pick, built on his explicit go (ninth deliberate gate override, **narrow render_brief.py unfreeze granted**): every sweep item MAY stake an optional falsifiable wager (`prediction` + `confidence` 55–90, all 8 prompts + scout template) — `normalize()`-only pass-through in the frozen renderer (validate()/gradeable .md/failure semantics byte-identical), zero-LLM grading of prior mornings' wagers against the topic's next READABLE sweep on the developing badge's own identity keys (open on pipeline failure, never a false miss) → append-once `backend/data/calibration.jsonl` → 🎯 "Yesterday's calls" strip + open-wager chips on the live Today, trial-week label until 7 graded mornings (the ~08-19 re-grade doubles as the M0-style graded week); backend **611** / frontend **119** green. Moonshot queue: **Overnight only** — gate conversation before any code. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-20 · **Overnight Chief of Staff v0 ✅ SHIPPED (PR #107)** — the LAST of the four decided moonshots, built on Kyle's explicit go at its standing gate conversation (tenth deliberate gate override). Scope decisions recorded at the gate: **in-repo data only** (vault bridge behind its own later gate) · **draft-only v0 with a graded send gate later** (each errand TYPE earns send/execute via its own M0-style graded record + gate conversation; nothing unlocks by default) · **undo = discard + the reversibility rule** (only genuinely reversible actions are ever send-gate-eligible; irreversible ones stay draft-only permanently). The build: `sweeps/actions_queue.py` drafts a note on each readable topic's top story after every sweep (one guarded `claude -p`, M5 lane guards, strict-out validation, idempotent per day, best-effort in sweep.sh) → `backend/data/overnight.jsonl` → live-only 🌙 queue on Today — approve lands a REAL note through the existing notes path (deletable there), discard is the undo, resolution single-shot (409). Backend **625** / frontend **126** green. **Moonshot queue: EMPTY — all four built.** Open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -86,7 +86,7 @@ kanban
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    wave4["Wave 4 remainder —<br/>Overnight Chief of<br/>Staff, the last<br/>moonshot (all four<br/>eventually — Kyle<br/>07-20): gate<br/>conversation before<br/>any code · vault feed<br/>PR10 only if habit<br/>wobbles"]
+    wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
 
@@ -192,10 +192,19 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    open-on-pipeline-failure honesty, append-once calibration.jsonl, 🎯 'Yesterday's
    calls' strip + open-wager chips, trial-week label until 7 graded mornings — the
    ~08-19 re-grade doubles as its M0-style graded week; backend 595 → 611, frontend
-   113 → 119). Remaining queue: **Overnight Chief of Staff only**, behind its standing
-   gate (a scoping conversation before any code — vision-doc open questions 1–3:
-   in-repo-only proposals vs the out-of-repo vault bridge · draft-only forever vs a
-   later send gate · what undo really means)
+   113 → 119). **Overnight Chief of Staff v0 ✅ shipped 2026-07-20, PR #107** (the LAST
+   moonshot, built on Kyle's explicit go at its standing gate conversation — the tenth
+   deliberate gate override. The gate's three open questions were answered before any
+   code and are the recorded scope: (1) **in-repo data only** — the vault bridge
+   (draft-follow-up/gmail-triage/app-sync/finance-review) waits behind its own later
+   gate; (2) **draft-only v0, graded send gate later** — each errand TYPE earns
+   send/execute only via its own M0-style graded record + gate conversation, nothing
+   unlocks by default; (3) **undo = discard + the reversibility rule** — only genuinely
+   reversible actions are ever eligible for the send gate, irreversible ones stay
+   draft-only permanently. Build: nightly actions_queue.py pass on the M5 lane →
+   overnight.jsonl → live-only 🌙 approve/discard queue, approve = a real note via the
+   existing notes path; backend 611 → 625, frontend 119 → 126). **The moonshot queue is
+   EMPTY — all four decided moonshots are built.**
    · PR10 feed-the-vault **only if** the habit check wobbles (it is the
    antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR
    — **✅ shipped 2026-07-20, PR #103** (the wave's one pre-decided build, pulled ahead of the
@@ -313,6 +322,22 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-20 — W4 moonshot #4 · Overnight Chief of Staff v0, the queue closes (PR #107)
+The LAST decided moonshot, built on Kyle's explicit go at its standing gate conversation
+(tenth deliberate gate override; [idea](ideas/overnight-chief-of-staff.md)). Scope answers
+recorded at the gate, before any code: **in-repo data only** (vault bridge behind its own
+later gate) · **draft-only v0 + a later per-errand-type M0-style graded send gate**
+(nothing unlocks by default) · **undo = discard + the reversibility rule** (irreversible
+actions are never send-gate-eligible). `sweeps/actions_queue.py` runs after each sweep
+(best-effort, idempotent per day): one guarded `claude -p` on the M5 lane drafts a ≤3-note
+queue from the readable topics' top stories, strict-out validated into
+`backend/data/overnight.jsonl`; the live-only 🌙 strip pins the approve/discard queue atop
+Today — approve lands a REAL note through the existing notes path (deletable there, so
+undo stays real post-approve), discard is the undo, resolution single-shot (409). The
+queue IS the assumption-4 gate: v0 sends and executes nothing, no auto-approve. Backend
+**625** · frontend **126**. **Moonshot queue EMPTY — all four built.** First real
+proposals land at the next 06:00 sweep.
 
 ### 2026-07-20 — W4 moonshot #3 · Calibrated Doubt v0 "Yesterday's calls" (PR #106)
 The third moonshot, picked and built same-day on Kyle's explicit go (ninth deliberate gate

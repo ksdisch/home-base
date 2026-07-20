@@ -229,3 +229,46 @@ def test_resweep_without_notes_proceeds_silently(tmp_path):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert (box / "claude-called.txt").exists()
     assert (live / "ai-llms.json").read_text(encoding="utf-8") == '{"probe": true}'
+
+
+# -- Overnight Chief of Staff v0: post-sweep chaining (best-effort) -----------------
+
+# Probe stand-in for sweeps/actions_queue.py — records how the runner invoked it.
+PROBE_ACTIONS = '''#!/usr/bin/env python3
+import sys
+from pathlib import Path
+
+Path(__file__).resolve().parents[1].joinpath("actions-called.txt").write_text(
+    " ".join(sys.argv[1:])
+)
+sys.exit(0)
+'''
+
+
+def test_runner_chains_the_overnight_pass_after_the_sweep(tmp_path):
+    """The nightly pass runs after the topic loop with the runner's own date/paths —
+    today's briefs, the roster, the backend ledger, and the shared cost ledger."""
+    box = _sandbox(tmp_path, None)
+    (box / "sweeps" / "actions_queue.py").write_text(PROBE_ACTIONS, encoding="utf-8")
+
+    proc = _run(box)
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    called = (box / "actions-called.txt").read_text(encoding="utf-8")
+    assert f"--date {_today()}" in called
+    assert str(box / "data" / "sweeps") in called
+    assert str(box / "sweeps" / "topics.json") in called
+    assert str(box / "backend" / "data" / "overnight.jsonl") in called
+    assert ".runs.jsonl" in called
+
+
+def test_a_failed_overnight_pass_never_fails_the_sweep(tmp_path):
+    """Best-effort by contract, like the audio brief: the pass crashing (or missing
+    entirely) leaves the sweep's own exit code untouched."""
+    box = _sandbox(tmp_path, None)
+    (box / "sweeps" / "actions_queue.py").write_text("import sys\nsys.exit(1)\n", encoding="utf-8")
+
+    proc = _run(box)
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert (box / "data" / "sweeps" / _today() / "ai-llms.json").exists()

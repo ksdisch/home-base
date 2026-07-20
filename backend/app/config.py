@@ -83,6 +83,11 @@ class Settings:
         # ledger: data/sweeps stays strictly read-only.
         self.brief_calibration_ledger = self.data_dir / "calibration.jsonl"
 
+        # Overnight Chief of Staff v0: the draft-only proposal queue. Proposal rows are
+        # appended by the nightly sweeps/actions_queue.py pass, approve/discard status
+        # rows by the API — backend data for the same reason as the other ledgers.
+        self.brief_overnight_ledger = self.data_dir / "overnight.jsonl"
+
         # Courses M5 authoring loop: the model for POST /courses/{slug}/lessons/{id}/regenerate
         # (same claude binary + subscription-lane guards as brief chat) and its usage ledger.
         self.course_regen_model = os.environ.get("COURSE_REGEN_MODEL", "sonnet")
