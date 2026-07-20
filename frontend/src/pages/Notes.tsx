@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { BriefNote } from "../api/types";
 import { Banner } from "../components/Banner";
+import { UndoToast, useUndoable } from "../components/undo";
 
 // M2: the browse view for inline brief notes — every take/question you've attached to a
 // brief item, filterable per topic (the kickoff's "browsable per topic"). Note rows are
@@ -10,7 +11,9 @@ import { Banner } from "../components/Banner";
 export default function Notes() {
   const [notes, setNotes] = useState<BriefNote[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [topic, setTopic] = useState("all");
+  const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
 
   useEffect(() => {
     let alive = true;
@@ -31,13 +34,35 @@ export default function Notes() {
     return [...seen.entries()].map(([slug, title]) => ({ slug, title }));
   }, [notes]);
 
-  const visible = (notes ?? []).filter((n) => topic === "all" || n.topic_slug === topic);
+  // Bug #14: a filter can outlive its topic (deleting the topic's last note) — derive
+  // the effective filter so the page falls back to All instead of stranding behind a
+  // false empty state with the select unmounted.
+  const effectiveTopic = topics.some((t) => t.slug === topic) ? topic : "all";
+  const visible = (notes ?? []).filter(
+    (n) => effectiveTopic === "all" || n.topic_slug === effectiveTopic,
+  );
 
-  const remove = (id: number) => {
-    api
-      .deleteBriefNote(id)
-      .then(() => setNotes((prev) => (prev ?? []).filter((n) => n.id !== id)))
-      .catch((e) => setError(e.message ?? "Failed to delete the note"));
+  // FR10: the row vanishes now, the DELETE holds behind the undo toast; Undo restores
+  // the row in place and the API is never called. A failed commit restores too and
+  // reports itself accurately (bug #17: never under the load-failure heading).
+  const remove = (note: BriefNote) => {
+    const idx = (notes ?? []).findIndex((n) => n.id === note.id);
+    const restore = () =>
+      setNotes((prev) => {
+        const list = [...(prev ?? [])];
+        list.splice(Math.max(idx, 0), 0, note);
+        return list;
+      });
+    setNotes((prev) => (prev ?? []).filter((n) => n.id !== note.id));
+    holdThenFire(
+      "Note deleted",
+      () =>
+        void api.deleteBriefNote(note.id).catch((e) => {
+          restore();
+          setDeleteError(e.message ?? "Failed to delete the note");
+        }),
+      restore,
+    );
   };
 
   return (
@@ -54,7 +79,7 @@ export default function Notes() {
           <label className="w-full text-sm text-muted sm:w-auto">
             Topic{" "}
             <select
-              value={topic}
+              value={effectiveTopic}
               onChange={(e) => setTopic(e.target.value)}
               className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2 py-2.5 text-sm text-ink sm:ml-1 sm:mt-0 sm:w-auto sm:py-1.5"
             >
@@ -73,6 +98,16 @@ export default function Notes() {
         <div className="mb-6">
           <Banner tone="warning" title="Couldn't load notes">
             {error}
+          </Banner>
+        </div>
+      )}
+
+      {/* Bug #17: a failed delete is its own event — it must never render under the
+          load-failure heading while the fully loaded list sits right below it. */}
+      {deleteError && (
+        <div className="mb-6">
+          <Banner tone="warning" title="Couldn't delete the note">
+            {deleteError}
           </Banner>
         </div>
       )}
@@ -96,7 +131,7 @@ export default function Notes() {
                   {n.item_headline}
                 </div>
                 <button
-                  onClick={() => remove(n.id)}
+                  onClick={() => remove(n)}
                   aria-label={`Delete note ${n.id}`}
                   className="-m-2 p-2 text-xs text-muted transition hover:text-ink sm:m-0 sm:p-0"
                 >
@@ -108,6 +143,8 @@ export default function Notes() {
           ))}
         </div>
       )}
+
+      <UndoToast label={undoLabel} onUndo={undo} />
     </div>
   );
 }
