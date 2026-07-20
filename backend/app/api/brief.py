@@ -56,7 +56,7 @@ from ..store import (
     list_brief_notes,
     record_brief_visit,
 )
-from ..sweeps import latest_sweep_date, load_brief_topics, load_roster, topic_title
+from ..sweeps import latest_sweep_date, load_brief_topics, load_roster, sweep_dates, topic_title
 
 router = APIRouter()
 
@@ -93,16 +93,24 @@ def _load_audio_chapters(path: Path) -> List[BriefAudioChapter]:
 
 
 @router.get("/brief", response_model=BriefResponse)
-def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
-    date = latest_sweep_date(settings.sweeps_dir)
+def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) -> BriefResponse:
+    # QU1: an optional ?date= opens the never-pruned per-day archive — read-only time
+    # travel over the raw record the design always promised was durable. No param keeps
+    # today's latest-day behavior unchanged.
+    dates = sweep_dates(settings.sweeps_dir)
+    latest = dates[-1] if dates else None
+    if date is not None and date not in dates:
+        raise HTTPException(status_code=404, detail=f"no brief for {date}")
+    served = date or latest
+
     roster = load_roster(settings.roster_file)
-    raw_topics = load_brief_topics(settings.sweeps_dir, date, roster) if date else []
+    raw_topics = load_brief_topics(settings.sweeps_dir, served, roster) if served else []
     titles = {t["slug"]: t["title"] for t in roster if t["title"]}
 
     # Join the served day's notes onto their items (oldest first — reading order).
-    if date and raw_topics:
+    if served and raw_topics:
         notes_by_item: Dict[str, List[dict]] = {}
-        for note in reversed(list_brief_notes(brief_date=date)):
+        for note in reversed(list_brief_notes(brief_date=served)):
             note["topic_title"] = topic_title(note["topic_slug"], titles)
             notes_by_item.setdefault(note["item_id"], []).append(note)
         for topic in raw_topics:
@@ -114,7 +122,7 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
     # topic and a crashed topic must not look the same on the page. Paused entries are a
     # legitimate absence; no served day at all is the page-level has_data=false story.
     missing: List[BriefMissingTopic] = []
-    if date:
+    if served:
         present = {t["slug"] for t in raw_topics}
         missing = [
             BriefMissingTopic(slug=t["slug"], title=topic_title(t["slug"], titles))
@@ -122,21 +130,34 @@ def get_brief(settings=Depends(get_app_settings)) -> BriefResponse:
             if not t["paused"] and t["slug"] not in present
         ]
 
-    audio_available = bool(date) and (settings.sweeps_dir / date / "brief.mp3").is_file()
+    # QU1: audio only rides the LATEST day — GET /brief/audio serves nothing else, so an
+    # archived payload advertising a player would be a broken promise (no historical
+    # audio in v1).
+    is_latest = served is not None and served == latest
+    audio_available = is_latest and (settings.sweeps_dir / served / "brief.mp3").is_file()
     # FR4: chapters only ride an actually-present mp3 — audio_brief.py writes them before
     # the render, so a failed Kokoro leaves an orphan file this gate keeps invisible.
     audio_chapters: List[BriefAudioChapter] = []
-    if audio_available and date:
-        audio_chapters = _load_audio_chapters(settings.sweeps_dir / date / "brief.chapters.json")
+    if audio_available and served:
+        audio_chapters = _load_audio_chapters(settings.sweeps_dir / served / "brief.chapters.json")
+
+    # QU1: prev/next renderable neighbors make the archive walkable from any day.
+    prev_date = next_date = None
+    if served and served in dates:
+        i = dates.index(served)
+        prev_date = dates[i - 1] if i > 0 else None
+        next_date = dates[i + 1] if i < len(dates) - 1 else None
 
     return BriefResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         has_data=len(raw_topics) > 0,
-        date=date,
+        date=served,
         topics=[BriefTopic(**t) for t in raw_topics],
         audio_available=audio_available,
         audio_chapters=audio_chapters,
         missing_topics=missing,
+        prev_date=prev_date,
+        next_date=next_date,
     )
 
 

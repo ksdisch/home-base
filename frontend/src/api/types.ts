@@ -644,6 +644,10 @@ export interface BriefResponse {
   // QU12: active (non-paused) roster topics missing from the served day, roster order.
   // Optional so a pre-QU12 payload replayed from the service-worker cache stays valid.
   missing_topics?: BriefMissingTopic[];
+  // QU1: the served day's renderable neighbors — the archive's prev/next walk. Optional
+  // for pre-QU1 SW-cached payloads; null at either edge.
+  prev_date?: string | null;
+  next_date?: string | null;
 }
 
 export interface BriefVisitResponse {

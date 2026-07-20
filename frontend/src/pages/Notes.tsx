@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { BriefNote } from "../api/types";
 import { Banner } from "../components/Banner";
@@ -126,7 +127,14 @@ export default function Notes() {
                 <div className="text-xs text-muted">
                   <span className="font-medium text-accent">{n.topic_title || n.topic_slug}</span>
                   {" · "}
-                  {n.brief_date}
+                  {/* QU1: the snapshot stops being an inert caption — one tap back into
+                      the archived morning this note was taken on. */}
+                  <Link
+                    to={`/brief/${n.brief_date}`}
+                    className="underline decoration-stone-300 underline-offset-2 hover:text-accent"
+                  >
+                    {n.brief_date}
+                  </Link>
                   {" · "}
                   {n.item_headline}
                 </div>

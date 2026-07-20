@@ -9,7 +9,8 @@ import { UndoToast, useUndoable } from "../components/undo";
 import { YourLearning } from "../components/YourLearning";
 
 // "Sunday, July 13" from the sweep folder's YYYY-MM-DD (parsed as local, not UTC).
-function humanDate(iso: string): string {
+// Exported (with humanDateShort + TopicSection) for the QU1 /brief/:date archive page.
+export function humanDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, {
     weekday: "long",
@@ -19,7 +20,7 @@ function humanDate(iso: string): string {
 }
 
 // "Jul 14" from a YYYY-MM-DD (parsed as local) — for the compact "developing since" chip.
-function humanDateShort(iso: string): string {
+export function humanDateShort(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
@@ -41,11 +42,15 @@ function ItemNotes({
   slug,
   date,
   readOnly = false,
+  askEnabled = true,
 }: {
   item: BriefItem;
   slug: string;
   date: string;
   readOnly?: boolean;
+  // QU1: chat resolves items on the SERVED (latest) day only — an archived view hides
+  // Ask rather than offering a button that can only 404. Notes stay live everywhere.
+  askEnabled?: boolean;
 }) {
   const [notes, setNotes] = useState<BriefNote[]>(item.notes ?? []);
   const [composing, setComposing] = useState(false);
@@ -260,14 +265,16 @@ function ItemNotes({
           >
             + Add note
           </button>
-          <button
-            onClick={() => setAsking(true)}
-            disabled={readOnly}
-            title={readOnly ? "Offline — Ask needs the hub" : undefined}
-            className="min-h-[44px] text-xs text-muted transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted sm:min-h-0"
-          >
-            Ask about this
-          </button>
+          {askEnabled && (
+            <button
+              onClick={() => setAsking(true)}
+              disabled={readOnly}
+              title={readOnly ? "Offline — Ask needs the hub" : undefined}
+              className="min-h-[44px] text-xs text-muted transition hover:text-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-muted sm:min-h-0"
+            >
+              Ask about this
+            </button>
+          )}
           {error && <span className="text-xs text-red-600">{error}</span>}
         </div>
       )}
@@ -275,14 +282,18 @@ function ItemNotes({
   );
 }
 
-function TopicSection({
+export function TopicSection({
   topic,
   date,
   readOnly = false,
+  archived = false,
 }: {
   topic: BriefTopic;
   date: string | null;
   readOnly?: boolean;
+  // QU1: the /brief/:date archive reuses this section verbatim, minus Ask (chat only
+  // resolves the served day) — notes stay live, the record stays readable.
+  archived?: boolean;
 }) {
   // FR13: which item's "As written <first_seen>" disclosure is open (one per topic at a
   // time) — the developing badge finally shows what the story looked like back then.
@@ -390,7 +401,13 @@ function TopicSection({
                 </p>
               )}
               {item.id && date && (
-                <ItemNotes item={item} slug={topic.slug} date={date} readOnly={readOnly} />
+                <ItemNotes
+                  item={item}
+                  slug={topic.slug}
+                  date={date}
+                  readOnly={readOnly}
+                  askEnabled={!archived}
+                />
               )}
             </article>
           ))}

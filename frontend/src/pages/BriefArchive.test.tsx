@@ -114,6 +114,9 @@ describe("BriefArchive (/brief/:date)", () => {
 
     expect(await screen.findByText(/isn't in the archive/)).toBeInTheDocument();
     expect(screen.getByText(/no brief for 2026-07-01/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute("href", "/");
+    // The header nav and the banner both point home — either way back works.
+    for (const link of screen.getAllByRole("link", { name: "Today" })) {
+      expect(link).toHaveAttribute("href", "/");
+    }
   });
 });

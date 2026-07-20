@@ -721,6 +721,10 @@ class BriefResponse(BaseModel):
     # QU12: active (non-paused) roster topics missing from the served day, roster order.
     # Empty when there's no served day at all — has_data=false already tells that story.
     missing_topics: List[BriefMissingTopic] = []
+    # QU1: the served day's renderable neighbors — the archive's prev/next walk. None at
+    # either edge (or when there's no served day).
+    prev_date: Optional[str] = None
+    next_date: Optional[str] = None
 
 
 class BriefVisitResponse(BaseModel):

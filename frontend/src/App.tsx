@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import { BriefShell } from "./components/BriefShell";
 import Brief from "./pages/Brief";
+import BriefArchive from "./pages/BriefArchive";
 import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
 import FlashcardReview from "./pages/FlashcardReview";
@@ -125,6 +126,8 @@ export default function App() {
           <Routes>
             {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
             <Route path="/" element={<Brief />} />
+            {/* QU1: an archived morning by date — read-only walk over the sweep record. */}
+            <Route path="/brief/:date" element={<BriefArchive />} />
             {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
             <Route path="/news" element={<News />} />
             {/* M2: every note attached to a brief item, browsable per topic. */}
