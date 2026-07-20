@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Readiness v0 ✅ SHIPPED (PR #105)** — the second Wave-4 moonshot, Kyle's pick, built on his explicit go (eighth deliberate gate override): deterministic 🔭 "Coming up" strip on the live Today — the morning's still-in-motion stories projected from the developing badge's own prior-day walk (identical identity keys), honest below two archived mornings, zero LLM/zero writes, trajectories-only (the calendar/vault join stays the unscoped flagship); backend **595** / frontend **113** green. Moonshot queue: **Calibrated · Overnight** behind their standing gates; the next call reads the Mirror + Readiness evidence at the ~08-03 check. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-20 · **Calibrated Doubt v0 ✅ SHIPPED (PR #106)** — the third Wave-4 moonshot, Kyle's pick, built on his explicit go (ninth deliberate gate override, **narrow render_brief.py unfreeze granted**): every sweep item MAY stake an optional falsifiable wager (`prediction` + `confidence` 55–90, all 8 prompts + scout template) — `normalize()`-only pass-through in the frozen renderer (validate()/gradeable .md/failure semantics byte-identical), zero-LLM grading of prior mornings' wagers against the topic's next READABLE sweep on the developing badge's own identity keys (open on pipeline failure, never a false miss) → append-once `backend/data/calibration.jsonl` → 🎯 "Yesterday's calls" strip + open-wager chips on the live Today, trial-week label until 7 graded mornings (the ~08-19 re-grade doubles as the M0-style graded week); backend **611** / frontend **119** green. Moonshot queue: **Overnight only** — gate conversation before any code. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -80,12 +80,13 @@ kanban
     w4courses["W4 courses batch —<br/>fence-strip guard #11<br/>· crash-safe writer<br/>#18 · stale-load token<br/>#20 · order-only<br/>revert #21 · PR 103 ·<br/>sixth gate override"]
     w4mirror["W4 moonshot — Mirror<br/>v0 'You this week'<br/>strip: read-time over<br/>4 signal exhausts ·<br/>honest cold start ·<br/>zero LLM zero writes<br/>· PR 104 · seventh<br/>gate override"]
     w4readiness["W4 moonshot #2 —<br/>Readiness v0 'Coming<br/>up' strip:<br/>trajectories-only<br/>forward projection ·<br/>badge-identical keys ·<br/>honest cold start ·<br/>PR 105 · eighth gate<br/>override"]
+    w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    wave4["Wave 4 remainder —<br/>next moonshot at the<br/>08-03 check (all four<br/>eventually — Kyle<br/>07-20): Calibrated ·<br/>Overnight queued<br/>behind gates · vault<br/>feed PR10 only if<br/>habit wobbles"]
+    wave4["Wave 4 remainder —<br/>Overnight Chief of<br/>Staff, the last<br/>moonshot (all four<br/>eventually — Kyle<br/>07-20): gate<br/>conversation before<br/>any code · vault feed<br/>PR10 only if habit<br/>wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
 
@@ -183,12 +184,19 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    strip on the live Today, projected from the developing badge's own prior-day walk with
    identical identity keys, honest below two archived mornings, zero LLM/zero writes; the
    calendar/vault collision join stays the unscoped flagship; backend 587 → 595, frontend
-   109 → 113). Remaining queue: Calibrated Doubt / Overnight Chief of Staff behind
-   their standing gates (Calibrated needs an M0-style graded week AND a decision on the
-   frozen render_brief.py field pass-through its first step requires; Overnight needs its
-   own gate conversation + the out-of-repo vault bridge); the next-moonshot call reads the
-   Mirror + Readiness evidence at
-   the ~08-03 check · PR10 feed-the-vault **only if** the habit check wobbles (it is the
+   109 → 113). **Calibrated Doubt v0 ✅ shipped 2026-07-20, PR #106** (Kyle's third pick,
+   same-day, on his explicit go — the ninth deliberate gate override, with the narrow
+   render_brief.py unfreeze granted: optional wager fields in all 8 prompts + scout
+   template, normalize()-only pass-through in the frozen file, zero-LLM
+   next-readable-sweep grading on the badge's own identity keys with
+   open-on-pipeline-failure honesty, append-once calibration.jsonl, 🎯 'Yesterday's
+   calls' strip + open-wager chips, trial-week label until 7 graded mornings — the
+   ~08-19 re-grade doubles as its M0-style graded week; backend 595 → 611, frontend
+   113 → 119). Remaining queue: **Overnight Chief of Staff only**, behind its standing
+   gate (a scoping conversation before any code — vision-doc open questions 1–3:
+   in-repo-only proposals vs the out-of-repo vault bridge · draft-only forever vs a
+   later send gate · what undo really means)
+   · PR10 feed-the-vault **only if** the habit check wobbles (it is the
    antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR
    — **✅ shipped 2026-07-20, PR #103** (the wave's one pre-decided build, pulled ahead of the
    check on Kyle's call — the sixth deliberate gate override; backend 574 → 580, frontend
@@ -305,6 +313,20 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-20 — W4 moonshot #3 · Calibrated Doubt v0 "Yesterday's calls" (PR #106)
+The third moonshot, picked and built same-day on Kyle's explicit go (ninth deliberate gate
+override; [idea](ideas/calibrated-doubt.md)) — with the **narrow render_brief.py unfreeze
+granted**: `normalize()` alone passes a well-formed optional wager pair through
+(`prediction` + `confidence` 55–90, all 8 prompts + scout template, 0–2 per brief);
+validate(), the gradeable .md, and the failure semantics stay byte-identical, so a flubbed
+wager can never fail a sweep. `build_calibration` grades each wager against the topic's
+next READABLE sweep via the developing badge's own identity keys (open on pipeline
+failure, never a false miss), appends once per (day, slug, headline) to
+`backend/data/calibration.jsonl`, and recomputes the lifetime record each serve. 🎯 strip
++ open-wager chips on the live Today; trial-week label until 7 distinct graded mornings —
+the ~08-19 monthly re-grade doubles as the required M0-style graded week. Backend **611**
+· frontend **119**. Queue: Overnight only (gate conversation before code).
 
 ### 2026-07-20 — W4 moonshot #2 · Readiness v0 "Coming up" (PR #105)
 The next moonshot, picked and built same-day on Kyle's explicit go (eighth deliberate gate
