@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Notes from "./Notes";
 
@@ -64,16 +64,90 @@ describe("Notes (browse page)", () => {
     expect(screen.queryByText("chiefs note")).not.toBeInTheDocument();
   });
 
-  it("deletes a note and drops it from the list", async () => {
+  it("deletes a note optimistically and commits after the undo window (FR10)", async () => {
     briefNotes.mockResolvedValue(NOTES);
     deleteBriefNote.mockResolvedValue({ ok: true });
     render(<Notes />);
     await screen.findByText("chiefs note");
 
-    fireEvent.click(screen.getByLabelText("Delete note 2"));
-    await waitFor(() => expect(screen.queryByText("chiefs note")).not.toBeInTheDocument());
-    expect(deleteBriefNote).toHaveBeenCalledWith(2);
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Delete note 2"));
+      expect(screen.queryByText("chiefs note")).not.toBeInTheDocument(); // vanishes now…
+      expect(deleteBriefNote).not.toHaveBeenCalled(); // …but the mutation holds
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(deleteBriefNote).toHaveBeenCalledWith(2);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(screen.getByText("ai note")).toBeInTheDocument();
+  });
+
+  it("undo within the window restores the note and never calls the API (FR10)", async () => {
+    briefNotes.mockResolvedValue(NOTES);
+    deleteBriefNote.mockResolvedValue({ ok: true });
+    render(<Notes />);
+    await screen.findByText("chiefs note");
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Delete note 2"));
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+      expect(screen.getByText("chiefs note")).toBeInTheDocument(); // back, same list
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(deleteBriefNote).not.toHaveBeenCalled(); // no API mutation at all
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("deleting the filtered topic's last note falls back to All instead of stranding (#14)", async () => {
+    briefNotes.mockResolvedValue(NOTES);
+    deleteBriefNote.mockResolvedValue({ ok: true });
+    render(<Notes />);
+    await screen.findByText("chiefs note");
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "chiefs" } });
+    expect(screen.queryByText("ai note")).not.toBeInTheDocument();
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Delete note 2"));
+      act(() => {
+        vi.runAllTimers();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(await screen.findByText("ai note")).toBeInTheDocument(); // filter fell back
+    expect(screen.queryByText(/No notes yet/)).not.toBeInTheDocument(); // no false empty state
+  });
+
+  it("a failed delete reports itself accurately, not as a load failure (#17)", async () => {
+    briefNotes.mockResolvedValue(NOTES);
+    deleteBriefNote.mockRejectedValue(new Error("hub unreachable"));
+    render(<Notes />);
+    await screen.findByText("chiefs note");
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByLabelText("Delete note 2"));
+      act(() => {
+        vi.runAllTimers();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(await screen.findByText("Couldn't delete the note")).toBeInTheDocument();
+    expect(screen.getByText(/hub unreachable/)).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't load notes")).not.toBeInTheDocument(); // honest title
+    expect(screen.getByText("ai note")).toBeInTheDocument(); // the loaded list still renders
+    expect(screen.getByText("chiefs note")).toBeInTheDocument(); // failed delete restored
   });
 
   it("shows the empty state when there are no notes", async () => {
