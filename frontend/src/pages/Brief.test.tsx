@@ -507,4 +507,43 @@ describe("Brief (Today page)", () => {
 
     expect(await screen.findByText(/no accuracy grade on record/)).toBeInTheDocument();
   });
+
+  // QU3 audio resume: a walk gets interrupted (call, locked phone, backgrounded PWA) —
+  // the ~5-min cut must pick up where it left off, not snap back to 0:00. Position is
+  // keyed by brief date so yesterday's spot can't bleed into today's brief.
+
+  it("saves playback position to localStorage keyed by brief date (QU3)", async () => {
+    localStorage.removeItem("audio-pos-2099-01-01");
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, audio_available: true }));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const player = document.querySelector("audio")!;
+    Object.defineProperty(player, "currentTime", { value: 137, writable: true, configurable: true });
+    fireEvent.timeUpdate(player);
+    expect(localStorage.getItem("audio-pos-2099-01-01")).toBe("137");
+  });
+
+  it("resumes from the saved position when the audio loads (QU3)", async () => {
+    localStorage.setItem("audio-pos-2099-01-01", "205.5");
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, audio_available: true }));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const player = document.querySelector("audio")!;
+    Object.defineProperty(player, "currentTime", { value: 0, writable: true, configurable: true });
+    fireEvent.loadedMetadata(player);
+    expect(player.currentTime).toBe(205.5);
+    localStorage.removeItem("audio-pos-2099-01-01");
+  });
+
+  it("clears the saved position when playback ends (QU3)", async () => {
+    localStorage.setItem("audio-pos-2099-01-01", "290");
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, audio_available: true }));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    fireEvent.ended(document.querySelector("audio")!);
+    expect(localStorage.getItem("audio-pos-2099-01-01")).toBeNull();
+  });
 });
