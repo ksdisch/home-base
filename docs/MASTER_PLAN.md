@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Mirror v0 ✅ SHIPPED (PR #104)** — the Wave-4 moonshot, decided and built on Kyle's explicit go (seventh deliberate gate override): deterministic 🪞 "You this week" strip atop Today from the four existing signal exhausts, honest below the signal floor, zero LLM/zero writes; backend **587** / frontend **109** green. **Kyle's decision 2026-07-20: all four moonshots eventually, one at a time** — Readiness/Calibrated/Overnight queue behind their standing gates; next-moonshot call reads the Mirror's own evidence at the ~08-03 check. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-20 · **Readiness v0 ✅ SHIPPED (PR #105)** — the second Wave-4 moonshot, Kyle's pick, built on his explicit go (eighth deliberate gate override): deterministic 🔭 "Coming up" strip on the live Today — the morning's still-in-motion stories projected from the developing badge's own prior-day walk (identical identity keys), honest below two archived mornings, zero LLM/zero writes, trajectories-only (the calendar/vault join stays the unscoped flagship); backend **595** / frontend **113** green. Moonshot queue: **Calibrated · Overnight** behind their standing gates; the next call reads the Mirror + Readiness evidence at the ~08-03 check. Also open: M6 phone trio (Kyle) · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -79,12 +79,13 @@ kanban
     wave3["Wave 3 — walk and<br/>phone COMPLETE 07-20:<br/>QU3 resume PR 95 ·<br/>QU4 chips PR 96 ·<br/>FR15 nav survival PR<br/>97 · FR4 chapters PR<br/>98 · FR13 what<br/>changed PR 99 · FR2<br/>phone sweep PR 100 ·<br/>QU1 archive PR 101"]
     w4courses["W4 courses batch —<br/>fence-strip guard #11<br/>· crash-safe writer<br/>#18 · stale-load token<br/>#20 · order-only<br/>revert #21 · PR 103 ·<br/>sixth gate override"]
     w4mirror["W4 moonshot — Mirror<br/>v0 'You this week'<br/>strip: read-time over<br/>4 signal exhausts ·<br/>honest cold start ·<br/>zero LLM zero writes<br/>· PR 104 · seventh<br/>gate override"]
+    w4readiness["W4 moonshot #2 —<br/>Readiness v0 'Coming<br/>up' strip:<br/>trajectories-only<br/>forward projection ·<br/>badge-identical keys ·<br/>honest cold start ·<br/>PR 105 · eighth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
-    wave4["Wave 4 remainder —<br/>next moonshot at the<br/>08-03 check (all four<br/>eventually — Kyle<br/>07-20): Readiness ·<br/>Calibrated · Overnight<br/>queued behind gates ·<br/>vault feed PR10 only<br/>if habit wobbles"]
+    wave4["Wave 4 remainder —<br/>next moonshot at the<br/>08-03 check (all four<br/>eventually — Kyle<br/>07-20): Calibrated ·<br/>Overnight queued<br/>behind gates · vault<br/>feed PR10 only if<br/>habit wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
 
@@ -177,11 +178,16 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    existing signal exhausts, honest cold start, zero LLM/zero writes; the strip doubles as
    the ~08-03 check's own instrumentation; backend 580 → 587, frontend 106 → 109).
    **Kyle's decision 2026-07-20: all four moonshots will eventually be built, one at a
-   time** — Readiness Brief / Calibrated Doubt / Overnight Chief of Staff queue behind
+   time.** **Readiness v0 ✅ shipped 2026-07-20, PR #105** (Kyle's next pick, same-day, on
+   his explicit go — the eighth deliberate gate override: trajectories-only 'Coming up'
+   strip on the live Today, projected from the developing badge's own prior-day walk with
+   identical identity keys, honest below two archived mornings, zero LLM/zero writes; the
+   calendar/vault collision join stays the unscoped flagship; backend 587 → 595, frontend
+   109 → 113). Remaining queue: Calibrated Doubt / Overnight Chief of Staff behind
    their standing gates (Calibrated needs an M0-style graded week AND a decision on the
    frozen render_brief.py field pass-through its first step requires; Overnight needs its
-   own gate conversation + the out-of-repo vault bridge; Readiness v0 risks feeling thin
-   without the calendar join); the next-moonshot call reads the Mirror's own evidence at
+   own gate conversation + the out-of-repo vault bridge); the next-moonshot call reads the
+   Mirror + Readiness evidence at
    the ~08-03 check · PR10 feed-the-vault **only if** the habit check wobbles (it is the
    antibody for exactly that failure) · courses correctness batch (#11 #18 #20 #21) in one PR
    — **✅ shipped 2026-07-20, PR #103** (the wave's one pre-decided build, pulled ahead of the
@@ -299,6 +305,16 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-20 — W4 moonshot #2 · Readiness v0 "Coming up" (PR #105)
+The next moonshot, picked and built same-day on Kyle's explicit go (eighth deliberate gate
+override; [idea](ideas/readiness-brief.md), trajectories-only wedge): `build_readiness` in
+`app.sweeps` beside the M3 walkers — renderable prior mornings in the 7-day dedup window,
+badge-identical headline/URL identity keys (strip and badge can never disagree),
+mornings-seen → streak-density → slug/headline ranking, top-5 cap, honest below two
+archived mornings — `readiness` rides the live `GET /api/brief` only. 🔭 strip below the
+Mirror on Today. Zero LLM, zero writes. Backend **595** · frontend **113**. Queue:
+Calibrated · Overnight; the next call reads the Mirror + Readiness evidence at ~08-03.
 
 ### 2026-07-20 — W4 moonshot · Mirror v0 "You this week" (PR #104)
 The Wave-4 moonshot, decided and built on Kyle's explicit go (seventh deliberate gate
