@@ -14,6 +14,7 @@ const courses = vi.fn();
 const briefHabit = vi.fn();
 const addBriefNote = vi.fn();
 const deleteBriefNote = vi.fn();
+const sweepBrief = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     briefWithMeta: () => briefWithMeta(),
@@ -24,6 +25,7 @@ vi.mock("../api/client", () => ({
     addBriefNote: (body: unknown) => addBriefNote(body),
     deleteBriefNote: (id: number) => deleteBriefNote(id),
     briefAudioUrl: () => "/api/brief/audio",
+    sweepBrief: () => sweepBrief(),
   },
 }));
 
@@ -40,6 +42,7 @@ beforeEach(() => {
   briefHabit.mockReset();
   addBriefNote.mockReset();
   deleteBriefNote.mockReset();
+  sweepBrief.mockReset();
   logBriefVisit.mockResolvedValue({ ok: true, day: "2026-07-14", visited_at: "" });
   // Quiet defaults: nothing due, no courses, no habit signal → the strips hide themselves.
   review.mockResolvedValue({ generated_at: "now", has_data: false, due_count: 0, items: [] });
@@ -678,5 +681,56 @@ describe("Brief (Today page)", () => {
     expect(
       screen.queryByRole("button", { name: /developing · since Jul 14/ }),
     ).not.toBeInTheDocument();
+  });
+
+  // FR2: stuck on stale, phone in hand — the stale banner's only recovery was a terminal
+  // command the keyboard-less iPhone can't type. Now it's a tap: POST /brief/sweep, then
+  // poll until the fresh brief lands.
+
+  const STALE = { ...STRUCTURED, date: "2026-07-13" }; // past → the stale banner shows
+
+  it("Refresh now kicks the sweep and polls for the fresh brief (FR2)", async () => {
+    briefWithMeta.mockResolvedValue(online(STALE));
+    sweepBrief.mockResolvedValue({ started: true, already_running: false });
+    renderBrief();
+
+    expect(await screen.findByText(/from a previous day/)).toBeInTheDocument();
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: /Refresh now/ }));
+      await act(async () => {});
+      expect(sweepBrief).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/Sweep started/)).toBeInTheDocument();
+      // The poll: the page refetches on a timer until a newer date arrives.
+      const callsBefore = briefWithMeta.mock.calls.length;
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+      expect(briefWithMeta.mock.calls.length).toBeGreaterThan(callsBefore);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a tap while a sweep is already running says so honestly (FR2)", async () => {
+    briefWithMeta.mockResolvedValue(online(STALE));
+    sweepBrief.mockResolvedValue({ started: false, already_running: true });
+    renderBrief();
+
+    expect(await screen.findByText(/from a previous day/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Refresh now/ }));
+    expect(await screen.findByText(/already running/)).toBeInTheDocument();
+  });
+
+  it("a failed kick shows an honest error and keeps the terminal path (FR2)", async () => {
+    briefWithMeta.mockResolvedValue(online(STALE));
+    sweepBrief.mockRejectedValue(new Error("sweep runner not found"));
+    renderBrief();
+
+    expect(await screen.findByText(/from a previous day/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Refresh now/ }));
+    expect(await screen.findByText(/Couldn't start the sweep/)).toBeInTheDocument();
+    // The manual fallback stays visible for the desktop case.
+    expect(screen.getByText(/make sweep/)).toBeInTheDocument();
   });
 });

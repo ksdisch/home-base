@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -23,7 +25,13 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from ..chat import BriefChatError, append_chat_ledger, build_prompt, max_question_chars
+from ..chat import (
+    BriefChatError,
+    _scrubbed_env,
+    append_chat_ledger,
+    build_prompt,
+    max_question_chars,
+)
 from ..deps import get_app_settings, get_brief_chat_client
 from ..models import (
     BriefAudioChapter,
@@ -37,6 +45,7 @@ from ..models import (
     BriefNoteDeleteResponse,
     BriefNotesResponse,
     BriefResponse,
+    BriefSweepResponse,
     BriefTopic,
     BriefVisitResponse,
 )
@@ -143,6 +152,56 @@ def get_brief_audio(settings=Depends(get_app_settings)) -> FileResponse:
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="no audio brief for the latest sweep")
     return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{date}.mp3")
+
+
+# FR2: one sweep at a time, guarded in-process — the always-on single server is the choke
+# point, so a module lock (not a lockfile) closes the double-fire footgun. The handle also
+# lets a later tap see "still running" and tests wait deterministically.
+_sweep_lock = threading.Lock()
+_sweep_proc: Optional[subprocess.Popen] = None
+
+
+@router.post("/brief/sweep", response_model=BriefSweepResponse)
+def trigger_sweep(settings=Depends(get_app_settings)) -> BriefSweepResponse:
+    """FR2: the stale banner's tap — re-invoke ./sweep.sh from the phone (M6's surface).
+
+    Deliberately crosses assumption 2's read-only-phone line: the sweep and the server
+    already share the Mac, so the capability is this lock-guarded detached spawn, not new
+    infrastructure. No auth beyond the single-user tailnet trust boundary (assumption 5).
+    The child env is scrubbed (bug #10's lane set — sweep.sh refuses to start on a leaked
+    API key) and carries SWEEP_SKIP_DONE=1 so a tap on a fresh day no-ops per topic;
+    SWEEP_FORCE stays absent so the HA2 note-detach guard keeps refusing this non-tty
+    lane. Full roster only — per-topic re-runs stay a terminal affordance.
+    """
+    global _sweep_proc
+    with _sweep_lock:
+        if _sweep_proc is not None and _sweep_proc.poll() is None:
+            return BriefSweepResponse(started=False, already_running=True)
+        script = settings.sweep_script
+        if not script.is_file():
+            raise HTTPException(
+                status_code=503, detail=f"sweep runner not found at {script}"
+            )
+        env = _scrubbed_env()
+        env["SWEEP_SKIP_DONE"] = "1"
+        env.pop("SWEEP_FORCE", None)
+        log_dir = settings.sweeps_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        # The child inherits the fd; append-mode so taps share one honest trail.
+        with open(log_dir / "phone-trigger.log", "ab") as log:
+            log.write(
+                f"[{datetime.now(timezone.utc).isoformat()}] phone tap → {script}\n".encode()
+            )
+            _sweep_proc = subprocess.Popen(
+                ["bash", str(script)],
+                cwd=str(script.parent),
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        return BriefSweepResponse(started=True, already_running=False)
 
 
 @router.post("/brief/chat", response_model=BriefChatResponse)

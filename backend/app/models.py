@@ -729,6 +729,15 @@ class BriefVisitResponse(BaseModel):
     visited_at: str
 
 
+class BriefSweepResponse(BaseModel):
+    """FR2: the phone's stale-morning tap. ``started`` = a detached sweep.sh was just
+    spawned; ``already_running`` = the tap was an honest no-op because one is in flight
+    (the 06:00 lane or an earlier tap). Never both true."""
+
+    started: bool
+    already_running: bool
+
+
 class BriefHabitWeek(BaseModel):
     """One local Monday-start week of the kickoff's habit metrics: ``mornings`` = distinct
     days the Today page was opened (v1 target ≥5/week), ``notes`` = brief notes attached
