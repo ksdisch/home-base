@@ -40,7 +40,8 @@
 [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) is the **living unified view** of both arcs'
 plans — checklists + a Kanban board. **Any session that starts, completes, or reshapes a
 plan item MUST update it in the same commit/PR as the work**: tick/untick the checkbox,
-move the Kanban card, and touch its "Last updated" line. New milestone/plan docs get added
+move the Kanban card, rewrite its one-line "Last updated" status, and prepend a condensed
+entry (dated heading + 2–4 lines) to its Changelog section. New milestone/plan docs get added
 to its checklist, board, and doc map. The detailed per-phase docs stay authoritative for
 *how* things were built; MASTER_PLAN.md is authoritative for *status*.
 
