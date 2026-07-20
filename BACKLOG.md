@@ -271,6 +271,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Lock-guarded POST triggers ./sweep.sh from the stale banner; confirm a phone tap refreshes the brief and a second tap mid-run is a no-op.
 - **Size:** M (Friction)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #100, RED→green sandbox-only — Wave 3 item 6): `POST /api/brief/sweep` spawns the same repo-root ./sweep.sh detached behind an in-process lock (mid-run tap → honest `already_running`; missing runner → 503; taps logged to `phone-trigger.log`); child env scrubbed (bug #10 lane set — sweep.sh refuses a leaked key) + `SWEEP_SKIP_DONE=1`, never `SWEEP_FORCE` (HA2 keeps refusing the non-tty lane); stale banner gains Refresh now → Sweep-started copy + a 30s poll via the FR15 shell until the fresh date lands; `make sweep` path stays. Real-phone tap check rides Kyle's next stale morning._
 
 #### [Improvement] Audio topic chapters
 - **Why:** The ~5-min brief is one linear Kokoro MP3 built topic-by-topic in roster order behind a bare <audio controls> with zero seek metadata, so skipping an out-of-season or already-read topic on a walk means blind-scrubbing a featureless bar w... See [`docs/ideas/audio-topic-chapters.md`](docs/ideas/audio-topic-chapters.md) for the full write-up.
