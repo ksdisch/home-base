@@ -222,6 +222,41 @@ def test_regen_strips_a_wrapping_code_fence(env):
         _teardown(app)
 
 
+def test_regen_keeps_an_answer_that_starts_and_ends_with_distinct_code_blocks(env):
+    """Bug #11: an unwrapped lesson that OPENS with starter code and CLOSES with a solution
+    block is not a fence wrapper — stripping its outer fences garbles the markdown."""
+    answer = (
+        "```python\nstarter = None  # fill this in\n```\n"
+        "Work the middle section by hand.\n"
+        "```python\nstarter = 42\n```"
+    )
+    client, app = _client(_fake_runner(stdout=_envelope(answer)))
+    try:
+        assert _regen(client, "lessons/m1l1.md").status_code == 200
+        text = (env / "c" / "lessons" / "m1l1.md").read_text(encoding="utf-8")
+        assert text == answer + "\n"
+    finally:
+        _teardown(app)
+
+
+def test_strip_fence_keeps_distinct_leading_and_trailing_blocks():
+    """Bug #11 at the unit seam: first line ``` + last line ``` is not enough evidence of
+    a wrapper when the interior's own fences don't stay balanced without them."""
+    from app.courses.regen import _strip_fence
+
+    two_blocks = "```python\na = 1\n```\nprose between\n```text\nb = 2\n```"
+    assert _strip_fence(two_blocks) == two_blocks
+
+
+def test_strip_fence_still_unwraps_a_wrapper_holding_balanced_blocks():
+    """The true-wrapper case keeps working: the interior's fences balance on their own, so
+    the outer pair really is the model's wrapping and comes off."""
+    from app.courses.regen import _strip_fence
+
+    wrapped = "```markdown\nintro\n```python\nx = 1\n```\nrecap\n```"
+    assert _strip_fence(wrapped) == "intro\n```python\nx = 1\n```\nrecap"
+
+
 def test_regen_quiz_lands_and_syncs_the_manifest_count(env):
     answer = "```json\n" + json.dumps(_quiz_json(2)) + "\n```"
     client, app = _client(_fake_runner(stdout=_envelope(answer)))
