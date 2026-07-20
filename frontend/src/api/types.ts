@@ -656,6 +656,30 @@ export interface BriefMirror {
   paused_topics: string[];
 }
 
+// Readiness v0 (docs/ideas/readiness-brief.md): one projected trajectory on the 'Coming
+// up' strip — a story on the served morning that also appeared on prior mornings in the
+// window. Identity is the developing badge's own headline/source-URL match, so strip and
+// badge can never disagree; item_id is the served item's read-time anchor.
+export interface BriefReadinessItem {
+  slug: string;
+  title: string;
+  item_id: string;
+  headline: string;
+  days_seen: number;
+  first_seen: string;
+}
+
+// The deterministic 'Coming up' forward projection over in-repo sweep history — no LLM,
+// no writes. sufficient=false is the honest cold start (fewer than two prior renderable
+// mornings): nothing projected from thin history, history_days says why.
+export interface BriefReadiness {
+  generated_at: string;
+  window_days: number;
+  history_days: number;
+  sufficient: boolean;
+  items: BriefReadinessItem[];
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -676,6 +700,9 @@ export interface BriefResponse {
   // Mirror v0: the live view's 'You this week' self-read. Optional so pre-Mirror
   // SW-cached payloads stay valid; null on ?date= archive views.
   mirror?: BriefMirror | null;
+  // Readiness v0: the live morning's 'Coming up' projection. Optional so pre-readiness
+  // SW-cached payloads stay valid; null on ?date= archives and no-served-day payloads.
+  readiness?: BriefReadiness | null;
 }
 
 export interface BriefVisitResponse {
