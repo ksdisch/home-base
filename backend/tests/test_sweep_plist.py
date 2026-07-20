@@ -40,3 +40,20 @@ def test_run_at_load_is_safe_because_the_wrapper_skips_swept_days():
     SWEEP_SKIP_DONE=1, so an on-load fire can never re-sweep an already-written day."""
     wrapper = (SCHEDULE_DIR / "run-scheduled.sh").read_text(encoding="utf-8")
     assert "export SWEEP_SKIP_DONE=1" in wrapper
+
+
+def test_scheduled_wrapper_scrubs_every_lane_switching_var():
+    """Bug #10's third scrub site: the launchd wrapper's unset must cover every var the
+    claude CLI reads to pick a billing lane, not just the API key."""
+    wrapper = (SCHEDULE_DIR / "run-scheduled.sh").read_text(encoding="utf-8")
+    unset_text = " ".join(
+        line for line in wrapper.splitlines() if line.strip().startswith("unset ")
+    )
+    for var in (
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_BASE_URL",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+    ):
+        assert var in unset_text, var
