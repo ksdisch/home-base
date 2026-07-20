@@ -734,3 +734,58 @@ describe("Brief (Today page)", () => {
     expect(screen.getByText(/make sweep/)).toBeInTheDocument();
   });
 });
+
+// Mirror v0 (docs/ideas/the-mirror.md): the deterministic 'You this week' self-read the
+// backend attaches to the LIVE payload — a strip atop the brief, an honest line below the
+// signal floor, and nothing at all for a pre-Mirror cached payload.
+const MIRROR = {
+  generated_at: "now",
+  window_days: 7,
+  sufficient: true,
+  sentence:
+    "You showed up 4 of the last 7 mornings, left 3 notes, and asked 2 questions — attention leaned 44% AI / LLMs.",
+  mornings: 4,
+  notes: 3,
+  asks: 2,
+  news_events: 4,
+  attention: [
+    { slug: "ai-llms", title: "AI / LLMs", events: 4, share_pct: 44 },
+    { slug: "local", title: "Local", events: 3, share_pct: 33 },
+  ],
+  paused_topics: ["Boston Celtics"],
+};
+
+describe("Mirror v0 — the 'You this week' strip", () => {
+  it("renders the sentence, attention chips, and paused note when sufficient", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, mirror: MIRROR }));
+    renderBrief();
+
+    expect(await screen.findByText("You this week")).toBeInTheDocument();
+    expect(screen.getByText(MIRROR.sentence)).toBeInTheDocument();
+    expect(screen.getByText("AI / LLMs 44%")).toBeInTheDocument();
+    expect(screen.getByText("Local 33%")).toBeInTheDocument();
+    expect(screen.getByText(/Paused: Boston Celtics/)).toBeInTheDocument();
+  });
+
+  it("shows the honest not-enough-signal line when insufficient", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        mirror: { ...MIRROR, sufficient: false, sentence: "", attention: [], paused_topics: [] },
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("You this week")).toBeInTheDocument();
+    expect(screen.getByText(/Not enough signal yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/attention leaned/)).not.toBeInTheDocument();
+  });
+
+  it("renders no strip for a payload without the field (stale SW-cached shape)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByText("You this week")).not.toBeInTheDocument();
+  });
+});
