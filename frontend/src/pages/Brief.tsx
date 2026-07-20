@@ -143,7 +143,9 @@ function ItemNotes({
               <button
                 onClick={() => remove(n.id)}
                 aria-label={`Delete note ${n.id}`}
-                className="-m-2 p-2 text-xs text-muted transition sm:m-0 sm:p-0 sm:opacity-0 sm:group-hover:opacity-100"
+                disabled={readOnly}
+                title={readOnly ? "Offline — deletes need the hub" : undefined}
+                className="-m-2 p-2 text-xs text-muted transition disabled:opacity-50 sm:m-0 sm:p-0 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 ✕
               </button>
@@ -356,6 +358,10 @@ export default function Brief() {
   const [fromCache, setFromCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Bug #15: audio_available reflects the served (possibly cached) payload, but the mp3
+  // itself can be unreachable — offline with an uncached copy (iOS Range → 206 → never
+  // stored) or evicted by the SW's date pairing. No player beats a broken one.
+  const [audioBroken, setAudioBroken] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -393,12 +399,18 @@ export default function Brief() {
 
       {/* M4: the ~5-min narrated cut of this sweep (sweeps/audio_brief.py + local Kokoro).
           Only rendered when the served day actually has an mp3 — no player, no 404 noise. */}
-      {brief?.audio_available && (
+      {brief?.audio_available && !audioBroken && (
         <div className="mb-6 rounded-2xl border border-stone-200 bg-white/60 p-4">
           <p className="mb-2 text-xs font-medium text-muted">
             🎧 Listen to this brief — the ~5-minute cut
           </p>
-          <audio controls preload="none" src={api.briefAudioUrl()} className="w-full" />
+          <audio
+            controls
+            preload="none"
+            src={api.briefAudioUrl()}
+            className="w-full"
+            onError={() => setAudioBroken(true)}
+          />
         </div>
       )}
 

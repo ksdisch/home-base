@@ -6,12 +6,10 @@
 // The real public/sw.js runs inside a tiny harness: `self`, `caches`, and `fetch` are
 // injected, fetch events are driven by hand, and the floating cache-write promises are
 // flushed — no service-worker runtime, no network.
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// vitest's root is frontend/ (import.meta.url is not file:// under jsdom).
-const SW_SRC = readFileSync(join(process.cwd(), "public", "sw.js"), "utf-8");
+// The real service worker, loaded as text through vite's ?raw pipeline.
+import SW_SRC from "../public/sw.js?raw";
 
 type Listener = (event: unknown) => void;
 

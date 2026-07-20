@@ -60,6 +60,25 @@ async function markedFromCache(cached) {
   });
 }
 
+// Bug #15: brief JSON and audio aged independently — offline Saturday could play
+// Tuesday's narration under Friday's brief. A synthetic cache entry records which brief
+// date the cached pair belongs to; caching a brief for a DIFFERENT date evicts the audio
+// (it re-caches opportunistically the next time the player streams online).
+const BRIEF_DATE_KEY = "/__cached-brief-date";
+async function cacheBriefWithDatePairing(res) {
+  try {
+    const c = await caches.open(BRIEF_CACHE);
+    const newDate = String((await res.clone().json()).date ?? "");
+    const marker = await c.match(BRIEF_DATE_KEY);
+    const oldDate = marker ? await marker.text() : "";
+    if (oldDate && newDate && oldDate !== newDate) await c.delete("/api/brief/audio");
+    await c.put(BRIEF_DATE_KEY, new Response(newDate));
+    await c.put("/api/brief", res);
+  } catch {
+    // Best-effort like every other cache write — online behavior is unaffected.
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET") return;
@@ -72,10 +91,15 @@ self.addEventListener("fetch", (event) => {
       fetch(event.request)
         .then((res) => {
           // Cache full 200s only — iOS audio Range requests yield 206 partials, so the
-          // audio copy is opportunistic by design. Same-URL puts keep just the last good one.
+          // audio copy is opportunistic by design. Same-URL puts keep just the last good
+          // one; the brief's put also maintains the date pairing (bug #15).
           if (res.status === 200) {
             const copy = res.clone();
-            caches.open(BRIEF_CACHE).then((c) => c.put(url.pathname, copy)).catch(() => {});
+            if (url.pathname === "/api/brief") {
+              cacheBriefWithDatePairing(copy);
+            } else {
+              caches.open(BRIEF_CACHE).then((c) => c.put(url.pathname, copy)).catch(() => {});
+            }
           }
           return res;
         })
