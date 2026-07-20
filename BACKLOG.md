@@ -425,7 +425,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Set RunAtLoad=true — already safe because SWEEP_SKIP_DONE makes an on-load fire a no-op on swept days — and fix the comment; optionally have GET /api/brief flag when the served date is older than today. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
-- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): template `RunAtLoad=true` + honest comment; safety pinned by a test on run-scheduled.sh's `SWEEP_SKIP_DONE=1`. The optional stale-flag half deliberately skipped — the stale banner already exists. Live via install-schedule.sh re-run from the main checkout._
+- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): template `RunAtLoad=true` + honest comment; safety pinned by a test on run-scheduled.sh's `SWEEP_SKIP_DONE=1`. The optional stale-flag half deliberately skipped — the stale banner already exists. Live-verified same session: install-schedule.sh re-run from the main checkout; the on-load fire skipped 8/8 swept topics (SWEEP_SKIP_DONE) and exited rc=0 — reboot coverage proven, no re-sweep._
 
 #### [Bug] #20: FlashcardReview load() has no cancellation
 - **Where:** `frontend/src/pages/FlashcardReview.tsx:37-65` · severity low · confidence medium
