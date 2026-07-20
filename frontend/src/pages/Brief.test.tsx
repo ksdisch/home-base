@@ -789,3 +789,85 @@ describe("Mirror v0 — the 'You this week' strip", () => {
     expect(screen.queryByText("You this week")).not.toBeInTheDocument();
   });
 });
+
+// Readiness v0 (docs/ideas/readiness-brief.md): the deterministic 'Coming up' projection
+// the backend attaches to the LIVE payload — ranked multi-day trajectories, an honest
+// line below two prior mornings of archive, a quiet line when nothing is in motion, and
+// nothing at all for a pre-readiness cached payload.
+const READINESS = {
+  generated_at: "now",
+  window_days: 7,
+  history_days: 5,
+  sufficient: true,
+  items: [
+    {
+      slug: "ai-llms",
+      title: "AI / LLMs",
+      item_id: "abc123def456",
+      headline: "OpenAI lifts caps",
+      days_seen: 3,
+      first_seen: "2026-07-14",
+    },
+    {
+      slug: "celtics",
+      title: "Boston Celtics",
+      item_id: "fed654cba321",
+      headline: "Tatum extension talks",
+      days_seen: 2,
+      first_seen: "2026-07-15",
+    },
+  ],
+};
+
+describe("Readiness v0 — the 'Coming up' strip", () => {
+  it("renders ranked trajectory rows with badge-consistent since dates when sufficient", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, readiness: READINESS }));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Coming up" });
+    expect(within(strip).getByText(/Multi-day stories still in motion/)).toBeInTheDocument();
+    expect(within(strip).getByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(
+      within(strip).getByText("AI / LLMs · seen 3 of the last 7 mornings · since Jul 14"),
+    ).toBeInTheDocument();
+    expect(within(strip).getByText("Tatum extension talks")).toBeInTheDocument();
+    expect(
+      within(strip).getByText("Boston Celtics · seen 2 of the last 7 mornings · since Jul 15"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the honest not-enough-history line when insufficient", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        readiness: { ...READINESS, sufficient: false, history_days: 1, items: [] },
+      }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Coming up" });
+    expect(within(strip).getByText(/Not enough sweep history yet/)).toBeInTheDocument();
+    expect(within(strip).queryByText(/still in motion/)).not.toBeInTheDocument();
+  });
+
+  it("shows the quiet-morning line when sufficient but nothing is in motion", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({ ...STRUCTURED, readiness: { ...READINESS, items: [] } }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Coming up" });
+    expect(
+      within(strip).getByText("Nothing multi-day in motion this morning."),
+    ).toBeInTheDocument();
+    expect(within(strip).queryByText(/Multi-day stories still in motion/)).not.toBeInTheDocument();
+  });
+
+  it("renders no strip for a payload without the field (stale SW-cached shape)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Coming up" })).not.toBeInTheDocument();
+  });
+});
