@@ -113,6 +113,36 @@ def _split_md_header(text: str) -> tuple[Optional[str], str]:
     return None, text
 
 
+def _wager_pair(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Calibrated Doubt v0: the optional prediction+confidence pair, re-checked at read
+    time with the same lenient-in/strict-out rules as the write side
+    (sweeps/render_brief.py ``_wager_pair`` — kept in lockstep by hand, like the schema
+    itself): both fields together or neither, prediction a non-empty string, confidence
+    an integer 1–99 (never clamped into range). A hand-edited or pre-calibration file
+    degrades to no wager, never to garbage on the page.
+    """
+    prediction, confidence = item.get("prediction"), item.get("confidence")
+    if not isinstance(prediction, str) or not prediction.strip():
+        return {}
+    if isinstance(confidence, bool):
+        return {}
+    if isinstance(confidence, str):
+        try:
+            confidence = int(confidence.strip())
+        except ValueError:
+            return {}
+    if isinstance(confidence, float):
+        if 0 < confidence < 1:
+            confidence = round(confidence * 100)
+        elif confidence.is_integer():
+            confidence = int(confidence)
+        else:
+            return {}
+    if not isinstance(confidence, int) or not 1 <= confidence <= 99:
+        return {}
+    return {"prediction": prediction.strip(), "confidence": confidence}
+
+
 def _structured_topic(slug: str, data: Any, titles: Dict[str, str], date: str) -> Dict[str, Any]:
     """Shape one parsed <topic>.json; raises on anything malformed (caller falls back).
 
@@ -142,6 +172,8 @@ def _structured_topic(slug: str, data: Any, titles: Dict[str, str], date: str) -
                     {"title": str(s["title"]), "url": str(s["url"])}
                     for s in item.get("sources", [])
                 ],
+                # Calibrated Doubt v0: the wager lane rides the item to the page.
+                **_wager_pair(item),
             }
         )
     note = data.get("context_note")
@@ -393,6 +425,199 @@ def build_readiness(
     candidates.sort(key=lambda c: (c["days_seen"], c["first_seen"]), reverse=True)
     result["items"] = candidates[:_READINESS_TOP_N]
     return result
+
+
+_CALIBRATION_TRIAL_DAYS = 7
+
+
+def _read_ledger(ledger_path: Path) -> List[Dict[str, Any]]:
+    """Every well-formed row in calibration.jsonl, in file order — a junk line is
+    skipped, never fatal, and the file not existing yet is just an empty record."""
+    try:
+        text = ledger_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        confidence = row.get("confidence")
+        if (
+            isinstance(row.get("day"), str)
+            and isinstance(row.get("slug"), str)
+            and isinstance(row.get("headline"), str)
+            and isinstance(confidence, int)
+            and not isinstance(confidence, bool)
+            and isinstance(row.get("outcome"), bool)
+        ):
+            rows.append(row)
+    return rows
+
+
+def _topic_day_items(sweeps_dir: Path, day: str, slug: str) -> Optional[List[Dict[str, Any]]]:
+    """The parsed items for one topic on one archived day, or None when the file is
+    missing/garbled — callers must treat None as 'no sweep to grade against', never as
+    an empty morning (that distinction is what keeps grading honest)."""
+    path = sweeps_dir / day / f"{slug}.json"
+    if not path.is_file():
+        return None
+    try:
+        items = json.loads(path.read_text(encoding="utf-8"))["items"]
+    except (OSError, ValueError, KeyError, TypeError, UnicodeDecodeError):
+        return None
+    if not isinstance(items, list):
+        return None
+    return [i for i in items if isinstance(i, dict)]
+
+
+def build_calibration(
+    sweeps_dir: Path,
+    date: str,
+    topics: List[Dict[str, Any]],
+    titles: Dict[str, str],
+    ledger_path: Path,
+) -> Dict[str, Any]:
+    """Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): grade prior mornings'
+    wagers and summarize the running ledger for the 'Yesterday's calls' strip.
+
+    A wager (the optional prediction+confidence pair on a sweep item) is the call that
+    its story shows fresh movement by the topic's NEXT readable sweep. Grading is
+    deterministic — the story's identity keys (the developing badge's own normalized
+    headline/source-URL match) intersect the comparator morning's keys → hit, else miss;
+    a topic with no later readable sweep leaves its calls open, so a pipeline failure is
+    never graded as a wrong call. Each resolution appends once to calibration.jsonl,
+    keyed by (day, slug, headline); the summary recomputes hits/Brier from stored
+    confidence+outcome (never trusting stored derived bytes) and keeps ``trial`` true
+    below ``_CALIBRATION_TRIAL_DAYS`` distinct graded mornings — the assumption-4 gate
+    the strip wears as a label until an M0-style graded week is on the books.
+    """
+    ledger = _read_ledger(ledger_path)
+    graded = {(r["day"], r["slug"], r["headline"]) for r in ledger}
+
+    # Today's readable items per slug — the newest comparator. Today's own wagers are
+    # never graded here: their comparator doesn't exist until tomorrow's sweep.
+    today_keys: Dict[str, set] = {}
+    for topic in topics:
+        items = topic.get("items")
+        if isinstance(items, list):
+            keys: set = set()
+            for item in items:
+                if isinstance(item, dict):
+                    keys |= _item_identity_keys(item)
+            today_keys[topic["slug"]] = keys
+
+    days = _readiness_history_dates(sweeps_dir, date)  # renderable walk, oldest→newest
+    new_rows: List[Dict[str, Any]] = []
+    for i, day in enumerate(days):
+        day_dir = sweeps_dir / day
+        try:
+            slugs = sorted(p.stem for p in day_dir.iterdir() if p.is_file() and p.suffix == ".json")
+        except OSError:
+            continue
+        for slug in slugs:
+            items = _topic_day_items(sweeps_dir, day, slug)
+            if not items:
+                continue
+            wagered = [(item, _wager_pair(item)) for item in items]
+            wagered = [(item, pair) for item, pair in wagered if pair]
+            if not wagered:
+                continue
+            # The topic's next readable sweep: a later archived day, else today's live
+            # items; a missing/garbled later file just moves the comparator onward.
+            comparator: Optional[str] = None
+            comparator_keys: set = set()
+            for later in days[i + 1 :]:
+                later_items = _topic_day_items(sweeps_dir, later, slug)
+                if later_items is None:
+                    continue
+                comparator = later
+                for it in later_items:
+                    comparator_keys |= _item_identity_keys(it)
+                break
+            if comparator is None and slug in today_keys:
+                comparator, comparator_keys = date, today_keys[slug]
+            if comparator is None:
+                continue  # no readable later sweep yet — the calls stay open
+            for item, pair in wagered:
+                headline = str(item.get("headline") or "").strip()
+                if not headline or (day, slug, headline) in graded:
+                    continue
+                outcome = bool(_item_identity_keys(item) & comparator_keys)
+                confidence = pair["confidence"]
+                graded.add((day, slug, headline))
+                new_rows.append(
+                    {
+                        "resolved_at": datetime.now(timezone.utc).isoformat(),
+                        "day": day,
+                        "comparator": comparator,
+                        "slug": slug,
+                        "title": topic_title(slug, titles),
+                        "headline": headline,
+                        "prediction": pair["prediction"],
+                        "confidence": confidence,
+                        "outcome": outcome,
+                        "brier": round((confidence / 100 - (1 if outcome else 0)) ** 2, 3),
+                    }
+                )
+
+    if new_rows:
+        try:
+            ledger_path.parent.mkdir(parents=True, exist_ok=True)
+            with ledger_path.open("a", encoding="utf-8") as fh:
+                for row in new_rows:
+                    fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        except OSError:
+            pass  # this morning still gets its grades; the append retries next serve
+        ledger.extend(new_rows)
+
+    resolved = len(ledger)
+    hits = sum(1 for r in ledger if r["outcome"])
+    day_count = len({r["day"] for r in ledger})
+    brier = (
+        round(
+            sum((r["confidence"] / 100 - (1 if r["outcome"] else 0)) ** 2 for r in ledger)
+            / resolved,
+            3,
+        )
+        if resolved
+        else None
+    )
+    yesterday: List[Dict[str, Any]] = []
+    if ledger:
+        last_day = max(r["day"] for r in ledger)
+        rows = sorted(
+            (r for r in ledger if r["day"] == last_day),
+            key=lambda r: (r["slug"], r["headline"]),
+        )
+        yesterday = [
+            {
+                "slug": r["slug"],
+                "title": str(r.get("title") or "") or topic_title(r["slug"], titles),
+                "day": r["day"],
+                "headline": r["headline"],
+                "prediction": str(r.get("prediction") or ""),
+                "confidence": r["confidence"],
+                "outcome": r["outcome"],
+            }
+            for r in rows
+        ]
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "window_days": _DEDUP_LOOKBACK_DAYS,
+        "resolved": resolved,
+        "hits": hits,
+        "days": day_count,
+        "brier": brier,
+        "trial": day_count < _CALIBRATION_TRIAL_DAYS,
+        "yesterday": yesterday,
+    }
 
 
 def load_brief_topics(
