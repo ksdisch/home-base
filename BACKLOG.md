@@ -277,6 +277,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** audio_brief.py emits per-topic start offsets; chapter chips seek the player; confirm chips land within a few seconds of each topic lead-in.
 - **Size:** M (Friction)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #98, RED→green — Wave 3 item 4): `build_script` returns chapters from its own settled word math (`WORDS_PER_MINUTE` estimate, display titles, trim-zeroed topics keep theirs); `brief.chapters.json` written atomically before the render (orphans stay invisible behind the API's mp3 gate); `BriefResponse.audio_chapters` degrades to [] on any file problem; chips seek to start−2s (clamped) so the spoken "Next up:" confirms the jump, then play. Ears-on lands-close check rides Kyle's next walk._
 
 #### [Improvement] Developing since when? The badge that promises change and can't name it
 - **Why:** The two affordances that most invite "so what actually changed?" — the prominent "developing · since Jul 14" badge and the adjacent "Ask about this" chat — both structurally cannot tell Kyle what moved, because neither compares the item ... See [`docs/ideas/developing-since-what-changed.md`](docs/ideas/developing-since-what-changed.md) for the full write-up.
