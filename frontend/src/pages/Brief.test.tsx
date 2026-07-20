@@ -633,4 +633,50 @@ describe("Brief (Today page)", () => {
     const card = screen.getByText(/Listen to this brief/).closest("div")!;
     expect(within(card as HTMLElement).queryAllByRole("button")).toHaveLength(0);
   });
+
+  // FR13: the developing badge finally names what changed — tapping it reveals the
+  // digest as it read on first_seen day, verbatim (deterministic, bytes from disk).
+
+  const DEVELOPING_ITEM = {
+    ...ITEM,
+    developing: true,
+    first_seen: "2026-07-14",
+    prior_digest: "OpenAI is weighing changes to the rolling cap.",
+  };
+
+  function withItem(item: unknown) {
+    return {
+      ...STRUCTURED,
+      topics: [{ ...STRUCTURED.topics[0], items: [item] }],
+    };
+  }
+
+  it("tapping the developing badge toggles the verbatim first-seen digest (FR13)", async () => {
+    briefWithMeta.mockResolvedValue(online(withItem(DEVELOPING_ITEM)));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    const badge = screen.getByRole("button", { name: /developing · since Jul 14/ });
+    expect(screen.queryByText(/OpenAI is weighing changes/)).not.toBeInTheDocument();
+    fireEvent.click(badge);
+    expect(screen.getByText(/As written Jul 14/)).toBeInTheDocument();
+    expect(screen.getByText(/OpenAI is weighing changes to the rolling cap\./)).toBeInTheDocument();
+    fireEvent.click(badge); // toggles back off
+    expect(screen.queryByText(/OpenAI is weighing changes/)).not.toBeInTheDocument();
+  });
+
+  it("a developing item without prior_digest keeps the plain label (FR13)", async () => {
+    // No prior digest on record (or a stale pre-FR13 cached payload) — the badge stays
+    // the passive span it always was: no button, no empty disclosure, no crash.
+    briefWithMeta.mockResolvedValue(
+      online(withItem({ ...ITEM, developing: true, first_seen: "2026-07-14" })),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.getByText(/developing · since Jul 14/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /developing · since Jul 14/ }),
+    ).not.toBeInTheDocument();
+  });
 });

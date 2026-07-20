@@ -441,11 +441,11 @@ def test_brief_visit_logged(tmp_path, monkeypatch):
 # -- read-time dedup: "developing" labels (M3) -------------------------------------
 
 
-def _dev_item(headline: str, url: str) -> dict:
+def _dev_item(headline: str, url: str, digest: str = "d") -> dict:
     return {
         "headline": headline,
         "attribution": "a",
-        "digest": "d",
+        "digest": digest,
         "why_it_matters": "w",
         "sources": [{"title": "S", "url": url}],
     }
@@ -533,6 +533,49 @@ def test_brief_developing_ignores_history_beyond_lookback(tmp_path, monkeypatch)
     try:
         it = _client().get("/api/brief").json()["topics"][0]["items"][0]
         assert it["developing"] is False
+    finally:
+        get_settings.cache_clear()
+
+
+# -- FR13: the developing badge can finally name what changed ----------------------
+# A developing item carries prior_digest — the digest as it read on first_seen day,
+# verbatim bytes already on disk (no new generative surface). Matched by the same
+# identity keys that made it developing, so the lookup can't disagree with the badge.
+
+
+def test_brief_developing_item_carries_the_first_seen_digest_verbatim(tmp_path, monkeypatch):
+    sweeps = _env(tmp_path, monkeypatch, "dev_prior")
+    day1 = _dev_item("DeepSeek eyes IPO", "https://techcrunch.com/deepseek-ipo",
+                     digest="DeepSeek is exploring a Hong Kong listing.")
+    day2 = _dev_item("DeepSeek: what the IPO means", "https://techcrunch.com/deepseek-ipo",
+                     digest="Bankers named; the listing now targets Q4.")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day1]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day2]})})
+    from app.config import get_settings
+
+    try:
+        it = _client().get("/api/brief").json()["topics"][0]["items"][0]
+        assert it["developing"] is True
+        assert it["first_seen"] == "2026-07-13"
+        assert it["prior_digest"] == "DeepSeek is exploring a Hong Kong listing."
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_prior_digest_absent_when_the_first_appearance_had_none(tmp_path, monkeypatch):
+    """The label must never overpromise: developing stays set, prior_digest stays null
+    when the first appearance carried an empty digest — nothing verbatim to show."""
+    sweeps = _env(tmp_path, monkeypatch, "dev_prior_empty")
+    day1 = _dev_item("Quiet first sighting", "https://example.com/q", digest="")
+    day2 = _dev_item("Quiet first sighting", "https://example.com/q", digest="Now with substance.")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day1]})})
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps({"top_line": "t", "items": [day2]})})
+    from app.config import get_settings
+
+    try:
+        it = _client().get("/api/brief").json()["topics"][0]["items"][0]
+        assert it["developing"] is True
+        assert it.get("prior_digest") is None
     finally:
         get_settings.cache_clear()
 
