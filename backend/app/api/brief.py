@@ -44,6 +44,7 @@ from ..models import (
     BriefNoteCreate,
     BriefNoteDeleteResponse,
     BriefNotesResponse,
+    BriefReadiness,
     BriefResponse,
     BriefSweepResponse,
     BriefTopic,
@@ -57,7 +58,14 @@ from ..store import (
     list_brief_notes,
     record_brief_visit,
 )
-from ..sweeps import latest_sweep_date, load_brief_topics, load_roster, sweep_dates, topic_title
+from ..sweeps import (
+    build_readiness,
+    latest_sweep_date,
+    load_brief_topics,
+    load_roster,
+    sweep_dates,
+    topic_title,
+)
 
 router = APIRouter()
 
@@ -162,6 +170,14 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
         # Mirror v0: the live view's 'You this week' self-read — an archived ?date=
         # morning is a record and must not wear today's mirror.
         mirror=build_mirror(settings, roster) if date is None else None,
+        # Readiness v0: the live morning's 'Coming up' projection, computed for the served
+        # day from its own prior window — never attached to a ?date= archive record, and
+        # None when there's no served day to project for.
+        readiness=(
+            BriefReadiness(**build_readiness(settings.sweeps_dir, served, raw_topics))
+            if date is None and served
+            else None
+        ),
     )
 
 
