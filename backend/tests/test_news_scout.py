@@ -60,6 +60,25 @@ def test_persistent_uncovered_theme_is_suggested_once_with_evidence():
     assert out[0]["example_headlines"] == QUANTUM_HEADLINES[:2]  # ≤2 recent examples
 
 
+def test_persistence_gate_counts_local_days_not_utc_days():
+    """Bug #13: evening sittings straddle UTC midnight — naive created_at truncated to a
+    UTC date lets TWO Chicago sittings satisfy the '≥3 distinct days' gate. The gate's
+    stated intent is a persistent interest, so the bucket is the America/Chicago day."""
+    events = [
+        {"kind": "click", "category_slug": "technology", "item_id": "x",
+         "headline": h, "created_at": ts}
+        for h, ts in zip(QUANTUM_HEADLINES, (
+            "2026-07-16T15:00:00+00:00",  # Jul 16, 10:00 AM CT
+            "2026-07-17T01:00:00+00:00",  # Jul 16,  8:00 PM CT — the same local evening
+            "2026-07-17T02:00:00+00:00",  # Jul 16,  9:00 PM CT
+            "2026-07-18T01:00:00+00:00",  # Jul 17,  8:00 PM CT
+        ))
+    ]
+    # Three UTC dates (16/17/18) but only TWO Chicago days (16 + 17): score qualifies
+    # (~11.3 ≥ 9), the persistence gate must still refuse.
+    assert suggest_topics(events, ROSTER, [], now=NOW) == []
+
+
 def test_roster_coverage_silences_a_theme():
     roster = ROSTER + [{"slug": "chiefs", "title": "Kansas City Chiefs", "paused": False}]
     events = [
@@ -239,6 +258,43 @@ def test_add_without_template_fails_closed_roster_untouched(tmp_path, monkeypatc
     assert res.status_code == 400
     assert json.loads(roster_file.read_text(encoding="utf-8")) == ROSTER
     assert not (roster_file.parent / "prompts" / "quantum-computing.md").exists()
+
+
+def test_concurrent_adds_do_not_lose_a_roster_write(tmp_path, monkeypatch):
+    """Bug #12: FastAPI runs these sync handlers on a threadpool and the UI shows up to
+    3 Add cards — two Adds racing the read→modify→replace on sweeps/topics.json let the
+    loser's entry vanish while both report ok. The write section must serialize."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app import news
+
+    roster_file = _env(tmp_path, monkeypatch)
+
+    # Park both racers between the roster read and the roster write (the prompt stamp
+    # sits exactly there), so pre-fix each writes from the same pre-add snapshot. After
+    # the fix the lock serializes the whole section and the barrier just times out.
+    barrier = threading.Barrier(2, timeout=1.0)
+    real_stamp = news._write_topic_prompt
+
+    def parked_stamp(roster_file, slug, title):
+        real_stamp(roster_file, slug, title)
+        try:
+            barrier.wait()
+        except threading.BrokenBarrierError:
+            pass
+
+    monkeypatch.setattr(news, "_write_topic_prompt", parked_stamp)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(news.append_roster_topic, roster_file, term)
+            for term in ("quantum computing", "sourdough baking")
+        ]
+        for f in futures:
+            f.result(timeout=10)
+
+    slugs = [t["slug"] for t in json.loads(roster_file.read_text(encoding="utf-8"))]
+    assert sorted(slugs) == ["ai-llms", "quantum-computing", "sourdough-baking"]
 
 
 def test_repo_prompt_template_matches_the_m0_sourcing_bar():
