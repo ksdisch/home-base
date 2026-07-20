@@ -620,6 +620,14 @@ export interface BriefMissingTopic {
   title: string;
 }
 
+// FR4: one seek chip over the narrated mp3 — start_seconds is a word-count estimate
+// from sweeps/audio_brief.py (a landmark, not a measured timing).
+export interface BriefAudioChapter {
+  slug: string;
+  title: string;
+  start_seconds: number;
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -627,6 +635,9 @@ export interface BriefResponse {
   topics: BriefTopic[];
   // M4: the served day has a narrated brief.mp3 — GET /api/brief/audio streams it.
   audio_available: boolean;
+  // FR4: chapter seek offsets — only populated beside a real mp3. Optional so a
+  // pre-FR4 payload replayed from the service-worker cache stays valid.
+  audio_chapters?: BriefAudioChapter[];
   // QU12: active (non-paused) roster topics missing from the served day, roster order.
   // Optional so a pre-QU12 payload replayed from the service-worker cache stays valid.
   missing_topics?: BriefMissingTopic[];

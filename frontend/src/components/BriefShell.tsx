@@ -91,6 +91,18 @@ export function BriefShell({ children }: { children: ReactNode }) {
   // QU3 (hoisted with the player): date-keyed resume, cleared on ended.
   const audioPosKey = brief?.date ? `audio-pos-${brief.date}` : null;
 
+  // FR4: chapter chips seek the single track. Offsets are word-count estimates, so land
+  // 2s early — the spoken "Next up:" lead confirms the jump instead of a mid-sentence
+  // surprise. `?? []` tolerates a stale pre-FR4 payload from the service-worker cache.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const chapters = brief?.audio_chapters ?? [];
+  const seekChapter = (start: number) => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = Math.max(0, start - 2);
+    el.play()?.catch(() => {});
+  };
+
   return (
     <BriefShellContext.Provider
       value={{ brief, fromCache, error, loading, refresh, registerAudioSlot: setSlot }}
@@ -103,6 +115,7 @@ export function BriefShell({ children }: { children: ReactNode }) {
               🎧 Listen to this brief — the ~5-minute cut
             </p>
             <audio
+              ref={audioRef}
               controls
               preload="none"
               src={api.briefAudioUrl()}
@@ -120,6 +133,20 @@ export function BriefShell({ children }: { children: ReactNode }) {
                 if (audioPosKey) localStorage.removeItem(audioPosKey);
               }}
             />
+            {chapters.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {chapters.map((ch) => (
+                  <button
+                    key={ch.slug}
+                    type="button"
+                    onClick={() => seekChapter(ch.start_seconds)}
+                    className="rounded-full border border-stone-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+                  >
+                    {ch.title}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : null,
         hostRef.current,

@@ -758,3 +758,85 @@ def test_brief_missing_empty_when_no_sweeps_at_all(tmp_path, monkeypatch):
         assert body["missing_topics"] == []
     finally:
         get_settings.cache_clear()
+
+
+# -- FR4 audio chapters -----------------------------------------------------------
+# sweeps/audio_brief.py writes brief.chapters.json (word-count seek offsets) beside the
+# mp3; /api/brief surfaces it so the page can render chapter chips. Chips are a bonus:
+# they can never break the morning read, and they only ride an actually-present mp3.
+
+CHAPTERS = [
+    {"slug": "ai-llms", "title": "AI / LLMs", "start_seconds": 5.0},
+    {"slug": "fantasy-football", "title": "Fantasy football", "start_seconds": 95.5},
+]
+
+
+def test_brief_serves_audio_chapters_beside_the_mp3(tmp_path, monkeypatch):
+    sweeps = _env(tmp_path, monkeypatch, "chapters")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    (day / "brief.chapters.json").write_text(json.dumps(CHAPTERS), encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["audio_available"] is True
+        assert body["audio_chapters"] == CHAPTERS
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_without_chapters_file_serves_empty_list(tmp_path, monkeypatch):
+    """A pre-FR4 day: mp3 but no chapters file — player yes, chips no, never a 500."""
+    sweeps = _env(tmp_path, monkeypatch, "nochapters")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["audio_available"] is True
+        assert body["audio_chapters"] == []
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_mangled_chapters_degrade_to_empty(tmp_path, monkeypatch):
+    """Garbage json → []; a wrong-shape entry is filtered while the good one survives."""
+    sweeps = _env(tmp_path, monkeypatch, "badchapters")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    (day / "brief.chapters.json").write_text("{{{ not json", encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["audio_available"] is True
+        assert body["audio_chapters"] == []
+
+        mixed = [
+            {"slug": "x"},  # no title/start — dropped
+            {"slug": "ok", "title": "OK", "start_seconds": "soon"},  # non-numeric — dropped
+            CHAPTERS[0],
+        ]
+        (day / "brief.chapters.json").write_text(json.dumps(mixed), encoding="utf-8")
+        body = _client().get("/api/brief").json()
+        assert body["audio_chapters"] == [CHAPTERS[0]]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_chapters_without_mp3_stay_hidden(tmp_path, monkeypatch):
+    """A failed Kokoro render leaves chapters beside no mp3 (written before the render by
+    design) — the API must treat the pair as absent, not advertise seeks into nothing."""
+    sweeps = _env(tmp_path, monkeypatch, "orphanchapters")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.chapters.json").write_text(json.dumps(CHAPTERS), encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["audio_available"] is False
+        assert body["audio_chapters"] == []
+    finally:
+        get_settings.cache_clear()

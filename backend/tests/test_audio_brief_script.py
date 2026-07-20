@@ -17,6 +17,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[2] / "sweeps" / "audio_brief.py"
 # Connection-refused immediately; if the script ever tried to render, it would exit 1.
 UNROUTABLE = "http://127.0.0.1:1/v1/audio/speech"
@@ -225,3 +227,65 @@ def test_stale_mp3_attempts_a_rerender(tmp_path):
     r = _run(sweeps, roster_file, "--kokoro-url", UNROUTABLE)
     assert r.returncode == 1
     assert mp3.read_bytes() == b"\xff\xfbstale"  # the failed rerender never clobbers the old file
+
+
+# -- FR4 audio chapters -----------------------------------------------------------
+# build_script's own word math yields per-topic start offsets essentially for free; the
+# script writes them to brief.chapters.json beside the mp3 so the page can render seek
+# chips over the single 5-minute track.
+
+
+def test_chapters_json_written_with_word_offset_starts(tmp_path):
+    """Chapters land even when Kokoro is down — written before the render, since the API
+    only serves them when the mp3 exists (an orphan file is inert). One entry per narrated
+    topic in script order, DISPLAY titles (chips must match the page, not the speakable
+    rewrite), offsets from the same WORDS_PER_MINUTE the duration line already trusts."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        roster=[
+            {"slug": "ai-llms", "title": "AI / LLMs", "paused": False},
+            {"slug": "fantasy-football", "title": "Fantasy football", "paused": False},
+        ],
+        files={
+            "ai-llms.json": _brief("One release worth your time.", "OpenAI lifts caps"),
+            "fantasy-football.json": _brief("Quiet camp-eve Monday.", "Colts telegraph workload"),
+        },
+    )
+    r = _run(sweeps, roster_file, "--kokoro-url", UNROUTABLE)
+    assert r.returncode == 1  # the mp3 contract is unchanged
+    chapters = json.loads(
+        (sweeps / "2026-07-15" / "brief.chapters.json").read_text(encoding="utf-8")
+    )
+    assert [c["slug"] for c in chapters] == ["ai-llms", "fantasy-football"]
+    assert chapters[0]["title"] == "AI / LLMs"  # display title, not "AI and LLMs"
+    # The opener is a fixed 13 words; topic one starts right after it.
+    assert chapters[0]["start_seconds"] == pytest.approx(13 / 155 * 60, abs=0.06)
+    assert 0 < chapters[0]["start_seconds"] < chapters[1]["start_seconds"]
+    assert not list((sweeps / "2026-07-15").glob("*.tmp"))  # atomic like the mp3
+
+
+def test_print_script_writes_no_chapters(tmp_path):
+    sweeps, roster_file = _setup(tmp_path, files={"ai-llms.json": _brief("Line.", "Headline")})
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert not (sweeps / "2026-07-15" / "brief.chapters.json").exists()
+
+
+def test_trim_zeroed_topics_still_get_chapters(tmp_path):
+    """The trim ladder only drops a late topic's 'top story' sentence — its intro line
+    always survives, so every narrated topic keeps a real chapter offset."""
+    long_digest = ("word " * 70).strip() + "."
+    files = {
+        f"topic-{i}.json": _brief(f"Top line number {i} here.", f"Headline {i}", long_digest)
+        for i in range(1, 9)
+    }
+    roster = [{"slug": f"topic-{i}", "title": f"Topic {i}", "paused": False} for i in range(1, 9)]
+    sweeps, roster_file = _setup(tmp_path, roster=roster, files=files)
+    r = _run(sweeps, roster_file, "--kokoro-url", UNROUTABLE)
+    assert r.returncode == 1
+    chapters = json.loads(
+        (sweeps / "2026-07-15" / "brief.chapters.json").read_text(encoding="utf-8")
+    )
+    assert [c["slug"] for c in chapters] == [f"topic-{i}" for i in range(1, 9)]
+    starts = [c["start_seconds"] for c in chapters]
+    assert starts == sorted(starts) and len(set(starts)) == len(starts)
