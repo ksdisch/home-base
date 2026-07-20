@@ -29,9 +29,11 @@
     <key>Minute</key><integer>__MINUTE__</integer>
   </dict>
 
-  <!-- Only run on the schedule (+ its on-wake catch-up), never at load/login. -->
+  <!-- Also run at load/login (bug #19): launchd replays a missed calendar fire only after
+       SLEEP — after a shutdown/reboot the 06:00 fire is simply gone. Safe because
+       run-scheduled.sh sets SWEEP_SKIP_DONE=1, so an on-load fire on a swept day no-ops. -->
   <key>RunAtLoad</key>
-  <false/>
+  <true/>
 
   <key>StandardOutPath</key>
   <string>__LOG_DIR__/launchd.log</string>

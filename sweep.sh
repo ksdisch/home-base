@@ -17,6 +17,10 @@
 #                                    #   idempotent, so launchd's on-wake re-fire can't double-run
 #   SWEEP_MAX_TOPICS=N               # stop after N topics have run this invocation (rate cap)
 #   SWEEP_ALLOW_API=1                # allow running with ANTHROPIC_API_KEY set (see Auth below)
+#   SWEEP_FORCE=1                    # re-sweep a topic already written today even when notes
+#                                    #   are attached (the guard warns; non-tty refuses without it)
+#   SWEEP_NOTES_DB=<path>            # store the note-count guard reads (tests only;
+#                                    #   default backend/data/learning-hub.sqlite)
 #
 # Every run appends a per-topic cost/usage row to data/sweeps/.runs.jsonl (gitignored) via
 # sweeps/envelope.py — the durable record of what the sweeps actually cost.
@@ -101,6 +105,45 @@ for topic in "${TOPICS[@]}"; do
     break
   fi
 
+  # HA2 re-sweep guard (docs/ideas/resweep-note-detach-guard.md): a same-day re-sweep
+  # rewrites headlines, which shifts every item's read-time sha1(date|slug|headline) id —
+  # notes already attached to today's items silently detach from the Today view (they stay
+  # in /notes). Warn loudly + require confirmation before overwriting a topic that has
+  # attached notes. Stdlib-sqlite read, dependency-free like heartbeat.sh; the scheduled
+  # lane never gets here (SWEEP_SKIP_DONE skips existing topics first).
+  if [ -f "$OUT_DIR/$topic.json" ]; then
+    notes_db="${SWEEP_NOTES_DB:-$ROOT/backend/data/learning-hub.sqlite}"
+    note_count="$(python3 - "$notes_db" "$topic" "$DATE" <<'PY' 2>/dev/null || echo 0
+import sqlite3, sys
+db, slug, date = sys.argv[1:4]
+try:
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    n = conn.execute(
+        "SELECT COUNT(*) FROM brief_notes WHERE topic_slug = ? AND brief_date = ?",
+        (slug, date),
+    ).fetchone()[0]
+except sqlite3.Error:
+    n = 0
+print(n)
+PY
+)"
+    if [ "${note_count:-0}" -gt 0 ] 2>/dev/null; then
+      echo "!! ${topic}: re-sweeping ${DATE} rewrites item ids — ${note_count} note(s) attached to today's items will detach from the Today view (they stay in /notes)." >&2
+      if [ "${SWEEP_FORCE:-}" = "1" ]; then
+        echo "   SWEEP_FORCE=1 — overwriting deliberately." >&2
+      elif [ -t 0 ]; then
+        read -r -p "   Re-sweep ${topic} anyway? [y/N] " answer || answer=""
+        case "$answer" in
+          y|Y|yes|YES) ;;
+          *) echo "   skipping ${topic} (notes preserved)"; continue ;;
+        esac
+      else
+        echo "   non-interactive run — skipping ${topic}; set SWEEP_FORCE=1 to overwrite anyway." >&2
+        continue
+      fi
+    fi
+  fi
+
   echo "› sweeping ${topic}  (model: ${MODEL})"
 
   # Dynamic date preamble anchors the run; the static instructions live in the prompt file.
@@ -125,12 +168,23 @@ for topic in "${TOPICS[@]}"; do
     if python3 "$ENVELOPE" --topic "$topic" --date "$DATE" --model "$MODEL" \
           --envelope "$envelope_file" --out-raw "$raw_file" --runs-log "$RUNS_LOG"; then
       # Validate the JSON and write <topic>.json + gradeable <topic>.md (or .raw.txt on failure).
+      # Bug #22: the always-on server reads $OUT_DIR/<topic>.json per request, and the frozen
+      # renderer write_text-truncates its target — so it renders into a stage dir inside
+      # $OUT_DIR (same filesystem → mv is an atomic rename; the server ignores subdirs) and
+      # the artifacts land whole, .md first so the fallback exists before the .json it backs.
+      stage_dir="$(mktemp -d "$OUT_DIR/.stage.$topic.XXXXXX")"
       if python3 "$RENDERER" --topic "$topic" --date "$DATE" --as-of "$now_stamp" \
-            --raw "$raw_file" --out-dir "$OUT_DIR"; then
+            --raw "$raw_file" --out-dir "$stage_dir"; then
+        mv -f "$stage_dir/$topic.md" "$OUT_DIR/$topic.md"
+        mv -f "$stage_dir/$topic.json" "$OUT_DIR/$topic.json"
         echo "  → ${OUT_DIR}/${topic}.md + ${topic}.json"
       else
+        if [ -f "$stage_dir/$topic.raw.txt" ]; then
+          mv -f "$stage_dir/$topic.raw.txt" "$OUT_DIR/$topic.raw.txt"
+        fi
         failures=$((failures + 1))
       fi
+      rm -rf "$stage_dir"
     else
       cp "$envelope_file" "$OUT_DIR/$topic.raw.txt" 2>/dev/null || true
       echo "!! sweep envelope error for ${topic} — raw envelope in ${OUT_DIR}/${topic}.raw.txt" >&2

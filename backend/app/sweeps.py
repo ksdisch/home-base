@@ -147,14 +147,18 @@ def _fallback_topic(
     """Raw-markdown view of <topic>.md (legacy md-only days, or a json that wouldn't parse)."""
     md_path = day_dir / f"{slug}.md"
     if md_path.is_file():
-        as_of, body = _split_md_header(md_path.read_text(encoding="utf-8"))
-        return {
-            "slug": slug,
-            "title": topic_title(slug, titles),
-            "as_of": as_of,
-            "raw_markdown": body,
-            "error": error,
-        }
+        try:
+            as_of, body = _split_md_header(md_path.read_text(encoding="utf-8"))
+        except OSError:
+            pass  # bug #7: the fallback itself unreadable → the honest no-readable card below
+        else:
+            return {
+                "slug": slug,
+                "title": topic_title(slug, titles),
+                "as_of": as_of,
+                "raw_markdown": body,
+                "error": error,
+            }
     return {
         "slug": slug,
         "title": topic_title(slug, titles),
@@ -173,12 +177,22 @@ def _norm_headline(headline: str) -> str:
 
 
 def _norm_url(url: str) -> str:
-    """host+path identity for a source URL — drop scheme, www., query, fragment, trailing slash."""
+    """host+path+query identity for a source URL — drop scheme, www., fragment, trailing
+    slash, and tracking params (utm_*, fbclid). The query string itself is identity (bug #6):
+    watch?v=AAA and watch?v=ZZZ are different stories, and a false 'developing' label is
+    exactly the mislabeling the conservative invariant forbids."""
     u = _URL_SCHEME.sub("", url.strip().lower())
     if u.startswith("www."):
         u = u[4:]
-    u = u.split("#", 1)[0].split("?", 1)[0]
-    return u.rstrip("/")
+    u = u.split("#", 1)[0]
+    path, _, query = u.partition("?")
+    params = [
+        p
+        for p in query.split("&")
+        if p and not p.startswith("utm_") and p.split("=", 1)[0] != "fbclid"
+    ]
+    path = path.rstrip("/")
+    return f"{path}?{'&'.join(params)}" if params else path
 
 
 def _item_identity_keys(item: Dict[str, Any]) -> set[str]:
@@ -277,7 +291,7 @@ def load_brief_topics(
                 data = json.loads(json_path.read_text(encoding="utf-8"))
                 topics.append(_structured_topic(slug, data, titles, date))
                 continue
-            except (json.JSONDecodeError, KeyError, TypeError, UnicodeDecodeError) as e:
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, UnicodeDecodeError) as e:
                 topics.append(
                     _fallback_topic(slug, day_dir, f"unreadable {slug}.json ({e})", titles)
                 )
