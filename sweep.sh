@@ -206,6 +206,14 @@ if ! python3 "$ROOT/sweeps/audio_brief.py" --date "$DATE" --sweeps-dir "$ROOT/da
   echo "!! audio brief did not render (see above) — text briefs are unaffected" >&2
 fi
 
+# Overnight Chief of Staff v0: draft-only proposals from today's briefs into the backend
+# queue (in-repo data only; sends/executes nothing — approve/discard happens on the page).
+# Best-effort like the audio brief, and idempotent per day, so re-fires stay no-ops.
+if ! python3 "$ROOT/sweeps/actions_queue.py" --date "$DATE" --sweeps-dir "$ROOT/data/sweeps" \
+      --roster "$ROSTER" --out "$ROOT/backend/data/overnight.jsonl" --runs-log "$RUNS_LOG"; then
+  echo "!! overnight proposals did not draft (see above) — the briefs are unaffected" >&2
+fi
+
 echo
 echo "Briefs written to ${OUT_DIR}"
 echo "Grade each A–F in docs/M0-sweep-grades.md (~2 min)."

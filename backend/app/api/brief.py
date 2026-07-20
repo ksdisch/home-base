@@ -45,6 +45,8 @@ from ..models import (
     BriefNoteCreate,
     BriefNoteDeleteResponse,
     BriefNotesResponse,
+    BriefOvernight,
+    BriefOvernightProposal,
     BriefReadiness,
     BriefResponse,
     BriefSweepResponse,
@@ -52,6 +54,7 @@ from ..models import (
     BriefVisitResponse,
 )
 from ..mirror import build_mirror
+from ..overnight import append_status, build_overnight, load_queue
 from ..store import (
     add_brief_note,
     brief_habit_weeks,
@@ -193,6 +196,13 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
                     settings.brief_calibration_ledger,
                 )
             )
+            if date is None and served
+            else None
+        ),
+        # Overnight v0: the draft-only approve/discard queue — live only; an archived
+        # ?date= morning is a record, not a to-do list.
+        overnight=(
+            BriefOvernight(**build_overnight(settings.brief_overnight_ledger, served, titles))
             if date is None and served
             else None
         ),
@@ -398,3 +408,68 @@ def remove_brief_note(note_id: int) -> BriefNoteDeleteResponse:
     if not delete_brief_note(note_id):
         raise HTTPException(status_code=404, detail=f"no note with id {note_id}")
     return BriefNoteDeleteResponse(ok=True)
+
+
+def _resolve_overnight(settings, proposal_id: str) -> dict:
+    """The still-``proposed`` proposal, or the honest refusal: 404 for an id the ledger
+    has never seen, 409 for one already resolved — resolution is single-shot, so a
+    double tap (or a stale tab) can never double a note or flip a decision."""
+    proposal = load_queue(settings.brief_overnight_ledger).get(proposal_id)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail=f"no overnight proposal {proposal_id}")
+    if proposal["status"] != "proposed":
+        raise HTTPException(
+            status_code=409, detail=f"proposal already {proposal['status']}"
+        )
+    return proposal
+
+
+@router.post("/brief/overnight/{proposal_id}/approve", response_model=BriefOvernightProposal)
+def approve_overnight_proposal(
+    proposal_id: str, settings=Depends(get_app_settings)
+) -> BriefOvernightProposal:
+    """Approve — the Overnight queue's one real write (v0 scope, 2026-07-20 gate).
+
+    The drafted body lands as a note on the proposal's own item through the EXISTING
+    notes path, so it joins the served brief and /notes and stays deletable there like
+    any other note; the ledger gets the single-shot resolution row. Nothing external
+    is touched — that boundary moves only through a future graded send gate.
+    """
+    proposal = _resolve_overnight(settings, proposal_id)
+    try:
+        note = add_brief_note(
+            item_id=proposal["item_id"],
+            topic_slug=proposal["slug"],
+            brief_date=proposal["date"],
+            item_headline=proposal["item_headline"],
+            body=proposal["body"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    append_status(settings.brief_overnight_ledger, proposal_id, "approved", note_id=note["id"])
+    return BriefOvernightProposal(
+        **{
+            **proposal,
+            "title": topic_title(proposal["slug"], _roster_titles(settings)),
+            "status": "approved",
+            "note_id": note["id"],
+        }
+    )
+
+
+@router.post("/brief/overnight/{proposal_id}/discard", response_model=BriefOvernightProposal)
+def discard_overnight_proposal(
+    proposal_id: str, settings=Depends(get_app_settings)
+) -> BriefOvernightProposal:
+    """Discard — the undo (v0 scope: nothing external happened, so undo = the draft
+    goes away). The proposal keeps its row in the payload wearing ``discarded``; the
+    page hides it."""
+    proposal = _resolve_overnight(settings, proposal_id)
+    append_status(settings.brief_overnight_ledger, proposal_id, "discarded")
+    return BriefOvernightProposal(
+        **{
+            **proposal,
+            "title": topic_title(proposal["slug"], _roster_titles(settings)),
+            "status": "discarded",
+        }
+    )
