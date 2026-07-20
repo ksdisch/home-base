@@ -234,6 +234,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** sweep.sh warns (and requires confirm) when a same-day re-sweep would overwrite a topic that has attached notes; regression test the id-detach path.
 - **Size:** S (Harden)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #87, RED→green — W2 batch 1): guard in sweep.sh's per-topic loop — dependency-free stdlib-sqlite count of notes attached to (topic, today) before overwrite; warns naming the count, tty confirm [y/N], non-tty refuses without `SWEEP_FORCE=1` (both documented in the header). Scheduled lane unreachable by design (SWEEP_SKIP_DONE skips existing topics first)._
 
 #### [Improvement] The Swept Item Is Not the Boss
 - **Why:** build_prompt() splices a swept item's raw headline/digest/why_it_matters/sources directly beside Kyle's question with zero untrusted-data framing, so an injection payload that survives into a swept digest can steer the 'Ask about this' a... Pairs with bug #23. See [`docs/ideas/untrusted-item-framing.md`](docs/ideas/untrusted-item-framing.md) for the full write-up.
@@ -331,6 +332,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Keep the query string in the normalized identity (strip only fragment/trailing slash, or only known tracking params like utm_*/fbclid); add a regression test with two watch?v= URLs. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): `_norm_url` keeps the query string; only fragment, trailing slash, and tracking params (utm_*, fbclid) are noise. watch?v=AAA vs ?v=ZZZ pinned; the shared-URL test fixture moved off the bare `utm=` param the fix un-strips._
 
 #### [Bug] #7: GET /api/brief can 500 on an unreadable sweep file
 - **Where:** `backend/app/sweeps.py:253-262 (and _fallback_topic line 127)` · severity low · confidence high
@@ -338,6 +340,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Add OSError to the except tuple at line 257 and wrap _fallback_topic's md read in try/except OSError falling through to the 'no readable brief' dict. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): OSError joins the json fallback tuple and `_fallback_topic`'s md read degrades to the honest 'no readable brief' card — both read sites pinned by permission-denied tests; one bad file degrades one topic, never Today._
 
 #### [Bug] #8: Frontend mount decided once at startup, but installer/README promise 'make build' needs no restart
 - **Where:** `backend/app/main.py:74-76` · severity low · confidence high
@@ -422,6 +425,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Set RunAtLoad=true — already safe because SWEEP_SKIP_DONE makes an on-load fire a no-op on swept days — and fix the comment; optionally have GET /api/brief flag when the served date is older than today. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): template `RunAtLoad=true` + honest comment; safety pinned by a test on run-scheduled.sh's `SWEEP_SKIP_DONE=1`. The optional stale-flag half deliberately skipped — the stale banner already exists. Live via install-schedule.sh re-run from the main checkout._
 
 #### [Bug] #20: FlashcardReview load() has no cancellation
 - **Where:** `frontend/src/pages/FlashcardReview.tsx:37-65` · severity low · confidence medium
@@ -443,6 +447,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Write both artifacts to .tmp and os.replace into place, .md first then .json, mirroring audio_brief.py's render(). Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #87, RED→green — W2 batch 1): implemented as a wrap — render_brief.py is frozen (trust-critical), so sweep.sh renders into a mktemp stage dir inside `$OUT_DIR` and mv-renames into place, .md first then .json (same-fs atomic rename; the server ignores subdirs; failures still land .raw.txt). Stage-dir probe + failure-path + real-renderer end-to-end tests._
 
 #### [Bug] #23: Regen/chat lanes spawn claude -p with no tool restriction and inherited repo cwd
 - **Where:** `backend/app/chat.py:108-129 (also regen.py:109-130)` · severity low · confidence low
