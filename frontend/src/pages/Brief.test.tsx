@@ -15,6 +15,8 @@ const briefHabit = vi.fn();
 const addBriefNote = vi.fn();
 const deleteBriefNote = vi.fn();
 const sweepBrief = vi.fn();
+const approveOvernight = vi.fn();
+const discardOvernight = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     briefWithMeta: () => briefWithMeta(),
@@ -26,6 +28,8 @@ vi.mock("../api/client", () => ({
     deleteBriefNote: (id: number) => deleteBriefNote(id),
     briefAudioUrl: () => "/api/brief/audio",
     sweepBrief: () => sweepBrief(),
+    approveOvernight: (id: string) => approveOvernight(id),
+    discardOvernight: (id: string) => discardOvernight(id),
   },
 }));
 
@@ -43,6 +47,8 @@ beforeEach(() => {
   addBriefNote.mockReset();
   deleteBriefNote.mockReset();
   sweepBrief.mockReset();
+  approveOvernight.mockReset();
+  discardOvernight.mockReset();
   logBriefVisit.mockResolvedValue({ ok: true, day: "2026-07-14", visited_at: "" });
   // Quiet defaults: nothing due, no courses, no habit signal → the strips hide themselves.
   review.mockResolvedValue({ generated_at: "now", has_data: false, due_count: 0, items: [] });
@@ -993,5 +999,161 @@ describe("Calibrated Doubt v0 — the 'Yesterday's calls' strip", () => {
 
     expect(await screen.findByText(/65% call:/)).toBeInTheDocument();
     expect(screen.getByText("A rival answers within a day")).toBeInTheDocument();
+  });
+});
+
+// Overnight Chief of Staff v0 (docs/ideas/overnight-chief-of-staff.md): the draft-only
+// approve/discard queue pinned at the top of the live morning. Scope decisions from the
+// 2026-07-20 gate: nothing sent or executed — approve saves a note through the existing
+// notes path, discard is the undo; offline (cached payload) disables the write buttons
+// like every other composer.
+const OVERNIGHT = {
+  generated_at: "now",
+  date: "2099-01-01",
+  proposals: [
+    {
+      id: "p1aaaaaaaaaa",
+      type: "draft_note",
+      slug: "ai-llms",
+      title: "AI / LLMs",
+      item_id: "abc123def456",
+      item_headline: "OpenAI lifts caps",
+      body: "Caps went away; watch the pricing response.",
+      status: "proposed",
+      note_id: null,
+      created_at: "2099-01-01T11:05:00Z",
+    },
+    {
+      id: "p2bbbbbbbbbb",
+      type: "draft_note",
+      slug: "celtics",
+      title: "Boston Celtics",
+      item_id: "def456abc123",
+      item_headline: "Tatum talks",
+      body: "Extension window opens; numbers drifting up.",
+      status: "proposed",
+      note_id: null,
+      created_at: "2099-01-01T11:05:00Z",
+    },
+  ],
+};
+
+describe("Overnight v0 — the draft-only approve/discard queue", () => {
+  it("renders the queue with drafts, verbs, and the nothing-was-sent reassurance", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, overnight: OVERNIGHT }));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    expect(within(strip).getByText(/nothing was sent or executed/)).toBeInTheDocument();
+    expect(within(strip).getByText("AI / LLMs · OpenAI lifts caps")).toBeInTheDocument();
+    expect(
+      within(strip).getByText("Caps went away; watch the pricing response."),
+    ).toBeInTheDocument();
+    expect(within(strip).getByText("Boston Celtics · Tatum talks")).toBeInTheDocument();
+    expect(within(strip).getAllByRole("button", { name: "Approve" })).toHaveLength(2);
+    expect(within(strip).getAllByRole("button", { name: "Discard" })).toHaveLength(2);
+  });
+
+  it("approve calls the API with the proposal id and flips the card to saved", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, overnight: OVERNIGHT }));
+    approveOvernight.mockResolvedValue({
+      ...OVERNIGHT.proposals[0],
+      status: "approved",
+      note_id: 7,
+    });
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getAllByRole("button", { name: "Approve" })[0]);
+
+    expect(approveOvernight).toHaveBeenCalledWith("p1aaaaaaaaaa");
+    expect(await within(strip).findByText("✓ Saved to notes")).toBeInTheDocument();
+    // The resolved card keeps its draft visible but loses its verbs.
+    expect(within(strip).getAllByRole("button", { name: "Approve" })).toHaveLength(1);
+  });
+
+  it("discard removes the card, and the strip once nothing visible remains", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    discardOvernight.mockResolvedValue({ ...OVERNIGHT.proposals[0], status: "discarded" });
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Discard" }));
+
+    expect(discardOvernight).toHaveBeenCalledWith("p1aaaaaaaaaa");
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: "Overnight" })).not.toBeInTheDocument(),
+    );
+  });
+
+  it("renders already-resolved proposals as an after-action log", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: {
+          ...OVERNIGHT,
+          proposals: [
+            { ...OVERNIGHT.proposals[0], status: "approved", note_id: 7 },
+            { ...OVERNIGHT.proposals[1], status: "discarded" },
+          ],
+        },
+      }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    expect(within(strip).getByText("✓ Saved to notes")).toBeInTheDocument();
+    expect(within(strip).queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    // The discarded draft is gone, not displayed struck-through.
+    expect(within(strip).queryByText("Boston Celtics · Tatum talks")).not.toBeInTheDocument();
+  });
+
+  it("shows a failure inline when a verb rejects, keeping the draft actionable", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    approveOvernight.mockRejectedValue(new Error("proposal already approved"));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Approve" }));
+
+    expect(await within(strip).findByText(/Couldn't save/)).toBeInTheDocument();
+    expect(within(strip).getByRole("button", { name: "Approve" })).toBeInTheDocument();
+  });
+
+  it("renders no strip for a payload without the field or with an empty queue", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Overnight" })).not.toBeInTheDocument();
+
+    briefWithMeta.mockResolvedValue(
+      online({ ...STRUCTURED, overnight: { ...OVERNIGHT, proposals: [] } }),
+    );
+    renderBrief();
+    await waitFor(() => expect(briefWithMeta).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("region", { name: "Overnight" })).not.toBeInTheDocument();
+  });
+
+  it("disables the verbs on an offline cached payload — writes need the hub", async () => {
+    briefWithMeta.mockResolvedValue(offline({ ...STRUCTURED, overnight: OVERNIGHT }));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    for (const b of within(strip).getAllByRole("button", { name: "Approve" })) {
+      expect(b).toBeDisabled();
+    }
+    for (const b of within(strip).getAllByRole("button", { name: "Discard" })) {
+      expect(b).toBeDisabled();
+    }
   });
 });
