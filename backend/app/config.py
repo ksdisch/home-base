@@ -78,6 +78,11 @@ class Settings:
         # strictly read-only over data/sweeps.
         self.brief_chat_ledger = self.data_dir / "brief-chat.jsonl"
 
+        # Calibrated Doubt v0: the append-only graded-wager ledger behind the
+        # 'Yesterday's calls' strip — backend data for the same reason as the chat
+        # ledger: data/sweeps stays strictly read-only.
+        self.brief_calibration_ledger = self.data_dir / "calibration.jsonl"
+
         # Courses M5 authoring loop: the model for POST /courses/{slug}/lessons/{id}/regenerate
         # (same claude binary + subscription-lane guards as brief chat) and its usage ledger.
         self.course_regen_model = os.environ.get("COURSE_REGEN_MODEL", "sonnet")

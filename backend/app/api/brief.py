@@ -35,6 +35,7 @@ from ..chat import (
 from ..deps import get_app_settings, get_brief_chat_client
 from ..models import (
     BriefAudioChapter,
+    BriefCalibration,
     BriefChatRequest,
     BriefChatResponse,
     BriefHabitResponse,
@@ -59,6 +60,7 @@ from ..store import (
     record_brief_visit,
 )
 from ..sweeps import (
+    build_calibration,
     build_readiness,
     latest_sweep_date,
     load_brief_topics,
@@ -175,6 +177,22 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
         # None when there's no served day to project for.
         readiness=(
             BriefReadiness(**build_readiness(settings.sweeps_dir, served, raw_topics))
+            if date is None and served
+            else None
+        ),
+        # Calibrated Doubt v0: grade prior mornings' wagers against their next readable
+        # sweep and carry the running record — live only; an archived ?date= morning is
+        # a record, not a grader.
+        calibration=(
+            BriefCalibration(
+                **build_calibration(
+                    settings.sweeps_dir,
+                    served,
+                    raw_topics,
+                    titles,
+                    settings.brief_calibration_ledger,
+                )
+            )
             if date is None and served
             else None
         ),

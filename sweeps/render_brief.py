@@ -100,6 +100,38 @@ def validate(brief: dict) -> list[str]:
     return problems
 
 
+def _wager_pair(item: dict) -> dict:
+    """Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): the one sanctioned addition
+    to this frozen file — keep an optional, well-formed prediction+confidence pair.
+
+    Lenient in, strict out: both fields together or neither, prediction a non-empty
+    string, confidence an integer 1–99 ("70" and 0.7 coerce; a value is never clamped
+    into range — that would fabricate a number the model didn't say). A malformed wager
+    becomes no wager; it can never fail an otherwise-valid brief (validate() stays
+    silent about the pair on purpose).
+    """
+    prediction, confidence = item.get("prediction"), item.get("confidence")
+    if not isinstance(prediction, str) or not prediction.strip():
+        return {}
+    if isinstance(confidence, bool):
+        return {}
+    if isinstance(confidence, str):
+        try:
+            confidence = int(confidence.strip())
+        except ValueError:
+            return {}
+    if isinstance(confidence, float):
+        if 0 < confidence < 1:
+            confidence = round(confidence * 100)
+        elif confidence.is_integer():
+            confidence = int(confidence)
+        else:
+            return {}
+    if not isinstance(confidence, int) or not 1 <= confidence <= 99:
+        return {}
+    return {"prediction": prediction.strip(), "confidence": confidence}
+
+
 def normalize(brief: dict, topic: str, date: str, as_of: str) -> dict:
     """Wrap the validated model JSON with run metadata, keeping only known keys."""
     note = brief.get("context_note")
@@ -119,6 +151,7 @@ def normalize(brief: dict, topic: str, date: str, as_of: str) -> dict:
                     {"title": s["title"].strip(), "url": s["url"].strip()}
                     for s in item["sources"]
                 ],
+                **_wager_pair(item),
             }
             for item in brief["items"]
         ],

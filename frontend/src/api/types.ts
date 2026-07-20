@@ -601,6 +601,12 @@ export interface BriefItem {
   // FR13: the digest as this story read on first_seen day, verbatim — shown behind the
   // badge and threaded into chat. Optional for stale pre-FR13 SW-cached payloads.
   prior_digest?: string | null;
+  // Calibrated Doubt v0: the optional wager lane — a falsifiable call that this story
+  // shows fresh movement by the topic's next sweep, with its stated confidence (1–99).
+  // Set only when the sweep made a well-formed call; optional for pre-calibration
+  // SW-cached payloads.
+  prediction?: string | null;
+  confidence?: number | null;
 }
 
 // One topic section: either structured (top_line/items from <topic>.json) or a raw_markdown
@@ -680,6 +686,34 @@ export interface BriefReadiness {
   items: BriefReadinessItem[];
 }
 
+// Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): one graded wager on the
+// 'Yesterday's calls' strip — the morning it was made, the falsifiable call, the stated
+// confidence, and the deterministic outcome (did the story show fresh movement by the
+// topic's next readable sweep — the developing badge's own identity-key join).
+export interface BriefCalibrationCall {
+  slug: string;
+  title: string;
+  day: string;
+  headline: string;
+  prediction: string;
+  confidence: number;
+  outcome: boolean;
+}
+
+// The running public calibration record behind the strip, recomputed each serve from
+// the append-only backend ledger. `trial` is the assumption-4 gate made visible: true
+// until a week of distinct graded mornings is on the books, and the strip says so.
+export interface BriefCalibration {
+  generated_at: string;
+  window_days: number;
+  resolved: number;
+  hits: number;
+  days: number;
+  brier?: number | null;
+  trial: boolean;
+  yesterday: BriefCalibrationCall[];
+}
+
 export interface BriefResponse {
   generated_at: string;
   has_data: boolean;
@@ -703,6 +737,10 @@ export interface BriefResponse {
   // Readiness v0: the live morning's 'Coming up' projection. Optional so pre-readiness
   // SW-cached payloads stay valid; null on ?date= archives and no-served-day payloads.
   readiness?: BriefReadiness | null;
+  // Calibrated Doubt v0: the graded-wager record ('Yesterday's calls') — grading happens
+  // at serve time, so it rides the live view only. Optional so pre-calibration SW-cached
+  // payloads stay valid; null on ?date= archives and no-served-day payloads.
+  calibration?: BriefCalibration | null;
 }
 
 export interface BriefVisitResponse {

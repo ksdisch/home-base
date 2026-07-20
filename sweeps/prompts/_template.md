@@ -39,7 +39,9 @@ Shape (field docs inline):
       "attribution": "Publisher(s) + publish date, e.g. \"Reuters, July 18, 2026\"",
       "digest": "2–4 sentence digest: what happened and the specific facts/numbers that matter.",
       "why_it_matters": "1–2 sentences, specific to Kyle.",
-      "sources": [{ "title": "short title", "url": "https://…" }]
+      "sources": [{ "title": "short title", "url": "https://…" }],
+      "prediction": "OPTIONAL falsifiable call — the fresh movement you expect on THIS story by tomorrow's sweep. Omit the field entirely on most items.",
+      "confidence": 70
     }
   ]
 }
@@ -47,6 +49,7 @@ Shape (field docs inline):
 
 - **3–6 items**, most significant first. Fewer real items always beats padding.
 - Fields are plain text (light inline markdown like *emphasis* is fine inside `digest`); escape any internal double quotes so the JSON stays valid.
+- **Wagers are optional and rare** (0–2 per brief, only when you have a genuine directional read): add `prediction` + `confidence` (integer 55–90) together or not at all. The wager is the call that this story shows fresh movement by tomorrow's sweep — i.e., a follow-up would earn a place in tomorrow's brief — and it is graded exactly that way each morning into a public track record and Brier score. Never wager to fill space; the sourcing bar for stated facts is unchanged.
 
 ## Hard rules — this is the whole point of the experiment
 - **Every item must be backed by at least one real source URL you actually found via web search.** If you can't source it, leave it out.

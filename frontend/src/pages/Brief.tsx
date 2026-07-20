@@ -369,6 +369,18 @@ export function TopicSection({
               <div className="mt-1 text-sm text-ink/90">
                 <Markdown source={item.digest} inline />
               </div>
+              {/* Calibrated Doubt v0: this morning's open wager — graded tomorrow into
+                  the 'Yesterday's calls' strip; the hover title says so up front. */}
+              {item.prediction != null && item.confidence != null && (
+                <p
+                  className="mt-2 text-sm"
+                  title="An optional wager the sweep staked on this story — graded next morning in Yesterday's calls on whether the story kept moving."
+                >
+                  <span aria-hidden>🎯</span>{" "}
+                  <span className="font-semibold text-accent">{item.confidence}% call:</span>{" "}
+                  <span className="text-ink/90">{item.prediction}</span>
+                </p>
+              )}
               {item.developing && item.prior_digest && priorOpen === item.id && (
                 <div className="mt-2 rounded-lg bg-stone-50 px-3 py-2 text-sm text-ink/80">
                   <span className="text-xs font-medium text-muted">
@@ -441,6 +453,8 @@ export default function Brief() {
   const missingTopics = brief?.missing_topics ?? [];
   // Readiness v0: a const binding so the row map below keeps the narrowed type.
   const readiness = brief?.readiness;
+  // Calibrated Doubt v0: the same narrowed-type binding for the calls strip below.
+  const calibration = brief?.calibration;
 
   // FR2: the stale banner's recovery becomes a tap — POST /brief/sweep (lock-guarded on
   // the server), then poll the brief on a timer until the fresh day lands. "running"
@@ -632,6 +646,54 @@ export default function Brief() {
                 ))}
               </ul>
             </>
+          )}
+        </section>
+      )}
+
+      {/* Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): the graded-wager record
+          the backend attaches to the LIVE payload — yesterday's calls scored against
+          this morning's own sweep, with the running lifetime record. Hidden until a
+          first call is on the books (item chips carry today's open wagers); the
+          trial-week label is the assumption-4 gate made visible. */}
+      {calibration && calibration.resolved > 0 && (
+        <section
+          aria-label="Yesterday's calls"
+          className="mb-4 rounded-2xl border border-accent/30 bg-accent/5 p-4"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-accent">
+            <span aria-hidden>🎯</span> Yesterday's calls
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {`${calibration.hits}-for-${calibration.resolved} lifetime` +
+              (calibration.brier != null ? ` · Brier ${calibration.brier}` : "") +
+              " · graded on whether the story kept moving" +
+              (calibration.trial
+                ? " · trial week — treat the lane as ungraded until a week of graded mornings is on the books"
+                : "")}
+          </p>
+          {calibration.yesterday.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">No calls to grade from the last morning.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {calibration.yesterday.map((y) => (
+                <li key={`${y.day}|${y.slug}|${y.headline}`}>
+                  <div className="text-sm text-ink">
+                    <span
+                      className={`font-semibold ${y.outcome ? "text-emerald-700" : "text-rose-700"}`}
+                      aria-hidden
+                    >
+                      {y.outcome ? "✓" : "✗"}
+                    </span>{" "}
+                    <span>{y.prediction}</span>
+                  </div>
+                  <div className="text-xs text-muted">
+                    {`${y.confidence}% — ${y.title} · ${y.headline} · ${
+                      y.outcome ? "kept moving" : "didn't move"
+                    }`}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       )}

@@ -673,6 +673,12 @@ class BriefItem(BaseModel):
     # file — the deterministic "what changed" comparator behind the badge and in the chat
     # prompt. None when the first appearance had no digest or the lookup failed.
     prior_digest: Optional[str] = None
+    # Calibrated Doubt v0: the optional wager lane — a falsifiable call that this story
+    # shows fresh movement by the topic's next sweep, with its stated confidence (1–99).
+    # Set only when the sweep made a well-formed call; graded the next morning into the
+    # calibration ledger. None otherwise (and on pre-calibration SW-cached payloads).
+    prediction: Optional[str] = None
+    confidence: Optional[int] = None
 
 
 class BriefTopic(BaseModel):
@@ -764,6 +770,38 @@ class BriefReadiness(BaseModel):
     items: List[BriefReadinessItem] = []
 
 
+class BriefCalibrationCall(BaseModel):
+    """One graded wager on the 'Yesterday's calls' strip (Calibrated Doubt v0): the
+    morning it was made, the falsifiable call, the stated confidence, and the
+    deterministic outcome — did the story show fresh movement by the topic's next
+    readable sweep (the developing badge's own identity-key join)."""
+
+    slug: str
+    title: str
+    day: str
+    headline: str
+    prediction: str
+    confidence: int
+    outcome: bool
+
+
+class BriefCalibration(BaseModel):
+    """Calibrated Doubt v0 (docs/ideas/calibrated-doubt.md): the running public
+    calibration record behind the strip — recomputed each serve from the append-only
+    backend/data/calibration.jsonl. ``trial`` is the assumption-4 gate made visible:
+    true until a week of distinct graded mornings is on the books, so the new wager
+    lane is labelled untrusted instead of silently worn as proven."""
+
+    generated_at: str
+    window_days: int = 7
+    resolved: int = 0
+    hits: int = 0
+    days: int = 0
+    brier: Optional[float] = None
+    trial: bool = True
+    yesterday: List[BriefCalibrationCall] = []
+
+
 class BriefResponse(BaseModel):
     generated_at: str
     has_data: bool = False
@@ -789,6 +827,11 @@ class BriefResponse(BaseModel):
     # (None on ?date= archives and when there's no served day; absent from pre-readiness
     # SW-cached payloads, so the TS side keeps it optional).
     readiness: Optional[BriefReadiness] = None
+    # Calibrated Doubt v0: the graded-wager record ('Yesterday's calls') — LIVE view only
+    # (grading happens at serve time; an archived ?date= morning is a record, not a
+    # grader). Absent from pre-calibration SW-cached payloads, so the TS side keeps it
+    # optional.
+    calibration: Optional[BriefCalibration] = None
 
 
 class BriefVisitResponse(BaseModel):
