@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
@@ -18,6 +18,7 @@ const assessProject = vi.fn();
 const editLessonObjectives = vi.fn();
 const reorderCourse = vi.fn();
 const regenerateMaterial = vi.fn();
+const setLessonComplete = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     course: (s: string) => course(s),
@@ -29,6 +30,7 @@ vi.mock("../api/client", () => ({
     editLessonObjectives: (s: string, l: string, b: unknown) => editLessonObjectives(s, l, b),
     reorderCourse: (s: string, b: unknown) => reorderCourse(s, b),
     regenerateMaterial: (s: string, l: string, b: unknown) => regenerateMaterial(s, l, b),
+    setLessonComplete: (s: string, l: string, d: boolean) => setLessonComplete(s, l, d),
     courseExportUrl: (s: string) => `/api/courses/${s}/export`,
   },
 }));
@@ -95,7 +97,16 @@ beforeEach(() => {
   editLessonObjectives.mockReset();
   reorderCourse.mockReset();
   regenerateMaterial.mockReset();
+  setLessonComplete.mockReset();
 });
+
+function deferred() {
+  let resolve!: (v: unknown) => void;
+  const promise = new Promise<unknown>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
 
 describe("CourseDetail — course quizzes (M2)", () => {
   it("launches a taken quiz into the player and shows last score + due-for-review", async () => {
@@ -473,6 +484,46 @@ describe("CourseDetail — authoring loop (M5)", () => {
     expect(reorderCourse).toHaveBeenCalledWith(SLUG, {
       modules: [{ id: "m2", lessons: ["m2l2", "m2l1"] }],
     });
+  });
+
+  // Bug #21: onToggle composes concurrent toggles through functional updates, but the
+  // reorder-failure revert restored a whole-course snapshot — rewinding a completion whose
+  // POST already succeeded (UI and server then disagree).
+  it("keeps a concurrent completion toggle when a reorder fails", async () => {
+    course.mockResolvedValue(TWO_LESSON_COURSE);
+    courseQuizzes.mockResolvedValue({ slug: SLUG, generated_at: "now", quizzes: [] });
+    setLessonComplete.mockResolvedValue({ ok: true });
+    const reorder = deferred();
+    reorderCourse.mockReturnValue(reorder.promise);
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: /Edit course/i }));
+    // Start the reorder — the PUT hangs at the server.
+    await user.click(screen.getByRole("button", { name: /Move lesson First steps down/i }));
+
+    // While it's in flight, complete the lesson — its own POST succeeds.
+    await user.click(screen.getByRole("checkbox", { name: /Mark "First steps" complete/i }));
+    expect(setLessonComplete).toHaveBeenCalledWith(SLUG, "m2l1", true);
+    expect(
+      screen.getByRole("checkbox", { name: /Mark "First steps" complete/i }),
+    ).toBeChecked();
+
+    // The reorder comes back ok:false → the ORDER reverts, the toggle must survive.
+    await act(async () => {
+      reorder.resolve({ ok: false, errors: ["validation failed"], warnings: [] });
+    });
+    expect(await screen.findByText(/validation failed/)).toBeInTheDocument();
+    const labels = screen.getAllByRole("checkbox").map((c) => c.getAttribute("aria-label"));
+    expect(labels).toEqual([
+      'Mark "First steps" complete',
+      'Mark "Putting It Together" complete',
+    ]);
+    expect(
+      screen.getByRole("checkbox", { name: /Mark "First steps" complete/i }),
+    ).toBeChecked();
   });
 
   it("regenerates a deck after warning that stats reset", async () => {

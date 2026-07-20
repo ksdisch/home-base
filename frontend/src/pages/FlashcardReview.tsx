@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Flashcard, FlashcardCardState, FlashcardRating } from "../api/types";
@@ -34,7 +34,13 @@ export default function FlashcardReview() {
   const [error, setError] = useState<string | null>(null);
   const [gradeError, setGradeError] = useState<string | null>(null);
 
+  // Bug #20: the deck lives in a search param, so the router re-runs load() on the SAME
+  // mounted component — each invocation takes a token and a superseded load drops its
+  // results, or grade() would POST the stale deck's index against the current path.
+  const loadToken = useRef(0);
+
   const load = useCallback(() => {
+    const token = ++loadToken.current;
     setError(null);
     setCards(null);
     setQueue([]);
@@ -48,6 +54,7 @@ export default function FlashcardReview() {
       api.courseFlashcards(slug).catch(() => null), // deck meta (title) is a nicety
     ])
       .then(([mat, state, decks]) => {
+        if (token !== loadToken.current) return; // a newer load owns the screen now
         const deck =
           mat.kind === "json" && Array.isArray(mat.data) ? (mat.data as Flashcard[]) : null;
         if (!deck) throw new Error("This material isn't a flashcards deck.");
@@ -57,11 +64,17 @@ export default function FlashcardReview() {
         const meta = decks?.decks.find((d) => d.path === path);
         if (meta) setTitle(meta.title);
       })
-      .catch((e) => setError((e as Error).message ?? "Couldn't load this deck"));
+      .catch((e) => {
+        if (token !== loadToken.current) return;
+        setError((e as Error).message ?? "Couldn't load this deck");
+      });
   }, [slug, path]);
 
   useEffect(() => {
     load();
+    return () => {
+      loadToken.current += 1; // param change/unmount: retire any in-flight load
+    };
   }, [load]);
 
   const grade = async (rating: FlashcardRating) => {

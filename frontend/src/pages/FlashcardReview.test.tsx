@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { act, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import FlashcardReview from "./FlashcardReview";
 
@@ -138,4 +138,82 @@ describe("FlashcardReview — a graded session over one deck", () => {
     renderPage();
     expect(await screen.findByText(/Couldn't start this review/i)).toBeInTheDocument();
   });
+
+  // Bug #20: the deck lives in a search param, so switching decks re-runs load() on the SAME
+  // mounted component — a slow first load resolving last must not clobber the current deck
+  // (grade() would then POST the stale deck's index against the current path).
+  it("ignores a stale load that resolves after the deck changed", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
+
+    const deckA = deferred();
+    const deckB = deferred();
+    courseMaterial.mockImplementation((_s: string, p: string) =>
+      p === PATH ? deckA.promise : deckB.promise,
+    );
+    courseFlashcardState.mockImplementation((_s: string, p: string) =>
+      Promise.resolve({
+        slug: SLUG,
+        path: p,
+        generated_at: "now",
+        cards: [
+          { index: 0, tracked: false, due: false, reps: 0, lapses: 0, due_at: null, last_review_at: null },
+        ],
+      }),
+    );
+    courseFlashcards.mockResolvedValue({ slug: SLUG, generated_at: "now", decks: [] });
+
+    render(
+      <MemoryRouter
+        initialEntries={[`/courses/${SLUG}/flashcards?path=${encodeURIComponent(PATH)}`]}
+      >
+        <Routes>
+          <Route path="/courses/:slug/flashcards" element={<DeckSwitcher />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Deck A's material fetch hangs; switch to deck B on the same route.
+    await user.click(screen.getByRole("button", { name: /switch deck/i }));
+
+    await act(async () => {
+      deckB.resolve({ path: PATH_B, kind: "json", data: [{ front: "B front", back: "b" }] });
+    });
+    expect(await screen.findByText("B front")).toBeInTheDocument();
+
+    // The STALE deck A load resolves last — it must not win the screen.
+    await act(async () => {
+      deckA.resolve({ path: PATH, kind: "json", data: [{ front: "A front", back: "a" }] });
+    });
+    expect(screen.queryByText("A front")).not.toBeInTheDocument();
+    expect(screen.getByText("B front")).toBeInTheDocument();
+  });
 });
+
+const PATH_B = "flashcards/m2l1.json";
+
+function deferred() {
+  let resolve!: (v: unknown) => void;
+  const promise = new Promise<unknown>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+// Renders the page plus a button that hops to deck B's URL — same route pattern, so the
+// router keeps the same FlashcardReview instance and only the search param changes.
+function DeckSwitcher() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button
+        onClick={() =>
+          navigate(`/courses/${SLUG}/flashcards?path=${encodeURIComponent(PATH_B)}`)
+        }
+      >
+        switch deck
+      </button>
+      <FlashcardReview />
+    </>
+  );
+}

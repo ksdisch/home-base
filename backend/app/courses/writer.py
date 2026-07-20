@@ -8,8 +8,10 @@ of growing a second writer. Three invariants live here rather than at every call
   NotebookLM sidecar. The editing entry points additionally require the user course to already
   exist (``user_course_dir``): a bundled-only slug has no editable copy.
 - Every write is transactional: snapshot what will change, write, ``validate_dir``, and restore
-  the snapshots byte-identical when validation fails — a failed write never leaves a course
-  worse than it was.
+  the snapshots byte-identical when validation fails — or when anything RAISES mid-sequence
+  (bug #18: ENOSPC, EACCES, validate_dir's own read errors). Each file also lands via a
+  same-dir tempfile + ``os.replace``, so a crash mid-write can never leave it truncated in
+  place. A failed write never leaves a course worse than it was.
 - ``pin_ids`` materializes the loader's positional fallback ids into the raw manifest before a
   structural edit, so a reorder can never silently re-key ``course_lesson_progress`` rows or
   the ``course:<slug>`` material-path stats.
@@ -18,11 +20,27 @@ of growing a second writer. Three invariants live here rather than at every call
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from ..config import get_settings
 from .manifest import CourseError, validate_dir
+
+
+def _write_text_atomic(path: Path, text: str) -> None:
+    """Stage the bytes in a sibling tempfile and ``replace`` into place (the news.py roster
+    idiom) — the real file is either its old bytes or the complete new ones, never a torn
+    middle state."""
+    fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=f"{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        Path(tmp_name).replace(path)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
 
 
 def user_course_dir(slug: str) -> Optional[Path]:
@@ -52,13 +70,21 @@ def write_manifest(slug: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
     base.mkdir(parents=True, exist_ok=True)
     target = base / "course.json"
     backup = target.read_bytes() if target.exists() else None
-    target.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    report = validate_dir(base)
-    if not report.get("ok"):
+
+    def _restore() -> None:
         if backup is not None:
             target.write_bytes(backup)
         else:
             target.unlink(missing_ok=True)
+
+    try:
+        _write_text_atomic(target, json.dumps(manifest, indent=2) + "\n")
+        report = validate_dir(base)
+    except Exception:
+        _restore()  # bug #18: a raised error must roll back exactly like ok:false does
+        raise
+    if not report.get("ok"):
+        _restore()
         return {"written": None, "rolled_back": True, **report}
     return {"written": str(target), "rolled_back": False, **report}
 
@@ -102,20 +128,27 @@ def write_material(
     manifest_path = base / "course.json"
     file_backup = target.read_bytes()
     manifest_backup = manifest_path.read_bytes()
-    target.write_text(content, encoding="utf-8")
-    if count is not None:
-        try:
-            raw = json.loads(manifest_backup.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            target.write_bytes(file_backup)
-            raise CourseError(f"can't edit {manifest_path}: {e}") from e
-        _sync_count(raw, rel_path, count)
-        raw["slug"] = slug
-        manifest_path.write_text(json.dumps(raw, indent=2) + "\n", encoding="utf-8")
-    report = validate_dir(base)
-    if not report.get("ok"):
+
+    def _restore() -> None:
         target.write_bytes(file_backup)
         manifest_path.write_bytes(manifest_backup)
+
+    try:
+        _write_text_atomic(target, content)
+        if count is not None:
+            try:
+                raw = json.loads(manifest_backup.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                raise CourseError(f"can't edit {manifest_path}: {e}") from e
+            _sync_count(raw, rel_path, count)
+            raw["slug"] = slug
+            _write_text_atomic(manifest_path, json.dumps(raw, indent=2) + "\n")
+        report = validate_dir(base)
+    except Exception:
+        _restore()  # bug #18: material AND manifest come back whatever step raised
+        raise
+    if not report.get("ok"):
+        _restore()
         return {"written": None, "rolled_back": True, **report}
     return {"written": str(target), "rolled_back": False, **report}
 

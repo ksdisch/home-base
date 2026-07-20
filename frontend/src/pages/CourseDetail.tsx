@@ -158,7 +158,22 @@ export default function CourseDetail() {
         if (!res.ok) throw new Error(res.errors.join("; ") || "Validation failed");
         void loadNext();
       } catch (e) {
-        setCourse(prev); // the manifest didn't change — put the view back
+        // The manifest didn't change — put the ORDER back, functionally (bug #21): revert
+        // only what the reorder moved, carrying each lesson's CURRENT fields so a concurrent
+        // completion toggle that already landed server-side isn't rewound with it.
+        setCourse((cur) => {
+          if (!cur) return cur;
+          const current = new Map(
+            cur.modules.flatMap((m) => m.lessons).map((l): [string, CourseLesson] => [l.id, l]),
+          );
+          return {
+            ...cur,
+            modules: prev.modules.map((m) => ({
+              ...m,
+              lessons: m.lessons.map((l) => current.get(l.id) ?? l),
+            })),
+          };
+        });
         setEditErr((e as Error).message ?? "Couldn't save the new order");
       } finally {
         setReordering(false);
