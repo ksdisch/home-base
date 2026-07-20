@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BriefShell } from "../components/BriefShell";
@@ -591,5 +591,46 @@ describe("Brief (Today page)", () => {
 
     expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Jump to topic" })).not.toBeInTheDocument();
+  });
+
+  // FR4 audio chapters: the ~5-min cut is one featureless track — chapter chips seek to
+  // each topic's word-count offset, landing 2s early so the spoken "Next up:" confirms
+  // the jump. Offsets are estimates riding brief.chapters.json via BriefResponse.
+
+  const CHAPTERED = {
+    ...STRUCTURED,
+    audio_available: true,
+    audio_chapters: [
+      { slug: "ai-llms", title: "AI / LLMs", start_seconds: 1 },
+      { slug: "fantasy-football", title: "Fantasy football", start_seconds: 95.5 },
+    ],
+  };
+
+  it("renders a seek chip per chapter that jumps the audio with a 2s lead-in (FR4)", async () => {
+    briefWithMeta.mockResolvedValue(online(CHAPTERED));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const player = document.querySelector("audio") as HTMLAudioElement;
+    Object.defineProperty(player, "currentTime", { value: 0, writable: true, configurable: true });
+    player.play = vi.fn();
+
+    fireEvent.click(screen.getByRole("button", { name: "Fantasy football" }));
+    expect(player.currentTime).toBe(93.5); // 95.5 − 2s lead-in
+    expect(player.play).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "AI / LLMs" }));
+    expect(player.currentTime).toBe(0); // 1 − 2 clamps at the start, never negative
+  });
+
+  it("a cached pre-FR4 payload gets the player with no chips (FR4)", async () => {
+    // A stale SW-cached BriefResponse has no audio_chapters key at all — the card must
+    // render chip-free, not crash.
+    briefWithMeta.mockResolvedValue(offline({ ...STRUCTURED, audio_available: true }));
+    renderBrief();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const card = screen.getByText(/Listen to this brief/).closest("div")!;
+    expect(within(card as HTMLElement).queryAllByRole("button")).toHaveLength(0);
   });
 });
