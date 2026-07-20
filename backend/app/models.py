@@ -669,6 +669,10 @@ class BriefItem(BaseModel):
     # first_seen is that earliest date — and the item is never dropped.
     developing: bool = False
     first_seen: Optional[str] = None
+    # FR13: the digest as this story read on first_seen day, verbatim from that day's sweep
+    # file — the deterministic "what changed" comparator behind the badge and in the chat
+    # prompt. None when the first appearance had no digest or the lookup failed.
+    prior_digest: Optional[str] = None
 
 
 class BriefTopic(BaseModel):

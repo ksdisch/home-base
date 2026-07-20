@@ -239,6 +239,26 @@ def _history_first_seen(sweeps_dir: Path, slug: str, before_date: str) -> Dict[s
     return first_seen
 
 
+def _first_seen_digest(
+    sweeps_dir: Path, slug: str, day: str, keys: set[str]
+) -> Optional[str]:
+    """FR13: the digest of the story's first appearance — the item on ``day`` sharing one
+    of today's identity keys (the same match that set the badge, so the two can't
+    disagree). Verbatim bytes already on disk; any problem returns None and the badge
+    stays a plain label — the brief never fails over a history lookup."""
+    try:
+        items = json.loads((sweeps_dir / day / f"{slug}.json").read_text(encoding="utf-8"))["items"]
+    except (OSError, ValueError, KeyError, TypeError, UnicodeDecodeError):
+        return None
+    if not isinstance(items, list):
+        return None
+    for prior in items:
+        if isinstance(prior, dict) and _item_identity_keys(prior) & keys:
+            digest = str(prior.get("digest") or "").strip()
+            return digest or None
+    return None
+
+
 def _annotate_developing(topics: List[Dict[str, Any]], sweeps_dir: Path, date: str) -> None:
     """Flag each structured item that already appeared in the last week for its topic (M3).
 
@@ -246,6 +266,10 @@ def _annotate_developing(topics: List[Dict[str, Any]], sweeps_dir: Path, date: s
     earlier day; ``first_seen`` = that earliest date. Read-only and conservative (exact-normalized
     match, per topic) so a genuinely fresh item is never mislabeled, and nothing is ever dropped.
     Any read error just leaves items unflagged — the brief must never fail over a history lookup.
+
+    FR13: a flagged item also carries ``prior_digest`` — the digest as it read on its
+    first_seen day, verbatim — so the badge and the chat can finally name what changed.
+    Deterministic bytes-from-disk only; detection itself is unchanged.
     """
     for topic in topics:
         items = topic.get("items")
@@ -255,10 +279,14 @@ def _annotate_developing(topics: List[Dict[str, Any]], sweeps_dir: Path, date: s
         if not history:
             continue
         for item in items:
-            seen = [history[k] for k in _item_identity_keys(item) if k in history]
+            keys = _item_identity_keys(item)
+            seen = [history[k] for k in keys if k in history]
             if seen:
                 item["developing"] = True
                 item["first_seen"] = min(seen)
+                digest = _first_seen_digest(sweeps_dir, topic["slug"], item["first_seen"], keys)
+                if digest:
+                    item["prior_digest"] = digest
 
 
 def load_brief_topics(
