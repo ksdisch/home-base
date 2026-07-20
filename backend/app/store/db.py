@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -35,7 +36,31 @@ def _safe_alter(conn: sqlite3.Connection, stmt: str) -> None:
             raise
 
 
+_SNAPSHOT_KEEP = 5
+
+
+def _snapshot_before_migrations(path: Path) -> None:
+    """Copy the store's bytes before any migration can touch them (HA11,
+    docs/ideas/pre-migration-snapshot.md). One Mac, one file, no managed-DB restore —
+    a typo'd or shape-drifted ALTER must leave something to copy back. Unconditional,
+    deliberately NOT gated on the schema_migrations ledger: the 2026-07-16 drift
+    incident is exactly the case where the ledger lies about what's on disk. Only a
+    missing/empty store (fresh DB) skips; a failed copy never blocks startup. Bounded
+    retention: the newest _SNAPSHOT_KEEP timestamped .bak-* siblings are kept.
+    Restore is manual by design: copy the .bak back over the store."""
+    try:
+        if not path.is_file() or path.stat().st_size == 0:
+            return
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+        shutil.copy2(path, path.with_name(f"{path.name}.bak-{stamp}"))
+        for old in sorted(path.parent.glob(f"{path.name}.bak-*"))[:-_SNAPSHOT_KEEP]:
+            old.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def init_db(db_path: Optional[Path] = None) -> None:
+    _snapshot_before_migrations(Path(db_path or get_settings().db_path))
     conn = connect(db_path)
     try:
         for stmt in STATEMENTS:

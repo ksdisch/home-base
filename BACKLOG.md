@@ -255,6 +255,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** init_db snapshots the sqlite file before running migrations (bounded retention); test that a failing migration leaves a restorable .bak.
 - **Size:** S (Harden)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #92, RED→green — W2 batch 5): unconditional `shutil.copy2` to `{db}.bak-<utc-timestamp>` before the migration loop (never gated on the ledger, per the steelman); fresh/empty store skips; newest 5 kept; failing-migration test proves the .bak holds the pre-migration bytes. Restore stays manual (copy the .bak back)._
 
 #### [Improvement] Today doesn't survive you leaving it
 - **Why:** Every Today→News→Notes→Today hop tears the whole page down and rebuilds it from a blank slate: pulse-skeleton flash, refetch of identical brief data, scroll reset, and the audio brief silently snapping back to 0:00 mid-walk. See [`docs/ideas/today-survives-navigation.md`](docs/ideas/today-survives-navigation.md) for the full write-up.
@@ -358,6 +359,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Parse defensively like brief_habit_weeks: wrap date.fromisoformat per row in try/except (TypeError, ValueError) and skip bad rows. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #92, RED→green — W2 batch 5): exactly the acceptance — per-row try/except in `compute_streaks`, bad rows skipped; pure-function + end-to-end poisoned-row tests (raw insert via the store, `GET /api/progress` 200)._
 
 #### [Bug] #10: Subscription-lane env scrub drops only ANTHROPIC_API_KEY
 - **Where:** `backend/app/chat.py:51-55 (also regen.py:86-90, sweeps/schedule/run-scheduled.sh:20)` · severity low · confidence high

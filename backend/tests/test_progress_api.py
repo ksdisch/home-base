@@ -44,6 +44,13 @@ def test_streak_dedupes_and_ignores_order():
     assert compute_streaks(days, date(2026, 6, 6)) == (3, 3)
 
 
+def test_streak_skips_a_malformed_day_row_instead_of_raising():
+    """Bug #9: one bad activity.day row (reachable via the out-of-app sqlite MCP — the
+    2026-07-16 incident's surface) must be skipped, not sink the whole dashboard."""
+    days = ["2026-06-05", "junk-not-a-date", "2026-06-06", ""]
+    assert compute_streaks(days, date(2026, 6, 6)) == (2, 2)
+
+
 # -- HTTP route ----------------------------------------------------------------
 
 def _runner_serving_quiz(args):
@@ -109,6 +116,35 @@ def test_progress_empty_store_degrades_gracefully(tmp_path, monkeypatch):
             # Activity strip is dense even when empty (one zero cell per day).
             assert len(body["activity"]) == 35
             assert all(a["count"] == 0 for a in body["activity"])
+        finally:
+            client.app.dependency_overrides.clear()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_progress_survives_a_malformed_activity_day_row(tmp_path, monkeypatch):
+    """Bug #9 end to end: a poisoned activity.day written outside the app must not
+    permanently 500 GET /api/progress — the bad row is skipped, the rest still counts."""
+    monkeypatch.setenv("LEARNING_HUB_DATA", str(tmp_path / "poisoned-hub"))
+    from app.config import get_settings
+    from app.store import init_db
+    from app.store.db import connect
+
+    get_settings.cache_clear()
+    init_db()
+    conn = connect()
+    try:
+        conn.execute("INSERT INTO activity (day, kind) VALUES ('2026-06-05', 'attempt')")
+        conn.execute("INSERT INTO activity (day, kind) VALUES ('junk-not-a-date', 'attempt')")
+        conn.commit()
+    finally:
+        conn.close()
+    try:
+        client = _client()
+        try:
+            r = client.get("/api/progress")
+            assert r.status_code == 200
+            assert r.json()["summary"]["attempts_total"] == 0  # the bad row broke nothing else
         finally:
             client.app.dependency_overrides.clear()
     finally:
