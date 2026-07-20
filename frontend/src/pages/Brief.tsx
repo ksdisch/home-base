@@ -402,6 +402,12 @@ export default function Brief() {
   const stale = brief?.date != null && brief.date < localToday();
   const missingTopics = brief?.missing_topics ?? [];
 
+  // QU3: an interrupted walk (call, locked phone, backgrounded PWA reload) must resume,
+  // not restart. Date-keyed so tomorrow's brief self-invalidates yesterday's position;
+  // cleared on ended so a finished brief starts fresh. Handlers live on the element
+  // itself so a later hoist above the router (FR15) carries the behavior along.
+  const audioPosKey = brief?.date ? `audio-pos-${brief.date}` : null;
+
   return (
     <div>
       <div className="mb-6">
@@ -428,6 +434,17 @@ export default function Brief() {
             src={api.briefAudioUrl()}
             className="w-full"
             onError={() => setAudioBroken(true)}
+            onTimeUpdate={(e) => {
+              if (audioPosKey) localStorage.setItem(audioPosKey, String(e.currentTarget.currentTime));
+            }}
+            onLoadedMetadata={(e) => {
+              if (!audioPosKey) return;
+              const saved = Number(localStorage.getItem(audioPosKey));
+              if (saved > 0) e.currentTarget.currentTime = saved;
+            }}
+            onEnded={() => {
+              if (audioPosKey) localStorage.removeItem(audioPosKey);
+            }}
           />
         </div>
       )}
