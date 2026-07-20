@@ -284,6 +284,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Ask-about-this receives the prior-day digest for developing items (and the badge can show it); confirm 'what changed?' answers cite the actual prior digest.
 - **Size:** M (Friction)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #99, RED→green — Wave 3 item 5): both halves, fully deterministic — `_annotate_developing` attaches `prior_digest` (the first_seen day's digest, matched by the same identity keys that set the badge; empty/unreadable → no field, the label never overpromises); `build_prompt` threads it as a delimited `<untrusted-prior-item>` PRIOR VERSION block naming the day + a compare instruction (HA4 rule extended, injection pin included); the badge becomes a tap-toggle revealing "As written Jul 14: (verbatim)". Zero new generative surface. Live 'what changed?' answer check rides Kyle's next developing story._
 
 #### [Improvement] One mis-tap, no take-backs: destructive taps need an undo beat
 - **Why:** Three one-tap destructive actions on the phone surfaces commit instantly with no confirmation, no undo, and no trace beyond the thing vanishing: News "Not interested" (fires a -8 not_interested signal into For You AND hides the card), an... Converged in Friction + Harden lanes. See [`docs/ideas/destructive-tap-undo.md`](docs/ideas/destructive-tap-undo.md) for the full write-up.
