@@ -182,6 +182,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** GET /api/brief?date= + /brief/:date route + notes deep-link; confirm a /notes entry opens its archived morning with notes joined.
 - **Size:** M (QuickWin)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #101, RED→green — Wave 3 item 7/7, WAVE 3 COMPLETE): `sweep_dates()` + `?date=` serves any renderable archived day (notes joined, honest 404s, no-param unchanged) with `prev_date`/`next_date` neighbors; sw.js stands aside for `?date=` (caching one would clobber the offline morning + evict its audio — pinned); new `/brief/:date` BriefArchive page outside the FR15 shell (notes live, Ask hidden — chat resolves the served day only, no stale nag, ← prev/next → Today nav); /notes date snapshots are now Links. Audio hidden on historical days by design. Phone check — a /notes tap opening its morning — rides Kyle's next browse._
 
 #### [Improvement] Pick up the walk where it left off
 - **Why:** A localStorage-backed resume on the audio brief: persist the <audio> element's currentTime keyed by brief date and restore it on load, so an interrupted ~5-min Kokoro cut doesn't snap back to 0:00. See [`docs/ideas/audio-resume.md`](docs/ideas/audio-resume.md) for the full write-up.

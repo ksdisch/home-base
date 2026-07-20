@@ -1,6 +1,17 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Notes from "./Notes";
+
+// QU1: the date snapshot is now a Link into the archived morning, so the page needs a
+// router in the harness.
+function renderNotes() {
+  return render(
+    <MemoryRouter>
+      <Notes />
+    </MemoryRouter>,
+  );
+}
 
 const briefNotes = vi.fn();
 const deleteBriefNote = vi.fn();
@@ -45,7 +56,7 @@ beforeEach(() => {
 describe("Notes (browse page)", () => {
   it("renders every note with its topic + item context", async () => {
     briefNotes.mockResolvedValue(NOTES);
-    render(<Notes />);
+    renderNotes();
 
     expect(await screen.findByText("chiefs note")).toBeInTheDocument();
     expect(screen.getByText("ai note")).toBeInTheDocument();
@@ -56,7 +67,7 @@ describe("Notes (browse page)", () => {
 
   it("filters per topic via the select", async () => {
     briefNotes.mockResolvedValue(NOTES);
-    render(<Notes />);
+    renderNotes();
     await screen.findByText("chiefs note");
 
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "ai-llms" } });
@@ -67,7 +78,7 @@ describe("Notes (browse page)", () => {
   it("deletes a note optimistically and commits after the undo window (FR10)", async () => {
     briefNotes.mockResolvedValue(NOTES);
     deleteBriefNote.mockResolvedValue({ ok: true });
-    render(<Notes />);
+    renderNotes();
     await screen.findByText("chiefs note");
 
     vi.useFakeTimers();
@@ -88,7 +99,7 @@ describe("Notes (browse page)", () => {
   it("undo within the window restores the note and never calls the API (FR10)", async () => {
     briefNotes.mockResolvedValue(NOTES);
     deleteBriefNote.mockResolvedValue({ ok: true });
-    render(<Notes />);
+    renderNotes();
     await screen.findByText("chiefs note");
 
     vi.useFakeTimers();
@@ -108,7 +119,7 @@ describe("Notes (browse page)", () => {
   it("deleting the filtered topic's last note falls back to All instead of stranding (#14)", async () => {
     briefNotes.mockResolvedValue(NOTES);
     deleteBriefNote.mockResolvedValue({ ok: true });
-    render(<Notes />);
+    renderNotes();
     await screen.findByText("chiefs note");
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "chiefs" } });
     expect(screen.queryByText("ai note")).not.toBeInTheDocument();
@@ -130,7 +141,7 @@ describe("Notes (browse page)", () => {
   it("a failed delete reports itself accurately, not as a load failure (#17)", async () => {
     briefNotes.mockResolvedValue(NOTES);
     deleteBriefNote.mockRejectedValue(new Error("hub unreachable"));
-    render(<Notes />);
+    renderNotes();
     await screen.findByText("chiefs note");
 
     vi.useFakeTimers();
@@ -152,8 +163,21 @@ describe("Notes (browse page)", () => {
 
   it("shows the empty state when there are no notes", async () => {
     briefNotes.mockResolvedValue({ generated_at: "now", notes: [] });
-    render(<Notes />);
+    renderNotes();
 
     expect(await screen.findByText(/No notes yet/)).toBeInTheDocument();
+  });
+
+  // QU1: the snapshot stops being an inert caption — the date links straight into that
+  // archived morning at /brief/:date.
+
+  it("the note's date snapshot links into its archived morning (QU1)", async () => {
+    briefNotes.mockResolvedValue(NOTES);
+    renderNotes();
+    await screen.findByText("chiefs note");
+
+    const links = screen.getAllByRole("link", { name: "2026-07-14" });
+    expect(links.length).toBeGreaterThanOrEqual(2); // one per note row
+    expect(links[0]).toHaveAttribute("href", "/brief/2026-07-14");
   });
 });

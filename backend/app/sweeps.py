@@ -90,6 +90,20 @@ def latest_sweep_date(sweeps_dir: Path) -> Optional[str]:
     return None
 
 
+def sweep_dates(sweeps_dir: Path) -> List[str]:
+    """Every renderable YYYY-MM-DD day, oldest→newest — the archive QU1 walks.
+
+    Same renderability bar as latest_sweep_date; the newest entry IS the latest served
+    day, so callers get prev/next neighbors and the latest from one listing."""
+    if not sweeps_dir.is_dir():
+        return []
+    return sorted(
+        p.name
+        for p in sweeps_dir.iterdir()
+        if p.is_dir() and _DATE_DIR.match(p.name) and _has_renderable_content(p)
+    )
+
+
 def _split_md_header(text: str) -> tuple[Optional[str], str]:
     """Pull the runner's honest ``# <topic> — as of <stamp>`` header off a legacy .md brief."""
     lines = text.splitlines()

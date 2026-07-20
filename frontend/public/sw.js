@@ -87,6 +87,10 @@ self.addEventListener("fetch", (event) => {
     // Only the morning read participates in offline; every other API call passes through
     // untouched (writes must fail loud when the hub is unreachable — never queue).
     if (!OFFLINE_API.includes(url.pathname)) return;
+    // QU1: archived-day views (?date=) are live-only — never cached, never replayed.
+    // Caching one under the shared pathname key would clobber the offline last-morning
+    // and move the date marker, evicting today's paired audio.
+    if (url.search) return;
     event.respondWith(
       fetch(event.request)
         .then((res) => {
