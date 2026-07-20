@@ -248,6 +248,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** get_category_items refuses to overwrite a non-empty cache with a parsed-empty result (serve stale instead); add the zero-items-drift regression test.
 - **Size:** S (Harden)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #90, RED→green — W2 batch 3): zero-item parse + non-empty cache → serve last-good marked stale + one warning log; cache never clobbered (second request still serves the good items). No-cache empty parse stays an honest empty page (pinned)._
 
 #### [Improvement] Copy the Bytes Before You Touch Them
 - **Why:** init_db runs every forward migration unconditionally against the single learning-hub.sqlite file holding every note, SM-2 mastery record, custom topic, and reflection Kyle has ever saved, with no byte-level snapshot taken first -- so one... See [`docs/ideas/pre-migration-snapshot.md`](docs/ideas/pre-migration-snapshot.md) for the full write-up.
@@ -378,6 +379,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Module-level threading.Lock around read→dupe-check→write→replace (sufficient single-process); use a unique tempfile for staging; optionally mtime-check before replace to narrow the hand-edit window. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #90, RED→green — W2 batch 3): `_roster_write_lock` serializes the whole section (prompt stamp included) + mkstemp unique tempfile with unlink-on-failure; deterministic two-racer barrier test pins the lost-update path. Optional mtime-check skipped — the lock covers the in-app writers, the deployed shape._
 
 #### [Bug] #13: Topic scout's '>=3 distinct days' persistence gate buckets by UTC day, not local day
 - **Where:** `backend/app/foryou.py:270-274` · severity low · confidence high
@@ -385,6 +387,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Parse created_at, attach UTC when naive, convert to America/Chicago, then take .date() as the bucket — mirroring _decay's normalization. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #90, RED→green — W2 batch 3): `_local_day()` (attach UTC when naive → America/Chicago → .date(), unreadable rows bucket to "") feeds the gate and the days_seen evidence; the regression fixture scores 11.25 across 3 UTC dates but only 2 Chicago days and is refused._
 
 #### [Bug] #14: Deleting the last note of the filtered topic strands the filter and shows a false 'No notes yet' empty stat...
 - **Where:** `frontend/src/pages/Notes.tsx:34-84` · severity low · confidence high

@@ -16,7 +16,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import os
 import re
+import tempfile
+import threading
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -27,6 +31,8 @@ from typing import Any, Dict, List, Optional
 
 from .foryou import dedup_by_headline
 from .store import get_news_cache, set_news_cache
+
+logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 15 * 60
 FETCH_TIMEOUT_SECONDS = 10
@@ -82,6 +88,10 @@ def load_news_categories(path: Path) -> List[Dict[str, Any]]:
 
 _PROMPT_TEMPLATE_NAME = "_template.md"
 
+# Bug #12: serializes append_roster_topic's read-modify-write (single-process is the
+# deployed shape — one uvicorn behind the LaunchAgent).
+_roster_write_lock = threading.Lock()
+
 
 def _write_topic_prompt(roster_file: Path, slug: str, title: str) -> None:
     """Ensure ``prompts/<slug>.md`` exists before the roster names the topic (P1 bug #2).
@@ -121,19 +131,31 @@ def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
     slug = re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", term.lower())).strip("-")
     if not slug:
         raise ValueError(f"could not derive a slug from {term!r}")
-    try:
-        roster = json.loads(Path(roster_file).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as e:
-        raise ValueError(f"roster file is unusable: {e}")
-    if not isinstance(roster, list):
-        raise ValueError("roster file is unusable: not a JSON list")
-    if any(isinstance(t, dict) and t.get("slug") == slug for t in roster):
-        raise ValueError(f"'{slug}' is already on the roster")
-    entry = {"slug": slug, "title": term.title(), "paused": False}
-    _write_topic_prompt(roster_file, slug, entry["title"])
-    tmp = Path(f"{roster_file}.tmp")
-    tmp.write_text(json.dumps(roster + [entry], indent=2) + "\n", encoding="utf-8")
-    tmp.replace(roster_file)
+    # Bug #12: FastAPI runs sync handlers on a threadpool, so two Add taps can race the
+    # read→dupe-check→write→replace and silently drop the loser's entry. One process
+    # writes this file from the app, so a module lock serializes it; the unique tempfile
+    # (vs a fixed .tmp name) keeps an out-of-process writer from clobbering our staging.
+    with _roster_write_lock:
+        try:
+            roster = json.loads(Path(roster_file).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise ValueError(f"roster file is unusable: {e}")
+        if not isinstance(roster, list):
+            raise ValueError("roster file is unusable: not a JSON list")
+        if any(isinstance(t, dict) and t.get("slug") == slug for t in roster):
+            raise ValueError(f"'{slug}' is already on the roster")
+        entry = {"slug": slug, "title": term.title(), "paused": False}
+        _write_topic_prompt(roster_file, slug, entry["title"])
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(Path(roster_file).parent), prefix=f"{Path(roster_file).name}.", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(roster + [entry], indent=2) + "\n")
+            Path(tmp_name).replace(roster_file)
+        except BaseException:
+            Path(tmp_name).unlink(missing_ok=True)
+            raise
     return entry
 
 
@@ -228,6 +250,19 @@ def get_category_items(
         if cached is not None:
             return {"fetched_at": cached["fetched_at"], "stale": True, "items": cached["items"]}
         raise last_error
+
+    # HA8 (docs/ideas/empty-feed-drift-guard.md): a feed-markup reshape can parse cleanly
+    # to zero surviving items — indistinguishable from a quiet day, except the cache holds
+    # real items. Extend the serve-last-good philosophy (bug #3 covered fetch failure) to
+    # the parse-that-looks-like-success case: keep the cache, serve it stale, say so once.
+    if not merged and cached is not None and cached["items"]:
+        logger.warning(
+            "news: %s parsed to zero items while the cache holds %d — serving stale "
+            "(feed markup drift?)",
+            category["slug"],
+            len(cached["items"]),
+        )
+        return {"fetched_at": cached["fetched_at"], "stale": True, "items": cached["items"]}
 
     # Newest first; undated items (ISO string None → "") sort last. Then collapse the
     # same story syndicated across outlets (newest copy wins), before the cap so dupes

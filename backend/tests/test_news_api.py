@@ -278,6 +278,36 @@ def test_failed_refresh_serves_expired_cache_as_stale(tmp_path, monkeypatch):
     assert [i["headline"] for i in body["items"]] == ["Cached story"]
 
 
+def test_parsed_empty_refetch_serves_cache_as_stale_not_overwrite(tmp_path, monkeypatch):
+    """HA8 (docs/ideas/empty-feed-drift-guard.md): a feed-markup drift parses cleanly to
+    zero surviving items — indistinguishable from a quiet day, except the cache holds
+    real items. Refuse to clobber them at stale=False: serve last-good marked stale."""
+    _env(tmp_path, monkeypatch)
+    ok = FakeFetcher({ONE_FEED: _rss(_item("Cached story", link="https://g/a"))})
+    client = _client(ok)
+    client.get("/api/news/top")
+    _expire_cache("top")
+
+    # Valid XML whose every item lost its <link>: parses fine, zero items survive.
+    drifted = FakeFetcher({ONE_FEED: _rss(_item("Ghost story", with_link=False))})
+    body = _client(drifted).get("/api/news/top").json()
+    assert body["stale"] is True
+    assert [i["headline"] for i in body["items"]] == ["Cached story"]
+
+    # The good payload survived in the store — the next request can still serve it.
+    body2 = _client(drifted).get("/api/news/top").json()
+    assert [i["headline"] for i in body2["items"]] == ["Cached story"]
+
+
+def test_parsed_empty_with_no_cache_serves_the_empty_page(tmp_path, monkeypatch):
+    """No cache to protect → an empty parse is just an empty category, not an error."""
+    _env(tmp_path, monkeypatch)
+    drifted = FakeFetcher({ONE_FEED: _rss(_item("Ghost story", with_link=False))})
+    body = _client(drifted).get("/api/news/top").json()
+    assert body["stale"] is False
+    assert body["items"] == []
+
+
 def test_failure_with_no_cache_is_502(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     from app.news import NewsFeedError

@@ -25,6 +25,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 EVENT_WEIGHTS = {"click": 3.0, "more_like": 5.0, "visit": 1.0, "not_interested": -8.0}
 POSITIVE_KINDS = ("click", "more_like", "visit")  # what counts toward warming up
@@ -59,6 +60,27 @@ def extract_terms(headline: Optional[str]) -> set:
     terms = set(words)
     terms.update(f"{a} {b}" for a, b in zip(words, words[1:]))
     return terms
+
+
+_LOCAL_TZ = ZoneInfo("America/Chicago")
+
+
+def _local_day(created_at: Optional[str]) -> str:
+    """The LOCAL calendar day an event belongs to, or "" when unreadable (bug #13).
+
+    Naive rows are sqlite's UTC ``datetime('now')`` — attach UTC then convert, mirroring
+    ``_decay``'s normalization. The persistence gate's stated intent is 'a persistent
+    interest, not one morning's rabbit hole', so the bucket is Kyle's calendar day: two
+    evening sittings straddling UTC midnight are not two distinct days."""
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(created_at)
+    except (TypeError, ValueError):
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_LOCAL_TZ).date().isoformat()
 
 
 def _decay(created_at: Optional[str], now: datetime) -> float:
@@ -267,7 +289,7 @@ def suggest_topics(
         if {t for t in terms if " " not in t} & roster_tokens:
             continue  # a story the brief already covers — not scout evidence
         decayed = weight * _decay(e.get("created_at"), now_dt)
-        day = str(e.get("created_at") or "")[:10]
+        day = _local_day(e.get("created_at"))
         for term in terms:
             scores[term] = scores.get(term, 0.0) + decayed
             if weight > 0 and day:
