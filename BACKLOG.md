@@ -241,6 +241,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** build_prompt() wraps item text in untrusted-data framing/delimiters (chat + regen lanes); test that framing survives into the assembled prompt.
 - **Size:** S (Harden)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-19 (PR #89, RED→green — W2 batch 2): `<untrusted-item>` (chat) / `<untrusted-current-material>` (regen) delimiters + a data-not-instructions framing sentence in both build_prompts; adversarial payload pinned inside the delimiters, Kyle's question left as the only directive. Pairs with #23's --tools/cwd containment, fixed same PR._
 
 #### [Improvement] The Feed That Went Quiet Without Saying So
 - **Why:** A Google-News RSS template change that drops every <item> through parse_rss's title/link filter while the XML still parses cleanly makes get_category_items overwrite a good cache with an empty result at stale=False, so a category (or a w... Pairs with bug #3. See [`docs/ideas/empty-feed-drift-guard.md`](docs/ideas/empty-feed-drift-guard.md) for the full write-up.
@@ -362,6 +363,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Extend all three scrub sites to also drop ANTHROPIC_AUTH_TOKEN, CLAUDE_CODE_USE_BEDROCK, CLAUDE_CODE_USE_VERTEX (and ANTHROPIC_BASE_URL), and pin the full set in the scrub tests. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #89, RED→green — W2 batch 2): `_LANE_ENV_VARS` (the five-var set incl. ANTHROPIC_BASE_URL) scrubbed in chat.py + regen.py; run-scheduled.sh unsets the same five; full set pinned at all three sites._
 
 #### [Bug] #11: _strip_fence corrupts a regenerated lesson/exercise that legitimately starts and ends with distinct code bl...
 - **Where:** `backend/app/courses/regen.py:204-210` · severity low · confidence high
@@ -455,3 +457,4 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Run the child with cwd set to an empty scratch dir (confines default reads, stops CLAUDE.md/settings pickup) and pass explicit tool denial (--disallowedTools or setting-sources isolation) in both chat.py and regen.py. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-19
+- _✅ fixed 2026-07-19 (PR #89, RED→green — W2 batch 2): both lanes pass `--tools ""` (the CLI's documented disable-all — stronger than a deny-list) and run inside an empty TemporaryDirectory cwd; scratch-cwd emptiness recorded at call time in the tests._

@@ -3,7 +3,8 @@
 # LaunchAgent; install-schedule.sh sets the job's PATH (with the nvm bin that holds claude +
 # node) in the generated plist, so this script stays machine-agnostic.
 #
-#   - Hard `unset ANTHROPIC_API_KEY` → always the Claude subscription lane, never API billing.
+#   - Hard unset of every lane-switching env var (API key, auth token, Bedrock/Vertex
+#     switches, base-URL override) → always the Claude subscription lane, never API billing.
 #   - SWEEP_SKIP_DONE=1 → sweep.sh no-ops topics already written today, so launchd's on-wake
 #     re-fire of a completed morning does nothing (and a half-finished one finishes the rest).
 #   - All output is appended to data/sweeps/logs/<date>.log (gitignored with the briefs).
@@ -17,7 +18,9 @@ LOG_DIR="$ROOT/data/sweeps/logs"
 mkdir -p "$LOG_DIR"
 LOG="$LOG_DIR/$(date +%Y-%m-%d).log"
 
-unset ANTHROPIC_API_KEY
+# Bug #10: the claude CLI reads more than the API key to pick a billing lane — scrub
+# the auth token, Bedrock/Vertex switches, and any base-URL override too.
+unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN ANTHROPIC_BASE_URL CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX
 export SWEEP_SKIP_DONE=1
 
 {
