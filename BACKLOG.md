@@ -195,6 +195,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Sticky topic-chip row on Today anchors to each section; confirm a tap lands on the right topic on the phone.
 - **Size:** S (QuickWin)
 - **Added:** 2026-07-19
+- _✅ shipped 2026-07-20 (PR #96, RED→green — Wave 3 item 2): `id={topic.slug}` + `scroll-mt-24` on every TopicSection, sticky chip row under the app header scrollIntoView-smooths the tapped section. Every served topic gets a chip uniformly (no dimming/omission), row hidden for a single-topic brief, horizontal scroll over wrap. Phone tap-lands check rides Kyle's next morning read._
 
 #### [Improvement] Notes reach the surface Kyle actually grazes
 - **Why:** A 'Note' button on every News and For-You card that writes through the exact same POST /brief/notes path the Brief page uses, so a news item becomes a durable note interleaved into /notes alongside brief notes. Converged in QuickWin + Friction lanes. See [`docs/ideas/notes-on-news.md`](docs/ideas/notes-on-news.md) for the full write-up.

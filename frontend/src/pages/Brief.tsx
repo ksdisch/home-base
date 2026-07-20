@@ -284,7 +284,12 @@ function TopicSection({
   readOnly?: boolean;
 }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white/60 p-5">
+    // QU4: slug-keyed anchor for the chip row; scroll-mt clears both sticky bars
+    // (app header + chip row) so a jumped-to heading isn't hidden under them.
+    <section
+      id={topic.slug}
+      className="scroll-mt-24 rounded-2xl border border-stone-200 bg-white/60 p-5"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold text-ink">{topic.title}</h2>
         {topic.as_of && <span className="text-xs text-muted">as of {topic.as_of}</span>}
@@ -517,6 +522,35 @@ export default function Brief() {
           <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
           to generate today's brief across your topics.
         </Banner>
+      )}
+
+      {/* QU4: jump chips — anchor nav over the fixed sweeps/topics.json order, so the
+          one topic you opened the app for is one tap away. Sticky just below the app
+          header (top-0 z-10, 53px: py-3 + h-7 logo + border); single scrolling line so
+          the row never competes with the header for phone vertical space. Hidden for a
+          single-topic brief — nothing to skip. */}
+      {brief && brief.topics.length > 1 && (
+        <nav
+          aria-label="Jump to topic"
+          className="sticky top-[53px] z-[9] mb-4 overflow-x-auto bg-[#f7f6f3]/85 py-2 backdrop-blur"
+        >
+          <div className="flex gap-2">
+            {brief.topics.map((t) => (
+              <button
+                key={t.slug}
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById(t.slug)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="shrink-0 rounded-full border border-stone-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+        </nav>
       )}
 
       {brief && brief.topics.length > 0 && (
