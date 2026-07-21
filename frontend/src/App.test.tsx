@@ -50,6 +50,25 @@ describe("App shell navigation", () => {
     }
   });
 
+  it("splits the desktop nav into a daily-loop cluster and a reference shelf (F5)", async () => {
+    renderApp();
+    await screen.findByText(/No sweeps yet/);
+
+    const topNav = screen.getAllByRole("navigation").find((n) => !n.getAttribute("aria-label"))!;
+    const kids = Array.from(topNav.children);
+    const dividerIdx = kids.findIndex((el) => el.getAttribute("data-testid") === "nav-cluster-divider");
+    // A divider separates the everyday core from the muted reference shelf — the priority
+    // hierarchy is the grouping (order), not just a stray separator.
+    expect(dividerIdx).toBeGreaterThan(-1);
+    expect(kids.slice(0, dividerIdx).map((el) => el.textContent)).toEqual(["Today", "News", "Notes"]);
+    expect(kids.slice(dividerIdx + 1).map((el) => el.textContent)).toEqual([
+      "Learning",
+      "Plan",
+      "Courses",
+      "Progress",
+    ]);
+  });
+
   it("the mobile tab bar renders the morning-loop tabs and More pops the rest", async () => {
     renderApp();
     await screen.findByText(/No sweeps yet/);

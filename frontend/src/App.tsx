@@ -16,7 +16,16 @@ import StudyGuide from "./pages/StudyGuide";
 import StudyPlan from "./pages/StudyPlan";
 import TopicDetail from "./pages/TopicDetail";
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+// F5: the desktop nav splits into a daily-loop cluster (Today·News·Notes, full weight) and
+// a muted reference shelf (Learning·Plan·Courses·Progress), so the seven-item bar signals
+// which handful Kyle opens each morning instead of seven flat peers. The active page always
+// wins (accent) in either tier; the hierarchy is in the inactive weight + the divider.
+const primaryNavClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded-lg px-3 py-1.5 font-medium transition ${
+    isActive ? "bg-accent-soft text-accent" : "text-ink hover:text-accent"
+  }`;
+
+const refNavClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-lg px-3 py-1.5 font-medium transition ${
     isActive ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"
   }`;
@@ -143,28 +152,39 @@ function AppChrome() {
           </Link>
           <div className="flex items-center gap-1">
             <nav className="hidden items-center gap-1 text-sm sm:flex">
-            <NavLink to="/" end className={navLinkClass}>
-              <TodayLabel fresh={todayFresh} />
-            </NavLink>
-            {/* M7: the general Google-News-style mode — Today stays the custom brief. */}
-            <NavLink to="/news" className={navLinkClass}>
-              News
-            </NavLink>
-            <NavLink to="/notes" className={navLinkClass}>
-              Notes
-            </NavLink>
-            <NavLink to="/learning" className={navLinkClass}>
-              Learning
-            </NavLink>
-            <NavLink to="/plan" className={navLinkClass}>
-              Plan
-            </NavLink>
-            <NavLink to="/courses" className={navLinkClass}>
-              Courses
-            </NavLink>
-            <NavLink to="/progress" className={navLinkClass}>
-              Progress
-            </NavLink>
+              {/* Daily loop — the everyday core, at full weight. */}
+              <NavLink to="/" end className={primaryNavClass}>
+                <TodayLabel fresh={todayFresh} />
+              </NavLink>
+              {/* M7: the general Google-News-style mode — Today stays the custom brief. */}
+              <NavLink to="/news" className={primaryNavClass}>
+                News
+              </NavLink>
+              <NavLink to="/notes" className={primaryNavClass}>
+                Notes
+              </NavLink>
+
+              {/* F5: the divider marks where the daily loop ends and the muted reference
+                  shelf begins — the priority signal the seven flat peers lacked. */}
+              <span
+                aria-hidden="true"
+                data-testid="nav-cluster-divider"
+                className="mx-1.5 h-5 w-px bg-line"
+              />
+
+              {/* Reference shelf — opened occasionally; muted so it recedes behind the loop. */}
+              <NavLink to="/learning" className={refNavClass}>
+                Learning
+              </NavLink>
+              <NavLink to="/plan" className={refNavClass}>
+                Plan
+              </NavLink>
+              <NavLink to="/courses" className={refNavClass}>
+                Courses
+              </NavLink>
+              <NavLink to="/progress" className={refNavClass}>
+                Progress
+              </NavLink>
             </nav>
             <ThemeToggle />
           </div>
