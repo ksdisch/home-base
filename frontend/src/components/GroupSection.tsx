@@ -10,7 +10,7 @@ export function GroupSection({ group }: { group: Group }) {
       </div>
 
       {group.notebooks.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-stone-200 bg-white/50 px-4 py-6 text-sm text-muted">
+        <p className="rounded-xl border border-dashed border-line bg-card/50 px-4 py-6 text-sm text-muted">
           Nothing here yet.
         </p>
       ) : (

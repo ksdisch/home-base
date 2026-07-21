@@ -13,11 +13,18 @@ export default {
       colors: {
         // Calm, warm-neutral palette with a muted teal accent.
         bg: withVar("--color-bg"),
+        card: withVar("--color-card"),
         ink: withVar("--color-ink"),
         muted: withVar("--color-muted"),
         accent: {
           DEFAULT: withVar("--color-accent"),
           soft: withVar("--color-accent-soft"),
+        },
+        // ③ Surface hairlines — exact stone values in light, warm charcoal in dusk.
+        line: {
+          DEFAULT: withVar("--color-line"),
+          soft: withVar("--color-line-soft"),
+          strong: withVar("--color-line-strong"),
         },
         // Semantic tints — one honest vocabulary for meaning, all inside the teal's
         // low-saturation envelope so nothing out-shouts the accent.

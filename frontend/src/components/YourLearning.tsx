@@ -31,7 +31,7 @@ export function YourLearning() {
   if (due.length === 0 && active.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white/60 p-5">
+    <section className="rounded-2xl border border-line bg-card/60 p-5">
       <h2 className="text-lg font-semibold text-ink">Your learning</h2>
       <div className="mt-3 grid gap-5 sm:grid-cols-2">
         {due.length > 0 && (

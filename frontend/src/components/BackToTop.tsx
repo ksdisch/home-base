@@ -28,7 +28,7 @@ export function BackToTop({ showAfterPx = SHOW_AFTER_PX }: { showAfterPx?: numbe
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       onClick={toTop}
-      className={`fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-accent shadow-md backdrop-blur transition-opacity duration-200 hover:bg-white motion-reduce:transition-none sm:bottom-6 ${
+      className={`fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card/90 text-accent shadow-md backdrop-blur transition-opacity duration-200 hover:bg-card motion-reduce:transition-none sm:bottom-6 ${
         visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
