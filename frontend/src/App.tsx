@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { BriefShell, useBriefShell } from "./components/BriefShell";
+import { NewsShell } from "./components/NewsShell";
 import { ThemeToggle } from "./components/ThemeToggle";
 import Brief from "./pages/Brief";
 import BriefArchive from "./pages/BriefArchive";
@@ -117,7 +118,11 @@ export default function App() {
   // brief.date for the freshness dot (and the shell fetches on mount to feed it).
   return (
     <BriefShell>
-      <AppChrome />
+      {/* F1: NewsShell holds the News page's per-visit interaction state (hidden/liked/noted
+          + scroll) above the routes, so a Today→News→Today hop doesn't reset it. */}
+      <NewsShell>
+        <AppChrome />
+      </NewsShell>
     </BriefShell>
   );
 }

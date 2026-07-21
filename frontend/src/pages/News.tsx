@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { sourceTint } from "../lib/sourceTint";
@@ -6,6 +6,7 @@ import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
 import { UndoToast, useUndoable } from "../components/undo";
 import { BackToTop } from "../components/BackToTop";
+import { useNewsShell } from "../components/NewsShell";
 
 // M7: the Google-News-style general mode. Phase 1: a tab per category from
 // sweeps/news_categories.json, real RSS-backed articles opening at the source, ?cat=
@@ -42,8 +43,9 @@ export default function News() {
   const [params, setParams] = useSearchParams();
   // Phase 2 signal state: not-interested items vanish now (the ranker learns from the
   // event); more-like acks keep the button honest. Both per-visit — the log is the record.
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [liked, setLiked] = useState<Set<string>>(new Set());
+  // F1: hidden/liked/noted + scroll live in NewsShell (above the route) so they survive a
+  // Today→News→Today remount; the feed still refetches fresh and these id-keyed sets reconcile.
+  const { hidden, setHidden, liked, setLiked, noted, setNoted, scrollY } = useNewsShell();
   // Phase 4 scout state: added terms show their confirmation; dismissed ones drop now
   // (the backend remembers, so they stay gone on every future load too).
   const [added, setAdded] = useState<Map<string, string>>(new Map());
@@ -56,7 +58,6 @@ export default function News() {
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
-  const [noted, setNoted] = useState<Set<string>>(new Set());
   // FR10: Not-interested sits inches from More-like-this on a one-handed phone — the
   // card still vanishes now, but the −8 signal holds behind the undo toast.
   const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
@@ -126,6 +127,30 @@ export default function News() {
       alive = false;
     };
   }, [selected]);
+
+  // F1: restore the scroll position from before the last nav-away, once the fresh feed is
+  // back in the DOM. Once per mount — a tab switch within News keeps its own scroll.
+  const scrollRestored = useRef(false);
+  useEffect(() => {
+    if (feed && !scrollRestored.current) {
+      scrollRestored.current = true;
+      if (scrollY.current > 0) window.scrollTo(0, scrollY.current);
+    }
+  }, [feed, scrollY]);
+
+  // Track scroll while News is open so the position is already saved before a nav hop
+  // unmounts it — reading window.scrollY at unmount is too late (the page has already
+  // collapsed to the next route's height, clamping scroll to 0).
+  useEffect(() => {
+    const onScroll = () => {
+      // Only record once the feed is back and we've restored — otherwise the brief
+      // collapse to "Loading…" on return fires a scroll event that would overwrite the
+      // saved position with 0 before the restore above can use it.
+      if (scrollRestored.current) scrollY.current = window.scrollY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [scrollY]);
 
   // Same origin-crediting rule as signal(): a For You item's note lands under the
   // section it actually came from, not the synthetic "foryou" tab.
