@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { sourceTint } from "../lib/sourceTint";
 import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
 import { UndoToast, useUndoable } from "../components/undo";
@@ -307,7 +308,7 @@ export default function News() {
             .map((item) => (
               <article key={item.id} className="p-4">
                 <div className="text-xs text-muted">
-                  {item.source && <span className="font-medium text-accent">{item.source}</span>}
+                  {item.source && <span className={`font-medium ${sourceTint(item.source)}`}>{item.source}</span>}
                   {item.source && timeAgo(item.published_at) && " · "}
                   {timeAgo(item.published_at)}
                   {originLabel(item) && (
@@ -376,7 +377,7 @@ export default function News() {
                 {noting === item.id && !noted.has(item.id) && (
                   <div className="mt-2">
                     {noteError && (
-                      <p className="mb-1 text-xs text-red-600">{noteError}</p>
+                      <p className="mb-1 text-xs text-danger">{noteError}</p>
                     )}
                     <textarea
                       value={noteDraft}

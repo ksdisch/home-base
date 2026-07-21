@@ -1,15 +1,39 @@
 /** @type {import('tailwindcss').Config} */
+
+// ② A color system, not a color. Colors live as CSS variables (space-separated RGB channels
+// defined in src/index.css) so the whole palette can be re-themed at the :root level — the
+// substrate Dusk mode reuses. The `<alpha-value>` placeholder keeps every opacity modifier
+// (accent/40, ink/90, border-accent/30, …) working through the variable indirection.
+const withVar = (v) => `rgb(var(${v}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
         // Calm, warm-neutral palette with a muted teal accent.
-        ink: "#1f2733",
-        muted: "#6b7686",
+        bg: withVar("--color-bg"),
+        ink: withVar("--color-ink"),
+        muted: withVar("--color-muted"),
         accent: {
-          DEFAULT: "#3f8f86",
-          soft: "#e6f0ee",
+          DEFAULT: withVar("--color-accent"),
+          soft: withVar("--color-accent-soft"),
+        },
+        // Semantic tints — one honest vocabulary for meaning, all inside the teal's
+        // low-saturation envelope so nothing out-shouts the accent.
+        success: withVar("--color-success"),
+        info: withVar("--color-info"),
+        warn: withVar("--color-warn"),
+        danger: withVar("--color-danger"),
+        // Deterministic per-source ramp (see src/lib/sourceTint.ts) — desaturated hues so a
+        // News source reads as itself at a glance.
+        source: {
+          0: withVar("--color-source-0"),
+          1: withVar("--color-source-1"),
+          2: withVar("--color-source-2"),
+          3: withVar("--color-source-3"),
+          4: withVar("--color-source-4"),
+          5: withVar("--color-source-5"),
         },
       },
       fontFamily: {

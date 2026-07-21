@@ -2,8 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ② Palette as CSS variables — space-separated RGB channels so Tailwind's <alpha-value> can
+   inject opacity (accent/40, ink/90, …) through them, and so Dusk mode can re-theme the whole
+   app at :root. Every value equals the prior hex, so existing colors are unchanged. */
 :root {
   color-scheme: light;
+
+  --color-bg: 247 246 243; /* #f7f6f3 */
+  --color-ink: 31 39 51; /* #1f2733 */
+  --color-muted: 107 118 134; /* #6b7686 */
+  --color-accent: 63 143 134; /* #3f8f86 */
+  --color-accent-soft: 230 240 238; /* #e6f0ee */
+
+  /* Semantic tints — desaturated, inside the teal's envelope; one honest warn/danger vocabulary. */
+  --color-success: 79 138 95; /* #4f8a5f */
+  --color-info: 77 126 168; /* #4d7ea8 */
+  --color-warn: 166 124 49; /* #a67c31 */
+  --color-danger: 177 82 74; /* #b1524a */
+
+  /* Per-source ramp — six desaturated hues (src/lib/sourceTint.ts hashes a source name into these). */
+  --color-source-0: 63 143 134; /* teal */
+  --color-source-1: 77 126 168; /* blue */
+  --color-source-2: 138 111 168; /* violet */
+  --color-source-3: 176 106 134; /* rose */
+  --color-source-4: 166 124 79; /* ochre */
+  --color-source-5: 111 148 99; /* sage */
 }
 
 /* M6 small-screen polish: don't let iOS inflate text on rotate, and keep taps quiet
@@ -21,15 +44,15 @@ body,
 
 body {
   margin: 0;
-  background-color: #f7f6f3;
-  color: theme("colors.ink");
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-ink));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 /* A calm, slow focus ring. */
 *:focus-visible {
-  outline: 2px solid theme("colors.accent.DEFAULT");
+  outline: 2px solid rgb(var(--color-accent));
   outline-offset: 2px;
   border-radius: 6px;
 }
