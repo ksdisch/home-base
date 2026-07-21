@@ -324,6 +324,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** `consecutiveOnTarget`/`isBestWeek`/`totalMornings` derivations + conditional accent/`✓` spans in HabitStrip with once-only localStorage; confirm each marker fires only on a genuinely crossed threshold and the default line is unchanged when nothing is earned.
 - **Size:** S (Delight)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #111, RED→green): streak / personal-best / mornings-target-hit `✓` / lifetime-mornings (25/50/100/200/365, once-only per-device localStorage) markers derived client-side from `brief_habit`, each threshold-bound; ≤ `✓` + 1 accent suffix (precedence lifetime>streak>best), current-week line byte-identical when nothing earned. `HabitStrip.test.tsx` (8 tests)._
 
 #### [Improvement] ⑤ The companion voice, not the system dialog
 - **Why:** Give the calm `<Banner>` tones (`info`/`muted`, never `warning`) a thin `accent/40` left rule, so honesty-copy ("Still learning you", "Showing saved articles") reads as the app's own margin voice instead of stock alert chrome — one shared-component edit inherited everywhere. See [`docs/ideas/companion-voice-banners.md`](docs/ideas/companion-voice-banners.md) for the full write-up.
