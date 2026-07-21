@@ -78,6 +78,12 @@ export function BriefShell({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  // F5: fetch on mount so the freshness signal (and a warm brief) is ready even when Kyle
+  // opens straight to News/Notes. The inFlight guard dedupes with Brief's per-visit refresh.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
   useEffect(() => {
     const host = hostRef.current!;
     if (slot) {
@@ -110,7 +116,7 @@ export function BriefShell({ children }: { children: ReactNode }) {
       {children}
       {createPortal(
         brief?.audio_available && !audioBroken ? (
-          <div className="mb-6 rounded-2xl border border-stone-200 bg-white/60 p-4">
+          <div className="mb-6 rounded-2xl border border-line bg-card/60 p-4">
             <p className="mb-2 text-xs font-medium text-muted">
               🎧 Listen to this brief — the ~5-minute cut
             </p>
@@ -140,7 +146,7 @@ export function BriefShell({ children }: { children: ReactNode }) {
                     key={ch.slug}
                     type="button"
                     onClick={() => seekChapter(ch.start_seconds)}
-                    className="rounded-full border border-stone-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+                    className="rounded-full border border-line bg-card/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
                   >
                     {ch.title}
                   </button>

@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { sourceTint } from "../lib/sourceTint";
 import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
 import { UndoToast, useUndoable } from "../components/undo";
+import { BackToTop } from "../components/BackToTop";
+import { useNewsShell } from "../components/NewsShell";
 
 // M7: the Google-News-style general mode. Phase 1: a tab per category from
 // sweeps/news_categories.json, real RSS-backed articles opening at the source, ?cat=
@@ -40,8 +43,9 @@ export default function News() {
   const [params, setParams] = useSearchParams();
   // Phase 2 signal state: not-interested items vanish now (the ranker learns from the
   // event); more-like acks keep the button honest. Both per-visit — the log is the record.
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [liked, setLiked] = useState<Set<string>>(new Set());
+  // F1: hidden/liked/noted + scroll live in NewsShell (above the route) so they survive a
+  // Today→News→Today remount; the feed still refetches fresh and these id-keyed sets reconcile.
+  const { hidden, setHidden, liked, setLiked, noted, setNoted, scrollY } = useNewsShell();
   // Phase 4 scout state: added terms show their confirmation; dismissed ones drop now
   // (the backend remembers, so they stay gone on every future load too).
   const [added, setAdded] = useState<Map<string, string>>(new Map());
@@ -54,13 +58,17 @@ export default function News() {
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
-  const [noted, setNoted] = useState<Set<string>>(new Set());
   // FR10: Not-interested sits inches from More-like-this on a one-handed phone — the
   // card still vanishes now, but the −8 signal holds behind the undo toast.
   const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
 
   const hasCategories = categories !== null && categories.length > 0;
-  const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
+  // F1 (first wedge): a Today→News→Today hop drops the ?cat= query, so News reset to For You
+  // every return. Fall back to the last-opened tab (persisted on click below) so News lands
+  // back where you left it; an explicit ?cat= in the URL still wins.
+  const selected = hasCategories
+    ? (params.get("cat") ?? sessionStorage.getItem("news.tab") ?? FOR_YOU.slug)
+    : null;
   const tabs = hasCategories ? [FOR_YOU, ...categories] : null;
 
   // Every signal is fire-and-forget: reading the news must never break on a logging
@@ -120,6 +128,30 @@ export default function News() {
     };
   }, [selected]);
 
+  // F1: restore the scroll position from before the last nav-away, once the fresh feed is
+  // back in the DOM. Once per mount — a tab switch within News keeps its own scroll.
+  const scrollRestored = useRef(false);
+  useEffect(() => {
+    if (feed && !scrollRestored.current) {
+      scrollRestored.current = true;
+      if (scrollY.current > 0) window.scrollTo(0, scrollY.current);
+    }
+  }, [feed, scrollY]);
+
+  // Track scroll while News is open so the position is already saved before a nav hop
+  // unmounts it — reading window.scrollY at unmount is too late (the page has already
+  // collapsed to the next route's height, clamping scroll to 0).
+  useEffect(() => {
+    const onScroll = () => {
+      // Only record once the feed is back and we've restored — otherwise the brief
+      // collapse to "Loading…" on return fires a scroll event that would overwrite the
+      // saved position with 0 before the restore above can use it.
+      if (scrollRestored.current) scrollY.current = window.scrollY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [scrollY]);
+
   // Same origin-crediting rule as signal(): a For You item's note lands under the
   // section it actually came from, not the synthetic "foryou" tab.
   const saveNote = (item: FeedItem) => {
@@ -177,14 +209,17 @@ export default function News() {
       {tabs && (
         <nav
           aria-label="News categories"
-          className="-mx-4 mb-6 flex gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm"
+          className="-mx-4 mb-6 flex snap-x snap-mandatory gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm"
         >
           {tabs.map((c) => (
             <button
               key={c.slug}
-              onClick={() => setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug })}
+              onClick={() => {
+                sessionStorage.setItem("news.tab", c.slug); // F1: remember for the next return
+                setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug });
+              }}
               aria-current={c.slug === selected ? "page" : undefined}
-              className={`rounded-lg px-3 py-1.5 font-medium transition ${
+              className={`flex min-h-[44px] snap-start items-center rounded-lg px-4 font-medium transition ${
                 c.slug === selected
                   ? "bg-accent-soft text-accent"
                   : "text-muted hover:text-ink"
@@ -205,9 +240,15 @@ export default function News() {
       {feed?.learning && (
         <div className="mb-4">
           <Banner tone="info" title="Still learning you">
-            For You warms up as you read — clicks, section visits, and the feedback buttons
-            all teach it ({feed.event_count ?? 0} of 20 signals so far). Until then, here are
-            the top stories.
+            <p>
+              <span className="font-medium">Do this first:</span> open a story you actually
+              want more of, or tap “More like this” on the ones you like.
+            </p>
+            <p className="mt-1">
+              For You warms up as you read — clicks, section visits, and the feedback buttons
+              all teach it ({feed.event_count ?? 0} of 20 signals so far). Until then, here are
+              the top stories.
+            </p>
           </Banner>
         </div>
       )}
@@ -233,7 +274,7 @@ export default function News() {
             .map((s) => (
               <div
                 key={s.term}
-                className="rounded-2xl border border-stone-200 bg-accent-soft/40 p-4"
+                className="rounded-2xl border border-line bg-accent-soft/40 p-4"
               >
                 <div className="text-sm text-ink">
                   You've been reading a lot about{" "}
@@ -299,14 +340,17 @@ export default function News() {
         </Banner>
       )}
 
-      {feed && feed.items.length > 0 && (
-        <div className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white/60">
-          {feed.items
-            .filter((item) => !hidden.has(item.id))
-            .map((item) => (
-              <article key={item.id} className="p-4">
-                <div className="text-xs text-muted">
-                  {item.source && <span className="font-medium text-accent">{item.source}</span>}
+      {feed && feed.items.length > 0 && (() => {
+        // ① A front page, not a spreadsheet: the visible #1 gets its own lead card; the rest
+        // stay the compact field. Same <article> body for both — the headline is the primary
+        // tap (F2: semibold + ↗ + full-height block), feedback stays one-tap but subordinated.
+        const visible = feed.items.filter((item) => !hidden.has(item.id));
+        if (visible.length === 0) return null;
+        const [lead, ...rest] = visible;
+        const renderArticle = (item: FeedItem, isLead: boolean) => (
+              <article key={item.id} className={isLead ? "p-5" : "p-4"}>
+                <div className={`text-meta text-muted ${isLead ? "mb-1" : ""}`}>
+                  {item.source && <span className={`font-medium ${sourceTint(item.source)}`}>{item.source}</span>}
                   {item.source && timeAgo(item.published_at) && " · "}
                   {timeAgo(item.published_at)}
                   {originLabel(item) && (
@@ -320,11 +364,16 @@ export default function News() {
                   target="_blank"
                   rel="noreferrer noopener"
                   onClick={() => signal("click", item)}
-                  className="mt-1 block font-medium text-ink transition hover:text-accent"
+                  className={`mt-1 block py-0.5 font-semibold text-ink transition hover:text-accent ${
+                    isLead ? "text-lede" : ""
+                  }`}
                 >
                   {item.headline}
+                  <span aria-hidden="true" className="ml-1 text-muted">
+                    ↗
+                  </span>
                 </a>
-                <div className="mt-1.5 flex gap-3 text-xs text-muted">
+                <div className="mt-2 flex justify-end gap-4 text-xs text-muted">
                   <button
                     onClick={() => {
                       if (liked.has(item.id)) return;
@@ -375,14 +424,14 @@ export default function News() {
                 {noting === item.id && !noted.has(item.id) && (
                   <div className="mt-2">
                     {noteError && (
-                      <p className="mb-1 text-xs text-red-600">{noteError}</p>
+                      <p className="mb-1 text-xs text-danger">{noteError}</p>
                     )}
                     <textarea
                       value={noteDraft}
                       onChange={(e) => setNoteDraft(e.target.value)}
                       placeholder="Your take — lands in your notes"
                       rows={2}
-                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-sm text-ink"
+                      className="w-full rounded-lg border border-line bg-card p-2 text-sm text-ink"
                     />
                     <div className="mt-1 flex gap-3 text-xs">
                       <button
@@ -402,11 +451,21 @@ export default function News() {
                   </div>
                 )}
               </article>
-            ))}
-        </div>
-      )}
+        );
+        return (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-line bg-card/60">{renderArticle(lead, true)}</div>
+            {rest.length > 0 && (
+              <div className="divide-y divide-line rounded-2xl border border-line bg-card/60">
+                {rest.map((item) => renderArticle(item, false))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <UndoToast label={undoLabel} onUndo={undo} />
+      <BackToTop />
     </div>
   );
 }

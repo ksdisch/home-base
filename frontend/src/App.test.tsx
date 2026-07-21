@@ -23,6 +23,7 @@ vi.mock("./api/client", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear(); // F5: the freshness dot reads localStorage — isolate per test.
   briefWithMeta.mockResolvedValue({
     brief: { generated_at: "now", has_data: false, date: null, topics: [] },
     fromCache: false,
@@ -47,6 +48,25 @@ describe("App shell navigation", () => {
     for (const label of ["Today", "Notes", "Learning", "Plan", "Courses", "Progress"]) {
       expect(topNav!).toHaveTextContent(label);
     }
+  });
+
+  it("splits the desktop nav into a daily-loop cluster and a reference shelf (F5)", async () => {
+    renderApp();
+    await screen.findByText(/No sweeps yet/);
+
+    const topNav = screen.getAllByRole("navigation").find((n) => !n.getAttribute("aria-label"))!;
+    const kids = Array.from(topNav.children);
+    const dividerIdx = kids.findIndex((el) => el.getAttribute("data-testid") === "nav-cluster-divider");
+    // A divider separates the everyday core from the muted reference shelf — the priority
+    // hierarchy is the grouping (order), not just a stray separator.
+    expect(dividerIdx).toBeGreaterThan(-1);
+    expect(kids.slice(0, dividerIdx).map((el) => el.textContent)).toEqual(["Today", "News", "Notes"]);
+    expect(kids.slice(dividerIdx + 1).map((el) => el.textContent)).toEqual([
+      "Learning",
+      "Plan",
+      "Courses",
+      "Progress",
+    ]);
   });
 
   it("the mobile tab bar renders the morning-loop tabs and More pops the rest", async () => {
@@ -131,5 +151,54 @@ describe("App shell navigation", () => {
     expect(screen.queryByText(/Reading your morning brief/)).not.toBeInTheDocument();
     // Let the background revalidate settle so nothing updates outside act().
     await waitFor(() => expect(briefWithMeta).toHaveBeenCalledTimes(2));
+  });
+});
+
+// F5: the nav is seven equal links with no "something new landed" signal. A freshness dot
+// on Today — driven by comparing the loaded brief.date to a localStorage last-seen stamp —
+// tells Kyle a new morning is waiting without opening the tab. The shell now fetches on
+// mount (even off Today) so the dot can surface while he's on News/Notes.
+
+describe("Today freshness dot (F5)", () => {
+  const freshBrief = {
+    brief: { generated_at: "now", has_data: true, date: "2099-01-01", topics: [] },
+    fromCache: false,
+  };
+
+  it("marks the Today tab fresh when a new brief has arrived and Today isn't open", async () => {
+    briefWithMeta.mockResolvedValue(freshBrief);
+    render(
+      <MemoryRouter initialEntries={["/notes"]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    // The shell fetches on mount even off Today, so the dot surfaces from another tab.
+    await waitFor(() =>
+      expect(screen.queryAllByTestId("today-fresh-dot").length).toBeGreaterThan(0),
+    );
+  });
+
+  it("clears the dot once Today is opened and keeps it cleared after leaving again", async () => {
+    briefWithMeta.mockResolvedValue(freshBrief);
+    render(
+      <MemoryRouter initialEntries={["/notes"]}>
+        <App />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.queryAllByTestId("today-fresh-dot").length).toBeGreaterThan(0),
+    );
+
+    // Opening Today records this brief as seen → the dot clears.
+    fireEvent.click(screen.getAllByRole("link", { name: "Today" })[0]);
+    await waitFor(() =>
+      expect(screen.queryAllByTestId("today-fresh-dot").length).toBe(0),
+    );
+
+    // Seen is persisted, not just route-hidden: it stays cleared back on another tab.
+    fireEvent.click(screen.getAllByRole("link", { name: "Notes" })[0]);
+    await screen.findByText(/No notes yet/);
+    expect(screen.queryAllByTestId("today-fresh-dot").length).toBe(0);
   });
 });

@@ -306,36 +306,42 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** `<LeadCard>` for index 0 + `text-lede`/`text-meta` tokens in `tailwind.config.js`; confirm on a real News load the top story reads as a lead and the eye lands there first, minor rows unchanged.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #117, RED→green): the visible #1 renders as its own lead card (new `text-lede` 1.25rem headline, `p-5`, meta on its own line) above the compact `divide-y` rest; `text-lede`/`text-meta` `fontSize` tokens added to `tailwind.config.js`; one shared `renderArticle` helper drives lead + rows (no duplicated `<article>`). Shipped adjacent to F2 (headline promotion) in one News pass. `News.test.tsx` +1 (lead `text-lede` vs compact); light-mode hierarchy screenshot-verified, dusk tokens carry dark._
 
 #### [Improvement] ② A color system, not a color — semantic + source tint
 - **Why:** Grow the single muted-teal into a small family — `success/info/warn/danger` semantic tints + a deterministic per-source tint — so every News source line signals provenance at a glance and the scattered `amber`/`red` one-offs collapse into one honest vocabulary, all inside the teal's calm envelope. See [`docs/ideas/semantic-source-color-system.md`](docs/ideas/semantic-source-color-system.md) for the full write-up.
 - **Acceptance:** Semantic + `sourceTint` tokens added; News source line swapped to `sourceTint(item.source)`; confirm each source carries a stable, distinct, low-saturation tint and one warn/danger vocabulary replaces the `amber`/`red` one-offs — none out-shouting the teal.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #113, RED→green): palette → `:root` CSS vars (`rgb(var()/<alpha-value>)`, opacity modifiers verified intact via CSS build); semantic `success/info/warn/danger` + 6-hue `source` ramp; `sourceTint()` tints the News source line; note-error → `text-danger` as the proof slice (broader `amber`/`red` migration across Banner/Brief/etc. deferred, token vocab now exists). Lays the CSS-var substrate ③ needs. `sourceTint.test.ts` (4)._
 
 #### [Improvement] ③ Dusk mode — a true low-light morning surface
 - **Why:** Re-express the exact identity in low light via CSS variables + `prefers-color-scheme` (warm paper → warm near-black, cards → charcoal, teal legibility-tuned), so a morning app read in a dark pre-dawn room stops flashing a bright field — riding ②'s variable substrate. See [`docs/ideas/dusk-mode.md`](docs/ideas/dusk-mode.md) for the full write-up.
 - **Acceptance:** Base tokens moved to CSS variables + a `prefers-color-scheme: dark` block + `color-scheme: light dark`; confirm the shared chrome (header, tab bar, body) and cards read calm and legible in dark with staleness/warning semantics intact.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #114, daily-loop v0, screenshot-signed-off): dark mode via CSS-var remap under `@media (prefers-color-scheme: dark)` + a `[data-theme]` override (auto + light/dark/system header toggle, FOUC-safe inline script, forced-light wins under a dark OS); new `card`/`line` surface tokens convert the chrome + Today/News/Notes surfaces (light values byte-identical). `theme.test.ts` (6). **Fast-follow ✅ shipped 2026-07-21 (PR #115):** the dusk token map (`bg-card`/`border-line*`/`bg-line*`, `text-stone`→`text-muted`) now covers the 16 deeper pages/components (Learning/Courses/CourseDetail/Progress/QuizPlayer/TopicDetail/Flashcards/StudyPlan/StudyGuide + Badge/CourseCard/MasteryBar/NotebookCard/CustomTopic*) — screenshot-verified charcoal cards on the near-black ground, no white gaps in dark; `text-stone-{400,500,600}`→`text-muted` the one non-byte-identical-in-light change (required for dark legibility). Mechanical rename, no class-asserting tests._
 
 #### [Improvement] ④ Milestones the habit strip finally notices
 - **Why:** Make the Today habit strip mark the real, earned milestones already sitting in its `weeks[]` history — a run of on-target weeks, a personal-best week, the target-hit `✓`, round mornings totals — each bound to a verified threshold so it never fires on a partial or stale number. See [`docs/ideas/habit-strip-milestones.md`](docs/ideas/habit-strip-milestones.md) for the full write-up.
 - **Acceptance:** `consecutiveOnTarget`/`isBestWeek`/`totalMornings` derivations + conditional accent/`✓` spans in HabitStrip with once-only localStorage; confirm each marker fires only on a genuinely crossed threshold and the default line is unchanged when nothing is earned.
 - **Size:** S (Delight)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #111, RED→green): streak / personal-best / mornings-target-hit `✓` / lifetime-mornings (25/50/100/200/365, once-only per-device localStorage) markers derived client-side from `brief_habit`, each threshold-bound; ≤ `✓` + 1 accent suffix (precedence lifetime>streak>best), current-week line byte-identical when nothing earned. `HabitStrip.test.tsx` (8 tests)._
 
 #### [Improvement] ⑤ The companion voice, not the system dialog
 - **Why:** Give the calm `<Banner>` tones (`info`/`muted`, never `warning`) a thin `accent/40` left rule, so honesty-copy ("Still learning you", "Showing saved articles") reads as the app's own margin voice instead of stock alert chrome — one shared-component edit inherited everywhere. See [`docs/ideas/companion-voice-banners.md`](docs/ideas/companion-voice-banners.md) for the full write-up.
 - **Acceptance:** `accent/40` left rule added to the Banner `info`/`muted` tones (warning untouched); confirm every calm honesty surface reads as the app's margin voice and a real `warning` still reads as an alarm.
 - **Size:** S (Delight)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #110, RED→green): `accent/40` left rule (`border-l-2 border-l-accent/40 pl-3`) on the calm `info`/`muted` Banner tones — left-longhand `border-l-accent/40` so the other three sides keep their tone color; `warning` untouched. Verified in built CSS + `Banner.test.tsx` (3 tests)._
 
 #### [Improvement] ⑥ Content that arrives, not pops
 - **Why:** Replace the brief's hard skeleton→content pop with a sub-250ms top-down section cascade (and a settle on the Ask answer), reduced-motion-guarded and hit-testable at frame 0, so the morning open feels like an arrival with zero added latency. The set's deliberate wildcard. See [`docs/ideas/content-arrives-not-pops.md`](docs/ideas/content-arrives-not-pops.md) for the full write-up.
 - **Acceptance:** A `motion-safe` `.brief-cascade` (opacity + small `translateY`) on Today's section map + a settle on the Ask answer, gated to a genuine cold load; confirm total settle <~250ms, content readable at frame 0, and reduced-motion users get the instant paint.
 - **Size:** S (Delight) — wildcard
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #119, Kyle greenlit "build it, subtle & guarded"): `.brief-cascade` (opacity 0→1 + 6px `translateY`, 160ms, staggered 0→90ms per section) on Today's section map + a keyed settle on the Ask answer; gated to a genuine cold load via a `coldLoad` ref (never replays on a warm `BriefShell` return). Animation defined only under `@media (prefers-reduced-motion: no-preference)` → instant paint for reduced-motion. Browser-verified `animationName=briefCascade`, 0.16s, last delay 0.09s → ~250ms settle, 7 sections. `Brief.test.tsx` +1. Honest: impl-before-test on this one; the felt smoothness rides Kyle's eyes-on next morning open._
 
 _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across the daily loop; News + the app shell/nav as the worked examples). 4 S–M friction removals (F1–F4) + 1 flagged interaction-model stretch (F5). C5 category-tab-target hygiene folds into F2's PR; the same-tab article-return idea (killed as a trap-for-a-trap) and a global search across brief+notes+news were considered and cut/deferred. Append-only._
 
@@ -344,30 +350,35 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Acceptance:** News hoists its selected tab + scroll position (+ hidden/liked sets, reconciled against the fresh fetch) above the route mount, mirroring `BriefShell`; confirm a Today→News→Today hop lands back on the same tab and scroll position on the phone.
 - **Size:** M (Friction) — first wedge S (sessionStorage-persist the selected tab)
 - **Added:** 2026-07-20
+- _✅ first wedge shipped 2026-07-21 (PR #118, RED→green): the selected tab is persisted to `sessionStorage` on click and used as the fallback when the URL has no `?cat=`, so a Today→News→Today hop lands back on the tab you left (explicit `?cat=` still wins; a fresh session with nothing saved → For You). `News.test.tsx` +2. **Full hoist shipped 2026-07-21 (PR #124):** new `NewsShell` (mirroring `BriefShell`) holds hidden/liked/noted + scroll above the routes, so a remount reconciles the id-keyed sets against the fresh feed instead of resetting. Scroll took two live-caught fixes (an unmount-time read clamps to 0 → passive scroll listener; the listener gated on "restored" so the return's Loading… collapse can't overwrite it). `News.test.tsx` survival test + live Today→News→Today (saved=800 → restored=800). **F1 complete.**_
 
 #### [Improvement] F2 · The News card has no front door — headline as the primary tap
 - **Why:** The headline is the primary action (opens the article) but is styled like body text, while three equal `text-xs` buttons compete for the eye, so on touch it's unclear what to tap or where the tap lands. See [`docs/ideas/news-card-primary-action.md`](docs/ideas/news-card-primary-action.md) for the full write-up.
 - **Acceptance:** Headline restyled as the obvious primary tap (weight + trailing `↗` + full-height target) with the two feedback buttons visually subordinated **but not buried** (they stay one-tap so the ranker keeps its signal), and the category pills ≥44px; confirm on the phone the headline reads as the tap target. Folds in C5 (`min-h-[44px]` + `snap-x`).
 - **Size:** M (Friction) — first wedge S (pure headline restyle)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #117, RED→green): the headline is now the primary tap on every card (`font-semibold` + trailing `↗` + full-height `block py-0.5`); the two feedback signals subordinated (right-aligned, muted) but stay one-tap so the For You ranker keeps its signal (Kyle's call: quieter, not buried). C5 folded in — category pills `min-h-[44px]` + `snap-x snap-mandatory`. Shipped adjacent to ① (lead card) in one News pass. `News.test.tsx` +2 (headline primary tap, 44px pills)._
 
 #### [Improvement] F3 · For You never says what to do first
 - **Why:** The cold-start banner states the learning state but offers no next action, and after the threshold gives no sign it's personalized — so Kyle can't tell what to do first or whether his feedback ever mattered. See [`docs/ideas/foryou-cold-start-first-move.md`](docs/ideas/foryou-cold-start-first-move.md) for the full write-up.
 - **Acceptance:** The `feed.learning` For You banner gains a "do this first" directional line (+ optionally a persistent personalization read-out); confirm the nudge shows below the 20-signal threshold and clears above it, adding no new control.
 - **Size:** S (Friction)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #116, RED→green): the `feed?.learning` "Still learning you" banner opens with a bolded "**Do this first:** open a story you want more of, or tap 'More like this'…" directive above the kept `N of 20 signals` status line — references the real gesture, adds no new control, gated on the same `feed.learning` flag so it clears the instant For You warms up. Optional persistent personalization read-out deferred. `News.test.tsx` +2 (nudge present below threshold, absent above)._
 
 #### [Improvement] F4 · Stranded at the bottom of the feed — jump-to-top
 - **Why:** After thumbing a long News feed one-handed there's no one-tap way back to the top — only a manual re-scroll or a state-wiping remount. See [`docs/ideas/news-jump-to-top.md`](docs/ideas/news-jump-to-top.md) for the full write-up.
 - **Acceptance:** A thumb-zone back-to-top button appears after ~400px of News scroll and smooth-scrolls to the top; confirm one tap returns to the top on the phone and it stays hidden near the top.
 - **Size:** S (Friction)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #112, RED→green): floating `<BackToTop>` on News — fades in past ~400px window scroll, scrolls to top (smooth; instant under `prefers-reduced-motion`), 44px thumb target `bottom-20 right-4` above the tab bar; `aria-hidden` while hidden. `BackToTop.test.tsx` (4 tests)._
 
 #### [Improvement] F5 · Seven tabs, no signal which one matters this morning — nav priority + freshness (STRETCH)
 - **Why:** The nav is seven equal items with no priority or freshness signal, so every open is a "which tab?" micro-decision whose answer is almost always Today — Kyle's explicitly #1-named friction. The run's one flagged interaction-model reframe. See [`docs/ideas/nav-priority-freshness-signal.md`](docs/ideas/nav-priority-freshness-signal.md) for the full write-up.
 - **Acceptance:** Nav gains a priority hierarchy (daily-loop cluster vs muted reference shelf) and/or a freshness dot from `brief.date` / item `published_at` vs a `localStorage` last-seen. First wedge = the Today freshness dot (no backend); prototype it and judge the feel before the IA cluster split (an identity shift — get Kyle's okay first).
 - **Size:** L (Friction, stretch) — first wedge S–M
 - **Added:** 2026-07-20
+- _✅ freshness dot shipped 2026-07-21 (PR #120, RED→green): a small `aria-hidden` accent dot on the Today tab (desktop header + mobile bar) when the loaded `brief.date` is newer than a `localStorage` last-seen, cleared the moment Today is opened. `<BriefShell>` hoisted above the navs (new `<AppChrome>`) + fetch-on-mount (inFlight-deduped, so it never double-fetches with Brief's per-visit refresh) so the dot can surface from News/Notes; the dot is `aria-hidden` so the Today link's accessible name stays "Today"; audio portal + offline/`fromCache` + FR15 invariants unchanged; `App.test.tsx` +2 (159→161). **Cluster split shipped 2026-07-21 (PR #122)** — the flagged IA identity shift, approved: the seven flat desktop links become a daily-loop cluster (Today·News·Notes, full-weight `text-ink`) + a divider + a muted reference shelf (Learning·Plan·Courses·Progress, `text-muted`); active page still wins in either tier; desktop only (mobile bar untouched per idea doc); structural grouping test, suite 161→162. **F5 complete.**_
 
 ### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
 

@@ -4,8 +4,8 @@ type Tone = "warning" | "info" | "muted";
 
 const TONES: Record<Tone, string> = {
   warning: "bg-amber-50 border-amber-200 text-amber-900",
-  info: "bg-accent-soft border-accent/30 text-accent",
-  muted: "bg-stone-100 border-stone-200 text-muted",
+  info: "bg-accent-soft border-accent/30 text-accent border-l-2 border-l-accent/40 pl-3",
+  muted: "bg-line-soft border-line text-muted border-l-2 border-l-accent/40 pl-3",
 };
 
 export function Banner({

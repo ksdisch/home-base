@@ -7,7 +7,7 @@ import { MasteryBar, masteryLabel, masteryTone } from "./MasteryBar";
 export function NotebookCard({ card }: { card: Card }) {
   const hasMastery = card.mastery != null;
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-card transition hover:shadow-cardHover">
+    <div className="group relative flex flex-col rounded-2xl border border-line bg-card p-5 shadow-card transition hover:shadow-cardHover">
       <div className="flex items-start justify-between gap-3">
         <Link
           to={card.topic_url}
@@ -41,7 +41,7 @@ export function NotebookCard({ card }: { card: Card }) {
 
       {hasMastery && <MasteryBar mastery={card.mastery!} className="mt-3" />}
 
-      <div className="mt-4 flex items-center gap-4 border-t border-stone-100 pt-3 text-sm">
+      <div className="mt-4 flex items-center gap-4 border-t border-line-soft pt-3 text-sm">
         <Link
           to={card.topic_url}
           className="font-medium text-accent hover:underline"

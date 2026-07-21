@@ -8,6 +8,13 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Home Base</title>
+    <!-- ③ Dusk mode: apply a stored theme override before first paint so there's no light flash. -->
+    <script>
+      try {
+        var t = localStorage.getItem("homebase.theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
