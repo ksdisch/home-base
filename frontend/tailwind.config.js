@@ -55,6 +55,11 @@ export default {
           "sans-serif",
         ],
       },
+      // ① News lead hierarchy — shared size tokens so the lead headline + meta aren't magic numbers.
+      fontSize: {
+        lede: ["1.25rem", { lineHeight: "1.75rem" }],
+        meta: ["0.6875rem", { lineHeight: "1rem" }],
+      },
       boxShadow: {
         card: "0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06)",
         cardHover: "0 4px 12px rgba(16,24,40,0.10)",
