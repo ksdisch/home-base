@@ -341,6 +341,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** A `motion-safe` `.brief-cascade` (opacity + small `translateY`) on Today's section map + a settle on the Ask answer, gated to a genuine cold load; confirm total settle <~250ms, content readable at frame 0, and reduced-motion users get the instant paint.
 - **Size:** S (Delight) — wildcard
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #119, Kyle greenlit "build it, subtle & guarded"): `.brief-cascade` (opacity 0→1 + 6px `translateY`, 160ms, staggered 0→90ms per section) on Today's section map + a keyed settle on the Ask answer; gated to a genuine cold load via a `coldLoad` ref (never replays on a warm `BriefShell` return). Animation defined only under `@media (prefers-reduced-motion: no-preference)` → instant paint for reduced-motion. Browser-verified `animationName=briefCascade`, 0.16s, last delay 0.09s → ~250ms settle, 7 sections. `Brief.test.tsx` +1. Honest: impl-before-test on this one; the felt smoothness rides Kyle's eyes-on next morning open._
 
 _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across the daily loop; News + the app shell/nav as the worked examples). 4 S–M friction removals (F1–F4) + 1 flagged interaction-model stretch (F5). C5 category-tab-target hygiene folds into F2's PR; the same-tab article-return idea (killed as a trap-for-a-trap) and a global search across brief+notes+news were considered and cut/deferred. Append-only._
 
