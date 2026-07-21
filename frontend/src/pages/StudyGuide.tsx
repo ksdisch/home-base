@@ -52,7 +52,7 @@ export default function StudyGuide() {
     return (
       <div className="space-y-4">
         {backLink}
-        <div className="h-56 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+        <div className="h-56 animate-pulse rounded-2xl border border-line bg-card/60" />
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function StudyGuide() {
 
       {guide.title && <h1 className="text-2xl font-semibold text-ink">{guide.title}</h1>}
 
-      <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
+      <article className="rounded-2xl border border-line bg-card p-6 shadow-card">
         <Markdown source={guide.markdown} />
       </article>
     </div>

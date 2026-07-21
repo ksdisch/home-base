@@ -117,7 +117,7 @@ export default function FlashcardReview() {
     return (
       <div className="mx-auto max-w-xl space-y-4">
         {back}
-        <div className="h-48 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+        <div className="h-48 animate-pulse rounded-2xl border border-line bg-card/60" />
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function FlashcardReview() {
       {queue.length === 0 ? (
         <Banner tone="info">This deck has no cards to review.</Banner>
       ) : finished ? (
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
+        <div className="rounded-2xl border border-line bg-card p-6 shadow-card">
           <h2 className="text-lg font-semibold text-ink">Session done 🎉</h2>
           <p className="mt-2 text-sm text-muted">
             {reviewed} card{reviewed === 1 ? "" : "s"} graded — {tally.good} good · {tally.hard}{" "}
@@ -172,10 +172,10 @@ export default function FlashcardReview() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-card">
+        <div className="rounded-2xl border border-line bg-card p-6 shadow-card">
           <p className="text-base font-medium text-ink">{cards[queue[pos]]?.front}</p>
           {flipped && (
-            <div className="mt-4 border-t border-stone-100 pt-4">
+            <div className="mt-4 border-t border-line-soft pt-4">
               <Markdown source={cards[queue[pos]]?.back ?? ""} className="text-sm text-ink/90" />
             </div>
           )}
@@ -192,7 +192,7 @@ export default function FlashcardReview() {
                 <button
                   onClick={() => grade("again")}
                   disabled={grading}
-                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+                  className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium text-muted hover:bg-line-soft disabled:opacity-50"
                 >
                   Again
                 </button>

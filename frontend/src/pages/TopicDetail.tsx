@@ -50,7 +50,7 @@ export default function TopicDetail() {
   };
 
   if (loading && !detail) {
-    return <div className="h-40 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />;
+    return <div className="h-40 animate-pulse rounded-2xl border border-line bg-card/60" />;
   }
   if (error && !detail) {
     return (
@@ -88,7 +88,7 @@ export default function TopicDetail() {
             <button
               onClick={() => load(true)}
               disabled={refreshing}
-              className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent disabled:opacity-50"
+              className="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent disabled:opacity-50"
             >
               {refreshing ? "Refreshing…" : "Refresh (live)"}
             </button>
@@ -118,7 +118,7 @@ export default function TopicDetail() {
       )}
 
       <Section title="Audio season" count={detail.episodes.length} empty="No season episodes found.">
-        <ul className="divide-y divide-stone-100">
+        <ul className="divide-y divide-line-soft">
           {detail.episodes.map((ep) => (
             <EpisodeRow key={ep.artifact_id} ep={ep} url={detail.notebooklm_url} onToggle={onToggleListened} />
           ))}
@@ -127,7 +127,7 @@ export default function TopicDetail() {
 
       {detail.standalones.length > 0 && (
         <Section title="Standalone audio" count={detail.standalones.length}>
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-line-soft">
             {detail.standalones.map((ep) => (
               <EpisodeRow key={ep.artifact_id} ep={ep} url={detail.notebooklm_url} onToggle={onToggleListened} />
             ))}
@@ -136,7 +136,7 @@ export default function TopicDetail() {
       )}
 
       <Section title="Study guides" count={detail.study_guides.length} empty="No study guides found.">
-        <ul className="divide-y divide-stone-100">
+        <ul className="divide-y divide-line-soft">
           {detail.study_guides.map((g) => {
             const guideUrl = `/topics/${encodeURIComponent(detail.notebook_id)}/guide/${encodeURIComponent(
               g.artifact_id,
@@ -159,7 +159,7 @@ export default function TopicDetail() {
       </Section>
 
       <Section title="Quizzes" count={detail.quizzes.length} empty="No quizzes found.">
-        <ul className="divide-y divide-stone-100">
+        <ul className="divide-y divide-line-soft">
           {detail.quizzes.map((q) =>
             q.takeable ? (
               <li key={q.artifact_id} className="flex items-center justify-between gap-3 py-2.5">
@@ -179,7 +179,7 @@ export default function TopicDetail() {
                 <button
                   disabled
                   title="This quiz can't be taken in the hub yet"
-                  className="cursor-not-allowed rounded-lg border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-muted"
+                  className="cursor-not-allowed rounded-lg border border-line bg-line-soft px-3 py-1 text-xs font-medium text-muted"
                 >
                   Take ▸ soon
                 </button>
@@ -231,7 +231,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+    <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
       <div className="mb-2 flex items-baseline gap-2">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         <span className="text-sm text-muted">{count}</span>
@@ -256,7 +256,7 @@ function EpisodeRow({
         type="checkbox"
         checked={ep.listened}
         onChange={() => onToggle(ep)}
-        className="h-4 w-4 rounded border-stone-300 text-accent focus:ring-accent"
+        className="h-4 w-4 rounded border-line-strong text-accent focus:ring-accent"
         aria-label={`Mark "${ep.title}" listened`}
       />
       <div className="min-w-0 flex-1">
@@ -264,7 +264,7 @@ function EpisodeRow({
           {ep.title}
         </p>
         {(ep.fmt || ep.length) && (
-          <p className="text-xs text-stone-400">{[ep.fmt, ep.length].filter(Boolean).join(" · ")}</p>
+          <p className="text-xs text-muted">{[ep.fmt, ep.length].filter(Boolean).join(" · ")}</p>
         )}
       </div>
       <a
