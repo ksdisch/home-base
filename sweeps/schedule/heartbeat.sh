@@ -30,7 +30,16 @@ epoch_from_ts() {
 }
 
 file_mtime() {
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || true
+  # BSD (macOS) and GNU (Linux CI) stat take different flags. Chaining them with `||` is a
+  # trap: GNU treats `stat -f %m FILE` as "-f (filesystem mode) on files '%m' and FILE", and
+  # while it exits non-zero it still prints FILE's status ("  File: ...") to stdout — which
+  # would flow into the caller's arithmetic and crash it under `set -u`. So capture each
+  # form separately and only ever hand back an all-digit epoch (or empty).
+  local m
+  m="$(stat -f %m "$1" 2>/dev/null || true)"
+  case "$m" in ''|*[!0-9]*) m="$(stat -c %Y "$1" 2>/dev/null || true)" ;; esac
+  case "$m" in ''|*[!0-9]*) m="" ;; esac
+  printf '%s' "$m"
 }
 
 now_epoch="$(date +%s)"
