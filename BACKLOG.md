@@ -364,6 +364,7 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Acceptance:** A thumb-zone back-to-top button appears after ~400px of News scroll and smooth-scrolls to the top; confirm one tap returns to the top on the phone and it stays hidden near the top.
 - **Size:** S (Friction)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #112, RED→green): floating `<BackToTop>` on News — fades in past ~400px window scroll, scrolls to top (smooth; instant under `prefers-reduced-motion`), 44px thumb target `bottom-20 right-4` above the tab bar; `aria-hidden` while hidden. `BackToTop.test.tsx` (4 tests)._
 
 #### [Improvement] F5 · Seven tabs, no signal which one matters this morning — nav priority + freshness (STRETCH)
 - **Why:** The nav is seven equal items with no priority or freshness signal, so every open is a "which tab?" micro-decision whose answer is almost always Today — Kyle's explicitly #1-named friction. The run's one flagged interaction-model reframe. See [`docs/ideas/nav-priority-freshness-signal.md`](docs/ideas/nav-priority-freshness-signal.md) for the full write-up.
