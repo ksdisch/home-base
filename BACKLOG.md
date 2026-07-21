@@ -312,6 +312,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** Semantic + `sourceTint` tokens added; News source line swapped to `sourceTint(item.source)`; confirm each source carries a stable, distinct, low-saturation tint and one warn/danger vocabulary replaces the `amber`/`red` one-offs — none out-shouting the teal.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #113, RED→green): palette → `:root` CSS vars (`rgb(var()/<alpha-value>)`, opacity modifiers verified intact via CSS build); semantic `success/info/warn/danger` + 6-hue `source` ramp; `sourceTint()` tints the News source line; note-error → `text-danger` as the proof slice (broader `amber`/`red` migration across Banner/Brief/etc. deferred, token vocab now exists). Lays the CSS-var substrate ③ needs. `sourceTint.test.ts` (4)._
 
 #### [Improvement] ③ Dusk mode — a true low-light morning surface
 - **Why:** Re-express the exact identity in low light via CSS variables + `prefers-color-scheme` (warm paper → warm near-black, cards → charcoal, teal legibility-tuned), so a morning app read in a dark pre-dawn room stops flashing a bright field — riding ②'s variable substrate. See [`docs/ideas/dusk-mode.md`](docs/ideas/dusk-mode.md) for the full write-up.
