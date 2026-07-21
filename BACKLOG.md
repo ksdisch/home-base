@@ -319,6 +319,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** Base tokens moved to CSS variables + a `prefers-color-scheme: dark` block + `color-scheme: light dark`; confirm the shared chrome (header, tab bar, body) and cards read calm and legible in dark with staleness/warning semantics intact.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #114, daily-loop v0, screenshot-signed-off): dark mode via CSS-var remap under `@media (prefers-color-scheme: dark)` + a `[data-theme]` override (auto + light/dark/system header toggle, FOUC-safe inline script, forced-light wins under a dark OS); new `card`/`line` surface tokens convert the chrome + Today/News/Notes surfaces (light values byte-identical). `theme.test.ts` (6). **Fast-follow:** deeper pages (Learning/Courses/Progress/quiz) still light-carded in dark._
 
 #### [Improvement] ④ Milestones the habit strip finally notices
 - **Why:** Make the Today habit strip mark the real, earned milestones already sitting in its `weeks[]` history — a run of on-target weeks, a personal-best week, the target-hit `✓`, round mornings totals — each bound to a verified threshold so it never fires on a partial or stale number. See [`docs/ideas/habit-strip-milestones.md`](docs/ideas/habit-strip-milestones.md) for the full write-up.
