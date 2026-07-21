@@ -330,6 +330,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** `accent/40` left rule added to the Banner `info`/`muted` tones (warning untouched); confirm every calm honesty surface reads as the app's margin voice and a real `warning` still reads as an alarm.
 - **Size:** S (Delight)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-20 (PR #110, RED→green): `accent/40` left rule (`border-l-2 border-l-accent/40 pl-3`) on the calm `info`/`muted` Banner tones — left-longhand `border-l-accent/40` so the other three sides keep their tone color; `warning` untouched. Verified in built CSS + `Banner.test.tsx` (3 tests)._
 
 #### [Improvement] ⑥ Content that arrives, not pops
 - **Why:** Replace the brief's hard skeleton→content pop with a sub-250ms top-down section cascade (and a settle on the Ask answer), reduced-motion-guarded and hit-testable at frame 0, so the morning open feels like an arrival with zero added latency. The set's deliberate wildcard. See [`docs/ideas/content-arrives-not-pops.md`](docs/ideas/content-arrives-not-pops.md) for the full write-up.
