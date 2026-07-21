@@ -1,0 +1,8 @@
+[
+  { "front": "How does a run call a model?", "back": "Through OpenRouter (one API, many small models: GLM, DeepSeek, Qwen, Qwen2.5 0.5–3B). Prompt in, response out, parsed into fields the deterministic oracle scores." },
+  { "front": "What is the budget guard?", "back": "Spend tracked to the cent against a hard cap (often under $5); a run stops rather than exceed it. It makes 'hobby scale' a *controlled* claim (ghost-patch closed for $1.42)." },
+  { "front": "The standard repo skeleton", "back": "README (claim/headline/caveat), `DECISIONS.md` (why-log), milestone scripts `m0`–`mN`, a stats/verdict module, and a committed `results/` dir." },
+  { "front": "Which repo file do you read first, and why?", "back": "`DECISIONS.md` — the why-log. It records every choice, tradeoff, and trigger, which is exactly what a skeptic probes." },
+  { "front": "Why are charts not a re-run risk?", "back": "Charts are drawn from committed `results/` data; the measurement already happened. No new model calls are made to draw a figure." },
+  { "front": "What does m0 usually do?", "back": "A gate or pilot run *before* paid data — it dry-runs the verdict logic and freezes the bar, so the statistics are pre-registered." }
+]

@@ -1,0 +1,9 @@
+[
+  { "front": "What is a Jacobian lens?", "back": "A per-layer linear transport matrix that maps a mid-layer residual vector into the *final* layer's coordinates, so the unembedding can read out the model's current 'thought' in words." },
+  { "front": "Why can't you read a mid-layer vector directly?", "back": "It is not yet in output (unembedding) coordinates, so applying the unembedding gives garbage. The lens translates it first." },
+  { "front": "dim-stage M0 bar (pre-registered)", "back": "Readability = pass@10 with a Wilson *lower bound* at or above 0.5 on at least 3 of 6 distributions. Gating on a lower bound is the honest choice." },
+  { "front": "dim-stage headline", "back": "A pre-registered *null*: the workspace is not readable in Qwen2.5 0.5B/1.5B/3B (0/6 distributions at the bar). Downstream properties measured descriptively." },
+  { "front": "What does the AGREE gate prove — and not?", "back": "Proves: the lens is bitwise-correct vs Anthropic's reference (3220/3220 top-1), so a null is about the models, not the instrument. Does not prove: that the chosen band is in the right place." },
+  { "front": "dim-stage's cleanest positive", "back": "1.5B introspection: steering a thought in (α=8) gives 30/101 reportable vs an α=0 control at exactly 0/101 — a causal dose–response." },
+  { "front": "The band-transplant caveat", "back": "The workspace band was transplanted by percentile (38–92% depth), not re-derived at small scale. A misplaced band could fake a null, so cheap per-layer diagnostics are reported alongside (hybrid design, D2)." }
+]

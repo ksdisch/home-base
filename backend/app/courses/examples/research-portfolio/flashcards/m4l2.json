@@ -1,0 +1,9 @@
+[
+  { "front": "blind-cite: the failure (deceptive grounding)", "back": "A RAG answer about X can pass every faithfulness/citation check yet attribute entity Y's evidence to X. The checks verify citations look right, never *whose* evidence it is." },
+  { "front": "Why fabricate the corpus (Quill/Quipp)?", "back": "Invented sibling libraries mean no model has a prior about them, so 'which library owns this token' is deterministic, mechanical ground truth — it *replaces* the LLM judge." },
+  { "front": "blind-cite adversarial-cell result", "back": "Deceptive grounding 0/36 in the absent×completing cell; detectors sound (16/16). The harness works; the phenomenon is not there on this surface." },
+  { "front": "'Right-reason refusal' (K4)", "back": "The models do not deceptively ground — they refuse or explicitly discriminate (name both X and Y). So the null is because they behave correctly, not because the detector missed anything." },
+  { "front": "blind-cite milestone reality", "back": "M0 = fit-pilot (N=12/cell), done — the 0/36 null. M1 = the powered run, not yet run. The README is *stale*; truth is in docs/M0-BRIEF.md + data/m0_verdict.json." },
+  { "front": "Why may blind-cite's null be surface-specific?", "back": "The single-doc, name-forward setup makes Y's identity obvious, so models discriminate instead of deceiving. The paper's deception hides in multi-doc/tool-calling setups with filler — the M1 variant." },
+  { "front": "blind-cite: how to present it honestly", "back": "As in-progress: M0 validated the detectors + fabricated corpus and produced an honest early null; M1 (powered, possibly multi-doc) is unrun. Never present the pilot as finished." }
+]

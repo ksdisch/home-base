@@ -1,0 +1,9 @@
+[
+  { "front": "lossy-wall: 'matched budget' in one line", "back": "Both notes are the *same length*; only *what* they keep differs. It rules out the dismissal 'source-first just kept more text.'" },
+  { "front": "The four memory policies", "back": "lossy (keep conclusion, drop source), source-first (keep source, drop conclusion), padded (lossy padded to source-first's length — the content-vs-length control), blank (empty)." },
+  { "front": "What does the padded control prove?", "back": "Padded is *longer* than source-first and still walls — so the failure is about *what* you keep, not *how much*. It isolates content from length." },
+  { "front": "'Worse than empty' — the behavioral core", "back": "Blank memory → the model abstains; lossy memory → it emits a confident *wrong* value. That gap is +58% on deepseek (Newcombe clears zero)." },
+  { "front": "lossy-wall wall numbers", "back": "Lossy reclaim at most 1/290 (Wilson UB at or under 0.10) vs source-first 240/240. A near-total wall at matched budget." },
+  { "front": "The qwen-7b to 72b substitution (D8/D13)", "back": "The 7b tripped a pre-registered trigger; swapped to a same-family 72b, labeled on every table. '3 models' = 3 that ran to completion; the 72b matched the predicted abstainer behavior." },
+  { "front": "What does lossy-wall's cross-check (AGREE) prove?", "back": "Six overlap cells vs the author's own harness agree to within one trial (every difference interval contains zero). Trustworthy numbers without importing their code — not proof the paper is beyond dispute." }
+]

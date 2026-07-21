@@ -1,0 +1,9 @@
+[
+  { "front": "forge-gap: the one-word caveat to lead with", "back": "*Injected*. The flagship 67.5%→100% gap comes from a seeded, disclosed transient fault — a controlled fault-recovery testbed, not a natural reproduction." },
+  { "front": "The four guardrails and their failures", "back": "error-recovery (transient tool fault), retry-nudge (malformed call), submit-nudge (never submits), validation (answers without checking evidence)." },
+  { "front": "Injected vs natural gap", "back": "Injected = you seed a deterministic 503 to *create* a recovery scenario (disclosed rate). Natural = a weaker model genuinely fails unaided (e.g. llama-8b 0/40→18/40)." },
+  { "front": "Why did forge-gap pivot from GLM-4.6 to weak models? (D12)", "back": "GLM-4.6 passed the clean task 20/20 — no natural gap — so the kill-trigger fired. To measure *recovery* you inject a fault; to show natural gaps you move to weaker models." },
+  { "front": "What can fool the validation guardrail?", "back": "It reads only the run's own tool results (self-consistency, not an answer key), so a self-consistent-but-wrong retrieval passes. Quantified at about 10% of llama-8b misses." },
+  { "front": "forge-gap flagship numbers", "back": "27/40 (67.5%) → 40/40 (100%), +32.5 pp, Newcombe [+17.3, +48.0], N=40 — gap INJECTED. Natural example: llama-8b 0/40→18/40, +45 pp." },
+  { "front": "What does the ablation rig buy?", "back": "It measures each guardrail in isolation and stacked, so a measured gap is attributable to one specific mechanism, not a bundle." }
+]

@@ -1,0 +1,7 @@
+%% Eviction, not forgetting: compaction removes the rule; re-pinning restores compliance.
+flowchart TB
+    rule[Standing safety rule in context] --> floor[floor - rule stays visible : 0/20 violations]
+    rule --> comp{Context compaction}
+    comp -->|evicts the rule| trunc[truncate - rule gone : 20/20 violations]
+    comp -->|re-inject after each compaction| pin[pinned - rule restored : 0/40 violations]
+    pin -.->|equivalent to floor within +10%| floor

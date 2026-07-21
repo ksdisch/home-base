@@ -1,0 +1,65 @@
+{
+  "title": "Module 3 check — decay-pin & lossy-wall",
+  "questions": [
+    {
+      "question": "decay-pin: why is 'eviction, not forgetting' the correct description of the mechanism?",
+      "answerOptions": [
+        { "text": "Context compaction physically removes the rule text; a no-error control holds at 0/20 and re-pinning restores compliance, so only the rule's presence changed", "isCorrect": true, "rationale": "The control plus restoration isolate the cause: the instruction was evicted, not degraded by the model." },
+        { "text": "The model's weights drift over a long context, degrading its memory of the rule", "isCorrect": false, "rationale": "This is the 'forgetting/drift' misconception the control rules out — weights do not change during inference." },
+        { "text": "The model chooses to ignore the rule once the conversation is long", "isCorrect": false, "rationale": "It is not a choice; once evicted, the rule text is simply absent from the prompt." },
+        { "text": "The rule is present but the model mis-reads it after summarization", "isCorrect": false, "rationale": "In the truncate arm the rule is gone entirely, not misread." }
+      ],
+      "hint": "What does the 0/20 control plus restoration on re-pin tell you?"
+    },
+    {
+      "question": "Why is 'pinned 0/40' reported as a fix rather than just 'low violations'?",
+      "answerOptions": [
+        { "text": "Because it passes an equivalence test — its Wilson upper bound (~8.8%) sits under a pre-set +10% margin, making it indistinguishable from the clean floor", "isCorrect": true, "rationale": "Equivalence to the floor is a positive, pre-registered claim about the fix, not just 'fewer violations.'" },
+        { "text": "Because 0/40 is a smaller number than 20/20", "isCorrect": false, "rationale": "Being lower is not the claim; equivalence within a fixed margin is." },
+        { "text": "Because an LLM judge rated the pinned outputs as compliant", "isCorrect": false, "rationale": "Grading is judge-free; a deterministic violation check decides." },
+        { "text": "Because the gap from truncate is greater than zero", "isCorrect": false, "rationale": "'Gap greater than 0' only compares to truncate; the fix claim is equivalence to the floor." }
+      ],
+      "hint": "What is the pinned arm being compared to, and within what margin?"
+    },
+    {
+      "question": "In decay-pin's v2, the LLM-summarize strategy leaks about 5% per compaction. How is that reported?",
+      "answerOptions": [
+        { "text": "As a null-labeled tail risk — its CI straddles zero — specific to that frozen summarizer prompt, not a safe guarantee", "isCorrect": true, "rationale": "A straddling interval is a null; it is disclosed as a tail risk over many compactions, not spun as safe." },
+        { "text": "As proof that summarization safely preserves rules", "isCorrect": false, "rationale": "A ~5% leak with a straddling CI is the opposite of a safety guarantee." },
+        { "text": "As a large, significant failure equal to truncation", "isCorrect": false, "rationale": "It is far smaller than truncate's 20/20 and reported as a null tail risk, not an outright failure." },
+        { "text": "As invalid data thrown out of the analysis", "isCorrect": false, "rationale": "It is reported honestly as a null, not discarded." }
+      ],
+      "hint": "What do you call an interval that straddles zero?"
+    },
+    {
+      "question": "lossy-wall: what does the 'matched budget' design (plus the padded control) rule out?",
+      "answerOptions": [
+        { "text": "The dismissal that 'source-first only worked because it kept more text' — padded is longer than source-first and still walls, so it is *what* you keep, not how much", "isCorrect": true, "rationale": "Matched length isolates content from quantity; padded proves length is not the driver." },
+        { "text": "That the models were too small to show the effect", "isCorrect": false, "rationale": "Model scale is a separate concern (handled by the qwen swap), not what matched budget addresses." },
+        { "text": "That an LLM judge biased the grading", "isCorrect": false, "rationale": "Grading is judge-free exact-match; matched budget is about note length, not grading." },
+        { "text": "That the correction step ever reaches the error", "isCorrect": false, "rationale": "The point is that lossy welds the error in; matched budget is what makes that comparison fair." }
+      ],
+      "hint": "Which control is deliberately *longer* than source-first?"
+    },
+    {
+      "question": "What is the behavioral core of lossy-wall's 'worse than empty' result?",
+      "answerOptions": [
+        { "text": "Blank memory makes the model abstain, while lossy memory makes it emit a confident wrong value — a +58% gap on deepseek", "isCorrect": true, "rationale": "Empty leads to safe abstention; a lossy note welds in a wrong conclusion the model then asserts." },
+        { "text": "Lossy memory simply recalls slightly less than source-first", "isCorrect": false, "rationale": "It is not 'a bit less' — lossy is worse than *empty*, which is the surprising part." },
+        { "text": "Blank memory causes hallucinations that lossy memory prevents", "isCorrect": false, "rationale": "Reversed — blank abstains; lossy is the one that produces the confident wrong answer." },
+        { "text": "Both policies perform identically at matched budget", "isCorrect": false, "rationale": "They differ sharply; the +58% gap clears zero." }
+      ],
+      "hint": "What does the model do with empty memory vs a lossy note?"
+    },
+    {
+      "question": "What does lossy-wall's cross-check against the author's released harness establish — and what does it not?",
+      "answerOptions": [
+        { "text": "It shows your numbers agree with the author's harness to within one trial across six cells; it does not prove the underlying paper is beyond dispute", "isCorrect": true, "rationale": "AGREE validates your measurement independently of their code; it is a correctness check, not an endorsement of the paper." },
+        { "text": "It proves the paper's every claim is correct", "isCorrect": false, "rationale": "The cross-check validates your reproduction's numbers, not the whole paper (whose own reproduce script even fails on its artifact)." },
+        { "text": "It means you re-ran the author's repo instead of building your own", "isCorrect": false, "rationale": "The opposite — you built independently and used theirs only as an oracle." },
+        { "text": "It replaces the need for Wilson/Newcombe intervals", "isCorrect": false, "rationale": "The intervals still bound every arm; the cross-check is an additional agreement check." }
+      ],
+      "hint": "Independent build; author's code as an oracle only."
+    }
+  ]
+}

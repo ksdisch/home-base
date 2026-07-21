@@ -1,0 +1,9 @@
+[
+  { "front": "ghost-patch: the five-link chain", "back": "awareness → obedience → damage → recovery → irrecoverability. Two links (awareness, single-pass obedience drop) did not reproduce at the cheap tier." },
+  { "front": "NULL ① — awareness (0/6)", "back": "The models do not flag the wrong-location repair instruction as wrong (0/6). Kimi K2.5 reads ~25% vs the paper's 63%. Diagnosis: 'blindness, not blind obedience.'" },
+  { "front": "'Blindness, not blind obedience' — what it means", "back": "The cheap models are not defying a rule they see; they never register the bad instruction as wrong. So the failure is perception, not obedience." },
+  { "front": "NULL ② — single-pass obedience drop", "back": "deepseek d=+0.04 [−0.022,+0.103], qwen d=+0.036 [−0.034,+0.106] — both CIs cross zero, neither near the pre-committed 10-pt bar. A single bad pass does not measurably drop the pass rate." },
+  { "front": "Why is the obedience drop measured on matched pairs?", "back": "Same problem before and after the bad instruction (paired/Newcombe). Matching removes per-problem difficulty as a confound, so the CI reflects the instruction's effect." },
+  { "front": "Why was ghost-patch's M4 gate underpowered — and how handled?", "back": "The milestone funnel left 16 or fewer clean pairs per model. It was *pre-declared* underpowered and run descriptively, with the label kept on it — never claimed to resolve irrecoverability." },
+  { "front": "ghost-patch: 'so the paper is wrong?'", "back": "No — the read is the failure needs a stronger model (awareness is absent at the cheap tier) or the iterative-plus-sabotage regime, not a single pass. Structure reproduced where powered; nulls reported where not. Ran for $1.42." }
+]
