@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import { BriefShell } from "./components/BriefShell";
+import { ThemeToggle } from "./components/ThemeToggle";
 import Brief from "./pages/Brief";
 import BriefArchive from "./pages/BriefArchive";
 import CourseDetail from "./pages/CourseDetail";
@@ -40,10 +41,10 @@ function MobileTabBar() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-[#f7f6f3]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
     >
       {moreOpen && (
-        <div className="absolute bottom-full right-2 mb-2 w-44 rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+        <div className="absolute bottom-full right-2 mb-2 w-44 rounded-xl border border-line bg-card p-1 shadow-lg">
           <NavLink to="/plan" className={moreLinkClass} onClick={close}>
             Plan
           </NavLink>
@@ -85,13 +86,14 @@ function MobileTabBar() {
 export default function App() {
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-10 border-b border-stone-200 bg-[#f7f6f3]/85 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-line bg-bg/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-ink">
             <img src="/icon.svg" alt="" className="h-7 w-7 rounded-lg" />
             Home Base
           </Link>
-          <nav className="hidden items-center gap-1 text-sm sm:flex">
+          <div className="flex items-center gap-1">
+            <nav className="hidden items-center gap-1 text-sm sm:flex">
             <NavLink to="/" end className={navLinkClass}>
               Today
             </NavLink>
@@ -114,7 +116,9 @@ export default function App() {
             <NavLink to="/progress" className={navLinkClass}>
               Progress
             </NavLink>
-          </nav>
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

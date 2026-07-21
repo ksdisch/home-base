@@ -186,7 +186,7 @@ function ItemNotes({
             placeholder="Your take or question…"
             rows={2}
             autoFocus
-            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
+            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
           />
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <button
@@ -216,7 +216,7 @@ function ItemNotes({
             placeholder="Ask a follow-up about this story…"
             rows={2}
             autoFocus
-            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink"
+            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
           />
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <button
@@ -236,11 +236,11 @@ function ItemNotes({
             {chatError && <span className="text-xs text-red-600">{chatError}</span>}
           </div>
           {answer && (
-            <div className="mt-2 rounded-lg border border-stone-200 bg-white/80 px-3 py-2">
+            <div className="mt-2 rounded-lg border border-line bg-card/80 px-3 py-2">
               <div className="text-sm text-ink/90">
                 <Markdown source={answer} />
               </div>
-              <div className="mt-2 flex items-center gap-3 border-t border-stone-100 pt-2">
+              <div className="mt-2 flex items-center gap-3 border-t border-line-soft pt-2">
                 <button
                   onClick={saveAnswerAsNote}
                   disabled={qaSaved}
@@ -303,7 +303,7 @@ export function TopicSection({
     // (app header + chip row) so a jumped-to heading isn't hidden under them.
     <section
       id={topic.slug}
-      className="scroll-mt-24 rounded-2xl border border-stone-200 bg-white/60 p-5"
+      className="scroll-mt-24 rounded-2xl border border-line bg-card/60 p-5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold text-ink">{topic.title}</h2>
@@ -326,7 +326,7 @@ export function TopicSection({
       {topic.items.length > 0 && (
         <div className="mt-4 space-y-5">
           {topic.items.map((item, i) => (
-            <article key={item.id || i} className="border-t border-stone-100 pt-4">
+            <article key={item.id || i} className="border-t border-line-soft pt-4">
               <h3 className="font-semibold text-ink">
                 {item.headline}
                 {item.attribution && (
@@ -347,7 +347,7 @@ export function TopicSection({
                       title={`See how this story read when it first appeared${
                         item.first_seen ? ` on ${item.first_seen}` : ""
                       }`}
-                      className="ml-2 inline-block cursor-pointer whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted hover:text-accent"
+                      className="ml-2 inline-block cursor-pointer whitespace-nowrap rounded-full bg-line-soft px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted hover:text-accent"
                     >
                       developing
                       {item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
@@ -359,7 +359,7 @@ export function TopicSection({
                           ? `This story first appeared in your ${topic.title} brief on ${item.first_seen}`
                           : "This story appeared earlier this week"
                       }
-                      className="ml-2 inline-block whitespace-nowrap rounded-full bg-stone-100 px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted"
+                      className="ml-2 inline-block whitespace-nowrap rounded-full bg-line-soft px-2 py-0.5 align-middle text-[0.7rem] font-medium text-muted"
                     >
                       developing
                       {item.first_seen ? ` · since ${humanDateShort(item.first_seen)}` : ""}
@@ -382,7 +382,7 @@ export function TopicSection({
                 </p>
               )}
               {item.developing && item.prior_digest && priorOpen === item.id && (
-                <div className="mt-2 rounded-lg bg-stone-50 px-3 py-2 text-sm text-ink/80">
+                <div className="mt-2 rounded-lg bg-line-soft px-3 py-2 text-sm text-ink/80">
                   <span className="text-xs font-medium text-muted">
                     As written {item.first_seen ? humanDateShort(item.first_seen) : "earlier"}:
                   </span>{" "}
@@ -559,7 +559,7 @@ export default function Brief() {
                   Refresh now
                 </button>
                 or run{" "}
-                <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">
+                <code className="rounded bg-line-soft px-1 font-mono text-[0.85em]">
                   make sweep
                 </code>{" "}
                 in a terminal — a few minutes either way.
@@ -584,7 +584,7 @@ export default function Brief() {
           >
             {missingTopics.map((t) => t.title).join(" · ")} — the sweep failed or didn't
             validate, so there's no section below. Rerun with{" "}
-            <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
+            <code className="rounded bg-line-soft px-1 font-mono text-[0.85em]">make sweep</code>{" "}
             if it persists.
           </Banner>
         </div>
@@ -633,7 +633,7 @@ export default function Brief() {
                         type="button"
                         disabled={fromCache}
                         onClick={() => resolveOvernight(p.id, "discard")}
-                        className="rounded-lg border border-stone-300 px-3 py-1 text-xs font-semibold text-ink hover:bg-stone-100 disabled:opacity-50"
+                        className="rounded-lg border border-line-strong px-3 py-1 text-xs font-semibold text-ink hover:bg-line-soft disabled:opacity-50"
                       >
                         Discard
                       </button>
@@ -672,7 +672,7 @@ export default function Brief() {
                   {brief.mirror.attention.map((a) => (
                     <span
                       key={a.slug}
-                      className="rounded-full border border-stone-200 bg-white/70 px-2 py-0.5"
+                      className="rounded-full border border-line bg-card/70 px-2 py-0.5"
                     >
                       {`${a.title} ${a.share_pct}%`}
                     </span>
@@ -785,7 +785,7 @@ export default function Brief() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-40 animate-pulse rounded-2xl border border-stone-200 bg-white/60"
+              className="h-40 animate-pulse rounded-2xl border border-line bg-card/60"
             />
           ))}
         </div>
@@ -794,7 +794,7 @@ export default function Brief() {
       {brief && !brief.has_data && !error && (
         <Banner tone="info" title="No sweeps yet">
           Run{" "}
-          <code className="rounded bg-stone-100 px-1 font-mono text-[0.85em]">make sweep</code>{" "}
+          <code className="rounded bg-line-soft px-1 font-mono text-[0.85em]">make sweep</code>{" "}
           to generate today's brief across your topics.
         </Banner>
       )}
@@ -807,7 +807,7 @@ export default function Brief() {
       {brief && brief.topics.length > 1 && (
         <nav
           aria-label="Jump to topic"
-          className="sticky top-[53px] z-[9] mb-4 overflow-x-auto bg-[#f7f6f3]/85 py-2 backdrop-blur"
+          className="sticky top-[53px] z-[9] mb-4 overflow-x-auto bg-bg/85 py-2 backdrop-blur"
         >
           <div className="flex gap-2">
             {brief.topics.map((t) => (
@@ -819,7 +819,7 @@ export default function Brief() {
                     .getElementById(t.slug)
                     ?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
-                className="shrink-0 rounded-full border border-stone-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+                className="shrink-0 rounded-full border border-line bg-card/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
               >
                 {t.title}
               </button>

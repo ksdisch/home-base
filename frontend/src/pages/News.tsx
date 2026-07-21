@@ -235,7 +235,7 @@ export default function News() {
             .map((s) => (
               <div
                 key={s.term}
-                className="rounded-2xl border border-stone-200 bg-accent-soft/40 p-4"
+                className="rounded-2xl border border-line bg-accent-soft/40 p-4"
               >
                 <div className="text-sm text-ink">
                   You've been reading a lot about{" "}
@@ -302,7 +302,7 @@ export default function News() {
       )}
 
       {feed && feed.items.length > 0 && (
-        <div className="divide-y divide-stone-200 rounded-2xl border border-stone-200 bg-white/60">
+        <div className="divide-y divide-line rounded-2xl border border-line bg-card/60">
           {feed.items
             .filter((item) => !hidden.has(item.id))
             .map((item) => (
@@ -384,7 +384,7 @@ export default function News() {
                       onChange={(e) => setNoteDraft(e.target.value)}
                       placeholder="Your take — lands in your notes"
                       rows={2}
-                      className="w-full rounded-lg border border-stone-200 bg-white p-2 text-sm text-ink"
+                      className="w-full rounded-lg border border-line bg-card p-2 text-sm text-ink"
                     />
                     <div className="mt-1 flex gap-3 text-xs">
                       <button

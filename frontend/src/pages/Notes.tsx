@@ -82,7 +82,7 @@ export default function Notes() {
             <select
               value={effectiveTopic}
               onChange={(e) => setTopic(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2 py-2.5 text-sm text-ink sm:ml-1 sm:mt-0 sm:w-auto sm:py-1.5"
+              className="mt-1 w-full rounded-lg border border-line bg-card px-2 py-2.5 text-sm text-ink sm:ml-1 sm:mt-0 sm:w-auto sm:py-1.5"
             >
               <option value="all">All topics</option>
               {topics.map((t) => (
@@ -122,7 +122,7 @@ export default function Notes() {
       {visible.length > 0 && (
         <div className="space-y-3">
           {visible.map((n) => (
-            <article key={n.id} className="rounded-2xl border border-stone-200 bg-white/60 p-4">
+            <article key={n.id} className="rounded-2xl border border-line bg-card/60 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="text-xs text-muted">
                   <span className="font-medium text-accent">{n.topic_title || n.topic_slug}</span>
@@ -131,7 +131,7 @@ export default function Notes() {
                       the archived morning this note was taken on. */}
                   <Link
                     to={`/brief/${n.brief_date}`}
-                    className="underline decoration-stone-300 underline-offset-2 hover:text-accent"
+                    className="underline decoration-line-strong underline-offset-2 hover:text-accent"
                   >
                     {n.brief_date}
                   </Link>

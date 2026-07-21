@@ -134,7 +134,7 @@ export function HabitStrip() {
   const regradeDue = gradedDaysAgo !== null && gradedDaysAgo > REGRADE_DUE_DAYS;
 
   return (
-    <section className="mt-4 rounded-2xl border border-stone-200 bg-white/60 px-5 py-3">
+    <section className="mt-4 rounded-2xl border border-line bg-card/60 px-5 py-3">
       <p className="text-sm text-ink/90">
         <span className="font-semibold">Habit check:</span>{" "}
         <span
