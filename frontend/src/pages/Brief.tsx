@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { BriefItem, BriefNote, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
@@ -236,7 +236,10 @@ function ItemNotes({
             {chatError && <span className="text-xs text-red-600">{chatError}</span>}
           </div>
           {answer && (
-            <div className="mt-2 rounded-lg border border-line bg-card/80 px-3 py-2">
+            <div
+              key={askedQuestion}
+              className="brief-cascade mt-2 rounded-lg border border-line bg-card/80 px-3 py-2"
+            >
               <div className="text-sm text-ink/90">
                 <Markdown source={answer} />
               </div>
@@ -442,6 +445,11 @@ export default function Brief() {
   // state, kicks a silent revalidate on every visit (a fresh sweep landing mid-session
   // still surfaces), and slots the shell's persistent audio card into place below.
   const { brief, fromCache, error, loading, refresh, registerAudioSlot } = useBriefShell();
+
+  // ⑥ Content that arrives, not pops: cascade the sections in ONLY on a genuine cold load —
+  // brief absent at this instance's first render means we came through the skeleton, not a
+  // warm BriefShell return (where the payload is already in hand and re-animating is noise).
+  const cascade = useRef(brief === null).current;
 
   useEffect(() => {
     refresh();
@@ -830,13 +838,14 @@ export default function Brief() {
 
       {brief && brief.topics.length > 0 && (
         <div className="space-y-4">
-          {brief.topics.map((t) => (
-            <TopicSection
+          {brief.topics.map((t, i) => (
+            <div
               key={t.slug}
-              topic={t}
-              date={brief.date ?? null}
-              readOnly={fromCache}
-            />
+              className={cascade ? "brief-cascade" : undefined}
+              style={cascade ? { animationDelay: `${Math.min(i * 30, 90)}ms` } : undefined}
+            >
+              <TopicSection topic={t} date={brief.date ?? null} readOnly={fromCache} />
+            </div>
           ))}
         </div>
       )}

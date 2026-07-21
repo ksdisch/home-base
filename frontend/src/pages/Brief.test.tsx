@@ -114,6 +114,18 @@ describe("Brief (Today page)", () => {
     expect(logBriefVisit).toHaveBeenCalled();
   });
 
+  it("cascades the sections in on a cold load (⑥)", async () => {
+    briefWithMeta.mockResolvedValue(online(STRUCTURED));
+    renderBrief();
+
+    await screen.findByText("AI / LLMs");
+    // On a genuine cold load each section is wrapped in the motion-safe cascade class; the
+    // CSS animation itself lives only under prefers-reduced-motion: no-preference, so
+    // reduced-motion users get the instant paint.
+    const wrapper = screen.getByText("AI / LLMs").closest("section")?.parentElement;
+    expect(wrapper?.className).toContain("brief-cascade");
+  });
+
   it("renders a raw-markdown fallback topic (legacy md-only day) with a stale hint", async () => {
     briefWithMeta.mockResolvedValue(
       online({

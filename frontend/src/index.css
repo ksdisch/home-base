@@ -103,3 +103,23 @@ body {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ⑥ Content that arrives, not pops: a sub-250ms top-down fade+lift on Today's cold load
+   (gated in Brief.tsx so it never replays on a navigation return; staggered per section
+   via an inline animation-delay). The animation is defined ONLY inside the no-preference
+   media query, so reduced-motion users get the instant paint — nothing to guard per-use. */
+@keyframes briefCascade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .brief-cascade {
+    animation: briefCascade 160ms ease-out both;
+  }
+}
