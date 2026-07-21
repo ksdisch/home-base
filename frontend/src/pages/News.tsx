@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { NewsCategory, NewsItem, NewsTopicSuggestion } from "../api/types";
 import { Banner } from "../components/Banner";
 import { UndoToast, useUndoable } from "../components/undo";
+import { BackToTop } from "../components/BackToTop";
 
 // M7: the Google-News-style general mode. Phase 1: a tab per category from
 // sweeps/news_categories.json, real RSS-backed articles opening at the source, ?cat=
@@ -407,6 +408,7 @@ export default function News() {
       )}
 
       <UndoToast label={undoLabel} onUndo={undo} />
+      <BackToTop />
     </div>
   );
 }
