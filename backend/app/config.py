@@ -30,6 +30,14 @@ class Settings:
             os.environ.get("COURSES_DIR", str(self.data_dir / "courses"))
         ).expanduser()
 
+        # Where the user's *generated* learning paths live (M8) — one JSON sidecar per topic,
+        # ``<notebook_id>.json``, whose steps reference the topic's real artifacts (the path owns no
+        # files of its own). Bundled example paths ship in the package and are always read too (see
+        # ``app.paths.manifest``); this dir overlays/adds the user's own. Gitignored.
+        self.paths_dir = Path(
+            os.environ.get("PATHS_DIR", str(self.data_dir / "paths"))
+        ).expanduser()
+
         # Where the sweep runner (sweep.sh) drops daily briefs: <repo>/data/sweeps/<date>/.
         # Read-only for the backend (GET /api/brief); overridable for tests.
         self.sweeps_dir = Path(
@@ -109,6 +117,7 @@ class Settings:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.courses_dir.mkdir(parents=True, exist_ok=True)
+        self.paths_dir.mkdir(parents=True, exist_ok=True)
 
 
 @lru_cache(maxsize=1)

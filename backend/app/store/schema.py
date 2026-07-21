@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -214,6 +214,31 @@ STATEMENTS = [
         note          TEXT NOT NULL DEFAULT '',
         updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (course_slug, material_path)
+    )
+    """,
+    # M8 (learning paths): per-step coverage — the "I did this step" checkbox for a generated path
+    # over a NotebookLM topic. Path *content* lives on disk (a ``<notebook_id>.json`` sidecar); only
+    # coverage lives here, mirroring ``course_lesson_progress``. SM-2 recall stays in
+    # ``question_mastery`` under the topic's real ``notebook_id`` (a path reuses the topic's real
+    # quiz/flashcard artifacts). v10 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER.
+    """
+    CREATE TABLE IF NOT EXISTS path_step_progress (
+        notebook_id TEXT NOT NULL,
+        step_id     TEXT NOT NULL,
+        completed   INTEGER NOT NULL DEFAULT 0,
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (notebook_id, step_id)
+    )
+    """,
+    # M8: the learner's per-step confidence self-rating (1–5) — the third axis alongside coverage
+    # (above) and SM-2 recall. Same content-on-disk / progress-in-SQLite split. v10 adds this table.
+    """
+    CREATE TABLE IF NOT EXISTS path_confidence (
+        notebook_id TEXT NOT NULL,
+        step_id     TEXT NOT NULL,
+        rating      INTEGER NOT NULL,
+        updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (notebook_id, step_id)
     )
     """,
 ]
