@@ -151,7 +151,7 @@ _Backlog replenish 2026-07-19 (multi-lane `/brainstorm` + `bug-hunt` session; se
 Append-only. Bug stubs tagged **[P1]** are the five medium-severity findings Kyle flagged fix-first;
 untagged bugs are the verified lows, in report rank order._
 
-### Ideas (27 — one vision doc each)
+### Ideas (32 — one vision doc each)
 
 #### ✅ [Exploration] Overnight Chief of Staff — the brief you approve, not read
 - **Why:** A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action... See [`docs/ideas/overnight-chief-of-staff.md`](docs/ideas/overnight-chief-of-staff.md) for the full write-up.
@@ -335,6 +335,38 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Why:** Replace the brief's hard skeleton→content pop with a sub-250ms top-down section cascade (and a settle on the Ask answer), reduced-motion-guarded and hit-testable at frame 0, so the morning open feels like an arrival with zero added latency. The set's deliberate wildcard. See [`docs/ideas/content-arrives-not-pops.md`](docs/ideas/content-arrives-not-pops.md) for the full write-up.
 - **Acceptance:** A `motion-safe` `.brief-cascade` (opacity + small `translateY`) on Today's section map + a settle on the Ask answer, gated to a genuine cold load; confirm total settle <~250ms, content readable at frame 0, and reduced-motion users get the instant paint.
 - **Size:** S (Delight) — wildcard
+- **Added:** 2026-07-20
+
+_Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across the daily loop; News + the app shell/nav as the worked examples). 4 S–M friction removals (F1–F4) + 1 flagged interaction-model stretch (F5). C5 category-tab-target hygiene folds into F2's PR; the same-tab article-return idea (killed as a trap-for-a-trap) and a global search across brief+notes+news were considered and cut/deferred. Append-only._
+
+#### [Improvement] F1 · News forgets where you were — News survives navigation
+- **Why:** Today survives navigation (`BriefShell`) but News does not — every Today→News→Today hop remounts News and resets the tab, scroll, and dismissed cards, so Kyle pays a re-orient tax on the loop's most natural gesture. See [`docs/ideas/news-survives-navigation.md`](docs/ideas/news-survives-navigation.md) for the full write-up.
+- **Acceptance:** News hoists its selected tab + scroll position (+ hidden/liked sets, reconciled against the fresh fetch) above the route mount, mirroring `BriefShell`; confirm a Today→News→Today hop lands back on the same tab and scroll position on the phone.
+- **Size:** M (Friction) — first wedge S (sessionStorage-persist the selected tab)
+- **Added:** 2026-07-20
+
+#### [Improvement] F2 · The News card has no front door — headline as the primary tap
+- **Why:** The headline is the primary action (opens the article) but is styled like body text, while three equal `text-xs` buttons compete for the eye, so on touch it's unclear what to tap or where the tap lands. See [`docs/ideas/news-card-primary-action.md`](docs/ideas/news-card-primary-action.md) for the full write-up.
+- **Acceptance:** Headline restyled as the obvious primary tap (weight + trailing `↗` + full-height target) with the two feedback buttons visually subordinated **but not buried** (they stay one-tap so the ranker keeps its signal), and the category pills ≥44px; confirm on the phone the headline reads as the tap target. Folds in C5 (`min-h-[44px]` + `snap-x`).
+- **Size:** M (Friction) — first wedge S (pure headline restyle)
+- **Added:** 2026-07-20
+
+#### [Improvement] F3 · For You never says what to do first
+- **Why:** The cold-start banner states the learning state but offers no next action, and after the threshold gives no sign it's personalized — so Kyle can't tell what to do first or whether his feedback ever mattered. See [`docs/ideas/foryou-cold-start-first-move.md`](docs/ideas/foryou-cold-start-first-move.md) for the full write-up.
+- **Acceptance:** The `feed.learning` For You banner gains a "do this first" directional line (+ optionally a persistent personalization read-out); confirm the nudge shows below the 20-signal threshold and clears above it, adding no new control.
+- **Size:** S (Friction)
+- **Added:** 2026-07-20
+
+#### [Improvement] F4 · Stranded at the bottom of the feed — jump-to-top
+- **Why:** After thumbing a long News feed one-handed there's no one-tap way back to the top — only a manual re-scroll or a state-wiping remount. See [`docs/ideas/news-jump-to-top.md`](docs/ideas/news-jump-to-top.md) for the full write-up.
+- **Acceptance:** A thumb-zone back-to-top button appears after ~400px of News scroll and smooth-scrolls to the top; confirm one tap returns to the top on the phone and it stays hidden near the top.
+- **Size:** S (Friction)
+- **Added:** 2026-07-20
+
+#### [Improvement] F5 · Seven tabs, no signal which one matters this morning — nav priority + freshness (STRETCH)
+- **Why:** The nav is seven equal items with no priority or freshness signal, so every open is a "which tab?" micro-decision whose answer is almost always Today — Kyle's explicitly #1-named friction. The run's one flagged interaction-model reframe. See [`docs/ideas/nav-priority-freshness-signal.md`](docs/ideas/nav-priority-freshness-signal.md) for the full write-up.
+- **Acceptance:** Nav gains a priority hierarchy (daily-loop cluster vs muted reference shelf) and/or a freshness dot from `brief.date` / item `published_at` vs a `localStorage` last-seen. First wedge = the Today freshness dot (no backend); prototype it and judge the feel before the IA cluster split (an identity shift — get Kyle's okay first).
+- **Size:** L (Friction, stretch) — first wedge S–M
 - **Added:** 2026-07-20
 
 ### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
