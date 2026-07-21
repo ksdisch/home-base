@@ -110,6 +110,7 @@ const SUGGESTION = {
 };
 
 beforeEach(() => {
+  sessionStorage.clear();
   newsCategories.mockReset();
   newsCategory.mockReset();
   newsForYou.mockReset();
@@ -132,6 +133,31 @@ describe("News (M7)", () => {
     // Origin chips: a section title for section items, the quoted term for search finds.
     expect(screen.getAllByText("Top stories").length).toBeGreaterThanOrEqual(2); // tab + chip
     expect(screen.getByText("“quantum computing”")).toBeInTheDocument();
+  });
+
+  // -- F1 first wedge: News remembers the tab across a navigation hop --------------
+
+  it("restores the last-opened tab on return via sessionStorage (F1)", async () => {
+    sessionStorage.setItem("news.tab", "local");
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(LOCAL_FEED);
+    renderNews("/news"); // no ?cat= — as if returning from Today
+
+    expect(await screen.findByText("Lake County story")).toBeInTheDocument();
+    expect(newsCategory).toHaveBeenCalledWith("local");
+    expect(newsForYou).not.toHaveBeenCalled();
+  });
+
+  it("persists the opened tab so the next return lands there (F1)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    newsCategory.mockResolvedValue(LOCAL_FEED);
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
+    await screen.findByText("Lake County story");
+    expect(sessionStorage.getItem("news.tab")).toBe("local");
   });
 
   // -- ① lead hierarchy + F2 primary action ----------------------------------------

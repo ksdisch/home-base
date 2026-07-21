@@ -62,7 +62,12 @@ export default function News() {
   const { label: undoLabel, fire: holdThenFire, undo } = useUndoable();
 
   const hasCategories = categories !== null && categories.length > 0;
-  const selected = hasCategories ? (params.get("cat") ?? FOR_YOU.slug) : null;
+  // F1 (first wedge): a Today→News→Today hop drops the ?cat= query, so News reset to For You
+  // every return. Fall back to the last-opened tab (persisted on click below) so News lands
+  // back where you left it; an explicit ?cat= in the URL still wins.
+  const selected = hasCategories
+    ? (params.get("cat") ?? sessionStorage.getItem("news.tab") ?? FOR_YOU.slug)
+    : null;
   const tabs = hasCategories ? [FOR_YOU, ...categories] : null;
 
   // Every signal is fire-and-forget: reading the news must never break on a logging
@@ -184,7 +189,10 @@ export default function News() {
           {tabs.map((c) => (
             <button
               key={c.slug}
-              onClick={() => setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug })}
+              onClick={() => {
+                sessionStorage.setItem("news.tab", c.slug); // F1: remember for the next return
+                setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug });
+              }}
               aria-current={c.slug === selected ? "page" : undefined}
               className={`flex min-h-[44px] snap-start items-center rounded-lg px-4 font-medium transition ${
                 c.slug === selected
