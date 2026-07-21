@@ -360,6 +360,7 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Acceptance:** The `feed.learning` For You banner gains a "do this first" directional line (+ optionally a persistent personalization read-out); confirm the nudge shows below the 20-signal threshold and clears above it, adding no new control.
 - **Size:** S (Friction)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #116, RED→green): the `feed?.learning` "Still learning you" banner opens with a bolded "**Do this first:** open a story you want more of, or tap 'More like this'…" directive above the kept `N of 20 signals` status line — references the real gesture, adds no new control, gated on the same `feed.learning` flag so it clears the instant For You warms up. Optional persistent personalization read-out deferred. `News.test.tsx` +2 (nudge present below threshold, absent above)._
 
 #### [Improvement] F4 · Stranded at the bottom of the feed — jump-to-top
 - **Why:** After thumbing a long News feed one-handed there's no one-tap way back to the top — only a manual re-scroll or a state-wiping remount. See [`docs/ideas/news-jump-to-top.md`](docs/ideas/news-jump-to-top.md) for the full write-up.

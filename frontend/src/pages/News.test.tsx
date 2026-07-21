@@ -149,6 +149,32 @@ describe("News (M7)", () => {
     expect(screen.getByText("Ranked quantum story")).toBeInTheDocument();
   });
 
+  it("cold start leads with a 'do this first' next-action nudge (F3)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({
+      ...FORYOU_WARM,
+      learning: true,
+      event_count: 3,
+      items: FORYOU_WARM.items.slice(0, 1),
+    });
+    renderNews();
+
+    // The cold-start banner opens with a directional first move, not just a status line.
+    expect(await screen.findByText(/Do this first/i)).toBeInTheDocument();
+    expect(screen.getByText("Still learning you")).toBeInTheDocument();
+    expect(screen.getByText(/3 of 20 signals/)).toBeInTheDocument(); // status line kept
+  });
+
+  it("the first-move nudge clears once For You is warm (F3)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM); // learning:false, event_count:42
+    renderNews();
+
+    await screen.findByText("Ranked quantum story");
+    expect(screen.queryByText("Still learning you")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Do this first/i)).not.toBeInTheDocument();
+  });
+
   it("renders a category feed with articles opening at the source", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsCategory.mockResolvedValue(TOP_FEED);

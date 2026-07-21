@@ -207,9 +207,15 @@ export default function News() {
       {feed?.learning && (
         <div className="mb-4">
           <Banner tone="info" title="Still learning you">
-            For You warms up as you read — clicks, section visits, and the feedback buttons
-            all teach it ({feed.event_count ?? 0} of 20 signals so far). Until then, here are
-            the top stories.
+            <p>
+              <span className="font-medium">Do this first:</span> open a story you actually
+              want more of, or tap “More like this” on the ones you like.
+            </p>
+            <p className="mt-1">
+              For You warms up as you read — clicks, section visits, and the feedback buttons
+              all teach it ({feed.event_count ?? 0} of 20 signals so far). Until then, here are
+              the top stories.
+            </p>
           </Banner>
         </div>
       )}
