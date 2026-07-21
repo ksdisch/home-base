@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import News from "./News";
+import { NewsShell } from "../components/NewsShell";
 
 const newsCategories = vi.fn();
 const newsCategory = vi.fn();
@@ -97,7 +99,9 @@ const FORYOU_WARM = {
 function renderNews(path = "/news") {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <News />
+      <NewsShell>
+        <News />
+      </NewsShell>
     </MemoryRouter>,
   );
 }
@@ -122,6 +126,42 @@ beforeEach(() => {
 });
 
 describe("News (M7)", () => {
+  // F1 (full hoist): the per-visit interaction state must outlive a Today→News→Today hop.
+  // NewsShell holds hidden/liked/noted above the route, so a remount (the feed refetches
+  // fresh) reconciles against the same sets instead of resetting them.
+  it("keeps the liked ack across a News remount — state lives above the route (F1)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+
+    function Harness() {
+      const [mounted, setMounted] = useState(true);
+      return (
+        <MemoryRouter initialEntries={["/news?cat=top"]}>
+          <NewsShell>
+            {mounted && <News />}
+            <button onClick={() => setMounted((m) => !m)}>toggle-news</button>
+          </NewsShell>
+        </MemoryRouter>
+      );
+    }
+    render(<Harness />);
+
+    // Like a card → its button flips to the saved ack.
+    const like = await screen.findByRole("button", { name: /More like Big national story/ });
+    fireEvent.click(like);
+    expect(
+      await screen.findByRole("button", { name: /More like Big national story/ }),
+    ).toHaveTextContent("Noted ✓");
+
+    // Unmount + remount News (a Today→News round trip); the feed refetches fresh.
+    fireEvent.click(screen.getByRole("button", { name: "toggle-news" }));
+    fireEvent.click(screen.getByRole("button", { name: "toggle-news" }));
+
+    // The like survived above the route — no reset to "More like this".
+    const back = await screen.findByRole("button", { name: /More like Big national story/ });
+    expect(back).toHaveTextContent("Noted ✓");
+  });
+
   it("lands on For You by default with origin chips", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsForYou.mockResolvedValue(FORYOU_WARM);
