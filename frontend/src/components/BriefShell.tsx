@@ -78,6 +78,12 @@ export function BriefShell({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  // F5: fetch on mount so the freshness signal (and a warm brief) is ready even when Kyle
+  // opens straight to News/Notes. The inFlight guard dedupes with Brief's per-visit refresh.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
   useEffect(() => {
     const host = hostRef.current!;
     if (slot) {

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, NavLink, Route, Routes } from "react-router-dom";
-import { BriefShell } from "./components/BriefShell";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { BriefShell, useBriefShell } from "./components/BriefShell";
 import { ThemeToggle } from "./components/ThemeToggle";
 import Brief from "./pages/Brief";
 import BriefArchive from "./pages/BriefArchive";
@@ -31,11 +31,30 @@ const moreLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-accent-soft text-accent" : "text-ink"
   }`;
 
+// F5: the "Today" nav label, with a freshness dot when a newer brief has landed than the
+// one Kyle last opened. The dot is aria-hidden so it never alters the link's accessible
+// name ("Today"), and the inline-flex wrapper keeps it beside the label in both navs (the
+// mobile tab is otherwise a flex-col). Shared by the desktop header and the mobile tab bar.
+function TodayLabel({ fresh }: { fresh: boolean }) {
+  return (
+    <span className="inline-flex items-center">
+      Today
+      {fresh && (
+        <span
+          data-testid="today-fresh-dot"
+          aria-hidden="true"
+          className="ml-1 h-1.5 w-1.5 rounded-full bg-accent"
+        />
+      )}
+    </span>
+  );
+}
+
 // M6: below `sm` the header overflows a phone width, so the morning loop gets a fixed,
 // thumb-reachable tab bar instead (Today · News · Notes · Learning · More — News promoted
 // from the More menu post-M7 at Kyle's request). ≥sm renders nothing — the desktop top
 // nav is untouched.
-function MobileTabBar() {
+function MobileTabBar({ todayFresh }: { todayFresh: boolean }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const close = () => setMoreOpen(false);
   return (
@@ -58,7 +77,7 @@ function MobileTabBar() {
       )}
       <div className="flex items-stretch px-2 py-1">
         <NavLink to="/" end className={tabClass} onClick={close}>
-          Today
+          <TodayLabel fresh={todayFresh} />
         </NavLink>
         <NavLink to="/news" className={tabClass} onClick={close}>
           News
@@ -84,6 +103,36 @@ function MobileTabBar() {
 }
 
 export default function App() {
+  // FR15: BriefShell holds the brief payload + the single persistent audio element and must
+  // outlive the Today↔News↔Notes bounce. F5 hoists it above the navs too, so both can read
+  // brief.date for the freshness dot (and the shell fetches on mount to feed it).
+  return (
+    <BriefShell>
+      <AppChrome />
+    </BriefShell>
+  );
+}
+
+function AppChrome() {
+  const { brief } = useBriefShell();
+  const location = useLocation();
+  const briefDate = brief?.date ?? null;
+
+  // F5: the last brief date Kyle actually opened (per-device — localStorage only, no backend).
+  const [lastSeen, setLastSeen] = useState<string | null>(() =>
+    localStorage.getItem("lastSeenBrief"),
+  );
+
+  // Opening Today ("/") with a loaded brief marks it seen and drops the dot.
+  useEffect(() => {
+    if (location.pathname === "/" && briefDate && briefDate !== lastSeen) {
+      localStorage.setItem("lastSeenBrief", briefDate);
+      setLastSeen(briefDate);
+    }
+  }, [location.pathname, briefDate, lastSeen]);
+
+  const todayFresh = Boolean(briefDate && briefDate !== lastSeen);
+
   return (
     <div className="min-h-full">
       <header className="sticky top-0 z-10 border-b border-line bg-bg/85 backdrop-blur">
@@ -95,7 +144,7 @@ export default function App() {
           <div className="flex items-center gap-1">
             <nav className="hidden items-center gap-1 text-sm sm:flex">
             <NavLink to="/" end className={navLinkClass}>
-              Today
+              <TodayLabel fresh={todayFresh} />
             </NavLink>
             {/* M7: the general Google-News-style mode — Today stays the custom brief. */}
             <NavLink to="/news" className={navLinkClass}>
@@ -124,33 +173,29 @@ export default function App() {
 
       {/* pb-28 keeps content clear of the mobile tab bar; sm:pb-8 restores the desktop py-8. */}
       <main className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:pb-8">
-        {/* FR15: BriefShell holds the brief payload + the single persistent audio element
-            above the routes, so Today survives the Today↔News↔Notes bounce mid-walk. */}
-        <BriefShell>
-          <Routes>
-            {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
-            <Route path="/" element={<Brief />} />
-            {/* QU1: an archived morning by date — read-only walk over the sweep record. */}
-            <Route path="/brief/:date" element={<BriefArchive />} />
-            {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
-            <Route path="/news" element={<News />} />
-            {/* M2: every note attached to a brief item, browsable per topic. */}
-            <Route path="/notes" element={<Notes />} />
-            <Route path="/learning" element={<Home />} />
-            <Route path="/plan" element={<StudyPlan />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:slug" element={<CourseDetail />} />
-            <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
-            <Route path="/courses/:slug/flashcards" element={<FlashcardReview />} />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/topics/:id" element={<TopicDetail />} />
-            <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
-            <Route path="/topics/:id/guide/:artifactId" element={<StudyGuide />} />
-          </Routes>
-        </BriefShell>
+        <Routes>
+          {/* M1: the morning brief is the home route; the Learning Hub lives on as a tab. */}
+          <Route path="/" element={<Brief />} />
+          {/* QU1: an archived morning by date — read-only walk over the sweep record. */}
+          <Route path="/brief/:date" element={<BriefArchive />} />
+          {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
+          <Route path="/news" element={<News />} />
+          {/* M2: every note attached to a brief item, browsable per topic. */}
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/learning" element={<Home />} />
+          <Route path="/plan" element={<StudyPlan />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:slug" element={<CourseDetail />} />
+          <Route path="/courses/:slug/quiz" element={<QuizPlayer source="course" />} />
+          <Route path="/courses/:slug/flashcards" element={<FlashcardReview />} />
+          <Route path="/progress" element={<Progress />} />
+          <Route path="/topics/:id" element={<TopicDetail />} />
+          <Route path="/topics/:id/quiz/:quizId" element={<QuizPlayer />} />
+          <Route path="/topics/:id/guide/:artifactId" element={<StudyGuide />} />
+        </Routes>
       </main>
 
-      <MobileTabBar />
+      <MobileTabBar todayFresh={todayFresh} />
     </div>
   );
 }
