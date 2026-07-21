@@ -4,6 +4,9 @@
 .vscode/
 *.swp
 
+# --- Superpowers brainstorm scratch (visual companion mockups) ---
+.superpowers/
+
 # --- Secrets / env ---
 .env
 .env.*

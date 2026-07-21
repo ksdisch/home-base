@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Overnight Chief of Staff v0 ✅ SHIPPED (PR #107)** — the LAST of the four decided moonshots, built on Kyle's explicit go at its standing gate conversation (tenth deliberate gate override). Scope decisions recorded at the gate: **in-repo data only** (vault bridge behind its own later gate) · **draft-only v0 with a graded send gate later** (each errand TYPE earns send/execute via its own M0-style graded record + gate conversation; nothing unlocks by default) · **undo = discard + the reversibility rule** (only genuinely reversible actions are ever send-gate-eligible; irreversible ones stay draft-only permanently). The build: `sweeps/actions_queue.py` drafts a note on each readable topic's top story after every sweep (one guarded `claude -p`, M5 lane guards, strict-out validation, idempotent per day, best-effort in sweep.sh) → `backend/data/overnight.jsonl` → live-only 🌙 queue on Today — approve lands a REAL note through the existing notes path (deletable there), discard is the undo, resolution single-shot (409). Backend **625** / frontend **126** green. **Moonshot queue: EMPTY — all four built.** Open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-21 · **Learning Paths — design approved** (interactive brainstorm + visual companion; docs-only capture). Learning becomes an **AI study-designer** over the NotebookLM library: LLM-composed guided **paths** (arrange real artifacts + labeled glue), three honest axes (**coverage** · SM-2 **recall** · self-rated **confidence**), an outline+detail player, and a two-lane **Plan** (Continue/Review) + three-trend **Progress** rebuilt around it — bridge-checks formative-only, on-demand generation, shipped as a **Jacobian Lens vertical slice** via `/explore-plan`. Full design: [`ideas/learning-paths.md`](ideas/learning-paths.md). Prior ship: Overnight Chief of Staff v0 (PR #107) closed the moonshot queue (backend **625** / frontend **126** green). Open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · **Learning Paths build (proposed M8) next**. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -84,6 +84,7 @@ kanban
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
+    hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
@@ -313,6 +314,7 @@ glance instead of a sqlite dig._
 | [`sweep-trust-log.md`](sweep-trust-log.md) | PR5 trust gauge: the monthly accuracy re-grade log (`last_graded` reads its newest dated heading) |
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
+| [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas + the replenished `## Open` queue |
 
 ---
@@ -322,6 +324,20 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-21 — Learning Paths design approved (docs-only capture; build via /explore-plan)
+Interactive brainstorm (with the visual companion) reframed the Learning tab: it's a multi-format
+library with a quiz-only scorer, so the loop is cold (attempts=0). Approved design — Learning
+becomes an **AI study-designer** ([`ideas/learning-paths.md`](ideas/learning-paths.md)): Claude
+composes a grounded, ordered **path** over a topic's real artifacts (arrange + labeled glue),
+scored on three honest axes (**coverage** · SM-2 **recall** · self-rated **confidence**). The
+richer signal rebuilds the dependent tabs — **Plan** into Continue/Review lanes (Continue is
+non-empty day one, killing the empty state), **Progress** into three trends + an honest heatmap,
+the **Learning card** into three live axes + next-step + Generate/Continue/Review. Locked forks:
+outline+detail player · on-demand generation · **bridge-checks formative-only** (never move
+mastery) · ship as a **Jacobian Lens vertical slice** (route 3→2). Reuses SM-2, the quiz/flashcard
+players, the catalog, and the M5 `claude -p` lane; the new build is the Designer + `path.json`
+sidecar + two signal stores + the three rebuilt tabs. Proposed **M8**; routing to `/explore-plan`.
 
 ### 2026-07-20 — W4 moonshot #4 · Overnight Chief of Staff v0, the queue closes (PR #107)
 The LAST decided moonshot, built on Kyle's explicit go at its standing gate conversation
