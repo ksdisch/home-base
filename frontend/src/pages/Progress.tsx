@@ -17,7 +17,7 @@ import { cx, shortDate } from "../lib/format";
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card" title={hint}>
+    <div className="rounded-2xl border border-line bg-card p-4 shadow-card" title={hint}>
       <div className="text-2xl font-semibold text-ink">{value}</div>
       <div className="mt-0.5 text-xs uppercase tracking-wide text-muted">{label}</div>
     </div>
@@ -31,7 +31,7 @@ function ActivityStrip({ days }: { days: ProgressResponse["activity"] }) {
     <div className="flex flex-wrap gap-1" aria-label="Recent activity">
       {days.map((d) => {
         const intensity = d.count === 0 ? 0 : Math.ceil((d.count / max) * 3); // 0..3
-        const bg = ["bg-stone-100", "bg-accent/30", "bg-accent/60", "bg-accent"][intensity];
+        const bg = ["bg-line-soft", "bg-accent/30", "bg-accent/60", "bg-accent"][intensity];
         return (
           <div
             key={d.day}
@@ -69,7 +69,7 @@ function ReviewRow({ item }: { item: ReviewItem }) {
     </div>
   );
   return (
-    <div className="group rounded-2xl border border-stone-200 bg-white p-4 shadow-card transition hover:shadow-cardHover">
+    <div className="group rounded-2xl border border-line bg-card p-4 shadow-card transition hover:shadow-cardHover">
       {item.topic_url ? (
         <Link to={item.topic_url} className="block">
           {inner}
@@ -135,7 +135,7 @@ function TopicRow({ t }: { t: TopicProgress }) {
     </div>
   );
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card transition hover:shadow-cardHover">
+    <div className="rounded-2xl border border-line bg-card p-4 shadow-card transition hover:shadow-cardHover">
       {t.topic_url ? (
         <Link to={t.topic_url} className="block hover:[&_.text-ink]:text-accent">
           {inner}
@@ -189,7 +189,7 @@ function ReflectionsJournal({ reflections }: { reflections: ReflectionsResponse 
           return (
             <div
               key={r.id}
-              className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card"
+              className="rounded-2xl border border-line bg-card p-4 shadow-card"
             >
               {r.topic_url ? (
                 <Link to={r.topic_url} className="block hover:[&_.text-ink]:text-accent">
@@ -262,7 +262,7 @@ export default function Progress() {
       {loading && !data && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+            <div key={i} className="h-20 animate-pulse rounded-2xl border border-line bg-card/60" />
           ))}
         </div>
       )}
@@ -301,7 +301,7 @@ export default function Progress() {
           {hasActivity && (
             <section>
               <h2 className="mb-2 text-sm font-semibold text-ink">Recent activity</h2>
-              <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-card">
+              <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
                 <ActivityStrip days={data.activity} />
                 <p className="mt-2 text-xs text-muted">Last {data.activity.length} days · last touched {shortDate(data.summary.last_activity)}</p>
               </div>
@@ -331,7 +331,7 @@ export default function Progress() {
                 {data.shaky.map((s) => (
                   <div
                     key={`${s.notebook_id}:${s.quiz_artifact_id}`}
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-card"
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-card p-4 shadow-card"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-ink">{s.title}</div>

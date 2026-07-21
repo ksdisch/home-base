@@ -10,10 +10,10 @@ export function Badge({
   title?: string;
 }) {
   const tones = {
-    neutral: "bg-stone-100 text-muted",
+    neutral: "bg-line-soft text-muted",
     accent: "bg-accent-soft text-accent",
     amber: "bg-amber-100 text-amber-800",
-    stone: "bg-stone-200 text-ink/70",
+    stone: "bg-line text-ink/70",
   } as const;
   return (
     <span

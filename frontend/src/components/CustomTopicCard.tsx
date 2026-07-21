@@ -7,7 +7,7 @@ import { CustomTopicForm } from "./CustomTopicForm";
 function ProgressBar({ pct }: { pct: number }) {
   const clamped = Math.max(0, Math.min(100, pct));
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-stone-100" role="img" aria-label={`${clamped}% complete`}>
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-line-soft" role="img" aria-label={`${clamped}% complete`}>
       <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${clamped}%` }} />
     </div>
   );
@@ -24,7 +24,7 @@ export function CustomTopicCard({
 
   if (editing) {
     return (
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+      <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
         <CustomTopicForm
           initial={topic}
           submitLabel="Save"
@@ -40,7 +40,7 @@ export function CustomTopicCard({
   }
 
   return (
-    <div className="group flex flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-card transition hover:shadow-cardHover">
+    <div className="group flex flex-col rounded-2xl border border-line bg-card p-5 shadow-card transition hover:shadow-cardHover">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug text-ink">{topic.title}</h3>
         <button
@@ -64,7 +64,7 @@ export function CustomTopicCard({
         <ProgressBar pct={topic.progress_pct} />
       </div>
 
-      <p className="mt-3 border-t border-stone-100 pt-3 text-xs text-muted">
+      <p className="mt-3 border-t border-line-soft pt-3 text-xs text-muted">
         updated {shortDate(topic.updated_at)}
       </p>
     </div>

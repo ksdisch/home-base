@@ -26,11 +26,11 @@ export function MasteryBar({
   const fill = {
     accent: "bg-accent",
     amber: "bg-amber-400",
-    stone: "bg-stone-300",
+    stone: "bg-line-strong",
   }[masteryTone(mastery)];
   return (
     <div
-      className={cx("h-1.5 w-full overflow-hidden rounded-full bg-stone-100", className)}
+      className={cx("h-1.5 w-full overflow-hidden rounded-full bg-line-soft", className)}
       role="img"
       aria-label={`Mastery ${pct}%`}
       title={`Estimated retention ~${pct}% (${masteryLabel(mastery)})`}

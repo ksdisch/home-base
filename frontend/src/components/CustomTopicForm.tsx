@@ -45,7 +45,7 @@ export function CustomTopicForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="A book, a YouTube series, a loose interest…"
           autoFocus
-          className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          className="w-full rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         />
       </div>
       <div>
@@ -54,7 +54,7 @@ export function CustomTopicForm({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="w-full resize-y rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          className="w-full resize-y rounded-xl border border-line bg-card px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         />
       </div>
       <div>
