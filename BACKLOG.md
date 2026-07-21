@@ -349,6 +349,7 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Acceptance:** News hoists its selected tab + scroll position (+ hidden/liked sets, reconciled against the fresh fetch) above the route mount, mirroring `BriefShell`; confirm a Today→News→Today hop lands back on the same tab and scroll position on the phone.
 - **Size:** M (Friction) — first wedge S (sessionStorage-persist the selected tab)
 - **Added:** 2026-07-20
+- _🟡 first wedge shipped 2026-07-21 (PR #118, RED→green): the selected tab is persisted to `sessionStorage` on click and used as the fallback when the URL has no `?cat=`, so a Today→News→Today hop lands back on the tab you left (explicit `?cat=` still wins; a fresh session with nothing saved → For You). `News.test.tsx` +2. **Deferred (the full F1):** hoisting scroll position + the hidden/liked/noted sets above the route mount (mirroring `BriefShell`), reconciled against the fresh fetch — an L-sized architectural pass, left for focused context._
 
 #### [Improvement] F2 · The News card has no front door — headline as the primary tap
 - **Why:** The headline is the primary action (opens the article) but is styled like body text, while three equal `text-xs` buttons compete for the eye, so on touch it's unclear what to tap or where the tap lands. See [`docs/ideas/news-card-primary-action.md`](docs/ideas/news-card-primary-action.md) for the full write-up.
