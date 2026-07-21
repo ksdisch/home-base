@@ -306,6 +306,7 @@ _Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual langua
 - **Acceptance:** `<LeadCard>` for index 0 + `text-lede`/`text-meta` tokens in `tailwind.config.js`; confirm on a real News load the top story reads as a lead and the eye lands there first, minor rows unchanged.
 - **Size:** M (Delight) — foundation
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #117, RED→green): the visible #1 renders as its own lead card (new `text-lede` 1.25rem headline, `p-5`, meta on its own line) above the compact `divide-y` rest; `text-lede`/`text-meta` `fontSize` tokens added to `tailwind.config.js`; one shared `renderArticle` helper drives lead + rows (no duplicated `<article>`). Shipped adjacent to F2 (headline promotion) in one News pass. `News.test.tsx` +1 (lead `text-lede` vs compact); light-mode hierarchy screenshot-verified, dusk tokens carry dark._
 
 #### [Improvement] ② A color system, not a color — semantic + source tint
 - **Why:** Grow the single muted-teal into a small family — `success/info/warn/danger` semantic tints + a deterministic per-source tint — so every News source line signals provenance at a glance and the scattered `amber`/`red` one-offs collapse into one honest vocabulary, all inside the teal's calm envelope. See [`docs/ideas/semantic-source-color-system.md`](docs/ideas/semantic-source-color-system.md) for the full write-up.
@@ -354,6 +355,7 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Acceptance:** Headline restyled as the obvious primary tap (weight + trailing `↗` + full-height target) with the two feedback buttons visually subordinated **but not buried** (they stay one-tap so the ranker keeps its signal), and the category pills ≥44px; confirm on the phone the headline reads as the tap target. Folds in C5 (`min-h-[44px]` + `snap-x`).
 - **Size:** M (Friction) — first wedge S (pure headline restyle)
 - **Added:** 2026-07-20
+- _✅ shipped 2026-07-21 (PR #117, RED→green): the headline is now the primary tap on every card (`font-semibold` + trailing `↗` + full-height `block py-0.5`); the two feedback signals subordinated (right-aligned, muted) but stay one-tap so the For You ranker keeps its signal (Kyle's call: quieter, not buried). C5 folded in — category pills `min-h-[44px]` + `snap-x snap-mandatory`. Shipped adjacent to ① (lead card) in one News pass. `News.test.tsx` +2 (headline primary tap, 44px pills)._
 
 #### [Improvement] F3 · For You never says what to do first
 - **Why:** The cold-start banner states the learning state but offers no next action, and after the threshold gives no sign it's personalized — so Kyle can't tell what to do first or whether his feedback ever mattered. See [`docs/ideas/foryou-cold-start-first-move.md`](docs/ideas/foryou-cold-start-first-move.md) for the full write-up.

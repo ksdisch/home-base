@@ -179,14 +179,14 @@ export default function News() {
       {tabs && (
         <nav
           aria-label="News categories"
-          className="-mx-4 mb-6 flex gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm"
+          className="-mx-4 mb-6 flex snap-x snap-mandatory gap-1 overflow-x-auto whitespace-nowrap px-4 pb-1 text-sm"
         >
           {tabs.map((c) => (
             <button
               key={c.slug}
               onClick={() => setParams(c.slug === FOR_YOU.slug ? {} : { cat: c.slug })}
               aria-current={c.slug === selected ? "page" : undefined}
-              className={`rounded-lg px-3 py-1.5 font-medium transition ${
+              className={`flex min-h-[44px] snap-start items-center rounded-lg px-4 font-medium transition ${
                 c.slug === selected
                   ? "bg-accent-soft text-accent"
                   : "text-muted hover:text-ink"
@@ -307,13 +307,16 @@ export default function News() {
         </Banner>
       )}
 
-      {feed && feed.items.length > 0 && (
-        <div className="divide-y divide-line rounded-2xl border border-line bg-card/60">
-          {feed.items
-            .filter((item) => !hidden.has(item.id))
-            .map((item) => (
-              <article key={item.id} className="p-4">
-                <div className="text-xs text-muted">
+      {feed && feed.items.length > 0 && (() => {
+        // ① A front page, not a spreadsheet: the visible #1 gets its own lead card; the rest
+        // stay the compact field. Same <article> body for both — the headline is the primary
+        // tap (F2: semibold + ↗ + full-height block), feedback stays one-tap but subordinated.
+        const visible = feed.items.filter((item) => !hidden.has(item.id));
+        if (visible.length === 0) return null;
+        const [lead, ...rest] = visible;
+        const renderArticle = (item: FeedItem, isLead: boolean) => (
+              <article key={item.id} className={isLead ? "p-5" : "p-4"}>
+                <div className={`text-meta text-muted ${isLead ? "mb-1" : ""}`}>
                   {item.source && <span className={`font-medium ${sourceTint(item.source)}`}>{item.source}</span>}
                   {item.source && timeAgo(item.published_at) && " · "}
                   {timeAgo(item.published_at)}
@@ -328,11 +331,16 @@ export default function News() {
                   target="_blank"
                   rel="noreferrer noopener"
                   onClick={() => signal("click", item)}
-                  className="mt-1 block font-medium text-ink transition hover:text-accent"
+                  className={`mt-1 block py-0.5 font-semibold text-ink transition hover:text-accent ${
+                    isLead ? "text-lede" : ""
+                  }`}
                 >
                   {item.headline}
+                  <span aria-hidden="true" className="ml-1 text-muted">
+                    ↗
+                  </span>
                 </a>
-                <div className="mt-1.5 flex gap-3 text-xs text-muted">
+                <div className="mt-2 flex justify-end gap-4 text-xs text-muted">
                   <button
                     onClick={() => {
                       if (liked.has(item.id)) return;
@@ -410,9 +418,18 @@ export default function News() {
                   </div>
                 )}
               </article>
-            ))}
-        </div>
-      )}
+        );
+        return (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-line bg-card/60">{renderArticle(lead, true)}</div>
+            {rest.length > 0 && (
+              <div className="divide-y divide-line rounded-2xl border border-line bg-card/60">
+                {rest.map((item) => renderArticle(item, false))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <UndoToast label={undoLabel} onUndo={undo} />
       <BackToTop />

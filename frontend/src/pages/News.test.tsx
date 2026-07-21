@@ -134,6 +134,40 @@ describe("News (M7)", () => {
     expect(screen.getByText("“quantum computing”")).toBeInTheDocument();
   });
 
+  // -- ① lead hierarchy + F2 primary action ----------------------------------------
+
+  it("promotes the top story to a lead and keeps the rest compact (①)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    const lead = (await screen.findByText("Ranked quantum story")).closest("a");
+    const minor = screen.getByText("Searched interest story").closest("a");
+    expect(lead?.className).toMatch(/text-lede/);
+    expect(minor?.className).not.toMatch(/text-lede/);
+  });
+
+  it("makes the headline the primary tap with an open-in-source affordance (F2)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    const lead = (await screen.findByText("Ranked quantum story")).closest("a");
+    expect(lead).toHaveAttribute("href", "https://news.example/q"); // still opens the article
+    expect(lead?.className).toMatch(/font-semibold/);
+    expect(lead).toHaveTextContent("↗"); // the open-in-source glyph
+  });
+
+  it("gives the category pills ≥44px thumb targets (C5)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    const pill = screen.getByRole("button", { name: "Top stories" });
+    expect(pill.className).toMatch(/min-h-\[44px\]/);
+  });
+
   it("shows the learning banner during cold start", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsForYou.mockResolvedValue({
