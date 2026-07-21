@@ -1,0 +1,77 @@
+{
+  "title": "Global Workspace in LLMs — the Jacobian Lens Paper",
+  "topic": "interpretability · global workspace theory",
+  "generated_at": "2026-07-21",
+  "generator": "hand-authored fixture (M8 vertical slice)",
+  "steps": [
+    {
+      "id": "intro",
+      "kind": "intro",
+      "title": "What the Jacobian lens is",
+      "body": "A one-minute orientation: the Jacobian lens reads a model's internal reasoning by how a feature's representation changes across layers — a sharper cousin of the logit lens. This path walks the four-episode arc, checks your grasp where the topic has no study guide, then tests recall."
+    },
+    {
+      "id": "ep1",
+      "kind": "audio",
+      "title": "Ep 1 — Anatomy of the Lens",
+      "artifact_id": "fa4bda2a-f34e-4b4d-9ff5-d562bef025cb",
+      "artifact_type": "audio",
+      "focus": "What the J-lens measures, and why it beats the logit lens.",
+      "estimated_minutes": 8
+    },
+    {
+      "id": "ep2",
+      "kind": "audio",
+      "title": "Ep 2 — The Map of the Layers",
+      "artifact_id": "6b7e660a-738c-42bb-a28f-32b56e2ca183",
+      "artifact_type": "audio",
+      "focus": "How a feature's representation moves across layers.",
+      "estimated_minutes": 9
+    },
+    {
+      "id": "bridge-lens",
+      "kind": "bridge",
+      "title": "Bridge check — J-lens vs the logit lens",
+      "body": "In one or two sentences: how does the Jacobian lens differ from the logit lens, and why does that difference matter for reading a model's reasoning?"
+    },
+    {
+      "id": "ep3",
+      "kind": "audio",
+      "title": "Ep 3 — Surgery on Thoughts",
+      "artifact_id": "01ed5155-5ab9-413c-a063-7ffbe37b4355",
+      "artifact_type": "audio",
+      "focus": "Editing internal representations — what breaks, what holds.",
+      "estimated_minutes": 8
+    },
+    {
+      "id": "ep4",
+      "kind": "audio",
+      "title": "Ep 4 — Replicating the Paper",
+      "artifact_id": "c3ccb11d-2945-4af3-af50-742e6c5f6d58",
+      "artifact_type": "audio",
+      "focus": "The reproduce-and-measure steps you'd actually run.",
+      "estimated_minutes": 7
+    },
+    {
+      "id": "flashcards",
+      "kind": "flashcards",
+      "title": "Drill the J-lens vocabulary (9 cards)",
+      "artifact_id": "23f7e334-6077-47be-a167-107ed83cadcd",
+      "artifact_type": "flashcards",
+      "focus": "Lock in the terms before the quiz."
+    },
+    {
+      "id": "quiz",
+      "kind": "quiz",
+      "title": "Interpretability quiz — earns mastery",
+      "artifact_id": "474ba984-6dd6-4ea7-b067-f505e03909bb",
+      "artifact_type": "quiz"
+    },
+    {
+      "id": "reflect",
+      "kind": "reflect",
+      "title": "Reflect + go deeper",
+      "body": "In one line: when would you NOT trust the Jacobian lens's read of a model? Optional: listen to the Critique episode for the counter-case."
+    }
+  ]
+}
