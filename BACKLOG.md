@@ -151,7 +151,7 @@ _Backlog replenish 2026-07-19 (multi-lane `/brainstorm` + `bug-hunt` session; se
 Append-only. Bug stubs tagged **[P1]** are the five medium-severity findings Kyle flagged fix-first;
 untagged bugs are the verified lows, in report rank order._
 
-### Ideas (21 — one vision doc each)
+### Ideas (27 — one vision doc each)
 
 #### ✅ [Exploration] Overnight Chief of Staff — the brief you approve, not read
 - **Why:** A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action... See [`docs/ideas/overnight-chief-of-staff.md`](docs/ideas/overnight-chief-of-staff.md) for the full write-up.
@@ -298,6 +298,44 @@ untagged bugs are the verified lows, in report rank order._
 - **Size:** S (Friction)
 - **Added:** 2026-07-19
 - _✅ shipped 2026-07-19 (PR #93, RED→green — W2 batch 6, closes the wave): `components/undo.tsx` (`useUndoable` + `UndoToast`, 5s) wraps all three taps — optimistic UI, deferred mutation, Undo = zero API calls (pinned per surface under fake timers), timeout/second-tap/unmount commits. No ranker/weight/layout change._
+
+_Delight pass 2026-07-20 (`/brainstorm` Delight mode — the app's visual language & craft, News + Today as worked examples). Foundation-weighted: 3 systemic pieces (① ② ③) + 3 discrete delights (④ ⑤ ⑥); ⑥ is the deliberate wildcard. Append-only._
+
+#### [Improvement] ① Lead story vs. the field — News gets a front page
+- **Why:** Promote News `items[0]` to a real lead (bigger `text-lede` headline, `p-5`, meta on its own line) while the rest stay the compact field, so the eye lands on a front-page story instead of skating a `divide-y` wall of identical headlines — carried by two reusable type tokens. See [`docs/ideas/news-lead-hierarchy.md`](docs/ideas/news-lead-hierarchy.md) for the full write-up.
+- **Acceptance:** `<LeadCard>` for index 0 + `text-lede`/`text-meta` tokens in `tailwind.config.js`; confirm on a real News load the top story reads as a lead and the eye lands there first, minor rows unchanged.
+- **Size:** M (Delight) — foundation
+- **Added:** 2026-07-20
+
+#### [Improvement] ② A color system, not a color — semantic + source tint
+- **Why:** Grow the single muted-teal into a small family — `success/info/warn/danger` semantic tints + a deterministic per-source tint — so every News source line signals provenance at a glance and the scattered `amber`/`red` one-offs collapse into one honest vocabulary, all inside the teal's calm envelope. See [`docs/ideas/semantic-source-color-system.md`](docs/ideas/semantic-source-color-system.md) for the full write-up.
+- **Acceptance:** Semantic + `sourceTint` tokens added; News source line swapped to `sourceTint(item.source)`; confirm each source carries a stable, distinct, low-saturation tint and one warn/danger vocabulary replaces the `amber`/`red` one-offs — none out-shouting the teal.
+- **Size:** M (Delight) — foundation
+- **Added:** 2026-07-20
+
+#### [Improvement] ③ Dusk mode — a true low-light morning surface
+- **Why:** Re-express the exact identity in low light via CSS variables + `prefers-color-scheme` (warm paper → warm near-black, cards → charcoal, teal legibility-tuned), so a morning app read in a dark pre-dawn room stops flashing a bright field — riding ②'s variable substrate. See [`docs/ideas/dusk-mode.md`](docs/ideas/dusk-mode.md) for the full write-up.
+- **Acceptance:** Base tokens moved to CSS variables + a `prefers-color-scheme: dark` block + `color-scheme: light dark`; confirm the shared chrome (header, tab bar, body) and cards read calm and legible in dark with staleness/warning semantics intact.
+- **Size:** M (Delight) — foundation
+- **Added:** 2026-07-20
+
+#### [Improvement] ④ Milestones the habit strip finally notices
+- **Why:** Make the Today habit strip mark the real, earned milestones already sitting in its `weeks[]` history — a run of on-target weeks, a personal-best week, the target-hit `✓`, round mornings totals — each bound to a verified threshold so it never fires on a partial or stale number. See [`docs/ideas/habit-strip-milestones.md`](docs/ideas/habit-strip-milestones.md) for the full write-up.
+- **Acceptance:** `consecutiveOnTarget`/`isBestWeek`/`totalMornings` derivations + conditional accent/`✓` spans in HabitStrip with once-only localStorage; confirm each marker fires only on a genuinely crossed threshold and the default line is unchanged when nothing is earned.
+- **Size:** S (Delight)
+- **Added:** 2026-07-20
+
+#### [Improvement] ⑤ The companion voice, not the system dialog
+- **Why:** Give the calm `<Banner>` tones (`info`/`muted`, never `warning`) a thin `accent/40` left rule, so honesty-copy ("Still learning you", "Showing saved articles") reads as the app's own margin voice instead of stock alert chrome — one shared-component edit inherited everywhere. See [`docs/ideas/companion-voice-banners.md`](docs/ideas/companion-voice-banners.md) for the full write-up.
+- **Acceptance:** `accent/40` left rule added to the Banner `info`/`muted` tones (warning untouched); confirm every calm honesty surface reads as the app's margin voice and a real `warning` still reads as an alarm.
+- **Size:** S (Delight)
+- **Added:** 2026-07-20
+
+#### [Improvement] ⑥ Content that arrives, not pops
+- **Why:** Replace the brief's hard skeleton→content pop with a sub-250ms top-down section cascade (and a settle on the Ask answer), reduced-motion-guarded and hit-testable at frame 0, so the morning open feels like an arrival with zero added latency. The set's deliberate wildcard. See [`docs/ideas/content-arrives-not-pops.md`](docs/ideas/content-arrives-not-pops.md) for the full write-up.
+- **Acceptance:** A `motion-safe` `.brief-cascade` (opacity + small `translateY`) on Today's section map + a settle on the Ask answer, gated to a genuine cold load; confirm total settle <~250ms, content readable at frame 0, and reduced-motion users get the instant paint.
+- **Size:** S (Delight) — wildcard
+- **Added:** 2026-07-20
 
 ### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
 
