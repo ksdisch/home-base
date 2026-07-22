@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Plan Continue lane ✅ SHIPPED (PR #132)** — the two-lane Plan's second lane (design decision 6): `GET /api/paths` returns every composed path + its next-incomplete step, so the Plan is **non-empty day one** (via the bundled Jacobian example) instead of empty until an SR quiz is due. `StudyPlan.tsx` renders a coverage-driven **Continue** lane (links into the outline+detail player) above the unchanged SR **Review** lane, one shared minutes budget. Backend **665** green (+6) · frontend typecheck + **165** (+2) + build green. Gate honored first: Kyle judged live Designer output this session — a normal topic (jlens) composed a genuinely good path (sensible order · no fabrication · correct bridge); the richest topic timed out at the 180s ceiling (arranges *all* artifacts) → BACKLOG designer-polish follow-up (curation + timeout). **Moonshot queue: EMPTY.** Remaining M8: three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Designer curation polish ✅ SHIPPED (PR #134)** — the BACKLOG follow-up from #12's live-quality gate: the Designer arranged *every* artifact, so the richest topics blew the 180s `claude -p` ceiling + bloated the path. `build_designer_prompt` now shows a bounded, foundational-first slice per kind (`_MAX_PER_KIND` audio 8 · sg 4 · quiz 3 · fc 3) + asks for a FOCUSED path; timeout 180→240; validation stays against the FULL set (M0 bar intact). **Live re-validated:** engineering-abstractions (was a 180s timeout) now composes in ~90s / 17 steps · jlens tightened 17→13, bridge + real ids intact. Backend **669** green (+4). Prior: #12 Plan Continue lane (PR #132). **Moonshot queue: EMPTY.** Remaining M8: three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -333,6 +333,19 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-22 — M8 Learning Paths · Designer curation polish (PR #134)
+The BACKLOG follow-up surfaced by #12's live-quality gate: the on-demand Designer arranged
+EVERY artifact, so the richest topics (engineering-abstractions, ~49 artifacts) blew the 180s
+`claude -p` ceiling and would yield ~50-step paths. `build_designer_prompt` now shows a bounded,
+foundational-first slice per kind (`_MAX_PER_KIND` = audio 8 · study_guide 4 · quiz 3 ·
+flashcards 3) and asks the model for a FOCUSED path (needn't use every artifact); `_TIMEOUT_SECONDS`
+180→240 for headroom; sonnet unchanged. Validation still runs against the FULL artifact set, so
+the M0 no-fabrication bar is intact. Live re-validated: engineering-abstractions (the topic that
+timed out) now composes in ~90s / 17 steps; jlens tightened 17→13 steps with its bridge insert +
+real ids intact. +4 unit tests (`test_paths_designer.py`); backend **669** green, ruff clean.
+(Approach was Kyle's pick from a 3-option gate: bounded cap over model-selects over
+just-raise-the-ceiling.)
 
 ### 2026-07-22 — M8 Learning Paths · the Plan Continue lane (PR #132)
 The two-lane Plan's second lane (design decision 6). New `GET /api/paths`

@@ -116,8 +116,11 @@ study-planner subagent (which would read it as context). Stub now, populate as t
   `question_mastery` lost its five v3 SM-2 columns to a drop/recreate outside the app while the
   ledger still said v3 — every SM-2 surface 500'd until the columns were re-added by hand
   (file backup at `backend/data/learning-hub.sqlite.bak-pre-v3-repair-20260716`)._
-- **M8 Designer — curate artifacts + rich-topic timeout** — the on-demand Designer (PR #130)
-  arranges *every* artifact into the path, so on the richest topics it (a) times out at the 180s
+- **M8 Designer — curate artifacts + rich-topic timeout** — ✅ SHIPPED (PR #134, 2026-07-22):
+  bounded per-kind cap (`_MAX_PER_KIND`) + FOCUSED-path prompt + 180→240s timeout; live re-validated
+  (engineering-abstractions 180s-timeout → ~90s/17 steps · jlens 17→13). Original finding: the
+  on-demand Designer (PR #130)
+  arranged *every* artifact into the path, so on the richest topics it (a) timed out at the 180s
   `claude -p` lane ceiling (confirmed 2026-07-22 on `engineering-abstractions`, ~49 artifacts, run
   solo) and (b) would yield an unwieldy ~50-step path; a normal topic (jlens, 14 artifacts) composes
   a genuinely good path in ~80s. Fix: a curation instruction in `build_designer_prompt` (select the
