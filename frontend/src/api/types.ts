@@ -612,6 +612,24 @@ export interface PathGenerateResponse {
   duration_ms?: number | null;
 }
 
+// The Plan's Continue lane (M8 #12) — every composed path + its resume point: coverage progress
+// and the next incomplete step. `next_step` is null once a path is fully done. Non-empty day one
+// via the bundled example path.
+export interface PathSummary {
+  notebook_id: string;
+  title: string;
+  topic: string;
+  step_count: number;
+  completed_steps: number;
+  progress_pct: number; // coverage (steps done)
+  next_step?: PathStep | null;
+}
+
+export interface PathsResponse {
+  generated_at: string;
+  items: PathSummary[];
+}
+
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
 // (+ the M2 note models).
 export interface BriefSource {

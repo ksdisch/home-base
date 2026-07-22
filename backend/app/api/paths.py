@@ -9,6 +9,7 @@ The bridge-check grade (the one LLM step) is a separate endpoint added in Phase 
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,11 +23,13 @@ from ..models import (
     BridgeGradeResponse,
     PathGenerateResponse,
     PathResponse,
+    PathsResponse,
     PathStep,
+    PathSummary,
     StepComplete,
     StepConfidence,
 )
-from ..paths import PathError, get_path, write_path_file
+from ..paths import PathError, get_path, list_path_ids, write_path_file
 from ..paths.designer import compose_path
 from ..paths.grader import grade_bridge, max_answer_chars
 from ..store import db
@@ -85,6 +88,40 @@ def _build_response(notebook_id: str, raw: Dict[str, Any]) -> PathResponse:
         mastery=_mastery_for(notebook_id),
         confidence=conf_avg,
     )
+
+
+@router.get("/paths", response_model=PathsResponse)
+def list_learning_paths() -> PathsResponse:
+    """All composed learning paths + their resume point — the Plan **Continue** lane (design
+    decision 6): coverage progress and the next incomplete step per path, non-empty day one via the
+    bundled example. A malformed path file is listed by id but skipped here (never a 500), mirroring
+    the loader's tolerant posture. Still-in-progress paths sort first, then by title (stable)."""
+    items: list[PathSummary] = []
+    for nid in list_path_ids():
+        try:
+            raw = get_path(nid)
+        except PathError:
+            continue  # a malformed file is skipped, like the manifest list
+        if raw is None:
+            continue
+        done = db.get_path_progress(nid)
+        steps = raw["steps"]
+        total = len(steps)
+        completed = sum(1 for s in steps if done.get(s["id"]))
+        next_raw = next((s for s in steps if not done.get(s["id"])), None)
+        items.append(
+            PathSummary(
+                notebook_id=raw["notebook_id"],
+                title=raw["title"],
+                topic=raw.get("topic", "") or "",
+                step_count=total,
+                completed_steps=completed,
+                progress_pct=round(completed / total * 100) if total else 0,
+                next_step=PathStep(**next_raw) if next_raw else None,
+            )
+        )
+    items.sort(key=lambda it: (it.next_step is None, it.title.lower()))
+    return PathsResponse(generated_at=datetime.now(timezone.utc).isoformat(), items=items)
 
 
 @router.get("/paths/{notebook_id}", response_model=PathResponse)

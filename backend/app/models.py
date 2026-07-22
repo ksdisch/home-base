@@ -696,6 +696,30 @@ class PathGenerateResponse(BaseModel):
     duration_ms: Optional[int] = None
 
 
+class PathSummary(BaseModel):
+    """One learning path at a glance for the Plan's **Continue** lane (design decision 6): coverage
+    progress + the next step to resume at. ``next_step`` is the first incomplete step (``None`` once
+    every step is done). Built from the same coverage store the player writes, so it always agrees
+    with the path view."""
+
+    notebook_id: str
+    title: str
+    topic: str = ""
+    step_count: int = 0
+    completed_steps: int = 0
+    progress_pct: int = 0
+    next_step: Optional[PathStep] = None
+
+
+class PathsResponse(BaseModel):
+    """All composed learning paths with their resume point — feeds the Plan **Continue** lane
+    (coverage-driven, non-empty day one via the bundled example path). A malformed path file is
+    skipped, never a 500 (the manifest-list posture)."""
+
+    generated_at: str
+    items: List[PathSummary] = []
+
+
 class BriefSource(BaseModel):
     title: str
     url: str
