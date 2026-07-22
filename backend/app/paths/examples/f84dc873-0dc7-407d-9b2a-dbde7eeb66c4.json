@@ -1,32 +1,32 @@
 {
   "title": "Global Workspace in LLMs — the Jacobian Lens Paper",
   "topic": "interpretability · global workspace theory",
-  "generated_at": "2026-07-21",
-  "generator": "hand-authored fixture (M8 vertical slice)",
+  "generated_at": "2026-07-22",
+  "generator": "hand-authored fixture (M8 vertical slice; built on the audio-overview season)",
   "steps": [
     {
       "id": "intro",
       "kind": "intro",
       "title": "What the Jacobian lens is",
-      "body": "A one-minute orientation: the Jacobian lens reads a model's internal reasoning by how a feature's representation changes across layers — a sharper cousin of the logit lens. This path walks the four-episode arc, checks your grasp where the topic has no study guide, then tests recall."
+      "body": "A one-minute orientation: the Jacobian lens reads a model's internal reasoning by how a feature's representation changes across layers — a sharper cousin of the logit lens. This path walks the six-episode audio season, checks your grasp where the topic has no study guide, then tests recall. (The whiteboard video series is optional supplementary material — see the Reflect step.)"
     },
     {
       "id": "ep1",
       "kind": "audio",
-      "title": "Ep 1 — Anatomy of the Lens",
-      "artifact_id": "fa4bda2a-f34e-4b4d-9ff5-d562bef025cb",
+      "title": "Ep 1 — The Global Workspace Idea",
+      "artifact_id": "82a3597b-6f32-4d7f-acaa-ba76bd407249",
       "artifact_type": "audio",
-      "focus": "What the J-lens measures, and why it beats the logit lens.",
-      "estimated_minutes": 8
+      "focus": "Global Workspace Theory background + the five-property checklist that frames the whole arc.",
+      "estimated_minutes": 20
     },
     {
       "id": "ep2",
       "kind": "audio",
-      "title": "Ep 2 — The Map of the Layers",
-      "artifact_id": "6b7e660a-738c-42bb-a28f-32b56e2ca183",
+      "title": "Ep 2 — The Jacobian Lens",
+      "artifact_id": "72118929-ea29-420a-bfd4-5a25a50a0036",
       "artifact_type": "audio",
-      "focus": "How a feature's representation moves across layers.",
-      "estimated_minutes": 9
+      "focus": "The J-lens method itself — how it reads a feature's representation across layers.",
+      "estimated_minutes": 22
     },
     {
       "id": "bridge-lens",
@@ -37,20 +37,38 @@
     {
       "id": "ep3",
       "kind": "audio",
-      "title": "Ep 3 — Surgery on Thoughts",
-      "artifact_id": "01ed5155-5ab9-413c-a063-7ffbe37b4355",
+      "title": "Ep 3 — Report, Control, Reasoning",
+      "artifact_id": "bf0196c0-1db8-4586-a988-c383cb10b019",
       "artifact_type": "audio",
-      "focus": "Editing internal representations — what breaks, what holds.",
-      "estimated_minutes": 8
+      "focus": "The first cluster of the five properties' evidence — report, control, reasoning.",
+      "estimated_minutes": 39
     },
     {
       "id": "ep4",
       "kind": "audio",
-      "title": "Ep 4 — Replicating the Paper",
-      "artifact_id": "c3ccb11d-2945-4af3-af50-742e6c5f6d58",
+      "title": "Ep 4 — Broadcast, Selectivity, Structure",
+      "artifact_id": "32682216-8712-4145-8341-be4c999dce75",
       "artifact_type": "audio",
-      "focus": "The reproduce-and-measure steps you'd actually run.",
-      "estimated_minutes": 7
+      "focus": "The structural signatures that complete the five-property evidence.",
+      "estimated_minutes": 48
+    },
+    {
+      "id": "ep5",
+      "kind": "audio",
+      "title": "Ep 5 — Auditing Hidden Thoughts",
+      "artifact_id": "c918a216-2a1a-42b5-879a-aed873f7b684",
+      "artifact_type": "audio",
+      "focus": "Safety and auditing — reading a model's hidden thoughts + reflection training.",
+      "estimated_minutes": 24
+    },
+    {
+      "id": "ep6",
+      "kind": "audio",
+      "title": "Ep 6 — Consciousness & Replication",
+      "artifact_id": "0b54dbfa-f335-4ccf-ba42-2cbe8000c900",
+      "artifact_type": "audio",
+      "focus": "Consciousness theories + the replication path (repo, Qwen, Neuronpedia).",
+      "estimated_minutes": 26
     },
     {
       "id": "flashcards",
@@ -71,7 +89,7 @@
       "id": "reflect",
       "kind": "reflect",
       "title": "Reflect + go deeper",
-      "body": "In one line: when would you NOT trust the Jacobian lens's read of a model? Optional: listen to the Critique episode for the counter-case."
+      "body": "In one line: when would you NOT trust the Jacobian lens's read of a model? Optional: listen to the Critique standalone for the counter-case, or watch the whiteboard video series (Anatomy of the Lens → Replicating the Paper) for the visual walkthrough."
     }
   ]
 }

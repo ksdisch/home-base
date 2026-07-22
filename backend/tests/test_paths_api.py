@@ -41,7 +41,7 @@ def test_get_path_cold_start(client):
     assert r.status_code == 200
     b = r.json()
     assert b["notebook_id"] == JACOBIAN
-    assert b["step_count"] == 9
+    assert b["step_count"] == 11  # intro + 6 audio eps + bridge + flashcards + quiz + reflect
     assert b["completed_steps"] == 0
     assert b["progress_pct"] == 0
     assert b["mastery"] is None  # never tested -> honest em-dash, not an inflated grade
@@ -58,7 +58,7 @@ def test_completing_a_step_moves_coverage(client):
     assert r.status_code == 200
     b = r.json()
     assert b["completed_steps"] == 1
-    assert b["progress_pct"] == round(1 / 9 * 100)
+    assert b["progress_pct"] == round(1 / b["step_count"] * 100)
     assert next(s for s in b["steps"] if s["id"] == "ep1")["completed"] is True
     # unmarking flips it back
     b2 = client.post(f"/api/paths/{JACOBIAN}/steps/ep1/complete", json={"completed": False}).json()

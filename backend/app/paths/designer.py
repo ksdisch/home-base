@@ -28,7 +28,10 @@ _TYPE_FOR_KIND = {"audio": "audio", "read": "study_guide", "quiz": "quiz", "flas
 
 # For the prompt: the artifact types a step may reference, in learn-order, with their display label
 # and the path-step kind they map to. Anything else in the catalog (video, mind_map, report…) is
-# omitted — the designer can only arrange these four kinds.
+# omitted — the designer can only arrange these four kinds. Note this makes AUDIO the learning spine
+# and keeps VIDEO overviews out of a generated path by construction: video is supplementary material,
+# not the backbone (design decision 12, docs/ideas/learning-paths.md). Hand-authored fixtures must
+# honor the same convention — they bypass this, so backend/tests/test_paths_fixture.py guards it.
 _PRESENT_ORDER = (
     ("audio", "🎧 audio", "audio"),
     ("study_guide", "📖 study guides", "read"),

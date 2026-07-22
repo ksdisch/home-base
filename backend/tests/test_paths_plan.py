@@ -53,7 +53,7 @@ def test_continue_lane_non_empty_day_one(client):
     assert r.status_code == 200
     jac = _item_for(r.json(), JACOBIAN)
     assert jac is not None
-    assert jac["step_count"] == 9
+    assert jac["step_count"] == 11
     assert jac["completed_steps"] == 0
     assert jac["progress_pct"] == 0
     assert jac["next_step"] is not None
@@ -71,7 +71,7 @@ def test_next_step_is_the_first_incomplete_and_advances(client):
     client.post(f"/api/paths/{JACOBIAN}/steps/{first_id}/complete", json={"completed": True})
     jac2 = _item_for(client.get("/api/paths").json(), JACOBIAN)
     assert jac2["completed_steps"] == 1
-    assert jac2["progress_pct"] == round(1 / 9 * 100)
+    assert jac2["progress_pct"] == round(1 / jac2["step_count"] * 100)
     assert jac2["next_step"]["id"] != first_id
 
 
@@ -80,7 +80,7 @@ def test_fully_completed_path_has_no_next_step(client):
     for s in steps:
         client.post(f"/api/paths/{JACOBIAN}/steps/{s['id']}/complete", json={"completed": True})
     jac = _item_for(client.get("/api/paths").json(), JACOBIAN)
-    assert jac["completed_steps"] == 9
+    assert jac["completed_steps"] == jac["step_count"]
     assert jac["progress_pct"] == 100
     assert jac["next_step"] is None
 
