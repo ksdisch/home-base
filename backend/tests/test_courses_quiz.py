@@ -7,8 +7,9 @@ namespace so the existing SM-2 scheduler tracks it per course — with NO schema
 These tests pin: the answer-key-free invariant on the course player view; the grade round-trip
 persisting a course-scoped attempt + advancing ``question_mastery`` SM-2; the ``/quizzes`` read
 surface; path-traversal rejection; calm failure on a non-quiz path; due-question counting against
-an injected future clock; and — crucially — that course attempts DON'T leak into the
-notebook-facing surfaces (``/review``, ``/study-plan``, ``/progress``) while still counting toward
+an injected future clock; and — crucially — that course attempts DON'T leak into the topic-only
+surfaces (``/review``, ``/progress``) while now *surfacing* in the cross-notebook ``/study-plan``
+(so course quizzes get the same spaced-repetition resurfacing topics do) and still counting toward
 the activity streak.
 """
 
@@ -207,17 +208,19 @@ def test_prepare_unknown_course_is_calm_error(client):
     assert r.json()["ok"] is False
 
 
-# -- the boundary: courses don't pollute the notebook surfaces -----------------
+# -- the boundary: courses stay out of the topic-only surfaces, but join the plan --------
 
-def test_course_attempt_excluded_from_notebook_surfaces_but_counts_as_activity(client):
+def test_course_attempt_stays_off_topic_surfaces_but_joins_the_study_plan(client):
     # A miss leaves a shaky question + a topic_mastery row — the strongest pollution case.
     _take(client, {i: (idx + 1) % 4 for i, idx in _correct_answers().items()})
 
+    # Still invisible to the topic-only queue (courses keep their own /review surface)...
     review = client.get("/api/review").json()
     assert all(not it["notebook_id"].startswith("course:") for it in review["items"])
 
+    # ...but the course quiz now DOES join the cross-notebook study plan (spaced-rep resurfacing).
     plan = client.get("/api/study-plan").json()
-    assert all(not s["notebook_id"].startswith("course:") for s in plan["segments"])
+    assert any(s["notebook_id"] == COURSE_NB for s in plan["segments"])
 
     prog = client.get("/api/progress").json()
     assert all(not t["notebook_id"].startswith("course:") for t in prog["topics"])
@@ -228,3 +231,12 @@ def test_course_attempt_excluded_from_notebook_surfaces_but_counts_as_activity(c
     # ...but the day still registers learning activity (the streak is source-agnostic).
     assert prog["summary"]["last_activity"] is not None
     assert any(day["count"] > 0 for day in prog["activity"])
+
+
+def test_study_plan_titles_the_course_segment_with_the_course_title(client):
+    _take(client, {i: (idx + 1) % 4 for i, idx in _correct_answers().items()})
+    plan = client.get("/api/study-plan").json()
+    seg = next(s for s in plan["segments"] if s["notebook_id"] == COURSE_NB)
+    assert seg["title"] == "Learning How to Learn"  # course title, not the raw 'course:<slug>' id
+    assert seg["quiz_artifact_id"] == QUIZ_PATH
+    assert seg["topic_url"] is None  # course segments carry no single topic_url; client derives it

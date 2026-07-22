@@ -140,9 +140,48 @@ def test_missing_sidecar_root_never_breaks_the_course_page(client, monkeypatch):
 
 
 def test_other_course_surfaces_unaffected(client):
-    # The join is detail-only; the list + next endpoints stay notebook-free and calm.
-    assert client.get("/api/courses").status_code == 200
+    # The detail *materials* join is detail-only; the /next endpoint stays notebook-free and calm.
     assert client.get(f"/api/courses/{SLUG}/next").status_code == 200
+
+
+# -- the reverse cross-link: topic card ↔ course card --------------------------
+
+def test_catalog_card_links_to_the_course_that_builds_on_it(client):
+    """A topic's catalog card carries the course(s) that reference it, so the Learning tab can
+    cross-link to the course instead of looking like a duplicate entry."""
+    groups = client.get("/api/catalog").json()["groups"]
+    card = next(
+        c for g in groups for c in g["notebooks"] if c["notebook_id"] == NB_ID
+    )
+    assert card["courses"] == [{"slug": SLUG, "title": "Notebook Course"}]
+
+
+def test_course_card_links_to_its_source_notebook(client):
+    """A course summary carries its source notebook (its first ``notebooklm`` material), resolved
+    against the sidecar catalog, so the Courses tab can cross-link back to the topic."""
+    summary = next(c for c in client.get("/api/courses").json()["courses"] if c["slug"] == SLUG)
+    nb = summary["notebook"]
+    assert nb is not None
+    assert nb["found"] is True
+    assert nb["notebook_id"] == NB_ID
+    assert nb["title"] == "Jlens Workspace"
+    assert nb["topic_url"] == f"/topics/{NB_ID}"
+
+
+def test_course_card_notebook_is_none_when_missing_root(client, monkeypatch):
+    """The course→topic ref degrades to found=False (never 500s) when the catalog can't resolve."""
+    from app.config import get_settings
+
+    monkeypatch.setenv("NOTEBOOKLM_ROOT", str(Path("/nonexistent") / "nowhere"))
+    get_settings.cache_clear()
+    try:
+        summary = next(
+            c for c in client.get("/api/courses").json()["courses"] if c["slug"] == SLUG
+        )
+        assert summary["notebook"]["found"] is False
+        assert summary["notebook"]["notebook_id"] == NB_ID
+    finally:
+        get_settings.cache_clear()
 
 
 # -- validator ------------------------------------------------------------------

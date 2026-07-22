@@ -60,6 +60,29 @@ def test_old_attempts_are_due_now_and_fresh_ones_are_not(tmp_path):
     assert items[0]["question_key"] == "k-old"
 
 
+def test_course_rows_join_the_plan_queue_but_not_the_topic_review_queue(tmp_path):
+    """Course-namespaced SM-2 rows now flow into the plan queue (so course quizzes get spaced-rep
+    resurfacing), while the topic-only review queue still filters ``course:%`` back out."""
+    db = tmp_path / "course.sqlite"
+    init_db(db)
+    record_attempt(
+        "course:demo", "quizzes/m1.json", score=0, total=1,
+        answers=_answers(("k-course", False, False)), now=OLD, db_path=db,
+    )
+    record_attempt(
+        "nb-topic", "qz", score=0, total=1,
+        answers=_answers(("k-topic", False, False)), now=OLD, db_path=db,
+    )
+
+    plan_nbs = {it["notebook_id"] for it in m.sr_plan_items(NOW, db_path=db)}
+    assert "course:demo" in plan_nbs  # the change: courses join the plan
+    assert "nb-topic" in plan_nbs
+
+    review_nbs = {t["notebook_id"] for t in m.review_queue(NOW, db_path=db)}
+    assert "course:demo" not in review_nbs  # topic-only surface unchanged
+    assert "nb-topic" in review_nbs
+
+
 def test_lapsed_question_outranks_a_clean_one_at_equal_age(tmp_path):
     db = tmp_path / "rank.sqlite"
     init_db(db)

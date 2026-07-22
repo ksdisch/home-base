@@ -32,6 +32,7 @@ from ..courses import (
     list_courses,
     material_path,
     next_actions,
+    notebook_ids_for,
     read_material,
 )
 from ..courses.regen import (
@@ -56,6 +57,7 @@ from ..models import (
     CourseMaterialResponse,
     CourseNextItem,
     CourseNextResponse,
+    CourseNotebookRef,
     CourseObjectivesUpdate,
     CourseOrderUpdate,
     CourseQuizState,
@@ -121,6 +123,30 @@ def _attach_notebook_refs(course: Dict[str, Any]) -> None:
             "notebooklm_url": card.notebooklm_url,
             "counts": card.counts,
         }
+
+
+def _summary_notebook_ref(
+    course: Dict[str, Any], by_id: Dict[str, Any]
+) -> Optional[CourseNotebookRef]:
+    """The course's source notebook (its first ``notebooklm`` material) resolved against the
+    sidecar catalog — the course→topic cross-link shown on the course card. ``None`` if the course
+    references no notebook; ``found=False`` when the notebook isn't in this machine's catalog."""
+    ids = notebook_ids_for(course)
+    if not ids:
+        return None
+    nb = ids[0]
+    sc = by_id.get(nb)
+    if sc is None:
+        return CourseNotebookRef(notebook_id=nb, found=False)
+    card = to_card(sc)
+    return CourseNotebookRef(
+        notebook_id=card.notebook_id,
+        found=True,
+        title=card.title,
+        topic_url=card.topic_url,
+        notebooklm_url=card.notebooklm_url,
+        counts=card.counts,
+    )
 
 
 def _quiz_materials(course: Dict[str, Any]) -> List[Tuple[str, str, Dict[str, Any]]]:
@@ -261,6 +287,13 @@ def _edit(slug: str, mutate: Callable[[Dict[str, Any]], None]) -> CourseEditResp
 
 @router.get("/courses", response_model=CoursesResponse)
 def get_courses() -> CoursesResponse:
+    try:  # load the sidecar catalog once for the course→topic cross-links (best-effort)
+        by_id = {
+            sc.notebook_id: sc
+            for sc in load_sidecars(get_settings().notebooklm_root).sidecars
+        }
+    except Exception:  # the course list must never 500 over the sidecar catalog
+        by_id = {}
     summaries: List[CourseSummary] = []
     for s in list_courses():
         course = get_course(s["slug"])  # safe: the summary came from a valid manifest
@@ -272,6 +305,7 @@ def get_courses() -> CoursesResponse:
                 completed_lessons=completed,
                 progress_pct=pct,
                 editable=user_course_dir(s["slug"]) is not None,
+                notebook=_summary_notebook_ref(course, by_id) if course else None,
             )
         )
     return CoursesResponse(

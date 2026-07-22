@@ -285,6 +285,39 @@ def get_course(slug: str) -> Optional[Dict[str, Any]]:
     return {**manifest, **_counts(manifest)}
 
 
+def notebook_ids_for(course: Dict[str, Any]) -> List[str]:
+    """The distinct notebook ids a course references via its ``notebooklm`` materials, in first-seen
+    order — the course→topic link (the course card shows its source notebook)."""
+    out: List[str] = []
+    for m in course.get("modules", []):
+        for lsn in m.get("lessons", []):
+            for mat in lsn.get("materials", []):
+                if mat.get("type") != "notebooklm":
+                    continue
+                nb = mat.get("notebook_id")
+                if isinstance(nb, str) and nb and nb not in out:
+                    out.append(nb)
+    return out
+
+
+def courses_by_notebook() -> Dict[str, List[Dict[str, str]]]:
+    """``notebook_id -> [{"slug","title"}, ...]`` for every course that references a notebook via a
+    ``notebooklm`` material — the reverse of the course-detail catalog join, so a topic card can
+    surface the course(s) built on it. Best-effort: a malformed course is skipped, never raises."""
+    out: Dict[str, List[Dict[str, str]]] = {}
+    for summary in list_courses():
+        slug = summary["slug"]
+        try:
+            course = get_course(slug)
+        except CourseError:
+            continue
+        if course is None:
+            continue
+        for nb in notebook_ids_for(course):
+            out.setdefault(nb, []).append({"slug": slug, "title": course["title"]})
+    return out
+
+
 def material_path(slug: str, rel_path: str) -> Path:
     """Resolve a material file to an absolute ``Path``, confined to the course dir (rejects
     ``../`` traversal). For callers that need the file itself — e.g. the quiz session's
