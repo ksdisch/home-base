@@ -338,7 +338,7 @@ _One condensed entry per update — what shipped, the PR, the decisions that sti
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
 
-### 2026-07-22 — Study Scheduler v1 · flexible, preference-honoring scheduling (this PR)
+### 2026-07-22 — Study Scheduler v1 · flexible, preference-honoring scheduling (PR #140)
 Kyle hit the v0 wall: "weekdays before 2pm" produced two fixed 6pm weeknights that wouldn't budge.
 Root cause (traced): **no day-of-week concept existed anywhere**, and the evening-only window +
 `day_end_hour > day_start_hour` repair silently rewrote "before 2pm" into a 6–7pm slot. Full rework
@@ -353,6 +353,16 @@ days-of-week/morning · negotiate parse+prompt · store prefs roundtrip · API c
 `applied`), frontend 180→185 (v1 controls render/hydrate/deterministic-knobs/applied-reflected/note-drives).
 ruff/tsc/build green; v12 migration verified to heal a pre-v12 store. Calendar stays read-only on
 propose; a live write still needs Kyle's OAuth. Runbook: [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) v1 section.
+
+### 2026-07-22 — server LaunchAgent PATH fix: live NotebookLM refresh (PR #139)
+The `com.homebase.server` LaunchAgent's hardcoded PATH omitted `~/.local/bin`, where `nlm`
+installs — so the always-on server's `shutil.which("nlm")` returned nothing and every topic-page
+**Refresh (live)** surfaced a misleading "NotebookLM sign-in needed / nlm command failed" banner
+(auth was fine; "Open in NotebookLM" worked because it's a plain browser link, not an `nlm` call).
+Fix: prepend `__LOCAL_BIN__` (= `$HOME/.local/bin`) to the plist PATH via a new installer
+placeholder, and the same to the live plist. Reloaded (bootout+bootstrap); verified end to end —
+`GET /api/topics/{jacobian}?live=true` now returns `live:true` + 10 artifacts through the running
+server. No code/test change (infra only).
 
 ### 2026-07-22 — Study Scheduler v0 · planner CT-offset fix (PR #138)
 Post-ship follow-up, caught on the first LIVE propose: a study block whose start snapped to a

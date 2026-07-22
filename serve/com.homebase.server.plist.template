@@ -13,12 +13,14 @@
     <string>__WRAPPER__</string>
   </array>
 
-  <!-- launchd's env is minimal; a plain PATH is enough here — the wrapper calls the venv
-       python by absolute path (no nvm/claude needed, unlike the sweep agent). -->
+  <!-- launchd's env is minimal. The wrapper calls the venv python by absolute path, but the
+       backend also shells out to `nlm` (live NotebookLM refresh), which installs to
+       ~/.local/bin. shutil.which("nlm") fails without it on PATH and the topic page shows a
+       bogus "NotebookLM sign-in needed" banner — so __LOCAL_BIN__ (= $HOME/.local/bin) leads. -->
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>__LOCAL_BIN__:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
 
   <!-- Up whenever the Mac is: start at login, restart if it ever exits. -->
