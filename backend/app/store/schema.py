@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -239,6 +239,42 @@ STATEMENTS = [
         rating      INTEGER NOT NULL,
         updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (notebook_id, step_id)
+    )
+    """,
+    # Study Scheduler (v0): the per-track opt-in flag. When enabled, the deterministic session
+    # planner may propose calendar blocks for this track's incomplete steps; ``session_minutes`` is
+    # the (negotiated) block length. ``track_kind`` is 'path' in v0 — the shared ordered-step engine
+    # lets a 'course' opt in later with no schema change. Same content-on-disk / progress-in-SQLite
+    # split as ``path_step_progress``. v11 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER.
+    """
+    CREATE TABLE IF NOT EXISTS study_opt_in (
+        track_kind      TEXT NOT NULL,
+        track_id        TEXT NOT NULL,
+        enabled         INTEGER NOT NULL DEFAULT 0,
+        session_minutes INTEGER NOT NULL DEFAULT 45,
+        updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (track_kind, track_id)
+    )
+    """,
+    # Study Scheduler (v0): the removable block ledger — one row per study block the scheduler WROTE
+    # to Google Calendar. ``event_id`` + ``calendar_id`` are the Google identity, so every block is
+    # cleanly removable (the feature's one hard rule); ``status`` flips 'written' -> 'removed' on
+    # deletion (kept for audit, never hard-deleted). ``start_at``/``end_at`` are RFC3339 with a CT
+    # offset. v11 adds this table; a plain CREATE IF NOT EXISTS needs no ALTER migration entry.
+    """
+    CREATE TABLE IF NOT EXISTS study_blocks (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        track_kind  TEXT NOT NULL,
+        track_id    TEXT NOT NULL,
+        step_id     TEXT NOT NULL,
+        calendar_id TEXT NOT NULL,
+        event_id    TEXT NOT NULL,
+        title       TEXT NOT NULL,
+        start_at    TEXT NOT NULL,
+        end_at      TEXT NOT NULL,
+        status      TEXT NOT NULL DEFAULT 'written',
+        created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+        removed_at  TEXT
     )
     """,
 ]

@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Jacobian-Lens vertical slice ✅ CLOSED (PR #136)** — #15, the slice-quality frontend green gate: the three surfaces that had no frontend tests (PathPlayer · NotebookCard · the on-demand Generate flow) now do, in the house style (+8 tests, frontend 167→175; typecheck + build green). That closes the whole slice end to end — design (#126) → Phases 1–4 (#127–129) → Designer (#130) → Plan Continue lane (#132) → Designer curation (#134) → three-trend Progress (#135) → green gate (#136). Live path quality was judged good 2026-07-22; **the slice is now live on the prod hub** — advanced from a stale ee904c9 → origin/main, frontend rebuilt, `com.homebase.server` kickstarted (health ok; `/api/paths` now carries `confidence`). **Moonshot queue: EMPTY.** Next M8 = scale the Designer beyond the one bundled fixture to the rest of the library (future). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **Study Scheduler v0 — opt-in Google Calendar study blocks for a learning path, built + fully tested (PR #PENDING)**, anchored on the Jacobian path. Full v0 in one PR (Kyle's call): schema-v11 opt-in + removable block ledger · a per-kind duration model · a deterministic CT/DST session planner (packs whole steps, never splits, skips busy, one/day) · a `CalendarPort` seam (Fake in tests, a real Google adapter behind lazy imports) · a grounded `claude -p` negotiation lane (sets planner knobs only, never invents times) · a Study-time panel on PathPlayer. Backend +39 tests all green · frontend 175→180 · ruff/typecheck/build green. A **live** write needs Kyle's one-time OAuth ([`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md)); until then it degrades honestly to a "connect your calendar" state. New package `app.studycal` (distinct from the SM-2 `app.study`/`store.scheduler`). Prior: **M8 — Learning Paths, the Jacobian-Lens vertical slice ✅ CLOSED (PR #136)** — the #15 green gate closed the whole slice end to end — design (#126) → Phases 1–4 (#127–129) → Designer (#130) → Plan Continue lane (#132) → Designer curation (#134) → three-trend Progress (#135) → green gate (#136). Live path quality was judged good 2026-07-22; **the slice is now live on the prod hub** — advanced from a stale ee904c9 → origin/main, frontend rebuilt, `com.homebase.server` kickstarted (health ok; `/api/paths` now carries `confidence`). **Moonshot queue: EMPTY.** Next M8 = scale the Designer beyond the one bundled fixture to the rest of the library (future). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -82,6 +82,7 @@ kanban
     w4readiness["W4 moonshot #2 —<br/>Readiness v0 'Coming<br/>up' strip:<br/>trajectories-only<br/>forward projection ·<br/>badge-identical keys ·<br/>honest cold start ·<br/>PR 105 · eighth gate<br/>override"]
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
     m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>green gate · PR 136 ·<br/>slice CLOSED"]
+    hbss["HB Study Scheduler v0<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#PENDING · live write<br/>pending Kyle OAuth"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
@@ -325,6 +326,8 @@ glance instead of a sqlite dig._
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
 | [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
+| [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook) |
+| [`ideas/study-scheduler.md`](ideas/study-scheduler.md) | Study Scheduler idea/write-up (captured 2026-07-22) — premise, settled decisions, open questions |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas + the replenished `## Open` queue |
 
 ---
@@ -334,6 +337,23 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-22 — Study Scheduler v0 · opt-in Calendar study blocks for a path (PR #PENDING)
+Home Base's second acting surface (after Overnight) and its first Google-service write. Behind a
+per-path opt-in flag, a deterministic planner reads the Jacobian path's incomplete steps + a per-kind
+duration model + Google free/busy and proposes calendar blocks; one confirm batch-writes them to a
+dedicated "Study" calendar and records each `event_id` in a removable ledger (schema **v11**:
+`study_opt_in`, `study_blocks`). Decisions (Kyle 2026-07-22): full v0 in one PR · dedicated calendar ·
+per-kind durations folding micro-glue · one-off · deterministic **plus** a grounded `claude -p`
+negotiation lane (sets planner *knobs* only — never invents a time, keeping the M0 no-fabrication bar).
+New package `app.studycal` (**not** `app.study` — that's the SM-2 review planner — nor
+`store.scheduler`). Everything reaches the calendar through a `CalendarPort` seam, so the whole
+feature is tested against an in-memory fake; the real Google adapter (`app.studycal.google`) imports
+its libs lazily and degrades honestly to a "connect your calendar" state until Kyle runs the one-time
+OAuth login ([`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md)). Backend +39 tests (store · duration ·
+planner incl. DST/no-split/busy-skip · port · negotiate · API), all green + ruff clean; frontend
+`PathPlayer.test.tsx` +5 (175→180), typecheck + build green. **Open:** Kyle's one-time OAuth
+provisioning for the live-write proof. **Future:** recurring · completion-reclaim · Courses parity.
 
 ### 2026-07-22 — M8 Learning Paths · the slice-quality green gate — VERTICAL SLICE CLOSED (PR #136)
 #15, the last M8 item. The three surfaces the design flagged as untested — the outline+detail

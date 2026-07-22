@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PathResponse, PathStep } from "../api/types";
+import type { PathResponse, PathStep, StudyProposal, StudyScheduleState } from "../api/types";
 import PathPlayer from "./PathPlayer";
 
 // M8 #15 — the slice-quality green gate for the outline+detail path player. Mock the client with
@@ -12,6 +12,13 @@ const topic = vi.fn();
 const completeStep = vi.fn();
 const rateStepConfidence = vi.fn();
 const gradeBridge = vi.fn();
+// Study Scheduler surface (added below): PathPlayer now fetches api.schedule in an effect, so the
+// mock MUST carry it (and the write methods) or every test above would throw on the missing method.
+const schedule = vi.fn();
+const setScheduleOptIn = vi.fn();
+const proposeSchedule = vi.fn();
+const confirmSchedule = vi.fn();
+const removeSchedule = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     path: (id: string) => path(id),
@@ -21,6 +28,11 @@ vi.mock("../api/client", () => ({
     rateStepConfidence: (id: string, stepId: string, rating: number) =>
       rateStepConfidence(id, stepId, rating),
     gradeBridge: (id: string, stepId: string, answer: string) => gradeBridge(id, stepId, answer),
+    schedule: (id: string) => schedule(id),
+    setScheduleOptIn: (id: string, body: unknown) => setScheduleOptIn(id, body),
+    proposeSchedule: (id: string, body: unknown) => proposeSchedule(id, body),
+    confirmSchedule: (id: string, blocks: unknown) => confirmSchedule(id, blocks),
+    removeSchedule: (id: string, ids?: unknown) => removeSchedule(id, ids),
   },
 }));
 
@@ -47,6 +59,35 @@ function makePath(over: Partial<PathResponse> = {}): PathResponse {
   };
 }
 
+const scheduleState = (over: Partial<StudyScheduleState> = {}): StudyScheduleState => ({
+  track_kind: "path",
+  track_id: "nb-jac",
+  enabled: false,
+  session_minutes: 45,
+  connected: false,
+  calendar_id: null,
+  blocks: [],
+  ...over,
+});
+
+const makeBlock = (title: string, stepId: string) => ({
+  start: "2026-07-22T18:00:00-05:00",
+  end: "2026-07-22T18:45:00-05:00",
+  minutes: 45,
+  title,
+  step_ids: [stepId],
+  steps: [{ id: stepId, kind: "audio", title, minutes: 8 }],
+});
+
+const makeProposal = (...items: [string, string][]): StudyProposal => ({
+  ok: true,
+  connected: true,
+  session_minutes: 45,
+  blocks: items.map(([t, s]) => makeBlock(t, s)),
+  unscheduled_step_ids: [],
+  message: null,
+});
+
 function renderAt(id = "nb-jac") {
   return render(
     <MemoryRouter initialEntries={[`/learning/path/${id}`]}>
@@ -63,8 +104,16 @@ beforeEach(() => {
   completeStep.mockReset();
   rateStepConfidence.mockReset();
   gradeBridge.mockReset();
+  schedule.mockReset();
+  setScheduleOptIn.mockReset();
+  proposeSchedule.mockReset();
+  confirmSchedule.mockReset();
+  removeSchedule.mockReset();
   // topic() is a best-effort fetch for the NotebookLM link; give it something so the effect resolves.
   topic.mockResolvedValue({ notebooklm_url: "https://notebooklm.google.com/nb-jac" });
+  // Default: the scheduler effect resolves to an unconnected, opted-out state so the tests above
+  // (which don't care about scheduling) render cleanly.
+  schedule.mockResolvedValue(scheduleState());
 });
 
 describe("PathPlayer — outline + detail (M8 #15)", () => {
@@ -140,5 +189,88 @@ describe("PathPlayer — outline + detail (M8 #15)", () => {
     path.mockResolvedValue(null);
     renderAt();
     expect(await screen.findByText(/No learning path yet/)).toBeInTheDocument();
+  });
+});
+
+describe("PathPlayer — Study Scheduler surface", () => {
+  it("shows the connect-your-calendar state when the calendar isn't wired", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ connected: false }));
+    renderAt();
+    expect(await screen.findByText(/Connect your Google Calendar/i)).toBeInTheDocument();
+  });
+
+  it("proposes a batch then writes it on confirm", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    proposeSchedule.mockResolvedValue(makeProposal(["Ep 1", "s1"]));
+    confirmSchedule.mockResolvedValue(
+      scheduleState({
+        enabled: true,
+        connected: true,
+        blocks: [
+          { id: 1, step_id: "s1", title: "Ep 1", start: "2026-07-22T18:00:00-05:00", end: "2026-07-22T18:45:00-05:00", event_id: "ev-1", calendar_id: "cal", status: "written" },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByRole("button", { name: /Propose times/i }));
+    // Read-only: proposing writes nothing — just surfaces a reviewable set with one confirm.
+    expect(proposeSchedule).toHaveBeenCalledWith("nb-jac", { preference: null });
+    const confirmBtn = await screen.findByRole("button", { name: /Add 1 block to my calendar/i });
+
+    await user.click(confirmBtn);
+    expect(confirmSchedule).toHaveBeenCalledWith("nb-jac", makeProposal(["Ep 1", "s1"]).blocks);
+    expect(await screen.findByText(/On your calendar/i)).toBeInTheDocument();
+  });
+
+  it("excludes a dropped block from the confirmed batch", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    const p = makeProposal(["Ep 1", "s1"], ["Quiz", "s2"]);
+    proposeSchedule.mockResolvedValue(p);
+    confirmSchedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByRole("button", { name: /Propose times/i }));
+    await screen.findByRole("button", { name: /Add 2 blocks to my calendar/i });
+
+    // Drop the first proposed block → only the second is written.
+    await user.click(screen.getAllByRole("button", { name: "Drop" })[0]);
+    await user.click(await screen.findByRole("button", { name: /Add 1 block to my calendar/i }));
+    expect(confirmSchedule).toHaveBeenCalledWith("nb-jac", [p.blocks[1]]);
+  });
+
+  it("persists the opt-in when toggled", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: false, connected: true }));
+    setScheduleOptIn.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByLabelText(/Schedule on my calendar/i));
+    expect(setScheduleOptIn).toHaveBeenCalledWith("nb-jac", { enabled: true });
+  });
+
+  it("removes a written block from the calendar", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(
+      scheduleState({
+        enabled: true,
+        connected: true,
+        blocks: [
+          { id: 7, step_id: "s1", title: "Ep 1", start: "2026-07-22T18:00:00-05:00", end: "2026-07-22T18:45:00-05:00", event_id: "ev-7", calendar_id: "cal", status: "written" },
+        ],
+      }),
+    );
+    removeSchedule.mockResolvedValue(scheduleState({ enabled: true, connected: true, blocks: [] }));
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByRole("button", { name: "Remove" }));
+    expect(removeSchedule).toHaveBeenCalledWith("nb-jac", [7]);
   });
 });

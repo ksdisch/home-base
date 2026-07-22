@@ -631,6 +631,77 @@ export interface PathsResponse {
   items: PathSummary[];
 }
 
+// -- study scheduler (v0): opt-in Google Calendar study blocks for a learning path --------------
+
+export interface StudyBlockStep {
+  id: string;
+  kind: string;
+  title: string;
+  minutes: number;
+}
+
+// One study block the planner proposes — nothing is written until confirm. start/end are RFC3339
+// with a CT offset; step_ids are the path steps this session covers.
+export interface ProposedBlock {
+  start: string;
+  end: string;
+  minutes: number;
+  title: string;
+  step_ids: string[];
+  steps: StudyBlockStep[];
+}
+
+// A study block that WAS written to the calendar — carries the Google event_id + calendar_id that
+// keep it cleanly removable.
+export interface WrittenBlock {
+  id: number;
+  step_id: string;
+  title: string;
+  start: string;
+  end: string;
+  event_id: string;
+  calendar_id: string;
+  status: string; // "written" | "removed"
+}
+
+// The per-path scheduler state: opt-in flag + session length, whether the calendar is connected,
+// and the live (written, not removed) blocks.
+export interface StudyScheduleState {
+  track_kind: string;
+  track_id: string;
+  enabled: boolean;
+  session_minutes: number;
+  connected: boolean;
+  calendar_id?: string | null;
+  blocks: WrittenBlock[];
+}
+
+// The proposed set (read-only — writes nothing). connected=false means the calendar isn't wired yet
+// (honest "connect" state, never an HTTP error); message is the optional negotiation line;
+// unscheduled_step_ids are steps that didn't fit the window.
+export interface StudyProposal {
+  ok: boolean;
+  connected: boolean;
+  session_minutes: number;
+  blocks: ProposedBlock[];
+  unscheduled_step_ids: string[];
+  message?: string | null;
+  error?: string | null;
+  total_cost_usd?: number | null;
+  duration_ms?: number | null;
+}
+
+export interface StudyOptInRequest {
+  enabled: boolean;
+  session_minutes?: number | null;
+}
+
+export interface StudyProposeRequest {
+  preference?: string | null; // free-text -> the claude -p negotiation lane
+  session_minutes?: number | null;
+  days?: number | null;
+}
+
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
 // (+ the M2 note models).
 export interface BriefSource {

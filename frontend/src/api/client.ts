@@ -48,13 +48,18 @@ import type {
   PathResponse,
   PathsResponse,
   ProgressResponse,
+  ProposedBlock,
   QuizGradeRequest,
   QuizGradeResponse,
   QuizPrepareResponse,
   ReflectionsResponse,
   ReviewResponse,
   StudyGuideResponse,
+  StudyOptInRequest,
   StudyPlanResponse,
+  StudyProposal,
+  StudyProposeRequest,
+  StudyScheduleState,
   TopicDetail,
 } from "./types";
 
@@ -295,6 +300,22 @@ export const api = {
   // M8 #12: every composed path + its resume point (coverage + next step) — the Plan Continue lane.
   // Non-empty day one via the bundled example; independent of the review minute budget.
   paths: () => get<PathsResponse>("/paths"),
+  // -- study scheduler (v0): opt-in Google Calendar study blocks for a path. propose is read-only
+  // (nothing writes until confirm); confirm batch-writes the reviewed set and returns the fresh
+  // state; remove deletes the events. connected:false is an honest "connect your calendar" state,
+  // never an error.
+  schedule: (notebookId: string) =>
+    get<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule`),
+  setScheduleOptIn: (notebookId: string, body: StudyOptInRequest) =>
+    post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/opt-in`, body),
+  proposeSchedule: (notebookId: string, body: StudyProposeRequest) =>
+    post<StudyProposal>(`/paths/${encodeURIComponent(notebookId)}/schedule/propose`, body),
+  confirmSchedule: (notebookId: string, blocks: ProposedBlock[]) =>
+    post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/confirm`, { blocks }),
+  removeSchedule: (notebookId: string, blockIds?: number[]) =>
+    post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/remove`, {
+      block_ids: blockIds ?? null,
+    }),
   customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
