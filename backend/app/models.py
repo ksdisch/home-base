@@ -616,6 +616,55 @@ class CourseRegenResponse(BaseModel):
     total_cost_usd: Optional[float] = None
 
 
+# -- learning paths (M8) -------------------------------------------------------
+
+class PathStep(BaseModel):
+    """One step in a generated learning path over a NotebookLM topic. ``kind`` drives rendering +
+    which axis it feeds. Artifact-backed kinds (audio/read/flashcards/quiz) carry ``artifact_id``
+    (a real topic artifact the player launches via the existing routes); glue kinds (intro/bridge/
+    reflect/recap) carry the designer's ``body``/``focus`` text. ``completed`` + ``confidence`` are
+    merged from the store at read time. Extra fields are preserved so the format can grow."""
+
+    model_config = ConfigDict(extra="allow")
+    id: str
+    kind: str
+    title: str
+    focus: Optional[str] = None
+    body: Optional[str] = None
+    artifact_id: Optional[str] = None
+    artifact_type: Optional[str] = None
+    estimated_minutes: Optional[int] = None
+    completed: bool = False           # merged from path_step_progress (coverage)
+    confidence: Optional[int] = None  # merged from path_confidence (1-5 self-rating)
+
+
+class PathResponse(BaseModel):
+    """A topic's learning path + the learner's merged three axes. ``progress_pct`` is coverage
+    (steps done); ``mastery`` is SM-2 recall (decayed, from the shared store — the same read as the
+    home card, ``None`` until the topic's quiz/flashcards are practiced); ``confidence`` is the mean
+    self-rating so far (``None`` until any step is rated)."""
+
+    notebook_id: str
+    title: str
+    topic: str = ""
+    generated_at: str = ""
+    generator: str = ""
+    steps: List[PathStep] = []
+    step_count: int = 0
+    completed_steps: int = 0
+    progress_pct: int = 0
+    mastery: Optional[float] = None
+    confidence: Optional[float] = None
+
+
+class StepComplete(BaseModel):
+    completed: bool
+
+
+class StepConfidence(BaseModel):
+    rating: int  # 1-5
+
+
 class BriefSource(BaseModel):
     title: str
     url: str
