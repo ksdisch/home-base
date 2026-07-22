@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-22 · **M8 — Learning Paths, the three-trend Progress rebuild ✅ SHIPPED (PR #135)** — the last M8 feature: Progress now centers the path model's three honest axes instead of a quiz-only scoreboard. Design decision 8's data fork — coverage/confidence are latest-value-only (upsert, no time-series), only recall's `attempts` history is real — resolved to **Option B** (Kyle): Recall is the one real TREND line (attempt scores over time), Coverage + Confidence are honest CURRENT readouts, never faked into lines — **no new tables, no new writes**. `PathSummary` gains `confidence` (mean self-rating) so Progress reads one `/api/paths` call not N+1; the frontend adds a three-axis band + per-path coverage/confidence rows; the "Recent activity" heatmap stays the honest activity strip. Backend **670** green (+1) · frontend **167** green (+2) · typecheck + build + ruff clean. Prior: Designer curation polish (PR #134). **Moonshot queue: EMPTY.** Remaining M8: slice-quality FRONTEND green gate (#15). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Jacobian-Lens vertical slice ✅ CLOSED (PR #136)** — #15, the slice-quality frontend green gate: the three surfaces that had no frontend tests (PathPlayer · NotebookCard · the on-demand Generate flow) now do, in the house style (+8 tests, frontend 167→175; typecheck + build green). That closes the whole slice end to end — design (#126) → Phases 1–4 (#127–129) → Designer (#130) → Plan Continue lane (#132) → Designer curation (#134) → three-trend Progress (#135) → green gate (#136). Live path quality was judged good 2026-07-22; **the slice is now live on the prod hub** — advanced from a stale ee904c9 → origin/main, frontend rebuilt, `com.homebase.server` kickstarted (health ok; `/api/paths` now carries `confidence`). **Moonshot queue: EMPTY.** Next M8 = scale the Designer beyond the one bundled fixture to the rest of the library (future). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -81,11 +81,11 @@ kanban
     w4mirror["W4 moonshot — Mirror<br/>v0 'You this week'<br/>strip: read-time over<br/>4 signal exhausts ·<br/>honest cold start ·<br/>zero LLM zero writes<br/>· PR 104 · seventh<br/>gate override"]
     w4readiness["W4 moonshot #2 —<br/>Readiness v0 'Coming<br/>up' strip:<br/>trajectories-only<br/>forward projection ·<br/>badge-identical keys ·<br/>honest cold start ·<br/>PR 105 · eighth gate<br/>override"]
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
+    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>green gate · PR 136 ·<br/>slice CLOSED"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
-    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>remaining: green gate"]
   next["📋 Planned"]
-    hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
+    hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
@@ -283,14 +283,14 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Phase 4 — topic scout ✅ 2026-07-18: `suggest_topics` (score ≥ 9 across ≥ 3 days · event-level roster coverage · token-disjoint one-card-per-theme · theme-wide dismiss memory, schema v9) → evidence cards in For You → `POST /api/news/suggestions/add` appends atomically to `sweeps/topics.json` (409 on dupe; the one deliberate Mode-B → Mode-A write) · live e2e proof clean
   - [x] Post-ship polish ✅ 2026-07-18: **PR #65** News promoted into the mobile bottom tab bar · **PR #66** Uplifting category (good-news feeds + attribution fallback) · **PR #67** near-duplicate headline collapse on category pages (newest copy wins)
 
-- [ ] **M8 — Learning paths** — 🔄 IN FLIGHT ([design](ideas/learning-paths.md); approved 2026-07-21 brainstorm → `/explore-plan` approach A: a fixture-first vertical slice that turns Learning from a flat grid with a dead "mastery —" chip into an AI study-designer over your NotebookLM topics, scored on three honest axes — coverage · SM-2 recall · self-rated confidence)
+- [x] **M8 — Learning paths** — ✅ VERTICAL SLICE SHIPPED 2026-07-22 (#126–#136; live on the prod hub); scaling the Designer beyond the bundled fixture is future work. ([design](ideas/learning-paths.md); approved 2026-07-21 brainstorm → `/explore-plan` approach A: a fixture-first vertical slice that turns Learning from a flat grid with a dead "mastery —" chip into an AI study-designer over your NotebookLM topics, scored on three honest axes — coverage · SM-2 recall · self-rated confidence)
   - [x] Phases 1–2 — `app.paths` loader (reads `<notebook_id>.json` path sidecars) + `path_step_progress`/`path_confidence` stores (schema v10) + bundled hand-authored Jacobian-Lens fixture (PR #127)
   - [x] Phase 3 — Paths API: `GET /api/paths/{id}` (coverage · recall · confidence merged onto the on-disk path) + per-step complete/confidence writes + a formative `claude -p` bridge grader (marks coverage, NEVER mastery) (PR #128; 652 backend tests)
   - [x] Phase 4 — the frontend (PR #129): outline+detail **PathPlayer** (left-rail TOC + active step + live three-axis panel; six step behaviors reusing the existing topic routes; inline ✨ bridge-check on the M5 lane) + **NotebookCard** reworked into three live axes + Generate/Continue/Review + the hand-synced `types.ts`/`client.ts` contract. Scoped to the one bundled fixture; typecheck + 163 frontend tests green
   - [x] The on-demand **Designer** (PR #130): `POST /api/paths/{id}/generate` composes a path over a topic's real artifacts on the M5 `claude -p` lane (`app/paths/designer.py`, reused like the bridge grader), validated against the catalog — the **M0 no-fabrication bar**: every artifact-backed step must cite a real id of the matching type or the whole path is rejected and nothing is written (`write_path_file` atomic; `PATHS_DESIGNER_MODEL` tunable, default sonnet). `NotebookCard`'s stub becomes a real busy-aware button. +8 M0-bar tests; backend 660 green
   - [x] **Plan — the Continue lane** (PR #132): `GET /api/paths` lists every composed path + its next-incomplete step (malformed skipped, never a 500) → `StudyPlan.tsx` renders a coverage-driven **Continue** lane (non-empty day one via the bundled example) above the unchanged SR **Review** lane, one shared minutes budget. +6 backend (665) / +2 frontend (165) tests
   - [x] **Progress — the three axes** (PR #135): design decision 8's data fork — coverage/confidence are latest-value-only (upsert, no time-series), only recall's `attempts` history is real — resolved to **Option B** (Kyle): Recall is the one real TREND line (attempt scores over time), Coverage + Confidence are honest CURRENT readouts, never faked into lines (no new tables/writes). `PathSummary` gains `confidence` so Progress reads one `/api/paths` call not N+1; a three-axis band + per-path coverage/confidence rows; the "Recent activity" heatmap stays the honest activity strip. +1 backend (670) / +2 frontend (167) tests
-  - [ ] Remaining: slice-quality FRONTEND green gate (#15 — no PathPlayer/NotebookCard/Generate frontend tests yet); generated-path quality judged good 2026-07-22 (rich-topic curation shipped as PR #134)
+  - [x] **Slice-quality frontend green gate** (PR #136): PathPlayer / NotebookCard / the Generate flow now have house-style frontend tests (+8; frontend 167→175, typecheck + build green). The Jacobian-Lens vertical slice is fully closed; live path quality was judged good 2026-07-22. Next M8 = scale the Designer to the rest of the library (future).
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -334,6 +334,21 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-22 — M8 Learning Paths · the slice-quality green gate — VERTICAL SLICE CLOSED (PR #136)
+#15, the last M8 item. The three surfaces the design flagged as untested — the outline+detail
+PathPlayer, the three-axis NotebookCard, and the on-demand Generate flow (which lives in
+NotebookCard) — now have frontend tests in the house style (mock `../api/client` with only the
+methods each calls). PathPlayer (5): rail + auto-selected first-incomplete step + the three honest
+axes · `api.completeStep` coverage refresh · `api.rateStepConfidence` · the ✨ bridge-check grades
+via `api.gradeBridge` + shows feedback · the no-path banner. NotebookCard (3): ✨ Generate →
+`api.generatePath` lights the card into the path state · `ok:false` surfaces a calm error (no crash)
+· an in-progress path shows the three axes + Continue. Frontend 167→175; typecheck + build green;
+frontend-test-only. That closes the Jacobian-Lens vertical slice end to end (design → Phases 1–4 →
+Designer → Continue lane → curation → Progress → green gate). Also this session: the prod hub was
+advanced from a stale ee904c9 to origin/main, the frontend rebuilt, and `com.homebase.server`
+kickstarted — the whole M8 slice (plus the earlier theme/news work) is now live on :8000. Next M8 =
+scale the Designer beyond the one fixture (future).
 
 ### 2026-07-22 — M8 Learning Paths · the three-trend Progress rebuild (PR #135)
 The last M8 feature. Progress stops being a quiz-only scoreboard and centers the path model's

@@ -168,7 +168,7 @@ untagged bugs are the verified lows, in report rank order._
 - **Acceptance:** Ship the Jacobian Lens vertical slice end-to-end (on-demand path → outline+detail player → three axes → Continue/Review lanes), then judge path quality + the three-axis model before scaling to other topics.
 - **Size:** L (new arc — proposed M8)
 - **Added:** 2026-07-21
-- **Status:** 🔄 In flight as **M8** — the Jacobian Lens slice is built (loader/stores PR #127 · Paths API #128 · frontend #129 · Designer #130 · Plan Continue lane #132 · Designer curation #134 · three-trend Progress #135); path quality judged good 2026-07-22. Remaining: the slice-quality frontend green gate (#15). Granular status in [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md).
+- **Status:** ✅ Vertical slice SHIPPED + CLOSED 2026-07-22 (#126–#136; live on the prod hub) — loader/stores #127 · Paths API #128 · frontend #129 · Designer #130 · Plan Continue lane #132 · Designer curation #134 · three-trend Progress #135 · frontend green gate #136. Path quality judged good 2026-07-22. Next M8 = scale the Designer beyond the bundled fixture to the rest of the library (future). Granular status in [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md).
 
 #### ✅ [Exploration] Overnight Chief of Staff — the brief you approve, not read
 - **Why:** A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action... See [`docs/ideas/overnight-chief-of-staff.md`](docs/ideas/overnight-chief-of-staff.md) for the full write-up.
