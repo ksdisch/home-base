@@ -641,7 +641,8 @@ export interface StudyBlockStep {
 }
 
 // One study block the planner proposes — nothing is written until confirm. start/end are RFC3339
-// with a CT offset; step_ids are the path steps this session covers.
+// with a CT offset; step_ids are the path steps this session covers. overlaps carries the titles of
+// existing calendar events this block double-books (only in double-book mode) so the UI can flag it.
 export interface ProposedBlock {
   start: string;
   end: string;
@@ -649,6 +650,15 @@ export interface ProposedBlock {
   title: string;
   step_ids: string[];
   steps: StudyBlockStep[];
+  overlaps?: string[];
+}
+
+// An existing calendar event filling the requested window — surfaced so you can see what's booked
+// (e.g. a shared "GF: dinner" you can study through) and choose to double-book. start/end are RFC3339.
+export interface ConflictEvent {
+  start: string;
+  end: string;
+  title: string;
 }
 
 // A study block that WAS written to the calendar — carries the Google event_id + calendar_id that
@@ -707,6 +717,8 @@ export interface StudyProposal {
   message?: string | null;
   error?: string | null;
   applied?: AppliedPlan | null;
+  conflicts?: ConflictEvent[]; // events filling the window, flagged when steps didn't fit
+  can_double_book?: boolean; // steps went unscheduled because the window is booked → offer to override
   total_cost_usd?: number | null;
   duration_ms?: number | null;
 }
@@ -729,6 +741,7 @@ export interface StudyProposeRequest {
   days_of_week?: number[] | null;
   max_blocks?: number | null;
   max_per_day?: number | null;
+  allow_double_book?: boolean; // place into the window ignoring free/busy, flagging the overlaps
 }
 
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse

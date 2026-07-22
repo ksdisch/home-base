@@ -10,9 +10,11 @@ and the real Google adapter (``app.studycal.google``) is one isolated implementa
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple, runtime_checkable
+from typing import Any, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple, Union, runtime_checkable
 
 Interval = Tuple[datetime, datetime]
+# A busy span the user can *see the title of* — used to flag "what's booked" + annotate double-books.
+BusyEvent = Dict[str, Any]  # {"start": datetime, "end": datetime, "title": str}
 
 
 class CalendarNotConnected(RuntimeError):
@@ -25,6 +27,7 @@ class CalendarPort(Protocol):
     def is_connected(self) -> bool: ...
     def ensure_study_calendar(self) -> str: ...
     def free_busy(self, start: datetime, end: datetime) -> List[Interval]: ...
+    def busy_events(self, start: datetime, end: datetime) -> List[BusyEvent]: ...
     def create_events(self, calendar_id: str, events: Sequence[Mapping[str, Any]]) -> List[str]: ...
     def delete_events(self, calendar_id: str, event_ids: Sequence[str]) -> None: ...
 
@@ -38,9 +41,17 @@ class FakeCalendarPort:
     fake refuses every call with :class:`CalendarNotConnected`, exercising the honest-degrade path.
     """
 
-    def __init__(self, *, connected: bool = True, busy: Optional[Sequence[Interval]] = None) -> None:
+    def __init__(
+        self,
+        *,
+        connected: bool = True,
+        busy: Optional[Sequence[Union[Interval, Tuple[datetime, datetime, str]]]] = None,
+    ) -> None:
         self._connected = connected
-        self._busy: List[Interval] = list(busy or [])
+        # Store as (start, end, title); a bare (start, end) 2-tuple gets the generic title "Busy".
+        self._busy: List[Tuple[datetime, datetime, str]] = [
+            (iv[0], iv[1], iv[2] if len(iv) > 2 else "Busy") for iv in (busy or [])
+        ]
         self._cal_id = "study-cal-fake"
         self._events: Dict[str, Dict[str, Any]] = {}
         self._seq = 0
@@ -59,7 +70,15 @@ class FakeCalendarPort:
 
     def free_busy(self, start: datetime, end: datetime) -> List[Interval]:
         self._require()
-        return [iv for iv in self._busy if iv[1] > start and iv[0] < end]
+        return [(s, e) for (s, e, _t) in self._busy if e > start and s < end]
+
+    def busy_events(self, start: datetime, end: datetime) -> List[BusyEvent]:
+        self._require()
+        return [
+            {"start": s, "end": e, "title": t}
+            for (s, e, t) in self._busy
+            if e > start and s < end
+        ]
 
     def create_events(self, calendar_id: str, events: Sequence[Mapping[str, Any]]) -> List[str]:
         self._require()

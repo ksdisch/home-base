@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from ..config import get_settings
 from .port import CalendarNotConnected
@@ -114,6 +114,46 @@ class GoogleCalendarPort:
                 out.append((datetime.fromisoformat(b["start"]), datetime.fromisoformat(b["end"])))
             except (KeyError, ValueError):
                 continue
+        return out
+
+    def busy_events(self, start: datetime, end: datetime) -> List[Dict[str, Any]]:
+        """The user's **titled** primary-calendar events in ``[start, end]`` — so the scheduler can
+        flag *what* is booked (e.g. a shared "GF: dinner" the user can study through) and annotate a
+        double-book. Only timed events count (all-day events don't occupy a time-of-day slot);
+        declined and 'free'-transparency events are skipped (they aren't real conflicts). Best-effort:
+        titles come from the same account already used for free/busy — the freebusy call remains the
+        source of truth for *placement*."""
+        svc = self._service()
+        out: List[Dict[str, Any]] = []
+        page_token = None
+        while True:
+            resp = svc.events().list(
+                calendarId="primary",
+                timeMin=start.isoformat(),
+                timeMax=end.isoformat(),
+                singleEvents=True,
+                orderBy="startTime",
+                pageToken=page_token,
+            ).execute()
+            for ev in resp.get("items", []):
+                s, e = ev.get("start", {}), ev.get("end", {})
+                if "dateTime" not in s or "dateTime" not in e:
+                    continue  # all-day / open-ended — not a time-of-day conflict
+                if ev.get("transparency") == "transparent":
+                    continue  # marked "free"
+                if any(a.get("self") and a.get("responseStatus") == "declined" for a in ev.get("attendees", [])):
+                    continue  # the user declined it — not their conflict
+                try:
+                    out.append({
+                        "start": datetime.fromisoformat(s["dateTime"]),
+                        "end": datetime.fromisoformat(e["dateTime"]),
+                        "title": (ev.get("summary") or "(busy)").strip(),
+                    })
+                except (KeyError, ValueError):
+                    continue
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
         return out
 
     def create_events(self, calendar_id: str, events: Sequence[Mapping[str, Any]]) -> List[str]:

@@ -28,6 +28,16 @@ silently repaired back into a 6–7pm slot. v1 fixes both and makes the panel a 
   the controls **snap to it**; note-turns accumulate through the persisted base ("weekdays before 2pm"
   → "not Mondays").
 - **Refine precedence:** the note wins for the keys it names; the controls hold for the rest.
+- **Flag conflicts + double-book (Kyle, 2026-07-22).** When the requested window is booked and steps
+  go unscheduled, the proposal **flags the conflicting events by name** (`conflicts`, via a titled
+  `port.busy_events` over the primary calendar's `events.list` — the freebusy API has no titles) and
+  offers `can_double_book`. "Book over it anyway" re-proposes with `allow_double_book=true`, which
+  places into the window ignoring free/busy (`plan_sessions(ignore_busy=True)`); each block that lands
+  on an existing event carries an `overlaps` list so the UI badges *"⚠ double-books X"*. For the
+  common case where a shared calendar has events you can study through (Kyle's girlfriend adds items
+  for awareness). Placement still respects busy by default; double-book is an explicit per-proposal
+  opt-in. `busy_events` is best-effort — an adapter hiccup degrades to no titles, never a failed
+  propose (freebusy still drives placement).
 - **claude fallback needs the CLI on the server's PATH.** The always-on `com.homebase.server` runs
   with a minimal launchd PATH; `claude` installs under nvm (a version-pinned dir not on it), so the
   fallback lane logged `"claude CLI not found"` and silently degraded. Fix: symlink it into
@@ -73,8 +83,8 @@ A distinct package `app.studycal` (**not** `app.study` — that's the unrelated 
 | Opt-in flag + removable block ledger + **persisted window prefs** | `app/store/study_blocks.py` (+ schema v11: `study_opt_in`, `study_blocks`; **v12** adds the pref columns + `set_study_prefs`) | Same content-on-disk / progress-in-SQLite split as `path_step_progress`. |
 | Duration model | `app/studycal/duration.py` | Pure per-kind minutes + `is_foldable`. |
 | Deterministic session planner | `app/studycal/planner.py` | Pure: packs whole steps into session-length blocks (never split), places them in the earliest free slot in a daily study window, skipping busy, never the past, one block/day, **only on allowed `days_of_week`**. `America/Chicago` (DST-correct RFC3339). |
-| Calendar seam | `app/studycal/port.py` | `CalendarPort` protocol + in-memory `FakeCalendarPort` (tests/dry-run). |
-| Real adapter | `app/studycal/google.py` | Google Calendar API behind the port; **lazy** imports so the app + tests run without the libs. `python -m app.studycal.google login` for the one-time consent. |
+| Calendar seam | `app/studycal/port.py` | `CalendarPort` protocol (+ **`busy_events`** for titled conflicts) + in-memory `FakeCalendarPort` (tests/dry-run). |
+| Real adapter | `app/studycal/google.py` | Google Calendar API behind the port; **lazy** imports so the app + tests run without the libs. `free_busy` (freebusy, placement) + **`busy_events`** (events.list, titles for flagging — skips all-day/declined/free). `python -m app.studycal.google login` for the one-time consent. |
 | Preference parser | `app/studycal/parse.py` | **Local deterministic** free-text → knob-overrides (days · time window · session length · max blocks), refining the current controls. No LLM/clock/network — the note box's primary engine. |
 | Negotiation lane (fallback) | `app/studycal/negotiate.py` | free-text → clamped planner knobs (incl. **`days_of_week`**, with worked "before 2pm"/"weekdays" examples) + a one-line message via the M5 `claude -p` lane. Only invoked when the parser returns nothing. |
 | API router | `app/api/study.py` | `GET /schedule` · `POST /schedule/{opt-in,propose,confirm,remove}` under `/api/paths/{id}`. `propose` builds config from controls → merges the LLM lane by per-key precedence → persists the effective prefs → echoes `applied`. |
@@ -108,14 +118,16 @@ sidecar — the `guard-sidecars` invariant), never committed.
 Backend (all against `FakeCalendarPort` + a fake `claude` runner — real Google never touched):
 `test_study_store.py` (opt-in + removable ledger + **prefs roundtrip / enabled-preserving**),
 `test_study_duration.py`, `test_studycal_planner.py` (packing/no-split/glue-fold/busy-skip/one-per-day/
-DST/past-guard/max-blocks + **days-of-week skip / specific-days / morning window**), `test_studycal_port.py`,
+DST/past-guard/max-blocks + **days-of-week skip / specific-days / morning window / ignore-busy
+double-book**), `test_studycal_port.py` (+ **titled `busy_events`**),
 `test_studycal_negotiate.py` (+ **`days_of_week` parse/clamp + prompt examples**),
 **`test_studycal_parse.py`** (the local parser — Kyle's exact sentence · days/exclusions · time
 windows · ranges · named windows · session length · max blocks · unrecognized→`{}`),
 `test_study_api.py` (opt-in roundtrip · read-only propose · confirm→ledger · remove · honest
 not-connected degrade · **explicit controls honored · prefs persist · note refines controls ·
 exclusion refines current days · parseable note skips claude · unparseable note→claude+logs ·
-unreadable note is honest, not a silent no-op · `applied` echo**). Frontend: `PathPlayer.test.tsx` —
+unreadable note is honest, not a silent no-op · `applied` echo · **booked-window flags conflicts +
+offers double-book · double-book places over busy + labels overlaps**). Frontend: `PathPlayer.test.tsx` —
 Study-Scheduler surface tests (connect · propose→confirm · drop · toggle · remove) **plus the v1
 controls (render · hydrate from prefs · deterministic knobs · `applied` reflected · note refines +
 shows the reply)**. v1 migration verified to heal a pre-v12 store.

@@ -21,6 +21,7 @@ from ..chat import BriefChatClient, append_chat_ledger
 from ..deps import get_app_settings, get_calendar_port, get_study_negotiate_client
 from ..models import (
     AppliedPlan,
+    ConflictEvent,
     ProposedBlock,
     StudyConfirmRequest,
     StudyOptInRequest,
@@ -93,6 +94,48 @@ def _norm_days(value: Optional[Sequence[int]]) -> Optional[List[int]]:
         return None
     out = sorted({int(d) for d in value if not isinstance(d, bool) and isinstance(d, int) and 0 <= int(d) <= 6})
     return out or None
+
+
+_MAX_CONFLICTS = 8
+
+
+def _busy_events(port: Any, start: datetime, end: datetime) -> List[Dict[str, Any]]:
+    """Titled busy events for flagging/annotation — best-effort: any adapter hiccup degrades to an
+    empty list (the freebusy-based placement is unaffected), so titles never break a propose."""
+    try:
+        return list(port.busy_events(start, end))
+    except Exception:
+        return []
+
+
+def _events_in_window(events: List[Dict[str, Any]], config: PlanConfig) -> List[ConflictEvent]:
+    """The titled events that fall inside the requested daily band on allowed weekdays — i.e. what is
+    booking the window the learner asked for. Sorted by start, capped for a legible flag."""
+    out: List[ConflictEvent] = []
+    for ev in sorted(events, key=lambda e: e["start"]):
+        s = ev["start"].astimezone(_TZ)
+        e = ev["end"].astimezone(_TZ)
+        if config.days_of_week is not None and s.weekday() not in config.days_of_week:
+            continue
+        midnight = s.replace(hour=0, minute=0, second=0, microsecond=0)
+        band_start = midnight + timedelta(hours=config.day_start_hour)
+        band_end = midnight + timedelta(hours=config.day_end_hour)
+        if s < band_end and e > band_start:  # overlaps the daily study band
+            out.append(ConflictEvent(start=s.isoformat(), end=e.isoformat(), title=ev["title"]))
+        if len(out) >= _MAX_CONFLICTS:
+            break
+    return out
+
+
+def _overlaps_for(block: Dict[str, Any], events: List[Dict[str, Any]]) -> List[str]:
+    """Distinct titles of events a placed block double-books (for its ⚠ badge)."""
+    bs = datetime.fromisoformat(block["start"])
+    be = datetime.fromisoformat(block["end"])
+    titles: List[str] = []
+    for ev in events:
+        if ev["start"] < be and ev["end"] > bs and ev["title"] not in titles:
+            titles.append(ev["title"])
+    return titles
 
 
 def _load_path_or_404(notebook_id: str) -> Dict[str, Any]:
@@ -285,8 +328,9 @@ def propose(
         )
 
     now = _now()
+    horizon = now + timedelta(days=config.window_days)
     try:
-        busy = port.free_busy(now, now + timedelta(days=config.window_days))
+        busy = port.free_busy(now, horizon)
     except CalendarNotConnected:
         return StudyProposal(
             ok=False,
@@ -297,16 +341,33 @@ def propose(
             applied=applied,
         )
 
-    plan = plan_sessions(steps, busy=busy, now=now, config=config)
+    events = _busy_events(port, now, horizon)  # titled, for flagging + double-book annotation
+    plan = plan_sessions(steps, busy=busy, now=now, config=config, ignore_busy=body.allow_double_book)
+
+    if body.allow_double_book:
+        # Placed over free/busy: annotate each block with what it double-books (⚠), no conflict flag.
+        blocks = [
+            ProposedBlock(**b, overlaps=_overlaps_for(b, events)) for b in plan["blocks"]
+        ]
+        conflicts: List[ConflictEvent] = []
+        can_double_book = False
+    else:
+        blocks = [ProposedBlock(**b) for b in plan["blocks"]]
+        # Steps that didn't fit AND real events sitting in the requested window → offer a double-book.
+        conflicts = _events_in_window(events, config) if plan["unscheduled_step_ids"] else []
+        can_double_book = bool(plan["unscheduled_step_ids"]) and bool(conflicts)
+
     return StudyProposal(
         ok=True,
         connected=True,
         session_minutes=config.session_minutes,
-        blocks=[ProposedBlock(**b) for b in plan["blocks"]],
+        blocks=blocks,
         unscheduled_step_ids=plan["unscheduled_step_ids"],
         message=message,
         error=negotiate_error,
         applied=applied,
+        conflicts=conflicts,
+        can_double_book=can_double_book,
         total_cost_usd=cost,
         duration_ms=duration,
     )

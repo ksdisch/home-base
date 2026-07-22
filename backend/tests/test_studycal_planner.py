@@ -208,6 +208,28 @@ def test_none_days_of_week_allows_every_day_including_weekends() -> None:
     ]
 
 
+def test_ignore_busy_double_books_into_a_fully_busy_window() -> None:
+    # Both evenings are fully booked. Normal placement can't fit anything; double-book (ignore_busy)
+    # places into the window anyway — the "my girlfriend put stuff here but I can study through it" case.
+    now = datetime(2026, 7, 22, 12, 0, tzinfo=CT)  # Wed
+    busy = [
+        (datetime(2026, 7, 22, 17, 0, tzinfo=CT), datetime(2026, 7, 22, 22, 0, tzinfo=CT)),  # Wed 5-10pm
+        (datetime(2026, 7, 23, 17, 0, tzinfo=CT), datetime(2026, 7, 23, 22, 0, tzinfo=CT)),  # Thu 5-10pm
+    ]
+    steps = [_audio("ep1", 40), _audio("ep2", 40)]
+    cfg = PlanConfig(session_minutes=45, day_start_hour=18, day_end_hour=21, window_days=2)
+
+    normal = plan_sessions(steps, busy=busy, now=now, config=cfg)
+    assert normal["blocks"] == [] and set(normal["unscheduled_step_ids"]) == {"ep1", "ep2"}
+
+    dbl = plan_sessions(steps, busy=busy, now=now, config=cfg, ignore_busy=True)
+    assert [b["start"] for b in dbl["blocks"]] == [
+        "2026-07-22T18:00:00-05:00",
+        "2026-07-23T18:00:00-05:00",
+    ]
+    assert dbl["unscheduled_step_ids"] == []
+
+
 def test_morning_window_places_before_afternoon() -> None:
     # A daytime window (8am–2pm) is honored, not just the evening default.
     now = datetime(2026, 7, 22, 7, 0, tzinfo=CT)

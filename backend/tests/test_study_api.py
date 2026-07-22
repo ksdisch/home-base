@@ -296,3 +296,54 @@ def test_exclusion_note_refines_current_days(env):
             assert s.weekday() in {1, 2, 3, 4}
     finally:
         _teardown(app)
+
+
+def _booked_env(monkeypatch):
+    # Fix "now" to Wed 2026-07-22 noon and book the 2-5pm band on Wed + Thu with titled events.
+    import app.api.study as study_mod
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    ct = ZoneInfo("America/Chicago")
+    monkeypatch.setattr(study_mod, "_now", lambda: datetime(2026, 7, 22, 12, 0, tzinfo=ct))
+    busy = [
+        (datetime(2026, 7, 22, 14, 0, tzinfo=ct), datetime(2026, 7, 22, 17, 0, tzinfo=ct), "GF: dinner"),
+        (datetime(2026, 7, 23, 14, 0, tzinfo=ct), datetime(2026, 7, 23, 17, 0, tzinfo=ct), "GF: errands"),
+    ]
+    return _fake(busy=busy)
+
+
+def test_booked_window_flags_conflicts_and_offers_double_book(env, monkeypatch):
+    port = _booked_env(monkeypatch)
+    client, app = _client(port)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"day_start_hour": 14, "day_end_hour": 17, "days": 2, "session_minutes": 45},
+        ).json()
+        assert body["ok"] is True
+        assert len(body["unscheduled_step_ids"]) > 0  # the 2-5pm window is fully booked both days
+        assert body["can_double_book"] is True
+        titles = [c["title"] for c in body["conflicts"]]
+        assert "GF: dinner" in titles and "GF: errands" in titles  # flagged by name
+    finally:
+        _teardown(app)
+
+
+def test_double_book_places_over_busy_and_labels_overlaps(env, monkeypatch):
+    port = _booked_env(monkeypatch)
+    client, app = _client(port)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "day_start_hour": 14, "day_end_hour": 17, "days": 2, "session_minutes": 45,
+                "allow_double_book": True,
+            },
+        ).json()
+        assert len(body["blocks"]) > 0  # placed despite the busy calendar
+        overlaps = [t for b in body["blocks"] for t in b["overlaps"]]
+        assert "GF: dinner" in overlaps  # each block flags what it double-books
+        assert body["can_double_book"] is False and body["conflicts"] == []
+    finally:
+        _teardown(app)

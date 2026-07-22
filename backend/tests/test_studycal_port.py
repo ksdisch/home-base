@@ -58,6 +58,19 @@ def test_delete_removes_known_ids_and_ignores_unknown() -> None:
     assert port.deleted == [ids[0], "never-existed"]  # both recorded, no raise on the unknown
 
 
+def test_busy_events_carry_titles_for_conflict_flagging() -> None:
+    dinner = (datetime(2026, 7, 23, 14, 0, tzinfo=CT), datetime(2026, 7, 23, 15, 0, tzinfo=CT), "GF: dinner")
+    plain = (datetime(2026, 7, 23, 16, 0, tzinfo=CT), datetime(2026, 7, 23, 17, 0, tzinfo=CT))  # 2-tuple
+    outside = (datetime(2026, 7, 30, 9, 0, tzinfo=CT), datetime(2026, 7, 30, 10, 0, tzinfo=CT), "later")
+    port = FakeCalendarPort(busy=[dinner, plain, outside])
+    got = port.busy_events(datetime(2026, 7, 23, 0, 0, tzinfo=CT), datetime(2026, 7, 24, 0, 0, tzinfo=CT))
+    assert [(e["title"]) for e in got] == ["GF: dinner", "Busy"]  # titled + the 2-tuple default
+    assert got[0]["start"] == dinner[0] and got[0]["end"] == dinner[1]
+    # free_busy still returns bare intervals (unchanged contract) even for titled busy.
+    fb = port.free_busy(datetime(2026, 7, 23, 0, 0, tzinfo=CT), datetime(2026, 7, 24, 0, 0, tzinfo=CT))
+    assert fb == [(dinner[0], dinner[1]), (plain[0], plain[1])]
+
+
 def test_disconnected_fake_refuses_every_calendar_call() -> None:
     port = FakeCalendarPort(connected=False)
     assert port.is_connected() is False
@@ -65,5 +78,7 @@ def test_disconnected_fake_refuses_every_calendar_call() -> None:
         port.ensure_study_calendar()
     with pytest.raises(CalendarNotConnected):
         port.free_busy(datetime.now(CT), datetime.now(CT))
+    with pytest.raises(CalendarNotConnected):
+        port.busy_events(datetime.now(CT), datetime.now(CT))
     with pytest.raises(CalendarNotConnected):
         port.create_events("c", [{"summary": "s", "start": "x", "end": "y"}])
