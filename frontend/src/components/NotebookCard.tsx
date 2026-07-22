@@ -32,6 +32,8 @@ const masteryTextTone: Record<"accent" | "amber" | "stone", string> = {
 export function NotebookCard({ card }: { card: Card }) {
   const [path, setPath] = useState<PathResponse | null>(null);
   const [pathLoading, setPathLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -45,6 +47,27 @@ export function NotebookCard({ card }: { card: Card }) {
       alive = false;
     };
   }, [card.notebook_id]);
+
+  // The on-demand Designer (M8): one grounded claude -p authoring call composes a path over this
+  // topic's real artifacts. Slow (~1–3 min) + never a 500 — a hiccup / bad output / fabricated id all
+  // come back ok:false. On success the fresh path drops straight into state and the card lights up.
+  const onGenerate = async () => {
+    if (generating) return;
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const res = await api.generatePath(card.notebook_id);
+      if (res.ok && res.path) {
+        setPath(res.path);
+      } else {
+        setGenError(res.error || res.errors.join("; ") || "Couldn't compose a path just now.");
+      }
+    } catch (e) {
+      setGenError((e as Error).message ?? "Couldn't compose a path just now.");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const pathMinutes = path ? path.steps.reduce((n, s) => n + (s.estimated_minutes ?? 0), 0) : 0;
 
@@ -79,7 +102,7 @@ export function NotebookCard({ card }: { card: Card }) {
         ) : path ? (
           <PathState card={card} path={path} />
         ) : (
-          <NoPathState />
+          <NoPathState onGenerate={onGenerate} generating={generating} error={genError} />
         )}
       </div>
 
@@ -172,22 +195,43 @@ function PathState({ card, path }: { card: Card; path: PathResponse }) {
   );
 }
 
-// No path composed yet. The on-demand ✨ Generate designer is Phase 7, so the button is a calm stub
-// (mirrors the "Take ▸ soon" disabled-quiz pattern) — the topic itself stays reachable via the title.
-function NoPathState() {
+// No path composed yet. ✨ Generate runs the on-demand Designer (one grounded claude -p call over the
+// topic's real artifacts, ~1–3 min); on success the card re-renders into PathState. The topic itself
+// also stays reachable via the title while a path doesn't exist.
+function NoPathState({
+  onGenerate,
+  generating,
+  error,
+}: {
+  onGenerate: () => void;
+  generating: boolean;
+  error: string | null;
+}) {
   return (
     <div>
       <p className="text-sm text-muted">
-        No path yet — the designer can compose one from these artifacts.
+        No path yet — let the designer compose one from these artifacts.
       </p>
       <button
         type="button"
-        disabled
-        title="On-demand path generation arrives in a later phase — the Jacobian-Lens example is the one live path for now."
-        className="mt-3 cursor-not-allowed rounded-lg border border-line bg-line-soft px-3 py-1.5 text-sm font-medium text-muted"
+        onClick={onGenerate}
+        disabled={generating}
+        aria-busy={generating}
+        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
       >
-        ✨ Generate path · soon
+        {generating ? (
+          <>
+            <span
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white"
+              aria-hidden
+            />
+            Composing your path… (~1–3 min)
+          </>
+        ) : (
+          "✨ Generate path"
+        )}
       </button>
+      {error && <p className="mt-2 text-xs text-amber-700">{error}</p>}
     </div>
   );
 }

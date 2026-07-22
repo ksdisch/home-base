@@ -599,6 +599,19 @@ export interface BridgeGradeResponse {
   path: PathResponse;
 }
 
+// The outcome of an on-demand path composition (M8 Designer). ok=false + a calm error means the
+// claude run/parse failed (never an HTTP error); errors carries validation failures (a fabricated
+// artifact id, bad structure) — on any failure nothing is written. path is the fresh three-axis
+// state on success so the card lights up without a refetch. Cost fields come from the envelope.
+export interface PathGenerateResponse {
+  ok: boolean;
+  error?: string | null;
+  errors: string[];
+  path?: PathResponse | null;
+  total_cost_usd?: number | null;
+  duration_ms?: number | null;
+}
+
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
 // (+ the M2 note models).
 export interface BriefSource {
