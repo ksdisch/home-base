@@ -90,7 +90,8 @@ def test_propose_is_read_only_and_covers_every_incomplete_step(env):
         assert body["ok"] is True and body["connected"] is True
         assert len(body["blocks"]) >= 1
         covered = [sid for b in body["blocks"] for sid in b["step_ids"]]
-        assert len(covered) == 9 and body["unscheduled_step_ids"] == []  # the whole 9-step path
+        step_count = client.get(f"/api/paths/{JACOBIAN}").json()["step_count"]
+        assert len(covered) == step_count and body["unscheduled_step_ids"] == []  # the whole path
         # Read-only: nothing was written to the ledger or the calendar.
         assert client.get(f"/api/paths/{JACOBIAN}/schedule").json()["blocks"] == []
         assert port.events() == {}
