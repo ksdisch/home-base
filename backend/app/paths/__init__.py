@@ -7,6 +7,22 @@ fresh clone / in tests) and the user's ``PATHS_DIR`` (their generated paths; the
 a ``notebook_id`` collision). This package is read-only over path files; progress lives in SQLite.
 """
 
-from .manifest import PathError, get_path, list_path_ids, load_path_file, path_file
+from .manifest import (
+    PathError,
+    get_path,
+    list_path_ids,
+    load_path_file,
+    path_file,
+    validate_path_obj,
+    write_path_file,
+)
 
-__all__ = ["PathError", "get_path", "list_path_ids", "load_path_file", "path_file"]
+__all__ = [
+    "PathError",
+    "get_path",
+    "list_path_ids",
+    "load_path_file",
+    "path_file",
+    "validate_path_obj",
+    "write_path_file",
+]

@@ -15,7 +15,9 @@ module only reads them."""
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -76,29 +78,29 @@ def list_path_ids() -> List[str]:
 
 # -- parsing + validation ------------------------------------------------------
 
-def _validate_steps(steps: Any, file: Path) -> List[Dict[str, Any]]:
+def _validate_steps(steps: Any, source: str) -> List[Dict[str, Any]]:
     if not isinstance(steps, list) or not steps:
-        raise PathError(f"{file}: 'steps' must be a non-empty list")
+        raise PathError(f"{source}: 'steps' must be a non-empty list")
     out: List[Dict[str, Any]] = []
     seen: set[str] = set()
     for i, s in enumerate(steps):
         if not isinstance(s, dict):
-            raise PathError(f"{file}: step #{i} must be an object")
+            raise PathError(f"{source}: step #{i} must be an object")
         sid = _opt_str(s.get("id")) or f"s{i + 1}"
         if not _ID_RE.match(sid):
-            raise PathError(f"{file}: step id '{sid}' must be URL-safe ([A-Za-z0-9._-])")
+            raise PathError(f"{source}: step id '{sid}' must be URL-safe ([A-Za-z0-9._-])")
         if sid in seen:
-            raise PathError(f"{file}: duplicate step id '{sid}'")
+            raise PathError(f"{source}: duplicate step id '{sid}'")
         seen.add(sid)
         kind = _opt_str(s.get("kind"))
         if kind is None:
-            raise PathError(f"{file}: step '{sid}' needs a string 'kind'")
+            raise PathError(f"{source}: step '{sid}' needs a string 'kind'")
         title = _opt_str(s.get("title"))
         if title is None:
-            raise PathError(f"{file}: step '{sid}' needs a title")
+            raise PathError(f"{source}: step '{sid}' needs a title")
         artifact_id = _opt_str(s.get("artifact_id"))
         if kind in _ARTIFACT_KINDS and artifact_id is None:
-            raise PathError(f"{file}: step '{sid}' (kind '{kind}') needs an 'artifact_id'")
+            raise PathError(f"{source}: step '{sid}' (kind '{kind}') needs an 'artifact_id'")
         out.append(
             {
                 "id": sid,
@@ -114,6 +116,27 @@ def _validate_steps(steps: Any, file: Path) -> List[Dict[str, Any]]:
     return out
 
 
+def validate_path_obj(raw: Any, notebook_id: str, *, source: Optional[str] = None) -> Dict[str, Any]:
+    """Validate + shape an already-parsed path object for ``notebook_id`` (identity is the caller's,
+    never the body — a stray ``notebook_id`` in ``raw`` can't point a path at the wrong topic). Raises
+    ``PathError`` if malformed. Shared by the on-disk loader and the M8 Designer, which validates its
+    model output IN MEMORY before writing — so a bad generation never lands. ``source`` labels errors."""
+    where = source or notebook_id
+    if not isinstance(raw, dict):
+        raise PathError(f"{where}: top level must be an object")
+    title = raw.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise PathError(f"{where}: 'title' is required")
+    return {
+        "notebook_id": notebook_id,
+        "title": title.strip(),
+        "topic": raw.get("topic", "") or "",
+        "generated_at": raw.get("generated_at", "") or "",
+        "generator": raw.get("generator", "") or "",
+        "steps": _validate_steps(raw.get("steps", []), where),
+    }
+
+
 def load_path_file(file: Path) -> Dict[str, Any]:
     """Parse + validate a ``<notebook_id>.json`` path file. Raises ``PathError`` if malformed.
 
@@ -125,21 +148,7 @@ def load_path_file(file: Path) -> Dict[str, Any]:
         raise PathError(f"no path file {file}") from e
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
         raise PathError(f"invalid JSON/encoding in {file}: {e}") from e
-    if not isinstance(raw, dict):
-        raise PathError(f"{file}: top level must be an object")
-
-    title = raw.get("title")
-    if not isinstance(title, str) or not title.strip():
-        raise PathError(f"{file}: 'title' is required")
-
-    return {
-        "notebook_id": file.stem,
-        "title": title.strip(),
-        "topic": raw.get("topic", "") or "",
-        "generated_at": raw.get("generated_at", "") or "",
-        "generator": raw.get("generator", "") or "",
-        "steps": _validate_steps(raw.get("steps", []), file),
-    }
+    return validate_path_obj(raw, file.stem, source=str(file))
 
 
 def get_path(notebook_id: str) -> Optional[Dict[str, Any]]:
@@ -149,3 +158,30 @@ def get_path(notebook_id: str) -> Optional[Dict[str, Any]]:
     if file is None:
         return None
     return load_path_file(file)
+
+
+# -- writing (the M8 Designer's output) ----------------------------------------
+
+def write_path_file(notebook_id: str, raw: Dict[str, Any]) -> Path:
+    """Atomically write a path sidecar to ``PATHS_DIR/<notebook_id>.json`` (same-dir tempfile +
+    ``os.replace``, so a crash mid-write can't leave a truncated file the always-on server would
+    read). The caller MUST validate ``raw`` first — an invalid path must never land. ``notebook_id``
+    is the identity (the filename stem); it wins the ``_path_files`` union, so a generated path
+    shadows a bundled example. Returns the written file path."""
+    base = get_settings().paths_dir
+    base.mkdir(parents=True, exist_ok=True)
+    dest = base / f"{notebook_id}.json"
+    fd, tmp_name = tempfile.mkstemp(dir=str(base), prefix=f"{dest.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(raw, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        os.replace(tmp_name, dest)
+    except BaseException:
+        # Never leave a stray tempfile behind on any failure (ENOSPC, EACCES, an interrupt).
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+    return dest

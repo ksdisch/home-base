@@ -44,6 +44,7 @@ import type {
   NewsSuggestionActionRequest,
   NewsSuggestionAddResponse,
   NewsSuggestionDismissResponse,
+  PathGenerateResponse,
   PathResponse,
   ProgressResponse,
   QuizGradeRequest,
@@ -285,6 +286,11 @@ export const api = {
       `/paths/${encodeURIComponent(notebookId)}/steps/${encodeURIComponent(stepId)}/bridge`,
       { answer },
     ),
+  // M8 the on-demand Designer: compose a path over a topic's real artifacts on the claude lane —
+  // slow by web standards (~1–3 min, a real authoring call), so callers show a busy state. Never a
+  // 500: a hiccup, unparseable output, or a fabricated artifact id all return ok:false (nothing written).
+  generatePath: (notebookId: string) =>
+    post<PathGenerateResponse>(`/paths/${encodeURIComponent(notebookId)}/generate`),
   customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>

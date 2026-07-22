@@ -681,6 +681,21 @@ class BridgeGradeResponse(BaseModel):
     path: PathResponse
 
 
+class PathGenerateResponse(BaseModel):
+    """The outcome of an on-demand path composition (M8 Designer). ``ok=False`` + a calm ``error``
+    means the claude run/parse failed (never a 500); ``errors`` carries validation failures — a
+    fabricated artifact id or bad structure — and on ANY failure nothing is written to disk. ``path``
+    is the fresh three-axis state on success so the card lights up without a refetch. Cost fields come
+    from the claude envelope when available."""
+
+    ok: bool
+    error: Optional[str] = None
+    errors: List[str] = []
+    path: Optional[PathResponse] = None
+    total_cost_usd: Optional[float] = None
+    duration_ms: Optional[int] = None
+
+
 class BriefSource(BaseModel):
     title: str
     url: str

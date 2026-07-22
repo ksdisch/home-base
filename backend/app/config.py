@@ -105,6 +105,12 @@ class Settings:
         # guards; its usage rows land here (backend data, like the other ledgers).
         self.paths_grade_ledger = self.data_dir / "paths-grade.jsonl"
 
+        # M8 the on-demand path Designer: composes a path over a topic's real artifacts on the same
+        # subscription lane. Its own model knob (a bigger model composes better paths — the slice's
+        # riskiest assumption) + its own usage ledger.
+        self.paths_designer_model = os.environ.get("PATHS_DESIGNER_MODEL", "sonnet")
+        self.paths_generate_ledger = self.data_dir / "paths-generate.jsonl"
+
         # Vite dev origin(s). CORS also allows private-LAN origins via regex (see main.py).
         self.cors_origins = [
             "http://localhost:5173",

@@ -13,18 +13,21 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ..catalog.ingest import find_sidecar
 from ..chat import BriefChatClient, append_chat_ledger
 from ..config import get_settings
-from ..deps import get_brief_chat_client
+from ..deps import get_app_settings, get_brief_chat_client, get_path_designer_client
 from ..models import (
     BridgeGradeRequest,
     BridgeGradeResponse,
+    PathGenerateResponse,
     PathResponse,
     PathStep,
     StepComplete,
     StepConfidence,
 )
-from ..paths import PathError, get_path
+from ..paths import PathError, get_path, write_path_file
+from ..paths.designer import compose_path
 from ..paths.grader import grade_bridge, max_answer_chars
 from ..store import db
 from ..store import mastery as store_mastery
@@ -149,4 +152,56 @@ def grade_bridge_step(
         feedback=result["feedback"],
         error=result["error"],
         path=_build_response(notebook_id, raw),
+    )
+
+
+@router.post("/paths/{notebook_id}/generate", response_model=PathGenerateResponse)
+def generate_path(
+    notebook_id: str,
+    client: BriefChatClient = Depends(get_path_designer_client),
+    settings=Depends(get_app_settings),
+) -> PathGenerateResponse:
+    """Compose a path over this topic's REAL artifacts on the M5 lane (design decision 9). Every
+    artifact-backed step is validated against the catalog (the M0 no-fabrication bar); the sidecar
+    is written ONLY when the whole path is clean — a fabricated id, unparseable output, or a claude
+    hiccup all return a calm ``ok=False`` (never a 500). On success returns the fresh three-axis path
+    so the card lights up without a refetch. Every run (success or failure) appends a usage row."""
+    sidecar = find_sidecar(settings.notebooklm_root, notebook_id)
+    if sidecar is None:
+        raise HTTPException(status_code=404, detail="Notebook not found in sidecars.")
+
+    artifacts = [{"id": a.artifact_id, "type": a.type, "title": a.title} for a in sidecar.artifacts]
+    result = compose_path(
+        client, notebook_id=notebook_id, topic_title=sidecar.title, artifacts=artifacts
+    )
+
+    env = result.get("envelope") or {}
+    ledger_error = result.get("error") or (
+        "; ".join(result["errors"]) if result.get("errors") else None
+    )
+    append_chat_ledger(
+        settings.paths_generate_ledger,
+        brief_date="",
+        topic_slug=notebook_id,
+        item_id="generate",
+        model=client.model,
+        envelope=result.get("envelope"),
+        error=ledger_error,
+    )
+
+    if not result["ok"]:
+        return PathGenerateResponse(
+            ok=False,
+            error=result.get("error"),
+            errors=result.get("errors", []),
+            total_cost_usd=env.get("total_cost_usd"),
+            duration_ms=env.get("duration_ms"),
+        )
+
+    write_path_file(notebook_id, result["raw"])
+    return PathGenerateResponse(
+        ok=True,
+        path=_build_response(notebook_id, _load_or_404(notebook_id)),
+        total_cost_usd=env.get("total_cost_usd"),
+        duration_ms=env.get("duration_ms"),
     )
