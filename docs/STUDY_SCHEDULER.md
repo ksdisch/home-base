@@ -1,6 +1,6 @@
 # Study Scheduler (v0) — opt-in Google Calendar study blocks for a learning path
 
-> **Status:** v0 built + fully tested (PR #PENDING), anchored on the M8 **Jacobian Learning Path**
+> **Status:** v0 built + fully tested (PR #137), anchored on the M8 **Jacobian Learning Path**
 > fixture. The deterministic core + the real Google adapter both ship; a **live** calendar write
 > needs Kyle's one-time OAuth provisioning (below) — until then the app degrades honestly to a
 > "Connect your Google Calendar" state. Idea + settled decisions: [`ideas/study-scheduler.md`](ideas/study-scheduler.md).
