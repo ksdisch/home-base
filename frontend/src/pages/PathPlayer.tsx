@@ -722,18 +722,17 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
   const toggle = () => run(api.setScheduleOptIn(notebookId, { enabled: !state.enabled }).then(setState));
   const propose = () => {
     const note = preference.trim();
-    // A note lets the claude lane interpret free text (and accumulate across turns via the persisted
-    // base); an empty note sends the explicit control knobs for a deterministic plan.
-    const body = note
-      ? { preference: note }
-      : {
-          preference: null,
-          days_of_week: [...days].sort((a, b) => a - b),
-          day_start_hour: startHour,
-          day_end_hour: endHour,
-          session_minutes: sessionMinutes,
-          max_blocks: maxBlocks,
-        };
+    // Always send the current controls; a note (when present) refines them server-side — the local
+    // parser handles the common patterns, with the claude lane as a fallback. The controls then snap
+    // to whatever the plan actually used (p.applied).
+    const body = {
+      preference: note || null,
+      days_of_week: [...days].sort((a, b) => a - b),
+      day_start_hour: startHour,
+      day_end_hour: endHour,
+      session_minutes: sessionMinutes,
+      max_blocks: maxBlocks,
+    };
     run(
       api.proposeSchedule(notebookId, body).then((p) => {
         setProposal(p);

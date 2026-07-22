@@ -357,7 +357,7 @@ describe("PathPlayer — Study Scheduler controls (v1)", () => {
     expect(screen.getByLabelText(/Start hour/i)).toHaveValue("8");
   });
 
-  it("lets a free-text note drive the plan (the claude lane)", async () => {
+  it("sends a free-text note (alongside the controls) and shows the reply", async () => {
     path.mockResolvedValue(makePath());
     schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
     proposeSchedule.mockResolvedValue({
@@ -368,11 +368,14 @@ describe("PathPlayer — Study Scheduler controls (v1)", () => {
     renderAt();
 
     await user.type(await screen.findByLabelText(/Scheduling preference/i), "weekdays before 2pm");
-    // With a note present the action button becomes "Refine" (it drives the claude lane).
+    // With a note present the action button becomes "Refine".
     await user.click(screen.getByRole("button", { name: /Refine/i }));
 
-    // A note is sent as the preference (no explicit knobs) so the claude lane interprets it.
-    expect(proposeSchedule).toHaveBeenCalledWith("nb-jac", { preference: "weekdays before 2pm" });
+    // The note rides along with the current controls; the backend refines them (parser, then claude).
+    expect(proposeSchedule).toHaveBeenCalledWith(
+      "nb-jac",
+      expect.objectContaining({ preference: "weekdays before 2pm" }),
+    );
     expect(await screen.findByText(/Weekdays before 2pm it is\./)).toBeInTheDocument();
   });
 });

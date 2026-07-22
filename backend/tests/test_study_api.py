@@ -154,18 +154,52 @@ def test_confirm_with_no_blocks_is_422(env):
         _teardown(app)
 
 
-def test_propose_with_a_preference_runs_negotiation_and_logs_usage(env):
+def test_unparseable_note_falls_back_to_claude_and_logs_usage(env):
+    # A phrasing the local parser can't read falls through to the claude lane, which sets knobs +
+    # logs a usage row like the other claude lanes.
     answer = json.dumps({"day_start_hour": 7, "day_end_hour": 9, "message": "Mornings, 7-9am it is."})
+    client, app = _client(_fake(), negotiate_answer=answer)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "whatever's best for my retention"},
+        ).json()
+        assert body["ok"] is True
+        assert body["message"] == "Mornings, 7-9am it is."
+        assert body["applied"]["day_start_hour"] == 7 and body["applied"]["day_end_hour"] == 9
+        ledger = env / "study-negotiate.jsonl"
+        assert ledger.is_file() and ledger.read_text().strip()
+    finally:
+        _teardown(app)
+
+
+def test_parseable_note_skips_claude_entirely(env):
+    # "mornings only" is handled by the local parser — the claude lane must NOT run (no ledger row),
+    # even though a (would-be) answer is wired up.
+    answer = json.dumps({"day_start_hour": 3, "message": "should not be used"})
     client, app = _client(_fake(), negotiate_answer=answer)
     try:
         body = client.post(
             f"/api/paths/{JACOBIAN}/schedule/propose", json={"preference": "mornings only"}
         ).json()
+        assert body["applied"]["day_start_hour"] == 8 and body["applied"]["day_end_hour"] == 12  # parser
+        assert body["message"] is None  # parser path is silent; the UI describes the plan itself
+        assert not (env / "study-negotiate.jsonl").exists()  # claude never ran
+    finally:
+        _teardown(app)
+
+
+def test_unreadable_note_is_honest_not_a_silent_noop(env):
+    # Parser can't read it AND the claude lane errors → the plan is unchanged and the user is told,
+    # rather than the old bug where the untouched default was shown as if it were the answer.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose", json={"preference": "do the thing you do"}
+        ).json()
         assert body["ok"] is True
-        assert body["message"] == "Mornings, 7-9am it is."
-        # The negotiation lane logged a usage row (backend data), like the other claude lanes.
-        ledger = env / "study-negotiate.jsonl"
-        assert ledger.is_file() and ledger.read_text().strip()
+        assert "couldn't read that" in body["message"].lower()
+        assert body["applied"]["day_start_hour"] == 9 and body["applied"]["day_end_hour"] == 17  # default, untouched
     finally:
         _teardown(app)
 
@@ -226,27 +260,39 @@ def test_propose_persists_prefs_across_visits(env):
         _teardown(app)
 
 
-def test_hand_controls_win_over_the_llm_per_key(env):
-    # The note asks for evenings+weekends+long sessions; the controls pin weekday mornings. Controls
-    # win for the keys the user set this turn; the LLM only fills the one they left open (session len).
-    answer = json.dumps({
-        "day_start_hour": 18, "day_end_hour": 21, "days_of_week": [5, 6],
-        "session_minutes": 90, "message": "Evenings and weekends.",
-    })
-    client, app = _client(_fake(), negotiate_answer=answer)
+def test_note_refines_the_sent_controls(env):
+    # Controls are set to weekday mornings; the note "evenings and weekends" refines them — the note
+    # wins for the keys it names (days + window flip), and the keys it doesn't mention hold (session).
+    client, app = _client(_fake())  # no claude — the parser handles this note
     try:
         body = client.post(
             f"/api/paths/{JACOBIAN}/schedule/propose",
             json={
-                "preference": "evenings and weekends, long sessions",
-                "day_start_hour": 8, "day_end_hour": 14, "days_of_week": [0, 1, 2, 3, 4],
+                "preference": "evenings and weekends",
+                "day_start_hour": 8, "day_end_hour": 12, "days_of_week": [0, 1, 2, 3, 4],
+                "session_minutes": 30,
             },
         ).json()
         applied = body["applied"]
-        assert applied["day_start_hour"] == 8 and applied["day_end_hour"] == 14  # controls win
-        assert applied["days_of_week"] == [0, 1, 2, 3, 4]
-        assert applied["session_minutes"] == 90  # the unset knob is filled by the LLM
+        assert applied["days_of_week"] == [5, 6]  # note overrode the weekday control
+        assert applied["day_start_hour"] == 17 and applied["day_end_hour"] == 21  # evenings
+        assert applied["session_minutes"] == 30  # untouched by the note → the control holds
         for s in _starts(body):
-            assert s.weekday() in {0, 1, 2, 3, 4} and 8 <= s.hour < 14
+            assert s.weekday() in {5, 6} and 17 <= s.hour < 21
+    finally:
+        _teardown(app)
+
+
+def test_exclusion_note_refines_current_days(env):
+    # "not Mondays" drops Monday from the weekday control the user already has.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "not Mondays", "days_of_week": [0, 1, 2, 3, 4]},
+        ).json()
+        assert body["applied"]["days_of_week"] == [1, 2, 3, 4]
+        for s in _starts(body):
+            assert s.weekday() in {1, 2, 3, 4}
     finally:
         _teardown(app)

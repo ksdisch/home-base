@@ -34,6 +34,7 @@ from ..paths import PathError, get_path
 from ..store import db
 from ..store import study_blocks
 from ..studycal.negotiate import negotiate_plan
+from ..studycal.parse import parse_preference
 from ..studycal.planner import PlanConfig, plan_sessions
 from ..studycal.port import CalendarNotConnected
 
@@ -43,6 +44,34 @@ TRACK_KIND = "path"
 _TZ = ZoneInfo("America/Chicago")
 _MIN_SESSION, _MAX_SESSION = 10, 180
 _DEF = PlanConfig()  # planner defaults for knobs the user + persisted prefs both leave unset
+# The panel's "no preference set" default window — a broad daytime band (aligned with the frontend),
+# so a fresh path isn't stuck on the planner's evening default. One tap / one note to change.
+_DEFAULT_START, _DEFAULT_END = 9, 17
+_UNREADABLE = "I couldn't read that one — set it with the controls above, or try simpler wording."
+
+
+def _apply_overrides(config: PlanConfig, ov: Dict[str, Any]) -> PlanConfig:
+    """Overlay a knob-override dict (from the local parser or the claude lane) onto ``config`` —
+    the note wins for the keys it names, the controls hold for the rest. Values are clamped and the
+    day window is repaired so ``day_end_hour`` stays above ``day_start_hour``."""
+    fields: Dict[str, Any] = dict(ov)
+    if "days_of_week" in fields:
+        d = fields["days_of_week"]
+        fields["days_of_week"] = frozenset(d) if d else None
+    for key, lo, hi in (
+        ("session_minutes", _MIN_SESSION, _MAX_SESSION),
+        ("day_start_hour", 0, 23),
+        ("day_end_hour", 1, 24),
+        ("max_blocks", 1, 20),
+        ("max_per_day", 1, 5),
+        ("window_days", 1, 30),
+    ):
+        if key in fields:
+            fields[key] = _clamp(fields[key], lo, hi)
+    new = replace(config, **fields)
+    if new.day_end_hour <= new.day_start_hour:
+        new = replace(new, day_end_hour=min(24, new.day_start_hour + 1))
+    return new
 
 
 def _now() -> datetime:
@@ -148,51 +177,36 @@ def propose(
 ) -> StudyProposal:
     """Propose blocks for the path's incomplete steps against live free/busy. Read-only against the
     calendar — writes no events; it does persist the learner's control prefs so they stick across
-    visits. Config is built from the explicit control knobs (falling back to the persisted prefs,
-    then planner defaults); the free-text ``preference`` runs the claude -p negotiation lane, whose
-    suggestions fill only the knobs the user did NOT set by hand this turn (controls win per key)."""
+    visits. Config is built from the explicit control knobs (falling back to persisted prefs, then a
+    daytime default). A free-text ``preference`` **refines** those controls: the local deterministic
+    parser handles the common patterns (days · time-of-day · session length · max blocks) with no LLM
+    call, and only an unrecognized phrase falls back to the grounded ``claude -p`` lane; if neither
+    can read it, the plan is unchanged and an honest message is returned (never a silent no-op)."""
     raw = _load_path_or_404(notebook_id)
     opt = study_blocks.get_study_opt_in(TRACK_KIND, notebook_id)
     steps = _incomplete_steps(notebook_id, raw)
-
-    # Which knobs the user set explicitly this turn — these win over any LLM suggestion for the key.
-    explicit: set[str] = set()
 
     def _pref(key: str, default: int) -> int:
         v = opt.get(key)
         return int(v) if v is not None else int(default)
 
-    if body.session_minutes is not None:
-        explicit.add("session_minutes")
     session_minutes = _clamp_session(
         body.session_minutes if body.session_minutes is not None else opt["session_minutes"]
     )
-    if body.day_start_hour is not None:
-        explicit.add("day_start_hour")
     day_start = _clamp(
-        body.day_start_hour if body.day_start_hour is not None else _pref("day_start_hour", _DEF.day_start_hour),
+        body.day_start_hour if body.day_start_hour is not None else _pref("day_start_hour", _DEFAULT_START),
         0, 23,
     )
-    if body.day_end_hour is not None:
-        explicit.add("day_end_hour")
     day_end = _clamp(
-        body.day_end_hour if body.day_end_hour is not None else _pref("day_end_hour", _DEF.day_end_hour),
+        body.day_end_hour if body.day_end_hour is not None else _pref("day_end_hour", _DEFAULT_END),
         1, 24,
     )
-    if day_end <= day_start:  # repair an inverted window (same rule as the negotiation lane)
+    if day_end <= day_start:  # repair an inverted window
         day_end = min(24, day_start + 1)
-    if body.days_of_week is not None:
-        explicit.add("days_of_week")
-        dow = _norm_days(body.days_of_week)
-    else:
-        dow = _norm_days(opt.get("days_of_week"))
-    if body.max_blocks is not None:
-        explicit.add("max_blocks")
+    dow = _norm_days(body.days_of_week) if body.days_of_week is not None else _norm_days(opt.get("days_of_week"))
     max_blocks = _clamp(
         body.max_blocks if body.max_blocks is not None else _pref("max_blocks", _DEF.max_blocks), 1, 20
     )
-    if body.max_per_day is not None:
-        explicit.add("max_per_day")
     max_per_day = _clamp(body.max_per_day if body.max_per_day is not None else _DEF.max_per_day, 1, 5)
     window_days = _clamp(body.days if body.days is not None else _DEF.window_days, 1, 30)
 
@@ -209,27 +223,33 @@ def propose(
     message = None
     negotiate_error = None
     cost = duration = None
-    if body.preference and body.preference.strip():
-        neg = negotiate_plan(client, preference=body.preference, base_config=config)
-        # Apply only the knobs the user did NOT set explicitly this turn (per-key precedence).
-        apply = {k: v for k, v in neg["changed"].items() if k not in explicit}
-        if apply:
-            if "days_of_week" in apply:
-                apply["days_of_week"] = frozenset(apply["days_of_week"]) if apply["days_of_week"] else None
-            config = replace(config, **apply)
-        message = neg["message"] or None
-        negotiate_error = neg["error"]
-        env = neg.get("envelope") or {}
-        cost, duration = env.get("total_cost_usd"), env.get("duration_ms")
-        append_chat_ledger(
-            settings.study_negotiate_ledger,
-            brief_date="",
-            topic_slug=notebook_id,
-            item_id="negotiate",
-            model=client.model,
-            envelope=neg.get("envelope"),
-            error=negotiate_error,
-        )
+    pref_text = (body.preference or "").strip()
+    if pref_text:
+        # 1) Local parser first — refines the current controls, no LLM, always available.
+        overrides = parse_preference(pref_text, config.days_of_week)
+        if overrides:
+            config = _apply_overrides(config, overrides)
+        else:
+            # 2) Fallback: the grounded claude -p lane for phrasings the parser doesn't recognize.
+            neg = negotiate_plan(client, preference=pref_text, base_config=config)
+            changed = neg["changed"]
+            if changed:
+                config = _apply_overrides(config, changed)
+            message = neg["message"] or None
+            negotiate_error = neg["error"]
+            env = neg.get("envelope") or {}
+            cost, duration = env.get("total_cost_usd"), env.get("duration_ms")
+            append_chat_ledger(
+                settings.study_negotiate_ledger,
+                brief_date="",
+                topic_slug=notebook_id,
+                item_id="negotiate",
+                model=client.model,
+                envelope=neg.get("envelope"),
+                error=negotiate_error,
+            )
+            if not changed:  # 3) neither parser nor claude could read it — be honest, don't pretend
+                message = message or _UNREADABLE
 
     dow_list = sorted(config.days_of_week) if config.days_of_week else []
     # Persist the effective control set so the panel hydrates to it next visit (calendar untouched).

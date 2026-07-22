@@ -17,14 +17,23 @@ silently repaired back into a 6–7pm slot. v1 fixes both and makes the panel a 
   planner honors them directly — no LLM required for the common case.
 - **Day-of-week knob:** `PlanConfig.days_of_week` (a `frozenset[int]`, `None` = every day); the
   planner skips disallowed weekdays. "weekdays / weekends / Tue-Thu" are now honorable.
-- **Free-text still works, and it *drives the controls*:** an empty note → the explicit knobs are
-  sent for a deterministic plan; a non-empty note → it's sent to the `claude -p` lane alone, which
-  now knows the `days_of_week` knob + carries worked examples ("before 2pm" moves **both** bounds).
-  The response echoes an `applied` plan and the controls **snap to it**, so you see what it understood
-  and can hand-tweak. Because each note-turn's base is the *persisted* prefs, the conversation
-  accumulates ("weekdays before 2pm" → "actually not Mondays").
-- **Per-key precedence:** when a turn sends both a note and explicit knobs, an explicit knob wins for
-  its key; the LLM only fills knobs the user left unset that turn.
+- **Free-text still works, and it *refines the controls*:** every propose sends the current controls;
+  a non-empty note refines them server-side. A **local deterministic parser** (`app.studycal.parse`,
+  no LLM) handles the common patterns — days (weekday/weekend/specific/"not Mondays"), time-of-day
+  ("before 2pm", "no earlier than 2pm", "2–5pm", "mornings"), session length ("sixty-minute", "1
+  hour"), max blocks ("at most 3 blocks") — instantly and always, even when the CLI is unreachable.
+  Only a phrasing the parser doesn't recognize falls back to the `claude -p` lane; if neither can read
+  it, the plan is left **unchanged** and an honest message is shown (never the old silent no-op that
+  displayed the untouched default as if it were the answer). The response echoes an `applied` plan and
+  the controls **snap to it**; note-turns accumulate through the persisted base ("weekdays before 2pm"
+  → "not Mondays").
+- **Refine precedence:** the note wins for the keys it names; the controls hold for the rest.
+- **claude fallback needs the CLI on the server's PATH.** The always-on `com.homebase.server` runs
+  with a minimal launchd PATH; `claude` installs under nvm (a version-pinned dir not on it), so the
+  fallback lane logged `"claude CLI not found"` and silently degraded. Fix: symlink it into
+  `~/.local/bin` (already on the server PATH via the #139 fix) — `ln -sf "$(which claude)"
+  ~/.local/bin/claude`. Re-point after a Node/nvm upgrade. The parser covers the common cases with no
+  CLI dependency, so this only affects unusual phrasings.
 - **Persistence (schema v12):** the control set is saved per-track on the `study_opt_in` row
   (`day_start_hour`/`day_end_hour`/`days_of_week` CSV/`max_blocks`), so "weekdays before 2pm" sticks
   across visits and devices. `propose` persists the effective config (calendar untouched — still
@@ -66,7 +75,8 @@ A distinct package `app.studycal` (**not** `app.study` — that's the unrelated 
 | Deterministic session planner | `app/studycal/planner.py` | Pure: packs whole steps into session-length blocks (never split), places them in the earliest free slot in a daily study window, skipping busy, never the past, one block/day, **only on allowed `days_of_week`**. `America/Chicago` (DST-correct RFC3339). |
 | Calendar seam | `app/studycal/port.py` | `CalendarPort` protocol + in-memory `FakeCalendarPort` (tests/dry-run). |
 | Real adapter | `app/studycal/google.py` | Google Calendar API behind the port; **lazy** imports so the app + tests run without the libs. `python -m app.studycal.google login` for the one-time consent. |
-| Negotiation lane | `app/studycal/negotiate.py` | free-text → clamped planner knobs (incl. **`days_of_week`**, with worked "before 2pm"/"weekdays" examples) + a one-line message via the M5 `claude -p` lane. Returns `changed` for the API's per-key precedence. |
+| Preference parser | `app/studycal/parse.py` | **Local deterministic** free-text → knob-overrides (days · time window · session length · max blocks), refining the current controls. No LLM/clock/network — the note box's primary engine. |
+| Negotiation lane (fallback) | `app/studycal/negotiate.py` | free-text → clamped planner knobs (incl. **`days_of_week`**, with worked "before 2pm"/"weekdays" examples) + a one-line message via the M5 `claude -p` lane. Only invoked when the parser returns nothing. |
 | API router | `app/api/study.py` | `GET /schedule` · `POST /schedule/{opt-in,propose,confirm,remove}` under `/api/paths/{id}`. `propose` builds config from controls → merges the LLM lane by per-key precedence → persists the effective prefs → echoes `applied`. |
 | UI | `frontend/src/pages/PathPlayer.tsx` (`StudySchedule`) | **Controls (day chips · time range · session length · max blocks) + a conversation thread**, hydrated from persisted prefs; propose → review (droppable) → one confirm → written blocks + remove. Controls snap to `applied` after each propose. Honest "connect" state. |
 
@@ -99,13 +109,16 @@ Backend (all against `FakeCalendarPort` + a fake `claude` runner — real Google
 `test_study_store.py` (opt-in + removable ledger + **prefs roundtrip / enabled-preserving**),
 `test_study_duration.py`, `test_studycal_planner.py` (packing/no-split/glue-fold/busy-skip/one-per-day/
 DST/past-guard/max-blocks + **days-of-week skip / specific-days / morning window**), `test_studycal_port.py`,
-`test_studycal_negotiate.py` (+ **`days_of_week` parse/clamp + prompt examples**), `test_study_api.py`
-(opt-in roundtrip · read-only propose · confirm→ledger · remove · honest not-connected degrade ·
-negotiation logging · **explicit controls honored · prefs persist · per-key hand-vs-LLM precedence ·
-`applied` echo**). Frontend: `PathPlayer.test.tsx` — Study-Scheduler surface tests (connect state ·
-propose→confirm · drop · toggle · remove) **plus the v1 controls (render · hydrate from prefs ·
-deterministic knobs · `applied` reflected · note drives the claude lane)**. v1 migration verified to
-heal a pre-v12 store.
+`test_studycal_negotiate.py` (+ **`days_of_week` parse/clamp + prompt examples**),
+**`test_studycal_parse.py`** (the local parser — Kyle's exact sentence · days/exclusions · time
+windows · ranges · named windows · session length · max blocks · unrecognized→`{}`),
+`test_study_api.py` (opt-in roundtrip · read-only propose · confirm→ledger · remove · honest
+not-connected degrade · **explicit controls honored · prefs persist · note refines controls ·
+exclusion refines current days · parseable note skips claude · unparseable note→claude+logs ·
+unreadable note is honest, not a silent no-op · `applied` echo**). Frontend: `PathPlayer.test.tsx` —
+Study-Scheduler surface tests (connect · propose→confirm · drop · toggle · remove) **plus the v1
+controls (render · hydrate from prefs · deterministic knobs · `applied` reflected · note refines +
+shows the reply)**. v1 migration verified to heal a pre-v12 store.
 
 ## Not in v0 (future)
 
