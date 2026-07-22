@@ -11,10 +11,21 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from ..models import PathResponse, PathStep, StepComplete, StepConfidence
+from ..chat import BriefChatClient, append_chat_ledger
+from ..config import get_settings
+from ..deps import get_brief_chat_client
+from ..models import (
+    BridgeGradeRequest,
+    BridgeGradeResponse,
+    PathResponse,
+    PathStep,
+    StepComplete,
+    StepConfidence,
+)
 from ..paths import PathError, get_path
+from ..paths.grader import grade_bridge, max_answer_chars
 from ..store import db
 from ..store import mastery as store_mastery
 
@@ -94,3 +105,48 @@ def rate_step(notebook_id: str, step_id: str, body: StepConfidence) -> PathRespo
     _require_step(raw, step_id)
     db.set_step_confidence(notebook_id, step_id, body.rating)
     return _build_response(notebook_id, raw)
+
+
+@router.post("/paths/{notebook_id}/steps/{step_id}/bridge", response_model=BridgeGradeResponse)
+def grade_bridge_step(
+    notebook_id: str,
+    step_id: str,
+    body: BridgeGradeRequest,
+    client: BriefChatClient = Depends(get_brief_chat_client),
+) -> BridgeGradeResponse:
+    """Grade a bridge-check answer formatively on the M5 lane, then mark the step done (coverage).
+    Never moves mastery; a claude hiccup degrades to ``ok=False`` (200), never a 500."""
+    raw = _load_or_404(notebook_id)
+    step = next((s for s in raw["steps"] if s["id"] == step_id), None)
+    if step is None:
+        raise HTTPException(status_code=404, detail="No such step in this path.")
+    if step["kind"] != "bridge":
+        raise HTTPException(status_code=400, detail="This step is not a bridge-check.")
+    answer = body.answer.strip()
+    if not answer:
+        raise HTTPException(status_code=422, detail="answer must not be empty")
+
+    result = grade_bridge(
+        client,
+        topic_title=raw["title"],
+        question=step.get("body") or step["title"],
+        answer=answer[: max_answer_chars()],
+    )
+    # Formative: mark the step done on submit (coverage) regardless of the grade — a bridge never
+    # moves mastery. Confidence is a separate self-rating the UI prompts for afterwards.
+    db.set_step_completed(notebook_id, step_id, True)
+    append_chat_ledger(
+        get_settings().paths_grade_ledger,
+        brief_date="",
+        topic_slug=notebook_id,
+        item_id=step_id,
+        model=client.model,
+        envelope=result.get("envelope"),
+        error=result.get("error"),
+    )
+    return BridgeGradeResponse(
+        ok=result["ok"],
+        feedback=result["feedback"],
+        error=result["error"],
+        path=_build_response(notebook_id, raw),
+    )

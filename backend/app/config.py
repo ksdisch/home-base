@@ -101,6 +101,10 @@ class Settings:
         self.course_regen_model = os.environ.get("COURSE_REGEN_MODEL", "sonnet")
         self.course_regen_ledger = self.data_dir / "course-regen.jsonl"
 
+        # M8 learning paths: the formative bridge-check grader shares the M5 subscription lane +
+        # guards; its usage rows land here (backend data, like the other ledgers).
+        self.paths_grade_ledger = self.data_dir / "paths-grade.jsonl"
+
         # Vite dev origin(s). CORS also allows private-LAN origins via regex (see main.py).
         self.cors_origins = [
             "http://localhost:5173",

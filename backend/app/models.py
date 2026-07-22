@@ -665,6 +665,22 @@ class StepConfidence(BaseModel):
     rating: int  # 1-5
 
 
+class BridgeGradeRequest(BaseModel):
+    answer: str
+
+
+class BridgeGradeResponse(BaseModel):
+    """The formative grade of a bridge-check answer. ``ok`` is whether the grade ran (a claude
+    hiccup degrades to ok=False + a calm ``error``, never a 500); ``feedback`` is the model's plain
+    coaching. The step is marked done on submit regardless (coverage) and a bridge NEVER moves
+    mastery; ``path`` is the refreshed three-axis state so the UI updates without a refetch."""
+
+    ok: bool
+    feedback: Optional[str] = None
+    error: Optional[str] = None
+    path: PathResponse
+
+
 class BriefSource(BaseModel):
     title: str
     url: str
