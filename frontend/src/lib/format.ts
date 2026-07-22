@@ -32,6 +32,18 @@ export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
 
+// Clamp a percentage to the 0–100 a progress bar expects (a stored coverage value could drift).
+export function clampPct(n: number): number {
+  return Math.max(0, Math.min(100, n));
+}
+
+// A 1–5 rating (or its mean) → five ●/○ dots, for the confidence axis. Shared by the path player
+// and the Learning card so they read identically.
+export function confidenceDots(n: number): string {
+  const filled = Math.max(0, Math.min(5, Math.round(n)));
+  return "●".repeat(filled) + "○".repeat(5 - filled);
+}
+
 // Parse a backend timestamp into a Date, honoring how the API actually encodes them:
 //   • zone-less datetimes ("2026-06-26 20:00:27") are naive-UTC SQLite `datetime('now')` strings —
 //     read them as the UTC instant, else they drift off-by-one in non-UTC zones (e.g. Central);
