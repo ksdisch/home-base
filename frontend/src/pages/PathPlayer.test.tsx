@@ -357,6 +357,42 @@ describe("PathPlayer — Study Scheduler controls (v1)", () => {
     expect(screen.getByLabelText(/Start hour/i)).toHaveValue("8");
   });
 
+  it("flags a booked window and books over it on request", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    // 1st propose: the window is fully booked → no blocks, a named conflict, offer to double-book.
+    proposeSchedule.mockResolvedValueOnce({
+      ok: true,
+      connected: true,
+      session_minutes: 45,
+      blocks: [],
+      unscheduled_step_ids: ["s1", "s2"],
+      conflicts: [{ start: "2026-07-23T14:00:00-05:00", end: "2026-07-23T15:00:00-05:00", title: "GF: dinner" }],
+      can_double_book: true,
+      applied: { session_minutes: 45, day_start_hour: 14, day_end_hour: 17, days_of_week: [0, 1, 2, 3, 4], window_days: 14, max_blocks: 8, max_per_day: 1 },
+    });
+    // 2nd propose (after "Book over it anyway"): a block placed over the busy time, flagged.
+    proposeSchedule.mockResolvedValueOnce({
+      ...makeProposal(["Ep 1", "s1"]),
+      blocks: [{ ...makeBlock("Ep 1", "s1"), overlaps: ["GF: dinner"] }],
+    });
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByRole("button", { name: /Propose times/i }));
+    // The conflict is flagged by name, not hidden behind a generic "no slots".
+    expect(await screen.findByText(/GF: dinner/)).toBeInTheDocument();
+    expect(screen.queryByText(/No open slots/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Book over it anyway/i }));
+    expect(proposeSchedule).toHaveBeenLastCalledWith(
+      "nb-jac",
+      expect.objectContaining({ allow_double_book: true }),
+    );
+    // The placed block shows what it double-books.
+    expect(await screen.findByText(/double-books GF: dinner/)).toBeInTheDocument();
+  });
+
   it("sends a free-text note (alongside the controls) and shows the reply", async () => {
     path.mockResolvedValue(makePath());
     schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));

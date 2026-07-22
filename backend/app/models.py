@@ -1127,7 +1127,9 @@ class StudyBlockStep(BaseModel):
 class ProposedBlock(BaseModel):
     """One study block the planner proposes (nothing is written until confirm). ``start``/``end`` are
     RFC3339 with a CT offset; ``step_ids`` are the path steps this session covers. Echoed back
-    verbatim on confirm (the client may drop some) so the write is exactly what Kyle reviewed."""
+    verbatim on confirm (the client may drop some) so the write is exactly what Kyle reviewed.
+    ``overlaps`` lists the titles of existing calendar events this block double-books (only populated
+    in double-book mode) so the UI can flag it."""
 
     start: str
     end: str
@@ -1135,6 +1137,17 @@ class ProposedBlock(BaseModel):
     title: str = ""
     step_ids: List[str] = []
     steps: List[StudyBlockStep] = []
+    overlaps: List[str] = []
+
+
+class ConflictEvent(BaseModel):
+    """An existing calendar event filling the requested study window — surfaced so the learner can
+    see *what's* booked (e.g. a shared "GF: dinner" they can study through) and decide to double-book.
+    ``start``/``end`` are RFC3339 with a CT offset."""
+
+    start: str
+    end: str
+    title: str
 
 
 class WrittenBlock(BaseModel):
@@ -1199,6 +1212,8 @@ class StudyProposal(BaseModel):
     message: Optional[str] = None
     error: Optional[str] = None
     applied: Optional[AppliedPlan] = None
+    conflicts: List[ConflictEvent] = []  # events filling the window (flagged when steps didn't fit)
+    can_double_book: bool = False  # True when steps went unscheduled *because* the window is booked
     total_cost_usd: Optional[float] = None
     duration_ms: Optional[int] = None
 
@@ -1222,6 +1237,7 @@ class StudyProposeRequest(BaseModel):
     days_of_week: Optional[List[int]] = None
     max_blocks: Optional[int] = None
     max_per_day: Optional[int] = None
+    allow_double_book: bool = False  # place into the window ignoring free/busy (flag the overlaps)
 
 
 class StudyConfirmRequest(BaseModel):

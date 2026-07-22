@@ -720,11 +720,12 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
     });
 
   const toggle = () => run(api.setScheduleOptIn(notebookId, { enabled: !state.enabled }).then(setState));
-  const propose = () => {
+  const propose = (opts?: { doubleBook?: boolean }) => {
     const note = preference.trim();
     // Always send the current controls; a note (when present) refines them server-side — the local
     // parser handles the common patterns, with the claude lane as a fallback. The controls then snap
-    // to whatever the plan actually used (p.applied).
+    // to whatever the plan actually used (p.applied). doubleBook re-proposes into the window ignoring
+    // free/busy (the "book over it anyway" path).
     const body = {
       preference: note || null,
       days_of_week: [...days].sort((a, b) => a - b),
@@ -732,6 +733,7 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
       day_end_hour: endHour,
       session_minutes: sessionMinutes,
       max_blocks: maxBlocks,
+      allow_double_book: opts?.doubleBook ?? false,
     };
     run(
       api.proposeSchedule(notebookId, body).then((p) => {
@@ -929,7 +931,7 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
               />
             </label>
             <button
-              onClick={propose}
+              onClick={() => propose()}
               disabled={busy || (!preference.trim() && days.size === 0)}
               className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
             >
@@ -943,10 +945,37 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
           {proposal && (
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
               {/* The negotiation line lives in the conversation thread above, not here (no dupe). */}
+              {proposal.can_double_book && (
+                <div className="mb-3 rounded-lg border border-amber-400/60 bg-amber-50 p-3">
+                  <div className="text-sm font-medium text-amber-900">
+                    <span aria-hidden>⚠️</span> Your{" "}
+                    {proposal.applied ? describeApplied(proposal.applied).split(" · ")[0] : "requested"}{" "}
+                    window is already booked.
+                  </div>
+                  {proposal.conflicts && proposal.conflicts.length > 0 && (
+                    <ul className="mt-1 space-y-0.5 text-xs text-amber-900/90">
+                      {proposal.conflicts.map((c, i) => (
+                        <li key={i}>
+                          {fmtRange(c.start, c.end)} · {c.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    onClick={() => propose({ doubleBook: true })}
+                    disabled={busy}
+                    className="mt-2 rounded-lg border border-amber-500 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    Book over it anyway
+                  </button>
+                </div>
+              )}
               {proposal.blocks.length === 0 ? (
-                <p className="text-sm text-muted">
-                  No open slots found in your window — try widening your preferences.
-                </p>
+                !proposal.can_double_book && (
+                  <p className="text-sm text-muted">
+                    No open slots found in your window — try widening your preferences.
+                  </p>
+                )
               ) : (
                 <ul className="space-y-2">
                   {proposal.blocks.map((b, i) => (
@@ -962,6 +991,11 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
                           {fmtRange(b.start, b.end)} · {b.minutes} min
                         </div>
                         <div className="text-xs text-muted">{b.steps.map((s) => s.title).join(" · ")}</div>
+                        {b.overlaps && b.overlaps.length > 0 && (
+                          <div className="mt-0.5 text-xs font-medium text-amber-700">
+                            <span aria-hidden>⚠️</span> double-books {b.overlaps.join(", ")}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() =>
@@ -980,7 +1014,7 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
                   ))}
                 </ul>
               )}
-              {proposal.unscheduled_step_ids.length > 0 && (
+              {proposal.unscheduled_step_ids.length > 0 && !proposal.can_double_book && (
                 <p className="mt-2 text-xs text-muted">
                   {proposal.unscheduled_step_ids.length} step
                   {proposal.unscheduled_step_ids.length === 1 ? "" : "s"} didn't fit the window — they'll

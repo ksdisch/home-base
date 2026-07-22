@@ -119,10 +119,16 @@ def plan_sessions(
     busy: Sequence[Interval],
     now: datetime,
     config: PlanConfig,
+    ignore_busy: bool = False,
 ) -> Dict[str, Any]:
     """Propose calendar blocks for a path's incomplete ``steps`` against ``busy`` free/busy, as of
     ``now`` (both tz-aware). Writes nothing — pure planning. Returns ``blocks`` (chronological) +
-    ``unscheduled_step_ids`` (steps that didn't fit the window / hit ``max_blocks``)."""
+    ``unscheduled_step_ids`` (steps that didn't fit the window / hit ``max_blocks``).
+
+    ``ignore_busy=True`` is the deliberate **double-book** mode: placement ignores ``busy`` entirely
+    (a block lands at the earliest window start regardless of existing events), for the "someone put
+    stuff on my calendar but I can study through it" case. Everything else — the day window,
+    ``days_of_week``, one-per-day, never-in-the-past — still holds; the caller flags the overlaps."""
     tz = ZoneInfo(config.tz)
     now = now.astimezone(tz)
     base_date = _local_window(now, config.day_start_hour)  # today's window start (tz-aware anchor)
@@ -154,10 +160,8 @@ def plan_sessions(
             eff_start = max(win_start, now)
             if win_end <= eff_start:
                 continue
-            occ = sorted(
-                [iv for iv in busy if iv[1] > eff_start and iv[0] < win_end]
-                + placed_by_day.get(d, [])
-            )
+            external = [] if ignore_busy else [iv for iv in busy if iv[1] > eff_start and iv[0] < win_end]
+            occ = sorted(external + placed_by_day.get(d, []))
             slot = _earliest_slot(eff_start, win_end, occ, need)
             if slot is not None:
                 # A slot snapped to a busy-interval boundary inherits that interval's tz (Google
