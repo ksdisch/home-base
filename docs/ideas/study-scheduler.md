@@ -3,9 +3,12 @@
 **Status:** Backlog idea — captured 2026-07-22 (direct capture at Kyle's request, **not** via
 `/brainstorm`; no divergence run, no critic gate). Not scheduled; **no build authorized** — this
 is a parking-lot write-up. Two framing decisions were settled with Kyle at capture time
-(opt-in surface · write-gating); the rest are open questions below.
+(opt-in surface · write-gating); the rest are open questions below. _Revised 2026-07-22: the
+calendar-write gate was loosened from approve-each-block to **approve-the-plan-once, then
+batch-write** — Kyle's call that a self-only, non-communicating, trivially-reversible calendar
+block does not need the Overnight email-send bar._
 
-_On a specific course or learning path, Kyle can opt into a scheduling assistant that (with his OK) reads his Google Calendar free/busy, works out how long study sessions should be, proposes concrete time-blocks for the next steps — going over a study guide, listening to an audio overview, taking a quiz, or several at once — and, only after he approves each block, writes them into his calendar so the study plan has real time defended on it._
+_On a specific course or learning path, Kyle can opt into a scheduling assistant that (with his OK) reads his Google Calendar free/busy, works out how long study sessions should be, proposes concrete time-blocks for the next steps — going over a study guide, listening to an audio overview, taking a quiz, or several at once — and, once he reviews and confirms the proposed set in one pass, writes the whole batch into his calendar so the study plan has real time defended on it._
 
 ## Premise
 
@@ -35,17 +38,19 @@ is warm, without pulling build focus off M8.
 That for the **one or two** tracks Kyle is actively serious about at a time, the thing that
 converts a good study plan into finished lessons is **defended calendar time he agreed to**, not
 another in-app to-do list. And that Home Base can cross from "reads the world / reports on Kyle"
-into "writes on Kyle's real calendar" **without** breaking the project's defining trust promise —
-because the write is gated exactly the way every acting surface here is gated: propose →
-Kyle approves each block → it writes. The opt-in-per-track scope is load-bearing: this is
-deliberately *not* a global always-on scheduler, because the honest use is a small number of
-tracks, and a narrow surface is a safer place to first hand the app a write key to an external
-account.
+into "writes on Kyle's real calendar" with a **light, honest** gate: propose a set of blocks →
+Kyle reviews and confirms the plan once → it writes the batch. The opt-in-per-track scope is
+load-bearing: this is deliberately *not* a global always-on scheduler, because the honest use is a
+small number of tracks, and a narrow surface is a safer place to first hand the app a write key to
+an external account.
 
-A veteran flinches at the same seam Overnight Chief of Staff flinched at: a zero-fabrication,
-no-external-writes product proposing to mutate Kyle's Google Calendar. The audacity is answered
-the same way — the per-block approval **is** the gate, and unattended writing is something a track
-would have to *earn* later (M0/Calibrated-Doubt/Overnight precedent), never a default.
+Crucially, this write is **not** the Overnight email-send seam and does not need its bar. A
+calendar block lands only on Kyle's **own** calendar, **communicates with no one**, and is
+**trivially reversible** (delete the event). That reversibility + self-only nature is what lets the
+gate be a single plan-level confirm rather than a per-block tap — Kyle's explicit call
+(2026-07-22) that the earlier approve-each framing over-taxed a low-stakes action. (Contrast
+Overnight Chief of Staff, whose draft-only/graded-earn gate is calibrated to *outbound,
+hard-to-reverse* actions like sending mail.)
 
 ## Decisions settled at capture (2026-07-22)
 
@@ -58,13 +63,17 @@ would have to *earn* later (M0/Calibrated-Doubt/Overnight precedent), never a de
    shared abstraction rather than Courses alone. (Kyle picked "Courses" before the M8 Learning
    Paths feature surfaced in this session; this line reconciles the pick with that discovery — if
    he wants Paths-first or Paths-only, it's a one-line change here.)
-2. **Calendar WRITE is propose → approve-each, never silent.** The assistant negotiates session
-   length and suggests slots from free/busy, then surfaces **proposed** blocks Kyle approves one
-   by one before anything is written to Google Calendar — mirroring Overnight Chief of Staff's
-   approve/discard queue. Unattended / auto-writing is explicitly **not** in v0; a track could
-   only earn it later through its own graded-record gate. Reversibility rule (Overnight
-   precedent): a written block must be cleanly removable (delete the event) for the write to stay
-   eligible for any future automation.
+2. **Calendar WRITE is approve-the-plan-once, then batch-write** _(revised 2026-07-22 from
+   approve-each-block)._ The assistant negotiates session length and suggests slots from
+   free/busy, then surfaces the **proposed set** of blocks; Kyle reviews and confirms it in **one
+   pass**, and the whole batch is written to Google Calendar — no per-block tapping. He can still
+   drop or tweak individual blocks in that review, but the default gesture is one confirm for the
+   plan. Why lighter than Overnight: a calendar block is self-only, communicates with no one, and
+   is trivially reversible (delete the event), so it doesn't warrant the email-send bar — Kyle's
+   explicit call that approve-each over-taxed it. **Going fully unattended/recurring later** (the
+   scheduler maintaining blocks each week without a confirm) is a plain later upgrade Kyle can flip
+   on, **not** something a track must *earn* through an M0-style graded week. The one hard rule
+   that stays: every written block must be cleanly removable, so nothing it does is stuck.
 
 ## Open questions (settle at build time)
 
@@ -102,11 +111,11 @@ Anchor on a Course (Kyle's chosen surface) that already has completable steps. (
 the style of `custom_topics` / `brief_notes`, never in a sidecar (sidecars stay read-only per the
 `guard-sidecars` invariant). (b) Behind that flag, a deterministic **session planner** that reads
 the track's next incomplete steps + a first-cut duration model, plus a **read-only** Google
-free/busy pull, and produces *proposed* blocks. (c) Surface them in an **approve/discard strip**
-modeled on Overnight's — approve writes one event via the Calendar API, discard drops it, nothing
-writes without a tap. Prove the read + the gated single write end-to-end on one course before
-touching recurrence, Learning-Path parity, or completion-reclaim. Route via `/explore-plan`
-(the OAuth + external-write surface wants an approved plan before code).
+free/busy pull, and produces a *proposed set* of blocks. (c) Surface the set in a **review-and-
+confirm** view (individual blocks droppable/tweakable) — one confirm writes the whole batch via
+the Calendar API; nothing writes before that confirm. Prove the read + the batch-confirmed write
+end-to-end on one course before touching recurrence, Learning-Path parity, or completion-reclaim.
+Route via `/explore-plan` (the OAuth + external-write surface wants an approved plan before code).
 
 ## Dependencies
 
@@ -116,18 +125,19 @@ touching recurrence, Learning-Path parity, or completion-reclaim. Route via `/ex
   #129/#130). **M8 should land first** if this is built against Paths.
 - **"What's due / session budgeting":** `study_plan.py` + `planner.py` (the minutes-budget +
   interleaving already exist and are reusable for session packing).
-- **Approve-each write pattern:** Overnight Chief of Staff's approve/discard queue
+- **Batch-confirm write pattern:** Overnight Chief of Staff's approve/discard queue
   (`docs/ideas/overnight-chief-of-staff.md`, PR #107) and the `create_brief_note` write path in
-  `backend/app/api/brief.py` as the save/dismiss model; the `Brief.tsx` Overnight strip as the UI
-  precedent.
+  `backend/app/api/brief.py` as the review/write model; the `Brief.tsx` Overnight strip as the UI
+  precedent (here it's one confirm for the batch, not per-item).
 - **NEW, not in repo today:** a Google OAuth client + token store + Calendar/free-busy API
   wiring, and a new persisted opt-in/block table in `learning-hub.sqlite`. A new external secret
   to manage.
 
 ## Explicitly out of scope (revisit later)
 
-Any **unattended / automatic** calendar write — v0 writes only on a per-block tap; auto-scheduling
-is something a track earns later through a graded-record gate, never a default. No write to any
+**Unattended / automatic** calendar writing in **v0** — v0 writes only after Kyle confirms the
+proposed plan; the scheduler maintaining blocks each week with no confirm is a plain later upgrade
+he can flip on (not a graded-gate earn). No write to any
 account other than the chosen Google Calendar. No global "schedule everything" mode — opt-in per
 track only. No rescheduling/notifying integrations (Todoist, the vault stack) — this is
 Calendar-only; the vault ecosystem already reads Calendar separately and is not this repo's job.
@@ -140,5 +150,7 @@ identity-shift: Home Base's learning section stops living **only inside the app*
 **defending time on the calendar Kyle runs his life from** — the learning verb gains a "when,"
 not just a "what next." It's also the project's **second** deliberate step from *reporting* into
 *acting on an external account* (after Overnight Chief of Staff), and the first that writes to a
-Google service — kept honest by the same per-approval gate. Distinct from the vault/Cowork stack
+Google service — kept honest by a light one-pass plan-confirm plus the fact that a study block is
+self-only, non-communicating, and trivially reversible (a deliberately lighter gate than
+Overnight's, because the action is far lower-stakes). Distinct from the vault/Cowork stack
 (which *reads* Calendar for briefing): this *writes* study blocks, scoped to one opted-in track.
