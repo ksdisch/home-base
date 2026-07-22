@@ -151,7 +151,14 @@ _Backlog replenish 2026-07-19 (multi-lane `/brainstorm` + `bug-hunt` session; se
 Append-only. Bug stubs tagged **[P1]** are the five medium-severity findings Kyle flagged fix-first;
 untagged bugs are the verified lows, in report rank order._
 
-### Ideas (32 — one vision doc each)
+### Ideas (33 — one vision doc each)
+
+#### 🎯 [Design approved 2026-07-21] Learning Paths — an AI study-designer over your library
+- **Why:** Learning is a multi-format library with a quiz-only scorer — only a graded quiz feeds mastery/Plan/Progress, so the loop is cold (attempts=0). Learning Paths makes Claude a *learning designer* that composes an ordered, grounded path over a topic's real artifacts (arrange + labeled glue) scored on three axes (coverage · SR recall · self-rated confidence), rebuilding Plan (two lanes) and Progress (three trends) around it. See [`docs/ideas/learning-paths.md`](docs/ideas/learning-paths.md) for the full write-up.
+- **Acceptance:** Ship the Jacobian Lens vertical slice end-to-end (on-demand path → outline+detail player → three axes → Continue/Review lanes), then judge path quality + the three-axis model before scaling to other topics.
+- **Size:** L (new arc — proposed M8)
+- **Added:** 2026-07-21
+- **Status:** Approved design (2026-07-21 brainstorm, visual companion). Routing to `/explore-plan` for the vertical slice. Not yet built.
 
 #### ✅ [Exploration] Overnight Chief of Staff — the brief you approve, not read
 - **Why:** A nightly agent runs after the 06:00 sweep, drafts the morning's real errands (stale follow-up emails, job-tracker reconciliation, a Louis med refill, the finance snapshot) as proposed actions, and the Today page opens as an after-action... See [`docs/ideas/overnight-chief-of-staff.md`](docs/ideas/overnight-chief-of-staff.md) for the full write-up.

@@ -85,6 +85,7 @@ kanban
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
     m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>remaining: 2-lane Plan ·<br/>3-trend Progress · green<br/>gate"]
   next["📋 Planned"]
+    hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
@@ -321,6 +322,7 @@ glance instead of a sqlite dig._
 | [`sweep-trust-log.md`](sweep-trust-log.md) | PR5 trust gauge: the monthly accuracy re-grade log (`last_graded` reads its newest dated heading) |
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
+| [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas + the replenished `## Open` queue |
 
 ---
@@ -361,6 +363,20 @@ own path, 404 = no path yet). Contract hand-synced in `types.ts`/`client.ts` (Pa
 + four `api` methods). Frontend-only, scoped to the bundled Jacobian-Lens fixture; backend Phases 1–3
 already merged (PR #127 · #128). Frontend **163** green · typecheck green (slice tests ride the later
 green-gate item). Remaining M8: two-lane Plan · three-trend Progress · the Designer/Generate.
+
+### 2026-07-21 — Learning Paths design approved (docs-only capture; build via /explore-plan)
+Interactive brainstorm (with the visual companion) reframed the Learning tab: it's a multi-format
+library with a quiz-only scorer, so the loop is cold (attempts=0). Approved design — Learning
+becomes an **AI study-designer** ([`ideas/learning-paths.md`](ideas/learning-paths.md)): Claude
+composes a grounded, ordered **path** over a topic's real artifacts (arrange + labeled glue),
+scored on three honest axes (**coverage** · SM-2 **recall** · self-rated **confidence**). The
+richer signal rebuilds the dependent tabs — **Plan** into Continue/Review lanes (Continue is
+non-empty day one, killing the empty state), **Progress** into three trends + an honest heatmap,
+the **Learning card** into three live axes + next-step + Generate/Continue/Review. Locked forks:
+outline+detail player · on-demand generation · **bridge-checks formative-only** (never move
+mastery) · ship as a **Jacobian Lens vertical slice** (route 3→2). Reuses SM-2, the quiz/flashcard
+players, the catalog, and the M5 `claude -p` lane; the new build is the Designer + `path.json`
+sidecar + two signal stores + the three rebuilt tabs. Proposed **M8**; routing to `/explore-plan`.
 
 ### 2026-07-20 — W4 moonshot #4 · Overnight Chief of Staff v0, the queue closes (PR #107)
 The LAST decided moonshot, built on Kyle's explicit go at its standing gate conversation
