@@ -155,8 +155,11 @@ def plan_sessions(
             )
             slot = _earliest_slot(eff_start, win_end, occ, need)
             if slot is not None:
-                placed = slot
-                placed_by_day.setdefault(d, []).append((slot, slot + need))
+                # A slot snapped to a busy-interval boundary inherits that interval's tz (Google
+                # free/busy comes back in UTC); normalize to CT so every block serializes with the
+                # CT offset — same instant, consistent -05:00/-06:00.
+                placed = slot.astimezone(tz)
+                placed_by_day.setdefault(d, []).append((placed, placed + need))
                 count_by_day[d] = count_by_day.get(d, 0) + 1
                 break
 
