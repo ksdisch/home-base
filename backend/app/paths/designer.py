@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Sequence
 from ..chat import BriefChatClient, BriefChatError
 from .manifest import PathError, validate_path_obj
 
-_TIMEOUT_SECONDS = 180.0
+_TIMEOUT_SECONDS = 240.0  # headroom; the per-kind cap below keeps even the richest topics fast
 
 # Each artifact-backed path step kind ↔ the sidecar artifact ``type`` that may back it (the M0
 # cross-check). Glue kinds (intro/bridge/reflect/recap) reference no artifact, so aren't here.
@@ -35,6 +35,12 @@ _PRESENT_ORDER = (
     ("flashcards", "🃏 flashcards", "flashcards"),
     ("quiz", "❓ quizzes", "quiz"),
 )
+
+# Cap the artifacts of each kind the designer SEES (design polish 2026-07-22). The richest topics
+# (e.g. 26 audio · 11 quizzes) otherwise get arranged wholesale into a ~50-step path that blows the
+# claude-lane timeout; showing a bounded, foundational-first slice keeps every generation focused +
+# fast. Validation still runs against the FULL artifact set, so the M0 no-fabrication bar is intact.
+_MAX_PER_KIND = {"audio": 8, "study_guide": 4, "flashcards": 3, "quiz": 3}
 
 
 def _strip_fence(text: str) -> str:
@@ -56,6 +62,12 @@ def build_designer_prompt(topic_title: str, artifacts: Sequence[Dict[str, Any]])
         t = a.get("type")
         if t in groups:
             groups[t].append(a)
+    # Keep only a bounded, foundational-first slice of each kind so the richest topics compose a
+    # FOCUSED path instead of arranging every artifact (design polish 2026-07-22).
+    for t, items in groups.items():
+        cap = _MAX_PER_KIND.get(t)
+        if cap is not None and len(items) > cap:
+            groups[t] = items[:cap]
 
     lines: List[str] = []
     for t, label, kind in _PRESENT_ORDER:
@@ -85,12 +97,14 @@ def build_designer_prompt(topic_title: str, artifacts: Sequence[Dict[str, Any]])
         "AVAILABLE ARTIFACTS — the ONLY ids you may reference. Copy each id EXACTLY; never invent, "
         "guess at, abbreviate, or modify an id:\n"
         f"{artifact_block}\n\n"
-        "COMPOSE the path as an ordered list of steps that builds understanding: a short "
-        "orientation, then listen, then read (if a study guide exists), then drill (flashcards), "
-        "then test (quiz), then a brief reflection. Rules:\n"
+        "COMPOSE a FOCUSED path — pick the most useful artifacts and arrange them; you do NOT "
+        "need to use every one (a tight, well-sequenced path beats an exhaustive dump). Build "
+        "understanding: a short orientation, then listen, then read (if a study guide exists), "
+        "then drill (flashcards), then test (quiz), then a brief reflection. Rules:\n"
         '- Every "audio"/"read"/"flashcards"/"quiz" step MUST carry an "artifact_id" copied '
         'exactly from the list above and an "artifact_type" (audio/study_guide/quiz/flashcards) '
-        "that matches its kind. Use each artifact at most once; skip a kind that has none.\n"
+        "that matches its kind. Use each artifact at most once, and feel free to omit any that "
+        "don't earn a place; skip a kind that has none.\n"
         '- Add light glue with NO artifact_id: exactly one "intro" step first (a one-paragraph '
         '"body" orienting the learner); a one-line "focus" note on each artifact step; and one '
         'closing "reflect" step (a short "body" prompt).\n'
