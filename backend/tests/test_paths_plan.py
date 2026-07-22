@@ -120,3 +120,17 @@ def test_malformed_path_file_is_skipped_never_500(client, paths_dir):
     assert r.status_code == 200  # tolerant: a bad file never 500s the lane
     assert _item_for(r.json(), "broken") is None  # and it isn't surfaced
     assert _item_for(r.json(), JACOBIAN) is not None  # the good bundled example is still there
+
+
+def test_confidence_is_the_mean_self_rating_none_until_rated(client):
+    # The list endpoint carries the confidence axis for Progress (#13). Cold: nothing rated yet ->
+    # an honest None (the Progress card shows an em-dash, not a fake 0).
+    jac = _item_for(client.get("/api/paths").json(), JACOBIAN)
+    assert jac["confidence"] is None
+
+    # Rating two steps 5 and 2 -> the path's confidence is their mean (3.5), rated-steps only.
+    steps = client.get(f"/api/paths/{JACOBIAN}").json()["steps"]
+    client.post(f"/api/paths/{JACOBIAN}/steps/{steps[0]['id']}/confidence", json={"rating": 5})
+    client.post(f"/api/paths/{JACOBIAN}/steps/{steps[1]['id']}/confidence", json={"rating": 2})
+    jac2 = _item_for(client.get("/api/paths").json(), JACOBIAN)
+    assert jac2["confidence"] == 3.5

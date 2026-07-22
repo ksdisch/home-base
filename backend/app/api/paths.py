@@ -105,10 +105,12 @@ def list_learning_paths() -> PathsResponse:
         if raw is None:
             continue
         done = db.get_path_progress(nid)
+        conf = db.get_path_confidence(nid)
         steps = raw["steps"]
         total = len(steps)
         completed = sum(1 for s in steps if done.get(s["id"]))
         next_raw = next((s for s in steps if not done.get(s["id"])), None)
+        ratings = [conf[s["id"]] for s in steps if s["id"] in conf]
         items.append(
             PathSummary(
                 notebook_id=raw["notebook_id"],
@@ -118,6 +120,7 @@ def list_learning_paths() -> PathsResponse:
                 completed_steps=completed,
                 progress_pct=round(completed / total * 100) if total else 0,
                 next_step=PathStep(**next_raw) if next_raw else None,
+                confidence=round(sum(ratings) / len(ratings), 1) if ratings else None,
             )
         )
     items.sort(key=lambda it: (it.next_step is None, it.title.lower()))

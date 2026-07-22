@@ -700,7 +700,9 @@ class PathSummary(BaseModel):
     """One learning path at a glance for the Plan's **Continue** lane (design decision 6): coverage
     progress + the next step to resume at. ``next_step`` is the first incomplete step (``None`` once
     every step is done). Built from the same coverage store the player writes, so it always agrees
-    with the path view."""
+    with the path view. ``confidence`` (the mean self-rating so far, ``None`` until any step is rated)
+    isn't used by Continue but feeds Progress's third axis (M8 #13) — kept here so both lanes read one
+    list endpoint rather than an N+1 per-path fetch."""
 
     notebook_id: str
     title: str
@@ -709,6 +711,7 @@ class PathSummary(BaseModel):
     completed_steps: int = 0
     progress_pct: int = 0
     next_step: Optional[PathStep] = None
+    confidence: Optional[float] = None  # mean self-rating so far, from path_confidence (Progress axis)
 
 
 class PathsResponse(BaseModel):

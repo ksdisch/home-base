@@ -623,6 +623,7 @@ export interface PathSummary {
   completed_steps: number;
   progress_pct: number; // coverage (steps done)
   next_step?: PathStep | null;
+  confidence?: number | null; // mean self-rating so far — feeds Progress's confidence axis (#13)
 }
 
 export interface PathsResponse {
