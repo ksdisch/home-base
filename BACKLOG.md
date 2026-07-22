@@ -151,7 +151,7 @@ _Backlog replenish 2026-07-19 (multi-lane `/brainstorm` + `bug-hunt` session; se
 Append-only. Bug stubs tagged **[P1]** are the five medium-severity findings Kyle flagged fix-first;
 untagged bugs are the verified lows, in report rank order._
 
-### Ideas (33 — one vision doc each)
+### Ideas (34 — one vision doc each)
 
 #### 🎯 [Design approved 2026-07-21] Learning Paths — an AI study-designer over your library
 - **Why:** Learning is a multi-format library with a quiz-only scorer — only a graded quiz feeds mastery/Plan/Progress, so the loop is cold (attempts=0). Learning Paths makes Claude a *learning designer* that composes an ordered, grounded path over a topic's real artifacts (arrange + labeled glue) scored on three axes (coverage · SR recall · self-rated confidence), rebuilding Plan (two lanes) and Progress (three trends) around it. See [`docs/ideas/learning-paths.md`](docs/ideas/learning-paths.md) for the full write-up.
@@ -386,6 +386,12 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Size:** L (Friction, stretch) — first wedge S–M
 - **Added:** 2026-07-20
 - _✅ freshness dot shipped 2026-07-21 (PR #120, RED→green): a small `aria-hidden` accent dot on the Today tab (desktop header + mobile bar) when the loaded `brief.date` is newer than a `localStorage` last-seen, cleared the moment Today is opened. `<BriefShell>` hoisted above the navs (new `<AppChrome>`) + fetch-on-mount (inFlight-deduped, so it never double-fetches with Brief's per-visit refresh) so the dot can surface from News/Notes; the dot is `aria-hidden` so the Today link's accessible name stays "Today"; audio portal + offline/`fromCache` + FR15 invariants unchanged; `App.test.tsx` +2 (159→161). **Cluster split shipped 2026-07-21 (PR #122)** — the flagged IA identity shift, approved: the seven flat desktop links become a daily-loop cluster (Today·News·Notes, full-weight `text-ink`) + a divider + a muted reference shelf (Learning·Plan·Courses·Progress, `text-muted`); active page still wins in either tier; desktop only (mobile bar untouched per idea doc); structural grouping test, suite 161→162. **F5 complete.**_
+
+#### [Feature] Study Scheduler — opt-in Calendar time-blocks for a course or path
+- **Why:** On a specific course (or M8 Learning Path — same ordered-step engine), an opt-in assistant reads Google Calendar free/busy, works out session length with Kyle, and proposes time-blocks for the next steps (study guide · audio overview · quiz · several at once) — writing to Calendar only after Kyle approves each block. Per-track opt-in (~1–2 tracks live at once), not global. Home Base's second acting surface after Overnight, and its first Google-service write, kept honest by the same approve-each gate. See [`docs/ideas/study-scheduler.md`](docs/ideas/study-scheduler.md) for the full write-up.
+- **Acceptance:** Prototype the credible first step (per-course opt-in flag + deterministic session planner + read-only free/busy pull → approve/discard strip that writes one real Calendar event on tap) end-to-end on one course; judge whether defended calendar time actually improves study adherence. Route via `/explore-plan` (new Google OAuth + external-write surface).
+- **Size:** L
+- **Added:** 2026-07-22 (direct capture — not a `/brainstorm` idea)
 
 ### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
 
