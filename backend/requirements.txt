@@ -2,6 +2,12 @@ fastapi>=0.110,<1.0
 uvicorn[standard]>=0.27
 pyyaml>=6.0
 pydantic>=2.5
+# Study Scheduler (v0): real Google Calendar adapter (app.studycal.google). Imported lazily, so the
+# app + tests run without these installed (FakeCalendarPort covers everything); install them to wire
+# the live calendar — see docs/STUDY_SCHEDULER.md.
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+google-auth>=2.30
 # dev / test
 pytest>=8.0
 httpx>=0.27

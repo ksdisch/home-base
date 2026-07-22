@@ -27,6 +27,7 @@ from .api import (
     quiz,
     reflections,
     review,
+    study,
     study_plan,
     topics,
 )
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(courses.router, prefix="/api", tags=["courses"])
     app.include_router(news.router, prefix="/api", tags=["news"])
     app.include_router(paths.router, prefix="/api", tags=["paths"])
+    app.include_router(study.router, prefix="/api", tags=["study"])
 
     @app.get("/api")
     def api_root() -> dict:

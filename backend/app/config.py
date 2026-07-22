@@ -111,6 +111,11 @@ class Settings:
         self.paths_designer_model = os.environ.get("PATHS_DESIGNER_MODEL", "sonnet")
         self.paths_generate_ledger = self.data_dir / "paths-generate.jsonl"
 
+        # Study Scheduler (v0): the optional claude -p negotiation lane translates a free-text
+        # preference into planner knobs on the same subscription lane + guards; its usage rows land
+        # here (backend data, like the other ledgers).
+        self.study_negotiate_ledger = self.data_dir / "study-negotiate.jsonl"
+
         # Vite dev origin(s). CORS also allows private-LAN origins via regex (see main.py).
         self.cors_origins = [
             "http://localhost:5173",

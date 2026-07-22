@@ -32,5 +32,20 @@ def get_course_regen_client() -> CourseRegenClient:
     return CourseRegenClient()
 
 
+def get_study_negotiate_client() -> BriefChatClient:
+    """The Study Scheduler's optional negotiation lane runs on the same M5 lane as brief chat; a
+    distinct dep so tests override just it (with a fake runner) without touching the other clients."""
+    return BriefChatClient()
+
+
+def get_calendar_port():
+    """The calendar backend for the Study Scheduler. Defaults to the real Google adapter (which
+    degrades honestly to a 'not connected' state until Kyle runs the one-time login); tests override
+    this with ``FakeCalendarPort``. Imported lazily so the app + tests never need the google libs."""
+    from .studycal.google import GoogleCalendarPort
+
+    return GoogleCalendarPort()
+
+
 def get_app_settings() -> Settings:
     return get_settings()

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { PathResponse, PathStep } from "../api/types";
+import type { PathResponse, PathStep, StudyProposal, StudyScheduleState } from "../api/types";
 import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
 import { Markdown } from "../components/Markdown";
@@ -181,6 +181,8 @@ export default function PathPlayer() {
           )}
         </section>
       </div>
+
+      <StudySchedule notebookId={id} />
     </div>
   );
 }
@@ -587,5 +589,239 @@ function AxisPanel({ path }: { path: PathResponse }) {
         )}
       </div>
     </div>
+  );
+}
+
+// A local time range like "Wed, Jul 22 · 6:00–6:45 PM" from two RFC3339 strings (the browser's TZ,
+// which for Kyle is CT — the same tz the planner wrote).
+function fmtRange(startISO: string, endISO: string): string {
+  const s = new Date(startISO);
+  const e = new Date(endISO);
+  const day = s.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const t = (d: Date) => d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} · ${t(s)}–${t(e)}`;
+}
+
+// The Study Scheduler surface (v0): opt into calendar blocks for this path, propose a set against
+// free/busy (optionally shaped by a free-text preference), review + confirm the batch in one pass,
+// and remove written blocks. Nothing writes until "Add to my calendar"; an unconnected calendar
+// degrades to an honest "connect" note. Mirrors the Overnight strip's optimistic tap + error posture.
+function StudySchedule({ notebookId }: { notebookId: string }) {
+  const [state, setState] = useState<StudyScheduleState | null>(null);
+  const [proposal, setProposal] = useState<StudyProposal | null>(null);
+  const [dropped, setDropped] = useState<Set<number>>(new Set());
+  const [preference, setPreference] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .schedule(notebookId)
+      .then((s) => alive && setState(s))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [notebookId]);
+
+  if (!state) {
+    return (
+      <section aria-label="Study time" className="rounded-2xl border border-line bg-card p-5 shadow-card sm:p-6">
+        <div className="h-6 w-40 animate-pulse rounded bg-line-soft" />
+      </section>
+    );
+  }
+
+  const run = async (p: Promise<unknown>) => {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await p;
+    } catch (e) {
+      setErr((e as Error).message ?? "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = () => run(api.setScheduleOptIn(notebookId, { enabled: !state.enabled }).then(setState));
+  const propose = () =>
+    run(
+      api.proposeSchedule(notebookId, { preference: preference.trim() || null }).then((p) => {
+        setProposal(p);
+        setDropped(new Set());
+      }),
+    );
+  const keptBlocks = () => (proposal ? proposal.blocks.filter((_, i) => !dropped.has(i)) : []);
+  const confirm = () => {
+    const keep = keptBlocks();
+    if (!keep.length) return;
+    run(
+      api.confirmSchedule(notebookId, keep).then((s) => {
+        setState(s);
+        setProposal(null);
+      }),
+    );
+  };
+  const removeBlock = (id: number) => run(api.removeSchedule(notebookId, [id]).then(setState));
+  const removeAll = () => run(api.removeSchedule(notebookId).then(setState));
+
+  const kept = keptBlocks().length;
+
+  return (
+    <section aria-label="Study time" className="rounded-2xl border border-line bg-card p-5 shadow-card sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-ink">
+          <span aria-hidden>🗓️</span> Study time
+        </h2>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={state.enabled}
+            disabled={busy}
+            onChange={toggle}
+            className="h-4 w-4 rounded border-line-strong text-accent focus:ring-accent disabled:opacity-50"
+          />
+          Schedule on my calendar
+        </label>
+      </div>
+      <p className="mt-1 text-xs text-muted">
+        Proposes calendar blocks for this path's next steps against your free/busy. Nothing is written
+        until you confirm, and every block is one tap to remove.
+      </p>
+
+      {!state.connected && (
+        <div className="mt-3">
+          <Banner tone="info" title="Connect your Google Calendar">
+            Study blocks write to a dedicated “Study” calendar. Run the one-time{" "}
+            <code className="rounded bg-line-soft px-1">python -m app.studycal.google login</code> (see
+            docs/STUDY_SCHEDULER.md), then reload.
+          </Banner>
+        </div>
+      )}
+
+      {err && (
+        <div className="mt-3">
+          <Banner tone="warning">{err}</Banner>
+        </div>
+      )}
+
+      {state.enabled && state.connected && (
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-[12rem] flex-1 text-xs text-muted">
+              Any preferences? (optional)
+              <input
+                value={preference}
+                onChange={(e) => setPreference(e.target.value)}
+                placeholder="e.g. weekday evenings, ≤3 blocks"
+                aria-label="Scheduling preference"
+                className="mt-1 w-full rounded-lg border border-line p-2 text-sm text-ink focus:border-accent focus:outline-none"
+              />
+            </label>
+            <button
+              onClick={propose}
+              disabled={busy}
+              className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? "Working…" : "Propose times"}
+            </button>
+          </div>
+
+          {proposal && (
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
+              {proposal.message && <p className="mb-2 text-sm text-ink/90">{proposal.message}</p>}
+              {proposal.blocks.length === 0 ? (
+                <p className="text-sm text-muted">
+                  No open slots found in your window — try widening your preferences.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {proposal.blocks.map((b, i) => (
+                    <li
+                      key={i}
+                      className={cx(
+                        "flex items-start justify-between gap-3 text-sm",
+                        dropped.has(i) && "opacity-40",
+                      )}
+                    >
+                      <div>
+                        <div className="font-medium text-ink">
+                          {fmtRange(b.start, b.end)} · {b.minutes} min
+                        </div>
+                        <div className="text-xs text-muted">{b.steps.map((s) => s.title).join(" · ")}</div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setDropped((d) => {
+                            const n = new Set(d);
+                            if (n.has(i)) n.delete(i);
+                            else n.add(i);
+                            return n;
+                          })
+                        }
+                        className="shrink-0 text-xs text-accent hover:underline"
+                      >
+                        {dropped.has(i) ? "Add back" : "Drop"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {proposal.unscheduled_step_ids.length > 0 && (
+                <p className="mt-2 text-xs text-muted">
+                  {proposal.unscheduled_step_ids.length} step
+                  {proposal.unscheduled_step_ids.length === 1 ? "" : "s"} didn't fit the window — they'll
+                  schedule next time.
+                </p>
+              )}
+              {kept > 0 && (
+                <button
+                  onClick={confirm}
+                  disabled={busy}
+                  className="mt-3 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  Add {kept} block{kept === 1 ? "" : "s"} to my calendar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {state.blocks.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">On your calendar</div>
+            <button
+              onClick={removeAll}
+              disabled={busy}
+              className="text-xs text-rose-700 hover:underline disabled:opacity-50"
+            >
+              Remove all
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {state.blocks.map((b) => (
+              <li key={b.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink">
+                  <span aria-hidden>✓</span> {fmtRange(b.start, b.end)} ·{" "}
+                  <span className="text-muted">{b.title}</span>
+                </span>
+                <button
+                  onClick={() => removeBlock(b.id)}
+                  disabled={busy}
+                  className="shrink-0 text-xs text-rose-700 hover:underline disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }

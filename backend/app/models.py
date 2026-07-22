@@ -1111,3 +1111,89 @@ class NewsSuggestionAddResponse(BaseModel):
 class NewsSuggestionDismissResponse(BaseModel):
     ok: bool = True
     term: str  # normalized (lowercased) — never suggested again
+
+
+# -- study scheduler (v0) ------------------------------------------------------
+
+class StudyBlockStep(BaseModel):
+    """One path step packed inside a proposed study block (for display in the review view)."""
+
+    id: str
+    kind: str = ""
+    title: str = ""
+    minutes: int = 0
+
+
+class ProposedBlock(BaseModel):
+    """One study block the planner proposes (nothing is written until confirm). ``start``/``end`` are
+    RFC3339 with a CT offset; ``step_ids`` are the path steps this session covers. Echoed back
+    verbatim on confirm (the client may drop some) so the write is exactly what Kyle reviewed."""
+
+    start: str
+    end: str
+    minutes: int
+    title: str = ""
+    step_ids: List[str] = []
+    steps: List[StudyBlockStep] = []
+
+
+class WrittenBlock(BaseModel):
+    """A study block that WAS written to the calendar — carries its Google ``event_id`` +
+    ``calendar_id`` so it stays cleanly removable (the feature's one hard rule)."""
+
+    id: int
+    step_id: str
+    title: str
+    start: str
+    end: str
+    event_id: str
+    calendar_id: str
+    status: str = "written"
+
+
+class StudyScheduleState(BaseModel):
+    """The per-path scheduler state: the opt-in flag + session length, whether the calendar is
+    connected, and the live (written, not removed) blocks."""
+
+    track_kind: str = "path"
+    track_id: str
+    enabled: bool = False
+    session_minutes: int = 45
+    connected: bool = False
+    calendar_id: Optional[str] = None
+    blocks: List[WrittenBlock] = []
+
+
+class StudyProposal(BaseModel):
+    """The proposed set of blocks (read-only — writes nothing). ``connected=False`` means the
+    calendar isn't wired yet (honest 'connect' state, never a 500); ``message`` is the optional
+    negotiation line; ``unscheduled_step_ids`` are steps that didn't fit the window."""
+
+    ok: bool
+    connected: bool
+    session_minutes: int
+    blocks: List[ProposedBlock] = []
+    unscheduled_step_ids: List[str] = []
+    message: Optional[str] = None
+    error: Optional[str] = None
+    total_cost_usd: Optional[float] = None
+    duration_ms: Optional[int] = None
+
+
+class StudyOptInRequest(BaseModel):
+    enabled: bool
+    session_minutes: Optional[int] = None  # kept if omitted
+
+
+class StudyProposeRequest(BaseModel):
+    preference: Optional[str] = None  # free-text -> the claude -p negotiation lane
+    session_minutes: Optional[int] = None
+    days: Optional[int] = None
+
+
+class StudyConfirmRequest(BaseModel):
+    blocks: List[ProposedBlock] = []  # the reviewed set to write (a subset of the proposal is fine)
+
+
+class StudyRemoveRequest(BaseModel):
+    block_ids: Optional[List[int]] = None  # a subset, or None to remove every live block
