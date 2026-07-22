@@ -1,4 +1,4 @@
-import type { StudyPlanResponse, StudyPlanSegment } from "../api/types";
+import type { PathSummary, StudyPlanResponse, StudyPlanSegment } from "../api/types";
 
 // The minute budgets the Study Plan page offers.
 export const PLAN_MINUTES = [10, 20, 30, 45] as const;
@@ -23,4 +23,27 @@ export function segmentSummary(seg: StudyPlanSegment): string {
   const due = seg.due_count > 0 ? `${seg.due_count} due` : "getting ahead";
   const qs = `${seg.item_count} ${seg.item_count === 1 ? "question" : "questions"}`;
   return `${due} · ${qs} · ~${Math.round(seg.minutes)} min`;
+}
+
+// -- M8 #12 Continue lane -------------------------------------------------------
+
+// One glyph per path-step kind (the design's step vocabulary), for the Continue-lane next-step line.
+const STEP_KIND_ICON: Record<string, string> = {
+  intro: "🧭",
+  audio: "🎧",
+  read: "📖",
+  flashcards: "🃏",
+  quiz: "❓",
+  bridge: "✨",
+  reflect: "✍️",
+  recap: "🔁",
+};
+
+export function stepKindIcon(kind: string): string {
+  return STEP_KIND_ICON[kind] ?? "•";
+}
+
+// "3 of 9 · 33%" coverage line for a Continue-lane card.
+export function pathProgressSummary(p: PathSummary): string {
+  return `${p.completed_steps} of ${p.step_count} · ${p.progress_pct}%`;
 }

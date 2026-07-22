@@ -46,6 +46,7 @@ import type {
   NewsSuggestionDismissResponse,
   PathGenerateResponse,
   PathResponse,
+  PathsResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -291,6 +292,9 @@ export const api = {
   // 500: a hiccup, unparseable output, or a fabricated artifact id all return ok:false (nothing written).
   generatePath: (notebookId: string) =>
     post<PathGenerateResponse>(`/paths/${encodeURIComponent(notebookId)}/generate`),
+  // M8 #12: every composed path + its resume point (coverage + next step) — the Plan Continue lane.
+  // Non-empty day one via the bundled example; independent of the review minute budget.
+  paths: () => get<PathsResponse>("/paths"),
   customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
