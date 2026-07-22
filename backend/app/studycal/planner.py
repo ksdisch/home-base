@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Sequence, Tuple
 from zoneinfo import ZoneInfo
 
 from .duration import is_foldable, step_minutes
@@ -35,6 +35,9 @@ class PlanConfig:
     day_end_hour: int = 21    # and closes 9pm local
     max_blocks: int = 8
     max_per_day: int = 1
+    # Allowed days of the week (Python ``weekday()``: Mon=0 … Sun=6). ``None`` = every day is fair
+    # game (the v0 default); a subset lets the learner ask for "weekdays" / "Tue+Thu" / "weekends".
+    days_of_week: Optional[FrozenSet[int]] = None
     tz: str = "America/Chicago"
 
 
@@ -145,6 +148,8 @@ def plan_sessions(
             if count_by_day.get(d, 0) >= config.max_per_day:
                 continue
             win_start = base_date + timedelta(days=d)
+            if config.days_of_week is not None and win_start.weekday() not in config.days_of_week:
+                continue  # this weekday isn't allowed (e.g. weekends when the learner asked for weekdays)
             win_end = _local_window(win_start, config.day_end_hour)
             eff_start = max(win_start, now)
             if win_end <= eff_start:

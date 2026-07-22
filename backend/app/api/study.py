@@ -10,8 +10,9 @@ injected ``CalendarPort`` (fake in tests), and an unconnected calendar degrades 
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Sequence
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from ..chat import BriefChatClient, append_chat_ledger
 from ..deps import get_app_settings, get_calendar_port, get_study_negotiate_client
 from ..models import (
+    AppliedPlan,
     ProposedBlock,
     StudyConfirmRequest,
     StudyOptInRequest,
@@ -40,6 +42,7 @@ router = APIRouter()
 TRACK_KIND = "path"
 _TZ = ZoneInfo("America/Chicago")
 _MIN_SESSION, _MAX_SESSION = 10, 180
+_DEF = PlanConfig()  # planner defaults for knobs the user + persisted prefs both leave unset
 
 
 def _now() -> datetime:
@@ -48,6 +51,19 @@ def _now() -> datetime:
 
 def _clamp_session(minutes: int) -> int:
     return max(_MIN_SESSION, min(_MAX_SESSION, int(minutes)))
+
+
+def _clamp(value: Any, lo: int, hi: int) -> int:
+    return max(lo, min(hi, int(value)))
+
+
+def _norm_days(value: Optional[Sequence[int]]) -> Optional[List[int]]:
+    """A sorted, unique list of weekday ints (Mon=0 … Sun=6) from a control list, dropping anything
+    out of range. ``None``/empty → ``None`` (every day — no restriction)."""
+    if not value:
+        return None
+    out = sorted({int(d) for d in value if not isinstance(d, bool) and isinstance(d, int) and 0 <= int(d) <= 6})
+    return out or None
 
 
 def _load_path_or_404(notebook_id: str) -> Dict[str, Any]:
@@ -98,6 +114,10 @@ def _state(notebook_id: str, port: Any) -> StudyScheduleState:
         connected=_connected(port),
         calendar_id=rows[-1]["calendar_id"] if rows else None,
         blocks=_written(rows),
+        day_start_hour=opt["day_start_hour"],
+        day_end_hour=opt["day_end_hour"],
+        days_of_week=opt["days_of_week"],
+        max_blocks=opt["max_blocks"],
     )
 
 
@@ -126,22 +146,77 @@ def propose(
     client: BriefChatClient = Depends(get_study_negotiate_client),
     settings=Depends(get_app_settings),
 ) -> StudyProposal:
-    """Propose blocks for the path's incomplete steps against live free/busy. Read-only — writes
-    nothing. Optionally shaped by the claude -p negotiation lane (which only sets planner knobs)."""
+    """Propose blocks for the path's incomplete steps against live free/busy. Read-only against the
+    calendar — writes no events; it does persist the learner's control prefs so they stick across
+    visits. Config is built from the explicit control knobs (falling back to the persisted prefs,
+    then planner defaults); the free-text ``preference`` runs the claude -p negotiation lane, whose
+    suggestions fill only the knobs the user did NOT set by hand this turn (controls win per key)."""
     raw = _load_path_or_404(notebook_id)
     opt = study_blocks.get_study_opt_in(TRACK_KIND, notebook_id)
     steps = _incomplete_steps(notebook_id, raw)
 
-    session_minutes = _clamp_session(body.session_minutes or opt["session_minutes"])
-    window_days = max(1, min(30, int(body.days))) if body.days else 14
-    config = PlanConfig(session_minutes=session_minutes, window_days=window_days)
+    # Which knobs the user set explicitly this turn — these win over any LLM suggestion for the key.
+    explicit: set[str] = set()
+
+    def _pref(key: str, default: int) -> int:
+        v = opt.get(key)
+        return int(v) if v is not None else int(default)
+
+    if body.session_minutes is not None:
+        explicit.add("session_minutes")
+    session_minutes = _clamp_session(
+        body.session_minutes if body.session_minutes is not None else opt["session_minutes"]
+    )
+    if body.day_start_hour is not None:
+        explicit.add("day_start_hour")
+    day_start = _clamp(
+        body.day_start_hour if body.day_start_hour is not None else _pref("day_start_hour", _DEF.day_start_hour),
+        0, 23,
+    )
+    if body.day_end_hour is not None:
+        explicit.add("day_end_hour")
+    day_end = _clamp(
+        body.day_end_hour if body.day_end_hour is not None else _pref("day_end_hour", _DEF.day_end_hour),
+        1, 24,
+    )
+    if day_end <= day_start:  # repair an inverted window (same rule as the negotiation lane)
+        day_end = min(24, day_start + 1)
+    if body.days_of_week is not None:
+        explicit.add("days_of_week")
+        dow = _norm_days(body.days_of_week)
+    else:
+        dow = _norm_days(opt.get("days_of_week"))
+    if body.max_blocks is not None:
+        explicit.add("max_blocks")
+    max_blocks = _clamp(
+        body.max_blocks if body.max_blocks is not None else _pref("max_blocks", _DEF.max_blocks), 1, 20
+    )
+    if body.max_per_day is not None:
+        explicit.add("max_per_day")
+    max_per_day = _clamp(body.max_per_day if body.max_per_day is not None else _DEF.max_per_day, 1, 5)
+    window_days = _clamp(body.days if body.days is not None else _DEF.window_days, 1, 30)
+
+    config = PlanConfig(
+        session_minutes=session_minutes,
+        window_days=window_days,
+        day_start_hour=day_start,
+        day_end_hour=day_end,
+        max_blocks=max_blocks,
+        max_per_day=max_per_day,
+        days_of_week=frozenset(dow) if dow else None,
+    )
 
     message = None
     negotiate_error = None
     cost = duration = None
     if body.preference and body.preference.strip():
         neg = negotiate_plan(client, preference=body.preference, base_config=config)
-        config = neg["config"]
+        # Apply only the knobs the user did NOT set explicitly this turn (per-key precedence).
+        apply = {k: v for k, v in neg["changed"].items() if k not in explicit}
+        if apply:
+            if "days_of_week" in apply:
+                apply["days_of_week"] = frozenset(apply["days_of_week"]) if apply["days_of_week"] else None
+            config = replace(config, **apply)
         message = neg["message"] or None
         negotiate_error = neg["error"]
         env = neg.get("envelope") or {}
@@ -156,6 +231,27 @@ def propose(
             error=negotiate_error,
         )
 
+    dow_list = sorted(config.days_of_week) if config.days_of_week else []
+    # Persist the effective control set so the panel hydrates to it next visit (calendar untouched).
+    study_blocks.set_study_prefs(
+        TRACK_KIND,
+        notebook_id,
+        session_minutes=config.session_minutes,
+        day_start_hour=config.day_start_hour,
+        day_end_hour=config.day_end_hour,
+        days_of_week=dow_list or None,
+        max_blocks=config.max_blocks,
+    )
+    applied = AppliedPlan(
+        session_minutes=config.session_minutes,
+        day_start_hour=config.day_start_hour,
+        day_end_hour=config.day_end_hour,
+        days_of_week=dow_list,
+        window_days=config.window_days,
+        max_blocks=config.max_blocks,
+        max_per_day=config.max_per_day,
+    )
+
     unscheduled = [s["id"] for s in steps]
     if not _connected(port):
         return StudyProposal(
@@ -165,6 +261,7 @@ def propose(
             unscheduled_step_ids=unscheduled,
             message=message,
             error=negotiate_error,
+            applied=applied,
         )
 
     now = _now()
@@ -177,6 +274,7 @@ def propose(
             session_minutes=config.session_minutes,
             unscheduled_step_ids=unscheduled,
             message=message,
+            applied=applied,
         )
 
     plan = plan_sessions(steps, busy=busy, now=now, config=config)
@@ -188,6 +286,7 @@ def propose(
         unscheduled_step_ids=plan["unscheduled_step_ids"],
         message=message,
         error=negotiate_error,
+        applied=applied,
         total_cost_usd=cost,
         duration_ms=duration,
     )

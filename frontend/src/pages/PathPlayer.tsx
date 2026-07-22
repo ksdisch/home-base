@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { PathResponse, PathStep, StudyProposal, StudyScheduleState } from "../api/types";
+import type {
+  AppliedPlan,
+  PathResponse,
+  PathStep,
+  StudyProposal,
+  StudyScheduleState,
+} from "../api/types";
 import { Badge } from "../components/Badge";
 import { Banner } from "../components/Banner";
 import { Markdown } from "../components/Markdown";
@@ -602,6 +608,38 @@ function fmtRange(startISO: string, endISO: string): string {
   return `${day} · ${t(s)}–${t(e)}`;
 }
 
+// Study Scheduler controls (v1). Day chips render Mon→Sun mapped to Python weekday() ints 0→6.
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+const SESSION_CHOICES = [30, 45, 60];
+const START_HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const END_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+
+// Control defaults on first use (no persisted prefs): a broad daytime window so scheduling isn't
+// stuck on evenings — the exact complaint the rework fixes. Every default is one tap to change.
+const DEFAULT_START = 9;
+const DEFAULT_END = 17;
+const DEFAULT_SESSION = 45;
+const DEFAULT_MAX_BLOCKS = 8;
+
+function fmtHour(h: number): string {
+  const norm = ((h % 24) + 24) % 24;
+  if (norm === 0) return "12 AM";
+  if (norm === 12) return "12 PM";
+  return norm < 12 ? `${norm} AM` : `${norm - 12} PM`;
+}
+
+function describeApplied(a: AppliedPlan): string {
+  const days =
+    a.days_of_week.length === 0 || a.days_of_week.length === 7
+      ? "any day"
+      : a.days_of_week.every((d) => d <= 4) && a.days_of_week.length === 5
+        ? "weekdays"
+        : a.days_of_week.map((d) => DAY_SHORT[d]).join("");
+  return `${days}, ${fmtHour(a.day_start_hour)}–${fmtHour(a.day_end_hour)} · ${a.session_minutes}-min · up to ${a.max_blocks} blocks`;
+}
+
 // The Study Scheduler surface (v0): opt into calendar blocks for this path, propose a set against
 // free/busy (optionally shaped by a free-text preference), review + confirm the batch in one pass,
 // and remove written blocks. Nothing writes until "Add to my calendar"; an unconnected calendar
@@ -614,11 +652,38 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // v1 controls (the source of truth for a deterministic propose) + the conversational thread.
+  const [days, setDays] = useState<Set<number>>(new Set(ALL_DAYS));
+  const [startHour, setStartHour] = useState(DEFAULT_START);
+  const [endHour, setEndHour] = useState(DEFAULT_END);
+  const [sessionMinutes, setSessionMinutes] = useState(DEFAULT_SESSION);
+  const [maxBlocks, setMaxBlocks] = useState(DEFAULT_MAX_BLOCKS);
+  const [thread, setThread] = useState<{ note: string; reply: string }[]>([]);
+
+  // Snap the controls to a set of knobs (persisted prefs on load, or the applied plan after propose).
+  const applyControls = (p: {
+    days_of_week?: number[] | null;
+    day_start_hour?: number | null;
+    day_end_hour?: number | null;
+    session_minutes?: number | null;
+    max_blocks?: number | null;
+  }) => {
+    setDays(new Set(p.days_of_week && p.days_of_week.length ? p.days_of_week : ALL_DAYS));
+    if (p.day_start_hour != null) setStartHour(p.day_start_hour);
+    if (p.day_end_hour != null) setEndHour(p.day_end_hour);
+    if (p.session_minutes != null) setSessionMinutes(p.session_minutes);
+    if (p.max_blocks != null) setMaxBlocks(p.max_blocks);
+  };
+
   useEffect(() => {
     let alive = true;
     api
       .schedule(notebookId)
-      .then((s) => alive && setState(s))
+      .then((s) => {
+        if (!alive) return;
+        setState(s);
+        applyControls(s); // hydrate the controls from the learner's persisted prefs
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -646,14 +711,42 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
     }
   };
 
+  const toggleDay = (d: number) =>
+    setDays((prev) => {
+      const n = new Set(prev);
+      if (n.has(d)) n.delete(d);
+      else n.add(d);
+      return n;
+    });
+
   const toggle = () => run(api.setScheduleOptIn(notebookId, { enabled: !state.enabled }).then(setState));
-  const propose = () =>
+  const propose = () => {
+    const note = preference.trim();
+    // A note lets the claude lane interpret free text (and accumulate across turns via the persisted
+    // base); an empty note sends the explicit control knobs for a deterministic plan.
+    const body = note
+      ? { preference: note }
+      : {
+          preference: null,
+          days_of_week: [...days].sort((a, b) => a - b),
+          day_start_hour: startHour,
+          day_end_hour: endHour,
+          session_minutes: sessionMinutes,
+          max_blocks: maxBlocks,
+        };
     run(
-      api.proposeSchedule(notebookId, { preference: preference.trim() || null }).then((p) => {
+      api.proposeSchedule(notebookId, body).then((p) => {
         setProposal(p);
         setDropped(new Set());
+        if (p.applied) applyControls(p.applied); // reflect what the plan actually used
+        if (note) {
+          const reply = p.message || (p.applied ? describeApplied(p.applied) : "Updated.");
+          setThread((t) => [...t, { note, reply }]);
+          setPreference("");
+        }
       }),
     );
+  };
   const keptBlocks = () => (proposal ? proposal.blocks.filter((_, i) => !dropped.has(i)) : []);
   const confirm = () => {
     const keep = keptBlocks();
@@ -710,29 +803,147 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
 
       {state.enabled && state.connected && (
         <div className="mt-4 space-y-4">
+          {/* Explicit controls — the source of truth for a deterministic propose. */}
+          <div className="space-y-3 rounded-xl border border-line bg-bg/40 p-3">
+            <div>
+              <div className="mb-1 text-xs font-medium text-muted">Days</div>
+              <div className="flex flex-wrap gap-1.5">
+                {DAY_NAMES.map((name, d) => {
+                  const on = days.has(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-label={name}
+                      aria-pressed={on}
+                      onClick={() => toggleDay(d)}
+                      className={cx(
+                        "h-8 w-8 rounded-full border text-sm font-medium transition",
+                        on
+                          ? "border-accent bg-accent text-white"
+                          : "border-line bg-card text-muted hover:border-accent/50",
+                      )}
+                    >
+                      {DAY_SHORT[d]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+              <label className="text-xs text-muted">
+                From
+                <select
+                  aria-label="Start hour"
+                  value={startHour}
+                  onChange={(e) => setStartHour(Number(e.target.value))}
+                  className="mt-1 block rounded-lg border border-line p-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+                >
+                  {START_HOURS.map((h) => (
+                    <option key={h} value={h}>
+                      {fmtHour(h)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-muted">
+                To
+                <select
+                  aria-label="End hour"
+                  value={endHour}
+                  onChange={(e) => setEndHour(Number(e.target.value))}
+                  className="mt-1 block rounded-lg border border-line p-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+                >
+                  {END_HOURS.map((h) => (
+                    <option key={h} value={h}>
+                      {fmtHour(h)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-muted">
+                Max blocks
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  aria-label="Max blocks"
+                  value={maxBlocks}
+                  onChange={(e) => setMaxBlocks(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                  className="mt-1 block w-16 rounded-lg border border-line p-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+                />
+              </label>
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs font-medium text-muted">Session length</div>
+              <div className="flex gap-1.5">
+                {SESSION_CHOICES.map((m) => {
+                  const on = sessionMinutes === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-label={`${m}-minute sessions`}
+                      aria-pressed={on}
+                      onClick={() => setSessionMinutes(m)}
+                      className={cx(
+                        "rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+                        on
+                          ? "border-accent bg-accent text-white"
+                          : "border-line bg-card text-muted hover:border-accent/50",
+                      )}
+                    >
+                      {m} min
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* The conversational note — plain-English tweaks the claude lane interprets. */}
+          {thread.length > 0 && (
+            <ul className="space-y-1.5 text-sm">
+              {thread.map((t, i) => (
+                <li key={i} className="rounded-lg bg-bg/40 px-3 py-2">
+                  <div className="text-ink">
+                    <span className="text-muted">You:</span> {t.note}
+                  </div>
+                  <div className="text-xs text-muted">↳ {t.reply}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="flex flex-wrap items-end gap-2">
             <label className="min-w-[12rem] flex-1 text-xs text-muted">
-              Any preferences? (optional)
+              Or describe it (optional)
               <input
                 value={preference}
                 onChange={(e) => setPreference(e.target.value)}
-                placeholder="e.g. weekday evenings, ≤3 blocks"
+                placeholder="e.g. weekdays before 2pm, not Mondays"
                 aria-label="Scheduling preference"
+                onKeyDown={(e) => e.key === "Enter" && !busy && propose()}
                 className="mt-1 w-full rounded-lg border border-line p-2 text-sm text-ink focus:border-accent focus:outline-none"
               />
             </label>
             <button
               onClick={propose}
-              disabled={busy}
+              disabled={busy || (!preference.trim() && days.size === 0)}
               className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? "Working…" : "Propose times"}
+              {busy ? "Working…" : preference.trim() ? "Refine" : "Propose times"}
             </button>
           </div>
+          {!preference.trim() && days.size === 0 && (
+            <p className="text-xs text-rose-700">Pick at least one day, or describe your preference.</p>
+          )}
 
           {proposal && (
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
-              {proposal.message && <p className="mb-2 text-sm text-ink/90">{proposal.message}</p>}
+              {/* The negotiation line lives in the conversation thread above, not here (no dupe). */}
               {proposal.blocks.length === 0 ? (
                 <p className="text-sm text-muted">
                   No open slots found in your window — try widening your preferences.
