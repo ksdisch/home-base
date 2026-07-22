@@ -153,3 +153,20 @@ def test_respects_max_blocks_and_reports_the_rest_unscheduled() -> None:
     )
     assert len(plan["blocks"]) == 2
     assert plan["unscheduled_step_ids"] == ["ep3"]
+
+
+def test_a_busy_boundary_block_still_serializes_in_ct_not_utc() -> None:
+    # Google free/busy comes back in UTC. A block placed right after a busy interval must be
+    # normalized to America/Chicago — not inherit the busy interval's +00:00 offset — so every
+    # block time carries the CT offset (the documented invariant).
+    utc = ZoneInfo("UTC")
+    now = datetime(2026, 7, 22, 12, 0, tzinfo=CT)
+    busy = [(datetime(2026, 7, 22, 22, 0, tzinfo=utc), datetime(2026, 7, 22, 23, 15, tzinfo=utc))]  # 17:00-18:15 CDT
+    plan = plan_sessions(
+        [_audio("ep1", 8)],
+        busy=busy,
+        now=now,
+        config=PlanConfig(session_minutes=45, day_start_hour=18, day_end_hour=21),
+    )
+    assert plan["blocks"][0]["start"] == "2026-07-22T18:15:00-05:00"
+    assert plan["blocks"][0]["end"] == "2026-07-22T19:00:00-05:00"

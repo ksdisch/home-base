@@ -338,6 +338,15 @@ _One condensed entry per update — what shipped, the PR, the decisions that sti
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
 
+### 2026-07-22 — Study Scheduler v0 · planner CT-offset fix (PR #138)
+Post-ship follow-up, caught on the first LIVE propose: a study block whose start snapped to a
+busy-interval boundary inherited Google free/busy's UTC offset (`…23:15:00+00:00`) instead of
+America/Chicago — same instant, but it broke the documented "every block time carries the CT offset"
+invariant. One-line planner fix (`slot.astimezone(tz)` at placement) + a regression test (a UTC busy
+interval forces a boundary block → must serialize `-05:00`). Backend 709→710 green, ruff clean.
+Backend-only; redeployed via ff + kickstart (no rebuild). Verified live: the busy-dodged block now
+serializes in CT.
+
 ### 2026-07-22 — Study Scheduler v0 · opt-in Calendar study blocks for a path (PR #137)
 Home Base's second acting surface (after Overnight) and its first Google-service write. Behind a
 per-path opt-in flag, a deterministic planner reads the Jacobian path's incomplete steps + a per-kind
