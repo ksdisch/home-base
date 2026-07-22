@@ -11,6 +11,7 @@ import FlashcardReview from "./pages/FlashcardReview";
 import Home from "./pages/Home";
 import News from "./pages/News";
 import Notes from "./pages/Notes";
+import PathPlayer from "./pages/PathPlayer";
 import Progress from "./pages/Progress";
 import QuizPlayer from "./pages/QuizPlayer";
 import StudyGuide from "./pages/StudyGuide";
@@ -208,6 +209,8 @@ function AppChrome() {
           {/* M2: every note attached to a brief item, browsable per topic. */}
           <Route path="/notes" element={<Notes />} />
           <Route path="/learning" element={<Home />} />
+          {/* M8: the outline+detail learning-path player over a NotebookLM topic. */}
+          <Route path="/learning/path/:id" element={<PathPlayer />} />
           <Route path="/plan" element={<StudyPlan />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />

@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-20 · **Overnight Chief of Staff v0 ✅ SHIPPED (PR #107)** — the LAST of the four decided moonshots, built on Kyle's explicit go at its standing gate conversation (tenth deliberate gate override). Scope decisions recorded at the gate: **in-repo data only** (vault bridge behind its own later gate) · **draft-only v0 with a graded send gate later** (each errand TYPE earns send/execute via its own M0-style graded record + gate conversation; nothing unlocks by default) · **undo = discard + the reversibility rule** (only genuinely reversible actions are ever send-gate-eligible; irreversible ones stay draft-only permanently). The build: `sweeps/actions_queue.py` drafts a note on each readable topic's top story after every sweep (one guarded `claude -p`, M5 lane guards, strict-out validation, idempotent per day, best-effort in sweep.sh) → `backend/data/overnight.jsonl` → live-only 🌙 queue on Today — approve lands a REAL note through the existing notes path (deletable there), discard is the undo, resolution single-shot (409). Backend **625** / frontend **126** green. **Moonshot queue: EMPTY — all four built.** Open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-21 · **M8 — Learning Paths, Phase 4 (the frontend) ✅ SHIPPED (PR #129)** — the AI-study-designer slice gets its UI: an outline+detail **PathPlayer** over a NotebookLM topic (left-rail TOC + active step + a live **three-axis** panel — coverage · SM-2 recall · self-rated confidence) wired to `GET /api/paths/{id}`; the six step behaviors (audio/read/quiz deep-link the existing topic routes · the one ✨ **bridge-check** grades an open-recall answer on the M5 grounded lane and NEVER moves mastery · intro/reflect are glue) each feed an axis; and the **Learning card** is reworked from the dead "mastery —" chip into three live axes + a Generate/Continue/Review entry. Backend Phases 1–3 already merged (PR #127 `app.paths` loader + coverage/confidence stores schema v10 + Jacobian fixture · PR #128 Paths API + formative bridge grader, 652 backend tests); this PR is frontend-only + the hand-synced contract, scoped to the bundled Jacobian-Lens fixture (the on-demand ✨ Generate designer is a later phase). Frontend **163** green · typecheck green (slice tests ride the later green-gate item). **Moonshot queue: EMPTY.** Remaining M8: two-lane Plan · three-trend Progress · the `claude -p` Designer + Generate · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -83,6 +83,7 @@ kanban
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
+    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 app.paths loader +<br/>coverage/confidence<br/>stores (schema v10) +<br/>Jacobian fixture · PR<br/>127 · Ph3 Paths API (3<br/>axes + formative bridge<br/>grader, 652 tests) · PR<br/>128 · Ph4 frontend —<br/>outline+detail PathPlayer<br/>+ 3-axis card + contract<br/>· PR 129 · remaining:<br/>2-lane Plan · 3-trend<br/>Progress · on-demand<br/>Designer/Generate"]
   next["📋 Planned"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
@@ -281,6 +282,12 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Phase 4 — topic scout ✅ 2026-07-18: `suggest_topics` (score ≥ 9 across ≥ 3 days · event-level roster coverage · token-disjoint one-card-per-theme · theme-wide dismiss memory, schema v9) → evidence cards in For You → `POST /api/news/suggestions/add` appends atomically to `sweeps/topics.json` (409 on dupe; the one deliberate Mode-B → Mode-A write) · live e2e proof clean
   - [x] Post-ship polish ✅ 2026-07-18: **PR #65** News promoted into the mobile bottom tab bar · **PR #66** Uplifting category (good-news feeds + attribution fallback) · **PR #67** near-duplicate headline collapse on category pages (newest copy wins)
 
+- [ ] **M8 — Learning paths** — 🔄 IN FLIGHT ([design](ideas/learning-paths.md); approved 2026-07-21 brainstorm → `/explore-plan` approach A: a fixture-first vertical slice that turns Learning from a flat grid with a dead "mastery —" chip into an AI study-designer over your NotebookLM topics, scored on three honest axes — coverage · SM-2 recall · self-rated confidence)
+  - [x] Phases 1–2 — `app.paths` loader (reads `<notebook_id>.json` path sidecars) + `path_step_progress`/`path_confidence` stores (schema v10) + bundled hand-authored Jacobian-Lens fixture (PR #127)
+  - [x] Phase 3 — Paths API: `GET /api/paths/{id}` (coverage · recall · confidence merged onto the on-disk path) + per-step complete/confidence writes + a formative `claude -p` bridge grader (marks coverage, NEVER mastery) (PR #128; 652 backend tests)
+  - [x] Phase 4 — the frontend (PR #129): outline+detail **PathPlayer** (left-rail TOC + active step + live three-axis panel; six step behaviors reusing the existing topic routes; inline ✨ bridge-check on the M5 lane) + **NotebookCard** reworked into three live axes + Generate/Continue/Review + the hand-synced `types.ts`/`client.ts` contract. Scoped to the one bundled fixture; typecheck + 163 frontend tests green
+  - [ ] Remaining: two-lane Plan (Continue/Review) · three-trend Progress + honest heatmap · the on-demand `claude -p` **Designer** + ✨ Generate · slice-quality green gate — build the rest only after the slice's quality is judged
+
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
 _Instrumented 2026-07-17 (PR #52): `GET /api/brief/habit` + a self-hiding "Habit check" strip on
@@ -322,6 +329,21 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-21 — M8 Learning Paths · Phase 4, the frontend (PR #129)
+The AI-study-designer slice gets its UI ([design](ideas/learning-paths.md); `/explore-plan`
+approach A). New `pages/PathPlayer.tsx` — the outline+detail player (design decision 5): a
+left-rail TOC over the whole generated path + a right pane with the active step and a live
+**three-axis** panel (coverage · SM-2 recall · self-rated confidence), reading `GET /api/paths/{id}`.
+Each step's action reuses the real surfaces — audio/read/quiz deep-link the existing topic routes,
+the one ✨ **bridge-check** grades an open-recall answer on the M5 grounded lane (marks coverage,
+never mastery), intro/reflect are glue — and a per-step confidence rating feeds the third axis.
+`components/NotebookCard.tsx` is reworked from the dead "mastery —" chip into three live axes + a
+Generate/Continue/Review entry (Generate a calm stub until the later designer; each card fetches its
+own path, 404 = no path yet). Contract hand-synced in `types.ts`/`client.ts` (Path*/Step*/BridgeGrade*
++ four `api` methods). Frontend-only, scoped to the bundled Jacobian-Lens fixture; backend Phases 1–3
+already merged (PR #127 · #128). Frontend **163** green · typecheck green (slice tests ride the later
+green-gate item). Remaining M8: two-lane Plan · three-trend Progress · the Designer/Generate.
 
 ### 2026-07-20 — W4 moonshot #4 · Overnight Chief of Staff v0, the queue closes (PR #107)
 The LAST decided moonshot, built on Kyle's explicit go at its standing gate conversation
