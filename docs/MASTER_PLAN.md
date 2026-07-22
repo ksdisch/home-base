@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-21 · **M8 — Learning Paths, the on-demand Designer (✨ Generate) ✅ SHIPPED (PR #130)** — the slice's make-it-real piece (design decision 9): press ✨ Generate on a topic and one grounded `claude -p` authoring call composes a path over that topic's **real** artifacts, validated against the catalog (the **M0 no-fabrication bar** — every artifact-backed step must cite a real artifact id of the matching type, or the whole path is rejected and nothing is written), atomically written as `PATHS_DIR/<notebook_id>.json` → the Learning card lights up and PathPlayer works for real. Reuses the M5 `BriefChatClient` lane exactly like the bridge grader (scrubbed env, `--tools ""`, degrade to `ok=False`, never a 500); own tunable model (`PATHS_DESIGNER_MODEL`, default sonnet) + usage ledger; `NotebookCard`'s stub becomes a real busy-aware button. Backend **660** green (+8 M0-bar tests) · frontend typecheck + **163** + build green. Topic-agnostic, but only the Jacobian fixture ships a path today — Kyle generates a few and judges path quality (the slice's riskiest assumption) before scaling. **Moonshot queue: EMPTY.** Remaining M8: two-lane Plan · three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Plan Continue lane ✅ SHIPPED (PR #132)** — the two-lane Plan's second lane (design decision 6): `GET /api/paths` returns every composed path + its next-incomplete step, so the Plan is **non-empty day one** (via the bundled Jacobian example) instead of empty until an SR quiz is due. `StudyPlan.tsx` renders a coverage-driven **Continue** lane (links into the outline+detail player) above the unchanged SR **Review** lane, one shared minutes budget. Backend **665** green (+6) · frontend typecheck + **165** (+2) + build green. Gate honored first: Kyle judged live Designer output this session — a normal topic (jlens) composed a genuinely good path (sensible order · no fabrication · correct bridge); the richest topic timed out at the 180s ceiling (arranges *all* artifacts) → BACKLOG designer-polish follow-up (curation + timeout). **Moonshot queue: EMPTY.** Remaining M8: three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -83,7 +83,7 @@ kanban
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
-    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>remaining: 2-lane Plan ·<br/>3-trend Progress · green<br/>gate"]
+    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · remaining: 3-trend<br/>Progress · green gate"]
   next["📋 Planned"]
     hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
   decide["⏸️ Awaiting decision"]
@@ -288,7 +288,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Phase 3 — Paths API: `GET /api/paths/{id}` (coverage · recall · confidence merged onto the on-disk path) + per-step complete/confidence writes + a formative `claude -p` bridge grader (marks coverage, NEVER mastery) (PR #128; 652 backend tests)
   - [x] Phase 4 — the frontend (PR #129): outline+detail **PathPlayer** (left-rail TOC + active step + live three-axis panel; six step behaviors reusing the existing topic routes; inline ✨ bridge-check on the M5 lane) + **NotebookCard** reworked into three live axes + Generate/Continue/Review + the hand-synced `types.ts`/`client.ts` contract. Scoped to the one bundled fixture; typecheck + 163 frontend tests green
   - [x] The on-demand **Designer** (PR #130): `POST /api/paths/{id}/generate` composes a path over a topic's real artifacts on the M5 `claude -p` lane (`app/paths/designer.py`, reused like the bridge grader), validated against the catalog — the **M0 no-fabrication bar**: every artifact-backed step must cite a real id of the matching type or the whole path is rejected and nothing is written (`write_path_file` atomic; `PATHS_DESIGNER_MODEL` tunable, default sonnet). `NotebookCard`'s stub becomes a real busy-aware button. +8 M0-bar tests; backend 660 green
-  - [ ] Remaining: two-lane Plan (Continue/Review) · three-trend Progress + honest heatmap · slice-quality green gate — build the rest only after the generated paths' quality is judged
+  - [x] **Plan — the Continue lane** (PR #132): `GET /api/paths` lists every composed path + its next-incomplete step (malformed skipped, never a 500) → `StudyPlan.tsx` renders a coverage-driven **Continue** lane (non-empty day one via the bundled example) above the unchanged SR **Review** lane, one shared minutes budget. +6 backend (665) / +2 frontend (165) tests
+  - [ ] Remaining: three-trend Progress + honest heatmap · slice-quality green gate — generated-path quality judged 2026-07-22 (good on normal topics; rich-topic curation → BACKLOG)
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -332,6 +333,22 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-22 — M8 Learning Paths · the Plan Continue lane (PR #132)
+The two-lane Plan's second lane (design decision 6). New `GET /api/paths`
+(`list_learning_paths`) enumerates every composed path → `get_path` +
+`db.get_path_progress` → the first incomplete step per path (malformed files skipped,
+never a 500; in-progress paths sort first), returning new `PathSummary`/`PathsResponse`.
+`StudyPlan.tsx` renders a coverage-driven **Continue** lane — each in-progress path links
+into the outline+detail player at `/learning/path/:id`, non-empty day one via the bundled
+Jacobian example — above the unchanged SR **Review** lane, both under one shared minutes
+budget. Contract hand-synced (`types.ts`/`client.ts` + `api.paths()`). Backend **665**
+(+6) · frontend typecheck + **165** (+2) + build green. Gate honored: Kyle judged live
+Designer output first — a normal topic (jlens) composed a genuinely good path (sensible
+ordering, no fabrication, correct bridge); the richest topic (engineering-abstractions,
+~49 artifacts) timed out at the 180s lane ceiling (the designer arranges *all* artifacts),
+logged as a BACKLOG designer-polish follow-up. Remaining M8: three-trend Progress ·
+slice-quality green gate.
 
 ### 2026-07-21 — M8 Learning Paths · the on-demand Designer (PR #130)
 The slice's make-it-real piece ([design](ideas/learning-paths.md), decision 9). New
