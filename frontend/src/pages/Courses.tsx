@@ -43,7 +43,7 @@ export default function Courses() {
       {loading && !courses && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+            <div key={i} className="h-48 animate-pulse rounded-2xl border border-line bg-card/60" />
           ))}
         </div>
       )}

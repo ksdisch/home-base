@@ -547,6 +547,71 @@ export interface Flashcard {
   back: string;
 }
 
+// -- learning paths (M8) — mirrors backend PathStep/PathResponse + the write bodies. A path is a
+// generated sidecar over a NotebookLM topic (app.paths); the three axes (coverage/recall/
+// confidence) are merged onto it at read time. `completed`/`confidence` come from the store.
+export interface PathStep {
+  id: string;
+  kind: string; // intro | audio | read | flashcards | quiz | bridge | reflect | recap
+  title: string;
+  focus?: string | null;
+  body?: string | null;
+  artifact_id?: string | null;
+  artifact_type?: string | null;
+  estimated_minutes?: number | null;
+  completed: boolean; // coverage — from path_step_progress
+  confidence?: number | null; // 1-5 self-rating — from path_confidence
+}
+
+export interface PathResponse {
+  notebook_id: string;
+  title: string;
+  topic: string;
+  generated_at: string;
+  generator: string;
+  steps: PathStep[];
+  step_count: number;
+  completed_steps: number;
+  progress_pct: number; // coverage (steps done)
+  mastery?: number | null; // SM-2 recall, decayed — null until the topic's quiz/flashcards are practiced
+  confidence?: number | null; // mean self-rating so far — null until any step is rated
+}
+
+export interface StepComplete {
+  completed: boolean;
+}
+
+export interface StepConfidence {
+  rating: number; // 1-5
+}
+
+export interface BridgeGradeRequest {
+  answer: string;
+}
+
+// The formative grade of a bridge-check answer. ok=false + a calm error means the grade couldn't
+// run (a claude hiccup) — never an HTTP error. The step is marked done on submit regardless
+// (coverage), and a bridge NEVER moves mastery; `path` is the refreshed three-axis state.
+export interface BridgeGradeResponse {
+  ok: boolean;
+  feedback?: string | null;
+  error?: string | null;
+  path: PathResponse;
+}
+
+// The outcome of an on-demand path composition (M8 Designer). ok=false + a calm error means the
+// claude run/parse failed (never an HTTP error); errors carries validation failures (a fabricated
+// artifact id, bad structure) — on any failure nothing is written. path is the fresh three-axis
+// state on success so the card lights up without a refetch. Cost fields come from the envelope.
+export interface PathGenerateResponse {
+  ok: boolean;
+  error?: string | null;
+  errors: string[];
+  path?: PathResponse | null;
+  total_cost_usd?: number | null;
+  duration_ms?: number | null;
+}
+
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
 // (+ the M2 note models).
 export interface BriefSource {

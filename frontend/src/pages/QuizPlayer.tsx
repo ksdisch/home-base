@@ -93,7 +93,7 @@ export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "c
     return (
       <div className="space-y-4">
         {backLink}
-        <div className="h-56 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+        <div className="h-56 animate-pulse rounded-2xl border border-line bg-card/60" />
       </div>
     );
   }
@@ -158,7 +158,7 @@ export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "c
             Question {current + 1} of {total}
           </span>
         </div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-stone-200">
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
           <div
             className="h-full rounded-full bg-accent transition-all"
             style={{ width: `${((current + 1) / total) * 100}%` }}
@@ -166,7 +166,7 @@ export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "c
         </div>
       </div>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+      <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
         <p className="text-base font-medium text-ink">{q.question}</p>
 
         <div className="mt-4 space-y-2" role="radiogroup" aria-label="Answer options">
@@ -182,13 +182,13 @@ export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "c
                   "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition",
                   isSel
                     ? "border-accent bg-accent-soft text-ink"
-                    : "border-stone-200 bg-white text-ink hover:border-accent/50",
+                    : "border-line bg-card text-ink hover:border-accent/50",
                 )}
               >
                 <span
                   className={cx(
                     "grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] font-semibold",
-                    isSel ? "border-accent bg-accent text-white" : "border-stone-300 text-muted",
+                    isSel ? "border-accent bg-accent text-white" : "border-line-strong text-muted",
                   )}
                 >
                   {String.fromCharCode(65 + oi)}
@@ -221,7 +221,7 @@ export default function QuizPlayer({ source = "topic" }: { source?: "topic" | "c
         <button
           onClick={() => setCurrent((c) => Math.max(0, c - 1))}
           disabled={current === 0}
-          className="rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent disabled:opacity-40"
+          className="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent disabled:opacity-40"
         >
           ← Back
         </button>
@@ -269,7 +269,7 @@ function Review({
     <div className="space-y-6">
       {backLink}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-card">
+      <section className="rounded-2xl border border-line bg-card p-6 text-center shadow-card">
         {title && <p className="text-sm text-muted">{title}</p>}
         <p className="mt-1 text-4xl font-semibold text-ink">
           {result.score} <span className="text-2xl text-muted">/ {result.total}</span>
@@ -281,7 +281,7 @@ function Review({
         <div className="mt-4 flex justify-center gap-3">
           <button
             onClick={onRetake}
-            className="rounded-lg border border-stone-200 bg-white px-4 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent"
+            className="rounded-lg border border-line bg-card px-4 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent"
           >
             Retake
           </button>
@@ -301,7 +301,7 @@ function ReviewCard({ item }: { item: QuizReviewItem }) {
   return (
     <li
       className={cx(
-        "rounded-2xl border bg-white p-5 shadow-card",
+        "rounded-2xl border bg-card p-5 shadow-card",
         item.is_correct ? "border-emerald-200" : "border-rose-200",
       )}
     >
@@ -327,7 +327,7 @@ function ReviewCard({ item }: { item: QuizReviewItem }) {
                 !isCorrect && !isChosen && "text-muted",
               )}
             >
-              <span className="font-mono text-xs text-stone-400">
+              <span className="font-mono text-xs text-muted">
                 {String.fromCharCode(65 + oi)}{" "}
               </span>
               {opt}
@@ -342,7 +342,7 @@ function ReviewCard({ item }: { item: QuizReviewItem }) {
       </ul>
 
       {(item.is_correct ? item.correct_rationale : item.chosen_rationale || item.correct_rationale) && (
-        <p className="mt-3 border-t border-stone-100 pt-3 text-sm text-muted">
+        <p className="mt-3 border-t border-line-soft pt-3 text-sm text-muted">
           {item.is_correct
             ? item.correct_rationale
             : item.chosen_rationale

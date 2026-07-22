@@ -15,7 +15,7 @@ function MinutesPicker({
   onChange: (m: number) => void;
 }) {
   return (
-    <div className="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-card">
+    <div className="inline-flex rounded-xl border border-line bg-card p-1 shadow-card">
       {PLAN_MINUTES.map((m) => (
         <button
           key={m}
@@ -55,7 +55,7 @@ function SegmentCard({ seg }: { seg: StudyPlanSegment }) {
     </div>
   );
   return (
-    <div className="group rounded-2xl border border-stone-200 bg-white p-4 shadow-card transition hover:shadow-cardHover">
+    <div className="group rounded-2xl border border-line bg-card p-4 shadow-card transition hover:shadow-cardHover">
       {path ? (
         <Link to={path} className="block">
           {inner}
@@ -114,7 +114,7 @@ export default function StudyPlan() {
       {loading && !plan && (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />
+            <div key={i} className="h-20 animate-pulse rounded-2xl border border-line bg-card/60" />
           ))}
         </div>
       )}

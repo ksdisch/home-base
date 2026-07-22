@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import News from "./News";
+import { NewsShell } from "../components/NewsShell";
 
 const newsCategories = vi.fn();
 const newsCategory = vi.fn();
@@ -97,7 +99,9 @@ const FORYOU_WARM = {
 function renderNews(path = "/news") {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <News />
+      <NewsShell>
+        <News />
+      </NewsShell>
     </MemoryRouter>,
   );
 }
@@ -110,6 +114,7 @@ const SUGGESTION = {
 };
 
 beforeEach(() => {
+  sessionStorage.clear();
   newsCategories.mockReset();
   newsCategory.mockReset();
   newsForYou.mockReset();
@@ -121,6 +126,42 @@ beforeEach(() => {
 });
 
 describe("News (M7)", () => {
+  // F1 (full hoist): the per-visit interaction state must outlive a Today→News→Today hop.
+  // NewsShell holds hidden/liked/noted above the route, so a remount (the feed refetches
+  // fresh) reconciles against the same sets instead of resetting them.
+  it("keeps the liked ack across a News remount — state lives above the route (F1)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+
+    function Harness() {
+      const [mounted, setMounted] = useState(true);
+      return (
+        <MemoryRouter initialEntries={["/news?cat=top"]}>
+          <NewsShell>
+            {mounted && <News />}
+            <button onClick={() => setMounted((m) => !m)}>toggle-news</button>
+          </NewsShell>
+        </MemoryRouter>
+      );
+    }
+    render(<Harness />);
+
+    // Like a card → its button flips to the saved ack.
+    const like = await screen.findByRole("button", { name: /More like Big national story/ });
+    fireEvent.click(like);
+    expect(
+      await screen.findByRole("button", { name: /More like Big national story/ }),
+    ).toHaveTextContent("Noted ✓");
+
+    // Unmount + remount News (a Today→News round trip); the feed refetches fresh.
+    fireEvent.click(screen.getByRole("button", { name: "toggle-news" }));
+    fireEvent.click(screen.getByRole("button", { name: "toggle-news" }));
+
+    // The like survived above the route — no reset to "More like this".
+    const back = await screen.findByRole("button", { name: /More like Big national story/ });
+    expect(back).toHaveTextContent("Noted ✓");
+  });
+
   it("lands on For You by default with origin chips", async () => {
     newsCategories.mockResolvedValue(CATEGORIES);
     newsForYou.mockResolvedValue(FORYOU_WARM);
@@ -132,6 +173,65 @@ describe("News (M7)", () => {
     // Origin chips: a section title for section items, the quoted term for search finds.
     expect(screen.getAllByText("Top stories").length).toBeGreaterThanOrEqual(2); // tab + chip
     expect(screen.getByText("“quantum computing”")).toBeInTheDocument();
+  });
+
+  // -- F1 first wedge: News remembers the tab across a navigation hop --------------
+
+  it("restores the last-opened tab on return via sessionStorage (F1)", async () => {
+    sessionStorage.setItem("news.tab", "local");
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(LOCAL_FEED);
+    renderNews("/news"); // no ?cat= — as if returning from Today
+
+    expect(await screen.findByText("Lake County story")).toBeInTheDocument();
+    expect(newsCategory).toHaveBeenCalledWith("local");
+    expect(newsForYou).not.toHaveBeenCalled();
+  });
+
+  it("persists the opened tab so the next return lands there (F1)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    newsCategory.mockResolvedValue(LOCAL_FEED);
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
+    await screen.findByText("Lake County story");
+    expect(sessionStorage.getItem("news.tab")).toBe("local");
+  });
+
+  // -- ① lead hierarchy + F2 primary action ----------------------------------------
+
+  it("promotes the top story to a lead and keeps the rest compact (①)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    const lead = (await screen.findByText("Ranked quantum story")).closest("a");
+    const minor = screen.getByText("Searched interest story").closest("a");
+    expect(lead?.className).toMatch(/text-lede/);
+    expect(minor?.className).not.toMatch(/text-lede/);
+  });
+
+  it("makes the headline the primary tap with an open-in-source affordance (F2)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+
+    const lead = (await screen.findByText("Ranked quantum story")).closest("a");
+    expect(lead).toHaveAttribute("href", "https://news.example/q"); // still opens the article
+    expect(lead?.className).toMatch(/font-semibold/);
+    expect(lead).toHaveTextContent("↗"); // the open-in-source glyph
+  });
+
+  it("gives the category pills ≥44px thumb targets (C5)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM);
+    renderNews();
+    await screen.findByText("Ranked quantum story");
+
+    const pill = screen.getByRole("button", { name: "Top stories" });
+    expect(pill.className).toMatch(/min-h-\[44px\]/);
   });
 
   it("shows the learning banner during cold start", async () => {
@@ -147,6 +247,32 @@ describe("News (M7)", () => {
     expect(await screen.findByText("Still learning you")).toBeInTheDocument();
     expect(screen.getByText(/3 of 20 signals/)).toBeInTheDocument();
     expect(screen.getByText("Ranked quantum story")).toBeInTheDocument();
+  });
+
+  it("cold start leads with a 'do this first' next-action nudge (F3)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue({
+      ...FORYOU_WARM,
+      learning: true,
+      event_count: 3,
+      items: FORYOU_WARM.items.slice(0, 1),
+    });
+    renderNews();
+
+    // The cold-start banner opens with a directional first move, not just a status line.
+    expect(await screen.findByText(/Do this first/i)).toBeInTheDocument();
+    expect(screen.getByText("Still learning you")).toBeInTheDocument();
+    expect(screen.getByText(/3 of 20 signals/)).toBeInTheDocument(); // status line kept
+  });
+
+  it("the first-move nudge clears once For You is warm (F3)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsForYou.mockResolvedValue(FORYOU_WARM); // learning:false, event_count:42
+    renderNews();
+
+    await screen.findByText("Ranked quantum story");
+    expect(screen.queryByText("Still learning you")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Do this first/i)).not.toBeInTheDocument();
   });
 
   it("renders a category feed with articles opening at the source", async () => {

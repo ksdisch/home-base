@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-21 · **Learning Paths — design approved** (interactive brainstorm + visual companion; docs-only capture). Learning becomes an **AI study-designer** over the NotebookLM library: LLM-composed guided **paths** (arrange real artifacts + labeled glue), three honest axes (**coverage** · SM-2 **recall** · self-rated **confidence**), an outline+detail player, and a two-lane **Plan** (Continue/Review) + three-trend **Progress** rebuilt around it — bridge-checks formative-only, on-demand generation, shipped as a **Jacobian Lens vertical slice** via `/explore-plan`. Full design: [`ideas/learning-paths.md`](ideas/learning-paths.md). Prior ship: Overnight Chief of Staff v0 (PR #107) closed the moonshot queue (backend **625** / frontend **126** green). Open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · **Learning Paths build (proposed M8) next**. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-21 · **M8 — Learning Paths, the on-demand Designer (✨ Generate) ✅ SHIPPED (PR #130)** — the slice's make-it-real piece (design decision 9): press ✨ Generate on a topic and one grounded `claude -p` authoring call composes a path over that topic's **real** artifacts, validated against the catalog (the **M0 no-fabrication bar** — every artifact-backed step must cite a real artifact id of the matching type, or the whole path is rejected and nothing is written), atomically written as `PATHS_DIR/<notebook_id>.json` → the Learning card lights up and PathPlayer works for real. Reuses the M5 `BriefChatClient` lane exactly like the bridge grader (scrubbed env, `--tools ""`, degrade to `ok=False`, never a 500); own tunable model (`PATHS_DESIGNER_MODEL`, default sonnet) + usage ledger; `NotebookCard`'s stub becomes a real busy-aware button. Backend **660** green (+8 M0-bar tests) · frontend typecheck + **163** + build green. Topic-agnostic, but only the Jacobian fixture ships a path today — Kyle generates a few and judges path quality (the slice's riskiest assumption) before scaling. **Moonshot queue: EMPTY.** Remaining M8: two-lane Plan · three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -83,6 +83,7 @@ kanban
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
+    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>remaining: 2-lane Plan ·<br/>3-trend Progress · green<br/>gate"]
   next["📋 Planned"]
     hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
   decide["⏸️ Awaiting decision"]
@@ -282,6 +283,13 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Phase 4 — topic scout ✅ 2026-07-18: `suggest_topics` (score ≥ 9 across ≥ 3 days · event-level roster coverage · token-disjoint one-card-per-theme · theme-wide dismiss memory, schema v9) → evidence cards in For You → `POST /api/news/suggestions/add` appends atomically to `sweeps/topics.json` (409 on dupe; the one deliberate Mode-B → Mode-A write) · live e2e proof clean
   - [x] Post-ship polish ✅ 2026-07-18: **PR #65** News promoted into the mobile bottom tab bar · **PR #66** Uplifting category (good-news feeds + attribution fallback) · **PR #67** near-duplicate headline collapse on category pages (newest copy wins)
 
+- [ ] **M8 — Learning paths** — 🔄 IN FLIGHT ([design](ideas/learning-paths.md); approved 2026-07-21 brainstorm → `/explore-plan` approach A: a fixture-first vertical slice that turns Learning from a flat grid with a dead "mastery —" chip into an AI study-designer over your NotebookLM topics, scored on three honest axes — coverage · SM-2 recall · self-rated confidence)
+  - [x] Phases 1–2 — `app.paths` loader (reads `<notebook_id>.json` path sidecars) + `path_step_progress`/`path_confidence` stores (schema v10) + bundled hand-authored Jacobian-Lens fixture (PR #127)
+  - [x] Phase 3 — Paths API: `GET /api/paths/{id}` (coverage · recall · confidence merged onto the on-disk path) + per-step complete/confidence writes + a formative `claude -p` bridge grader (marks coverage, NEVER mastery) (PR #128; 652 backend tests)
+  - [x] Phase 4 — the frontend (PR #129): outline+detail **PathPlayer** (left-rail TOC + active step + live three-axis panel; six step behaviors reusing the existing topic routes; inline ✨ bridge-check on the M5 lane) + **NotebookCard** reworked into three live axes + Generate/Continue/Review + the hand-synced `types.ts`/`client.ts` contract. Scoped to the one bundled fixture; typecheck + 163 frontend tests green
+  - [x] The on-demand **Designer** (PR #130): `POST /api/paths/{id}/generate` composes a path over a topic's real artifacts on the M5 `claude -p` lane (`app/paths/designer.py`, reused like the bridge grader), validated against the catalog — the **M0 no-fabrication bar**: every artifact-backed step must cite a real id of the matching type or the whole path is rejected and nothing is written (`write_path_file` atomic; `PATHS_DESIGNER_MODEL` tunable, default sonnet). `NotebookCard`'s stub becomes a real busy-aware button. +8 M0-bar tests; backend 660 green
+  - [ ] Remaining: two-lane Plan (Continue/Review) · three-trend Progress + honest heatmap · slice-quality green gate — build the rest only after the generated paths' quality is judged
+
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
 _Instrumented 2026-07-17 (PR #52): `GET /api/brief/habit` + a self-hiding "Habit check" strip on
@@ -324,6 +332,37 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-21 — M8 Learning Paths · the on-demand Designer (PR #130)
+The slice's make-it-real piece ([design](ideas/learning-paths.md), decision 9). New
+`app/paths/designer.py` composes a path over a topic's REAL artifacts on the M5 `claude -p`
+lane (reused exactly like the bridge grader — scrubbed env, `--tools ""`, degrade to
+`ok=False`, never a 500): `build_designer_prompt` hands the model the exact artifact list as
+the only usable ids; `compose_path` `_strip_fence`s + parses the JSON, validates structure
+(`manifest.validate_path_obj`, split out so it runs in memory BEFORE writing), then the **M0
+catalog cross-check** — every artifact-backed step must cite a real artifact id of the matching
+type, or the whole path is rejected and nothing is written (fail-closed). `POST
+/api/paths/{id}/generate` writes the sidecar atomically (`write_path_file`) and returns the
+fresh three-axis path; `NotebookCard`'s stub becomes a real busy-aware button (on success the
+card lights up). Own tunable model (`PATHS_DESIGNER_MODEL`, default sonnet) +
+`paths-generate.jsonl` ledger. Backend **660** (+8 M0-bar tests) · frontend typecheck + **163**
++ build green. Topic-agnostic but only the Jacobian fixture ships a path — judge generated-path
+quality before scaling. Remaining M8: two-lane Plan · three-trend Progress · green gate.
+
+### 2026-07-21 — M8 Learning Paths · Phase 4, the frontend (PR #129)
+The AI-study-designer slice gets its UI ([design](ideas/learning-paths.md); `/explore-plan`
+approach A). New `pages/PathPlayer.tsx` — the outline+detail player (design decision 5): a
+left-rail TOC over the whole generated path + a right pane with the active step and a live
+**three-axis** panel (coverage · SM-2 recall · self-rated confidence), reading `GET /api/paths/{id}`.
+Each step's action reuses the real surfaces — audio/read/quiz deep-link the existing topic routes,
+the one ✨ **bridge-check** grades an open-recall answer on the M5 grounded lane (marks coverage,
+never mastery), intro/reflect are glue — and a per-step confidence rating feeds the third axis.
+`components/NotebookCard.tsx` is reworked from the dead "mastery —" chip into three live axes + a
+Generate/Continue/Review entry (Generate a calm stub until the later designer; each card fetches its
+own path, 404 = no path yet). Contract hand-synced in `types.ts`/`client.ts` (Path*/Step*/BridgeGrade*
++ four `api` methods). Frontend-only, scoped to the bundled Jacobian-Lens fixture; backend Phases 1–3
+already merged (PR #127 · #128). Frontend **163** green · typecheck green (slice tests ride the later
+green-gate item). Remaining M8: two-lane Plan · three-trend Progress · the Designer/Generate.
 
 ### 2026-07-21 — Learning Paths design approved (docs-only capture; build via /explore-plan)
 Interactive brainstorm (with the visual companion) reframed the Learning tab: it's a multi-format

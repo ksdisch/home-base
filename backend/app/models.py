@@ -616,6 +616,86 @@ class CourseRegenResponse(BaseModel):
     total_cost_usd: Optional[float] = None
 
 
+# -- learning paths (M8) -------------------------------------------------------
+
+class PathStep(BaseModel):
+    """One step in a generated learning path over a NotebookLM topic. ``kind`` drives rendering +
+    which axis it feeds. Artifact-backed kinds (audio/read/flashcards/quiz) carry ``artifact_id``
+    (a real topic artifact the player launches via the existing routes); glue kinds (intro/bridge/
+    reflect/recap) carry the designer's ``body``/``focus`` text. ``completed`` + ``confidence`` are
+    merged from the store at read time. Extra fields are preserved so the format can grow."""
+
+    model_config = ConfigDict(extra="allow")
+    id: str
+    kind: str
+    title: str
+    focus: Optional[str] = None
+    body: Optional[str] = None
+    artifact_id: Optional[str] = None
+    artifact_type: Optional[str] = None
+    estimated_minutes: Optional[int] = None
+    completed: bool = False           # merged from path_step_progress (coverage)
+    confidence: Optional[int] = None  # merged from path_confidence (1-5 self-rating)
+
+
+class PathResponse(BaseModel):
+    """A topic's learning path + the learner's merged three axes. ``progress_pct`` is coverage
+    (steps done); ``mastery`` is SM-2 recall (decayed, from the shared store — the same read as the
+    home card, ``None`` until the topic's quiz/flashcards are practiced); ``confidence`` is the mean
+    self-rating so far (``None`` until any step is rated)."""
+
+    notebook_id: str
+    title: str
+    topic: str = ""
+    generated_at: str = ""
+    generator: str = ""
+    steps: List[PathStep] = []
+    step_count: int = 0
+    completed_steps: int = 0
+    progress_pct: int = 0
+    mastery: Optional[float] = None
+    confidence: Optional[float] = None
+
+
+class StepComplete(BaseModel):
+    completed: bool
+
+
+class StepConfidence(BaseModel):
+    rating: int  # 1-5
+
+
+class BridgeGradeRequest(BaseModel):
+    answer: str
+
+
+class BridgeGradeResponse(BaseModel):
+    """The formative grade of a bridge-check answer. ``ok`` is whether the grade ran (a claude
+    hiccup degrades to ok=False + a calm ``error``, never a 500); ``feedback`` is the model's plain
+    coaching. The step is marked done on submit regardless (coverage) and a bridge NEVER moves
+    mastery; ``path`` is the refreshed three-axis state so the UI updates without a refetch."""
+
+    ok: bool
+    feedback: Optional[str] = None
+    error: Optional[str] = None
+    path: PathResponse
+
+
+class PathGenerateResponse(BaseModel):
+    """The outcome of an on-demand path composition (M8 Designer). ``ok=False`` + a calm ``error``
+    means the claude run/parse failed (never a 500); ``errors`` carries validation failures — a
+    fabricated artifact id or bad structure — and on ANY failure nothing is written to disk. ``path``
+    is the fresh three-axis state on success so the card lights up without a refetch. Cost fields come
+    from the claude envelope when available."""
+
+    ok: bool
+    error: Optional[str] = None
+    errors: List[str] = []
+    path: Optional[PathResponse] = None
+    total_cost_usd: Optional[float] = None
+    duration_ms: Optional[int] = None
+
+
 class BriefSource(BaseModel):
     title: str
     url: str

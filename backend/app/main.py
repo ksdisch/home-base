@@ -22,6 +22,7 @@ from .api import (
     episodes,
     health,
     news,
+    paths,
     progress,
     quiz,
     reflections,
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(custom_topics.router, prefix="/api", tags=["custom-topics"])
     app.include_router(courses.router, prefix="/api", tags=["courses"])
     app.include_router(news.router, prefix="/api", tags=["news"])
+    app.include_router(paths.router, prefix="/api", tags=["paths"])
 
     @app.get("/api")
     def api_root() -> dict:

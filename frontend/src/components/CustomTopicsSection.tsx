@@ -59,7 +59,7 @@ export function CustomTopicsSection() {
       )}
 
       {adding && (
-        <div className="mb-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-card">
+        <div className="mb-4 rounded-2xl border border-line bg-card p-5 shadow-card">
           <CustomTopicForm
             submitLabel="Add topic"
             onCancel={() => setAdding(false)}
@@ -73,7 +73,7 @@ export function CustomTopicsSection() {
       )}
 
       {topics && topics.length === 0 && !adding ? (
-        <p className="rounded-xl border border-dashed border-stone-200 bg-white/50 px-4 py-6 text-sm text-muted">
+        <p className="rounded-xl border border-dashed border-line bg-card/50 px-4 py-6 text-sm text-muted">
           Track a book, a YouTube series, or a loose interest with no NotebookLM artifacts — manual
           progress + notes, all yours.
         </p>

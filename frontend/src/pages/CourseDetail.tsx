@@ -236,7 +236,7 @@ export default function CourseDetail() {
   };
 
   if (loading && !course) {
-    return <div className="h-40 animate-pulse rounded-2xl border border-stone-200 bg-white/60" />;
+    return <div className="h-40 animate-pulse rounded-2xl border border-line bg-card/60" />;
   }
   if (error && !course) {
     return (
@@ -270,7 +270,7 @@ export default function CourseDetail() {
           {course.summary && <p className="mt-3 max-w-2xl text-sm text-muted">{course.summary}</p>}
           {course.prerequisites.length > 0 && (
             <p className="mt-2 max-w-2xl text-xs text-muted">
-              <span className="font-semibold text-stone-500">Prerequisites:</span>{" "}
+              <span className="font-semibold text-muted">Prerequisites:</span>{" "}
               {course.prerequisites.join("; ")}
             </p>
           )}
@@ -279,7 +279,7 @@ export default function CourseDetail() {
               <span>{course.completed_lessons}/{course.lesson_count} lessons done</span>
               <span>{course.progress_pct}%</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-line-soft">
               <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${clampPct(course.progress_pct)}%` }} />
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function CourseDetail() {
             <a
               href={api.courseExportUrl(slug)}
               download
-              className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-ink hover:border-accent"
+              className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium text-ink hover:border-accent"
             >
               ⬇ Export
             </a>
@@ -402,7 +402,7 @@ function NextUp({
         {items.map((it, i) => (
           <li
             key={i}
-            className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-line bg-card p-3"
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -458,7 +458,7 @@ function MoveButton({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="rounded-lg border border-stone-200 px-2 py-1 text-sm text-ink hover:border-accent disabled:opacity-30"
+      className="rounded-lg border border-line px-2 py-1 text-sm text-ink hover:border-accent disabled:opacity-30"
     >
       {dir === "up" ? "↑" : "↓"}
     </button>
@@ -501,7 +501,7 @@ function LessonCard({
   return (
     <div
       id={`lesson-${lesson.id}`}
-      className="scroll-mt-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-card"
+      className="scroll-mt-4 rounded-2xl border border-line bg-card p-5 shadow-card"
     >
       <div className="flex items-start gap-3">
         <input
@@ -509,7 +509,7 @@ function LessonCard({
           checked={lesson.completed}
           onChange={onToggle}
           disabled={pending}
-          className="mt-1 h-4 w-4 rounded border-stone-300 text-accent focus:ring-accent disabled:opacity-50"
+          className="mt-1 h-4 w-4 rounded border-line-strong text-accent focus:ring-accent disabled:opacity-50"
           aria-label={`Mark "${lesson.title}" complete`}
         />
         <div className="min-w-0 flex-1">
@@ -559,7 +559,7 @@ function LessonCard({
           )}
 
           {open && (
-            <div className="mt-4 space-y-5 border-t border-stone-100 pt-4">
+            <div className="mt-4 space-y-5 border-t border-line-soft pt-4">
               {lesson.materials.map((mat, i) => (
                 <MaterialView
                   key={i}
@@ -638,7 +638,7 @@ function ObjectivesEditor({
         rows={Math.max(2, text.split("\n").length)}
         placeholder="One objective per line — use assessable verbs (apply, explain, build…)"
         aria-label={`Objectives for ${lesson.title}`}
-        className="w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+        className="w-full rounded-lg border border-line p-2 text-sm text-ink focus:border-accent focus:outline-none"
         disabled={saving}
       />
       <div className="flex items-center gap-2">
@@ -652,7 +652,7 @@ function ObjectivesEditor({
         <button
           onClick={() => setOpen(false)}
           disabled={saving}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-muted hover:border-accent"
+          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:border-accent"
         >
           Cancel
         </button>
@@ -820,7 +820,7 @@ function RegenControl({
         maxLength={2000}
         placeholder="Optional guidance — e.g. go deeper on X, add harder questions"
         aria-label={`Guidance for regenerating ${material.title || material.type}`}
-        className="mt-2 w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+        className="mt-2 w-full rounded-lg border border-line p-2 text-sm text-ink focus:border-accent focus:outline-none"
         disabled={busy}
       />
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -834,7 +834,7 @@ function RegenControl({
         <button
           onClick={() => setOpen(false)}
           disabled={busy}
-          className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm text-muted hover:border-accent"
+          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted hover:border-accent"
         >
           Cancel
         </button>
@@ -914,11 +914,11 @@ function FileMaterial({
         {text === null ? (
           <Skeleton />
         ) : (
-          <pre className="overflow-x-auto rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-ink/80">
+          <pre className="overflow-x-auto rounded-lg border border-line bg-line-soft p-3 text-xs text-ink/80">
             <code>{text}</code>
           </pre>
         )}
-        <p className="mt-1 text-xs text-stone-400">
+        <p className="mt-1 text-xs text-muted">
           Mermaid source — graph rendering is a later enhancement.
         </p>
       </div>
@@ -1049,10 +1049,10 @@ function RubricAssessment({
   };
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+    <div className="rounded-xl border border-line bg-line-soft p-4">
       <div className="mb-2 flex items-center gap-2">
         <span aria-hidden>📋</span>
-        <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
           Rubric — self-assess
         </span>
         {saved && <span className="text-xs text-accent">saved ✓</span>}
@@ -1072,7 +1072,7 @@ function RubricAssessment({
                       name={`${material.path}:${c.name}`}
                       checked={choices[c.name] === lv.label}
                       onChange={() => setChoices((ch) => ({ ...ch, [c.name]: lv.label }))}
-                      className="mt-1 h-3.5 w-3.5 border-stone-300 text-accent focus:ring-accent"
+                      className="mt-1 h-3.5 w-3.5 border-line-strong text-accent focus:ring-accent"
                     />
                     <span>
                       <span className="font-medium text-ink">{lv.label}</span>{" "}
@@ -1088,7 +1088,7 @@ function RubricAssessment({
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional note — e.g. what you'll fix before you run it"
             rows={2}
-            className="w-full rounded-lg border border-stone-200 p-2 text-sm text-ink focus:border-accent focus:outline-none"
+            className="w-full rounded-lg border border-line p-2 text-sm text-ink focus:border-accent focus:outline-none"
           />
           <div className="flex items-center gap-3">
             <button
@@ -1210,7 +1210,7 @@ function MaterialHeader({ type, label }: { type: string; label: string }) {
   return (
     <div className="mb-1.5 flex items-center gap-2">
       <span aria-hidden>{icon[type] ?? "•"}</span>
-      <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">{type}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted">{type}</span>
       <span className="text-sm font-medium text-ink">{label}</span>
     </div>
   );
@@ -1231,18 +1231,18 @@ function FlashcardItem({ card }: { card: Flashcard }) {
   return (
     <button
       onClick={() => setFlipped((f) => !f)}
-      className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-left text-sm transition hover:border-accent"
+      className="rounded-xl border border-line bg-line-soft p-3 text-left text-sm transition hover:border-accent"
     >
       {flipped ? (
         <Markdown source={card.back} inline className="text-ink/90" />
       ) : (
         <span className="font-medium text-ink">{card.front}</span>
       )}
-      <span className="mt-1 block text-xs text-stone-400">{flipped ? "tap to hide" : "tap to reveal"}</span>
+      <span className="mt-1 block text-xs text-muted">{flipped ? "tap to hide" : "tap to reveal"}</span>
     </button>
   );
 }
 
 function Skeleton() {
-  return <div className="h-16 animate-pulse rounded-lg bg-stone-100" />;
+  return <div className="h-16 animate-pulse rounded-lg bg-line-soft" />;
 }

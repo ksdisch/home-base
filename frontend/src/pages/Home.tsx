@@ -57,7 +57,7 @@ export default function Home() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-36 animate-pulse rounded-2xl border border-stone-200 bg-white/60"
+              className="h-36 animate-pulse rounded-2xl border border-line bg-card/60"
             />
           ))}
         </div>

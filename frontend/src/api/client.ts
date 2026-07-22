@@ -1,6 +1,7 @@
 // The ONE place the API base URL lives. Everything goes through "/api" (Vite proxies it to
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
+  BridgeGradeResponse,
   BriefChatRequest,
   BriefChatResponse,
   BriefHabitResponse,
@@ -43,6 +44,8 @@ import type {
   NewsSuggestionActionRequest,
   NewsSuggestionAddResponse,
   NewsSuggestionDismissResponse,
+  PathGenerateResponse,
+  PathResponse,
   ProgressResponse,
   QuizGradeRequest,
   QuizGradeResponse,
@@ -254,6 +257,40 @@ export const api = {
       `/topics/${encodeURIComponent(notebookId)}/quizzes/${encodeURIComponent(quizId)}/prepare`,
     ),
   gradeQuiz: (body: QuizGradeRequest) => post<QuizGradeResponse>("/quiz/grade", body),
+  // -- learning paths (M8) — the AI study-designer over a NotebookLM topic. GET merges the three
+  // axes (coverage/recall/confidence); each write returns the refreshed PathResponse. A 404 means
+  // no path has been composed for this topic yet (the Learning card's "Generate" state), so path()
+  // degrades that one status to null instead of throwing; other errors still propagate.
+  path: async (notebookId: string): Promise<PathResponse | null> => {
+    try {
+      return await get<PathResponse>(`/paths/${encodeURIComponent(notebookId)}`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+  completeStep: (notebookId: string, stepId: string, completed: boolean) =>
+    post<PathResponse>(
+      `/paths/${encodeURIComponent(notebookId)}/steps/${encodeURIComponent(stepId)}/complete`,
+      { completed },
+    ),
+  rateStepConfidence: (notebookId: string, stepId: string, rating: number) =>
+    post<PathResponse>(
+      `/paths/${encodeURIComponent(notebookId)}/steps/${encodeURIComponent(stepId)}/confidence`,
+      { rating },
+    ),
+  // The one LLM step: a formative grade on the M5 grounded lane. Slow by web standards (~5–20s), so
+  // callers show a thinking state; never a 500 — a claude hiccup returns ok=false + a calm error.
+  gradeBridge: (notebookId: string, stepId: string, answer: string) =>
+    post<BridgeGradeResponse>(
+      `/paths/${encodeURIComponent(notebookId)}/steps/${encodeURIComponent(stepId)}/bridge`,
+      { answer },
+    ),
+  // M8 the on-demand Designer: compose a path over a topic's real artifacts on the claude lane —
+  // slow by web standards (~1–3 min, a real authoring call), so callers show a busy state. Never a
+  // 500: a hiccup, unparseable output, or a fabricated artifact id all return ok:false (nothing written).
+  generatePath: (notebookId: string) =>
+    post<PathGenerateResponse>(`/paths/${encodeURIComponent(notebookId)}/generate`),
   customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>

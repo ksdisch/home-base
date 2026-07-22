@@ -24,7 +24,7 @@ function renderInline(text: string, keyBase: string): ReactNode[] {
     const key = `${keyBase}-${i++}`;
     if (tok.startsWith("`")) {
       nodes.push(
-        <code key={key} className="rounded bg-stone-100 px-1 py-0.5 font-mono text-[0.85em] text-ink">
+        <code key={key} className="rounded bg-line-soft px-1 py-0.5 font-mono text-[0.85em] text-ink">
           {tok.slice(1, -1)}
         </code>,
       );
@@ -150,7 +150,7 @@ export function Markdown({
     // Horizontal rule: a line of only ---, ***, or ___ (3+).
     if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
       flushPara(); flushList(); flushQuote();
-      blocks.push(<hr key={`hr${k++}`} className="border-stone-200" />);
+      blocks.push(<hr key={`hr${k++}`} className="border-line" />);
       continue;
     }
 

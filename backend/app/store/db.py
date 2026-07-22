@@ -562,6 +562,82 @@ def set_lesson_completed(
     return completed
 
 
+# -- learning path progress (M8) -----------------------------------------------
+# Path content lives on disk (see ``app.paths.manifest``); only per-step coverage ("I did this
+# step") and the learner's per-step confidence self-rating live here. Coverage mirrors
+# ``course_lesson_progress``; SM-2 recall stays in ``question_mastery`` under the topic's REAL
+# ``notebook_id`` (a path reuses the topic's real quiz/flashcard artifacts, so no synthetic
+# namespace like courses). Unlike a course lesson, a path step credits its real ``notebook_id`` on
+# the activity row — coverage of a topic *is* activity for that topic.
+
+def get_path_progress(notebook_id: str, db_path: Optional[Path] = None) -> Dict[str, bool]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT step_id, completed FROM path_step_progress WHERE notebook_id = ?",
+            (notebook_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {r["step_id"]: bool(r["completed"]) for r in rows}
+
+
+def set_step_completed(
+    notebook_id: str, step_id: str, completed: bool, db_path: Optional[Path] = None
+) -> bool:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO path_step_progress (notebook_id, step_id, completed, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(notebook_id, step_id)
+            DO UPDATE SET completed = excluded.completed, updated_at = datetime('now')
+            """,
+            (notebook_id, step_id, 1 if completed else 0),
+        )
+        conn.execute(
+            "INSERT INTO activity (day, notebook_id, kind) VALUES (date('now','localtime'), ?, ?)",
+            (notebook_id, "path_step" if completed else "path_step_undone"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return completed
+
+
+def get_path_confidence(notebook_id: str, db_path: Optional[Path] = None) -> Dict[str, int]:
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT step_id, rating FROM path_confidence WHERE notebook_id = ?",
+            (notebook_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {r["step_id"]: int(r["rating"]) for r in rows}
+
+
+def set_step_confidence(
+    notebook_id: str, step_id: str, rating: int, db_path: Optional[Path] = None
+) -> int:
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO path_confidence (notebook_id, step_id, rating, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(notebook_id, step_id)
+            DO UPDATE SET rating = excluded.rating, updated_at = datetime('now')
+            """,
+            (notebook_id, step_id, rating),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return rating
+
+
 def course_quiz_progress(
     course_slug: str, *, now: Optional[datetime] = None, db_path: Optional[Path] = None
 ) -> Dict[str, Dict[str, Any]]:
