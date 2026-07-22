@@ -45,6 +45,7 @@ mkdir -p "$LOG_DIR" "$(dirname "$PLIST_DEST")"
 
 sed -e "s#__WRAPPER__#$WRAPPER#g" \
     -e "s#__LOG_DIR__#$LOG_DIR#g" \
+    -e "s#__LOCAL_BIN__#$HOME/.local/bin#g" \
     "$TEMPLATE" > "$PLIST_DEST"
 
 # Reload cleanly (idempotent): bootout any existing instance, then bootstrap the fresh plist.

@@ -338,6 +338,16 @@ _One condensed entry per update — what shipped, the PR, the decisions that sti
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
 
+### 2026-07-22 — server LaunchAgent PATH fix: live NotebookLM refresh (PR #TBD)
+The `com.homebase.server` LaunchAgent's hardcoded PATH omitted `~/.local/bin`, where `nlm`
+installs — so the always-on server's `shutil.which("nlm")` returned nothing and every topic-page
+**Refresh (live)** surfaced a misleading "NotebookLM sign-in needed / nlm command failed" banner
+(auth was fine; "Open in NotebookLM" worked because it's a plain browser link, not an `nlm` call).
+Fix: prepend `__LOCAL_BIN__` (= `$HOME/.local/bin`) to the plist PATH via a new installer
+placeholder, and the same to the live plist. Reloaded (bootout+bootstrap); verified end to end —
+`GET /api/topics/{jacobian}?live=true` now returns `live:true` + 10 artifacts through the running
+server. No code/test change (infra only).
+
 ### 2026-07-22 — Study Scheduler v0 · planner CT-offset fix (PR #138)
 Post-ship follow-up, caught on the first LIVE propose: a study block whose start snapped to a
 busy-interval boundary inherited Google free/busy's UTC offset (`…23:15:00+00:00`) instead of
