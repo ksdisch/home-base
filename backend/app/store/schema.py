@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -252,6 +252,13 @@ STATEMENTS = [
         track_id        TEXT NOT NULL,
         enabled         INTEGER NOT NULL DEFAULT 0,
         session_minutes INTEGER NOT NULL DEFAULT 45,
+        -- v12 (Study Scheduler v1): the learner's persisted window prefs, so "weekdays before 2pm"
+        -- sticks across visits + devices. NULL = unset (planner default); ``days_of_week`` is a CSV
+        -- of Python weekday ints (Mon=0 … Sun=6), NULL = every day.
+        day_start_hour  INTEGER,
+        day_end_hour    INTEGER,
+        days_of_week    TEXT,
+        max_blocks      INTEGER,
         updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (track_kind, track_id)
     )
@@ -293,5 +300,14 @@ MIGRATIONS = {
         "ALTER TABLE question_mastery ADD COLUMN reps INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE question_mastery ADD COLUMN lapses INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE question_mastery ADD COLUMN due_at TEXT",
+    ],
+    # v12 (Study Scheduler v1): persisted window prefs on the opt-in row. Additive + nullable, so
+    # each ADD COLUMN is idempotent-under-rerun (existing stores heal, fresh stores get them from
+    # the CREATE above).
+    12: [
+        "ALTER TABLE study_opt_in ADD COLUMN day_start_hour INTEGER",
+        "ALTER TABLE study_opt_in ADD COLUMN day_end_hour INTEGER",
+        "ALTER TABLE study_opt_in ADD COLUMN days_of_week TEXT",
+        "ALTER TABLE study_opt_in ADD COLUMN max_blocks INTEGER",
     ],
 }

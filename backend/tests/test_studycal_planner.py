@@ -155,6 +155,72 @@ def test_respects_max_blocks_and_reports_the_rest_unscheduled() -> None:
     assert plan["unscheduled_step_ids"] == ["ep3"]
 
 
+# -- day-of-week window (weekdays / specific days / morning) -------------------
+
+def test_days_of_week_skips_weekends() -> None:
+    # 2026-07-24 is a Friday; the next two weekdays are Mon 07-27 and Tue 07-28 (Sat/Sun skipped).
+    now = datetime(2026, 7, 24, 12, 0, tzinfo=CT)
+    steps = [_audio("ep1", 40), _audio("ep2", 40), _audio("ep3", 40)]
+    plan = plan_sessions(
+        steps,
+        busy=[],
+        now=now,
+        config=PlanConfig(
+            session_minutes=45, day_start_hour=18, day_end_hour=21, days_of_week=frozenset({0, 1, 2, 3, 4})
+        ),
+    )
+    starts = [b["start"] for b in plan["blocks"]]
+    assert starts == [
+        "2026-07-24T18:00:00-05:00",  # Fri
+        "2026-07-27T18:00:00-05:00",  # Mon (Sat 07-25 + Sun 07-26 skipped)
+        "2026-07-28T18:00:00-05:00",  # Tue
+    ]
+
+
+def test_days_of_week_honors_specific_days_only() -> None:
+    # Tue+Thu only ({1, 3}) from Wed 07-22: first allowed is Thu 07-23, then Tue 07-28.
+    now = datetime(2026, 7, 22, 12, 0, tzinfo=CT)
+    steps = [_audio("ep1", 40), _audio("ep2", 40)]
+    plan = plan_sessions(
+        steps,
+        busy=[],
+        now=now,
+        config=PlanConfig(
+            session_minutes=45, day_start_hour=18, day_end_hour=21, days_of_week=frozenset({1, 3})
+        ),
+    )
+    starts = [b["start"] for b in plan["blocks"]]
+    assert starts == ["2026-07-23T18:00:00-05:00", "2026-07-28T18:00:00-05:00"]
+
+
+def test_none_days_of_week_allows_every_day_including_weekends() -> None:
+    # The default (days_of_week=None) is unchanged: a weekend day is fair game.
+    now = datetime(2026, 7, 24, 12, 0, tzinfo=CT)  # Friday
+    steps = [_audio("ep1", 40), _audio("ep2", 40), _audio("ep3", 40)]
+    plan = plan_sessions(
+        steps, busy=[], now=now, config=PlanConfig(session_minutes=45, day_start_hour=18, day_end_hour=21)
+    )
+    starts = [b["start"] for b in plan["blocks"]]
+    assert starts == [
+        "2026-07-24T18:00:00-05:00",  # Fri
+        "2026-07-25T18:00:00-05:00",  # Sat — NOT skipped
+        "2026-07-26T18:00:00-05:00",  # Sun
+    ]
+
+
+def test_morning_window_places_before_afternoon() -> None:
+    # A daytime window (8am–2pm) is honored, not just the evening default.
+    now = datetime(2026, 7, 22, 7, 0, tzinfo=CT)
+    plan = plan_sessions(
+        [_audio("ep1", 8)],
+        busy=[],
+        now=now,
+        config=PlanConfig(session_minutes=45, day_start_hour=8, day_end_hour=14),
+    )
+    assert plan["blocks"][0]["start"] == "2026-07-22T08:00:00-05:00"
+    assert plan["blocks"][0]["end"] == "2026-07-22T08:45:00-05:00"
+
+
 def test_a_busy_boundary_block_still_serializes_in_ct_not_utc() -> None:
     # Google free/busy comes back in UTC. A block placed right after a busy interval must be
     # normalized to America/Chicago — not inherit the busy interval's +00:00 offset — so every

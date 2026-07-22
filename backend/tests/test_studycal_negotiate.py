@@ -83,3 +83,38 @@ def test_prompt_carries_the_preference_and_forbids_inventing_times() -> None:
     assert "prefer Tuesday and Thursday evenings" in prompt
     low = prompt.lower()
     assert "time" in low and ("do not" in low or "never" in low)  # explicit no-invented-times rule
+
+
+def test_days_of_week_list_is_applied() -> None:
+    answer = json.dumps({"days_of_week": [0, 1, 2, 3, 4], "message": "Weekdays only."})
+    out = negotiate_plan(_client(answer), preference="weekdays only", base_config=BASE)
+    assert out["config"].days_of_week == frozenset({0, 1, 2, 3, 4})
+    assert out["changed"]["days_of_week"] == [0, 1, 2, 3, 4]  # echoed for the API's per-key precedence
+
+
+def test_days_of_week_names_are_normalized_to_ints() -> None:
+    answer = json.dumps({"days_of_week": ["Mon", "wednesday", "FRI"]})
+    out = negotiate_plan(_client(answer), preference="mon/wed/fri", base_config=BASE)
+    assert out["config"].days_of_week == frozenset({0, 2, 4})
+
+
+def test_days_of_week_drops_invalid_and_keeps_the_valid_subset() -> None:
+    answer = json.dumps({"days_of_week": [1, 3, 9, -2, "nope"]})
+    out = negotiate_plan(_client(answer), preference="tue and thu", base_config=BASE)
+    assert out["config"].days_of_week == frozenset({1, 3})  # 9/-2/"nope" dropped
+
+
+def test_days_of_week_all_invalid_leaves_the_base_untouched() -> None:
+    answer = json.dumps({"days_of_week": [9, 10, "xyz"]})
+    out = negotiate_plan(_client(answer), preference="garbage", base_config=BASE)
+    assert out["config"].days_of_week == BASE.days_of_week  # None — nothing valid to apply
+    assert "days_of_week" not in out["changed"]
+
+
+def test_prompt_documents_the_days_of_week_knob_and_window_examples() -> None:
+    prompt = build_negotiate_prompt("weekdays before 2pm", BASE)
+    low = prompt.lower()
+    assert "days_of_week" in prompt  # the knob is offered to the model
+    assert "weekday" in low  # a worked example the model can pattern-match
+    # The time-window example must move BOTH bounds, so "before 2pm" doesn't collapse to 6-7pm.
+    assert "day_start_hour" in prompt and "day_end_hour" in prompt

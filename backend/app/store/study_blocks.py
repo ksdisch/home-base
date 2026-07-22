@@ -33,22 +33,53 @@ _BLOCK_COLUMNS = (
 _COLS = ", ".join(_BLOCK_COLUMNS)
 
 
+def _days_to_csv(days: Optional[Sequence[int]]) -> Optional[str]:
+    """A day-of-week list -> a stable CSV column value; None (all days) stays NULL."""
+    if not days:
+        return None
+    return ",".join(str(int(d)) for d in days)
+
+
+def _days_from_csv(value: Any) -> Optional[List[int]]:
+    """The CSV column -> a list of weekday ints, or None when unset/blank."""
+    if not value:
+        return None
+    out = [int(p) for p in str(value).split(",") if p.strip() != ""]
+    return out or None
+
+
 def get_study_opt_in(
     track_kind: str, track_id: str, db_path: Optional[Path] = None
 ) -> Dict[str, Any]:
-    """The opt-in state for a track — ``{enabled, session_minutes}``. No row → opted out at the
-    default session length (the honest default: scheduling is off until Kyle turns it on)."""
+    """The opt-in state + persisted window prefs for a track. No row → opted out at the default
+    session length with every window pref unset (None) — the honest default: scheduling is off, and
+    the planner uses its own defaults, until Kyle sets things."""
     conn = connect(db_path)
     try:
         row = conn.execute(
-            "SELECT enabled, session_minutes FROM study_opt_in WHERE track_kind = ? AND track_id = ?",
+            "SELECT enabled, session_minutes, day_start_hour, day_end_hour, days_of_week, max_blocks "
+            "FROM study_opt_in WHERE track_kind = ? AND track_id = ?",
             (track_kind, track_id),
         ).fetchone()
     finally:
         conn.close()
     if row is None:
-        return {"enabled": False, "session_minutes": DEFAULT_SESSION_MINUTES}
-    return {"enabled": bool(row["enabled"]), "session_minutes": int(row["session_minutes"])}
+        return {
+            "enabled": False,
+            "session_minutes": DEFAULT_SESSION_MINUTES,
+            "day_start_hour": None,
+            "day_end_hour": None,
+            "days_of_week": None,
+            "max_blocks": None,
+        }
+    return {
+        "enabled": bool(row["enabled"]),
+        "session_minutes": int(row["session_minutes"]),
+        "day_start_hour": row["day_start_hour"] if row["day_start_hour"] is None else int(row["day_start_hour"]),
+        "day_end_hour": row["day_end_hour"] if row["day_end_hour"] is None else int(row["day_end_hour"]),
+        "days_of_week": _days_from_csv(row["days_of_week"]),
+        "max_blocks": row["max_blocks"] if row["max_blocks"] is None else int(row["max_blocks"]),
+    }
 
 
 def set_study_opt_in(
@@ -76,6 +107,52 @@ def set_study_opt_in(
     finally:
         conn.close()
     return {"enabled": bool(enabled), "session_minutes": int(session_minutes)}
+
+
+def set_study_prefs(
+    track_kind: str,
+    track_id: str,
+    *,
+    session_minutes: int,
+    day_start_hour: Optional[int],
+    day_end_hour: Optional[int],
+    days_of_week: Optional[Sequence[int]],
+    max_blocks: Optional[int],
+    db_path: Optional[Path] = None,
+) -> None:
+    """Persist the learner's scheduler window prefs (session length + time-of-day + days-of-week +
+    max blocks) for a track. Upserts the pref columns only — the ``enabled`` flag is left alone (a
+    fresh insert takes its column default of 0; an existing opt-in survives), so saving prefs never
+    silently turns scheduling on or off. ``days_of_week=None``/empty clears the restriction."""
+    conn = connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO study_opt_in
+                (track_kind, track_id, session_minutes, day_start_hour, day_end_hour, days_of_week,
+                 max_blocks, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(track_kind, track_id)
+            DO UPDATE SET session_minutes = excluded.session_minutes,
+                          day_start_hour  = excluded.day_start_hour,
+                          day_end_hour    = excluded.day_end_hour,
+                          days_of_week    = excluded.days_of_week,
+                          max_blocks      = excluded.max_blocks,
+                          updated_at      = datetime('now')
+            """,
+            (
+                track_kind,
+                track_id,
+                int(session_minutes),
+                None if day_start_hour is None else int(day_start_hour),
+                None if day_end_hour is None else int(day_end_hour),
+                _days_to_csv(days_of_week),
+                None if max_blocks is None else int(max_blocks),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _row(r: Any) -> Dict[str, Any]:

@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-22 · **Study Scheduler v0 — opt-in Google Calendar study blocks for a learning path, built + fully tested (PR #137)**, anchored on the Jacobian path. Full v0 in one PR (Kyle's call): schema-v11 opt-in + removable block ledger · a per-kind duration model · a deterministic CT/DST session planner (packs whole steps, never splits, skips busy, one/day) · a `CalendarPort` seam (Fake in tests, a real Google adapter behind lazy imports) · a grounded `claude -p` negotiation lane (sets planner knobs only, never invents times) · a Study-time panel on PathPlayer. Backend +39 tests all green · frontend 175→180 · ruff/typecheck/build green. A **live** write needs Kyle's one-time OAuth ([`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md)); until then it degrades honestly to a "connect your calendar" state. New package `app.studycal` (distinct from the SM-2 `app.study`/`store.scheduler`). Prior: **M8 — Learning Paths, the Jacobian-Lens vertical slice ✅ CLOSED (PR #136)** — the #15 green gate closed the whole slice end to end — design (#126) → Phases 1–4 (#127–129) → Designer (#130) → Plan Continue lane (#132) → Designer curation (#134) → three-trend Progress (#135) → green gate (#136). Live path quality was judged good 2026-07-22; **the slice is now live on the prod hub** — advanced from a stale ee904c9 → origin/main, frontend rebuilt, `com.homebase.server` kickstarted (health ok; `/api/paths` now carries `confidence`). **Moonshot queue: EMPTY.** Next M8 = scale the Designer beyond the one bundled fixture to the rest of the library (future). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **Study Scheduler v1 — flexible, preference-honoring scheduling (this PR)**, on top of v0 (PR #137/#138). v0 ignored the two things a learner asks for most — *which days* and *what time of day*: there was no day-of-week concept anywhere, and the evening-only window silently rewrote "before 2pm" into a 6–7pm slot. v1: a real **`days_of_week`** planner knob (Mon=0…Sun=6) · explicit panel controls (day chips · time range · session length · max blocks) that drive the plan **deterministically** · the `claude -p` lane taught the new knob + worked "before 2pm"/"weekdays" examples and now *drives the controls* (each propose echoes an `applied` plan the UI snaps to; note-turns accumulate via the persisted base) · **per-key hand-vs-LLM precedence** · **schema v12** persists the prefs per-track so "weekdays before 2pm" sticks across visits + devices. Backend 709→723 · frontend 180→185 · ruff/tsc/build green; the v12 migration verified to heal a pre-v12 store. A **live** write still needs Kyle's one-time OAuth ([`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md)); until then it degrades honestly to a "connect your calendar" state. New package `app.studycal` (distinct from the SM-2 `app.study`/`store.scheduler`). Prior: **M8 — Learning Paths, the Jacobian-Lens vertical slice ✅ CLOSED (PR #136)** — the #15 green gate closed the whole slice end to end — design (#126) → Phases 1–4 (#127–129) → Designer (#130) → Plan Continue lane (#132) → Designer curation (#134) → three-trend Progress (#135) → green gate (#136). Live path quality was judged good 2026-07-22; **the slice is now live on the prod hub** — advanced from a stale ee904c9 → origin/main, frontend rebuilt, `com.homebase.server` kickstarted (health ok; `/api/paths` now carries `confidence`). **Moonshot queue: EMPTY.** Next M8 = scale the Designer beyond the one bundled fixture to the rest of the library (future). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -82,7 +82,7 @@ kanban
     w4readiness["W4 moonshot #2 —<br/>Readiness v0 'Coming<br/>up' strip:<br/>trajectories-only<br/>forward projection ·<br/>badge-identical keys ·<br/>honest cold start ·<br/>PR 105 · eighth gate<br/>override"]
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
     m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>green gate · PR 136 ·<br/>slice CLOSED"]
-    hbss["HB Study Scheduler v0<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#137 · live write<br/>pending Kyle OAuth"]
+    hbss["HB Study Scheduler v0→v1<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#137/#138 · v1 flexible<br/>prefs: days_of_week knob<br/>+ panel controls +<br/>applied-echo + schema<br/>v12 persistence · live<br/>write pending Kyle OAuth"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
@@ -326,7 +326,7 @@ glance instead of a sqlite dig._
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
 | [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
-| [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook) |
+| [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0→v1** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook); v1 = flexible preferences (day-of-week + time-of-day controls, `applied` echo, schema v12 persistence) |
 | [`ideas/study-scheduler.md`](ideas/study-scheduler.md) | Study Scheduler idea/write-up (captured 2026-07-22) — premise, settled decisions, open questions |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas + the replenished `## Open` queue |
 
@@ -338,7 +338,23 @@ _One condensed entry per update — what shipped, the PR, the decisions that sti
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
 
-### 2026-07-22 — server LaunchAgent PATH fix: live NotebookLM refresh (PR #TBD)
+### 2026-07-22 — Study Scheduler v1 · flexible, preference-honoring scheduling (PR #140)
+Kyle hit the v0 wall: "weekdays before 2pm" produced two fixed 6pm weeknights that wouldn't budge.
+Root cause (traced): **no day-of-week concept existed anywhere**, and the evening-only window +
+`day_end_hour > day_start_hour` repair silently rewrote "before 2pm" into a 6–7pm slot. Full rework
+(Kyle's pick over a small fix): a real **`days_of_week`** planner knob (Mon=0…Sun=6; the planner skips
+disallowed days) · explicit panel **controls** (day chips · time range · session length · max blocks)
+that drive the plan deterministically · the `claude -p` lane taught the new knob + worked
+"before 2pm"/"weekdays" examples and now **drives the controls** (each propose echoes an `applied`
+plan the UI snaps to; note-turns accumulate through the persisted base — "weekdays before 2pm" →
+"not Mondays") · **per-key hand-vs-LLM precedence** · **schema v12** persists the prefs on the
+`study_opt_in` row so they stick across visits + devices. Built test-first: backend 709→723 (planner
+days-of-week/morning · negotiate parse+prompt · store prefs roundtrip · API controls/persist/precedence/
+`applied`), frontend 180→185 (v1 controls render/hydrate/deterministic-knobs/applied-reflected/note-drives).
+ruff/tsc/build green; v12 migration verified to heal a pre-v12 store. Calendar stays read-only on
+propose; a live write still needs Kyle's OAuth. Runbook: [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) v1 section.
+
+### 2026-07-22 — server LaunchAgent PATH fix: live NotebookLM refresh (PR #139)
 The `com.homebase.server` LaunchAgent's hardcoded PATH omitted `~/.local/bin`, where `nlm`
 installs — so the always-on server's `shutil.which("nlm")` returned nothing and every topic-page
 **Refresh (live)** surfaced a misleading "NotebookLM sign-in needed / nlm command failed" banner

@@ -1153,7 +1153,10 @@ class WrittenBlock(BaseModel):
 
 class StudyScheduleState(BaseModel):
     """The per-path scheduler state: the opt-in flag + session length, whether the calendar is
-    connected, and the live (written, not removed) blocks."""
+    connected, the live (written, not removed) blocks, and the learner's persisted window prefs
+    (``day_start_hour``/``day_end_hour``/``days_of_week``/``max_blocks``) so the panel hydrates its
+    controls on load. A pref is ``None`` when it has never been set (the planner default applies).
+    ``days_of_week`` uses Python ``weekday()`` ints — Mon=0 … Sun=6; ``None`` = every day."""
 
     track_kind: str = "path"
     track_id: str
@@ -1162,12 +1165,31 @@ class StudyScheduleState(BaseModel):
     connected: bool = False
     calendar_id: Optional[str] = None
     blocks: List[WrittenBlock] = []
+    day_start_hour: Optional[int] = None
+    day_end_hour: Optional[int] = None
+    days_of_week: Optional[List[int]] = None
+    max_blocks: Optional[int] = None
+
+
+class AppliedPlan(BaseModel):
+    """The effective planner knobs a propose actually used (after merging controls + the LLM lane),
+    echoed so the panel reflects them in its controls — the honest 'here's what I did' surface.
+    ``days_of_week`` is Mon=0 … Sun=6; ``[]`` means every day (no restriction)."""
+
+    session_minutes: int
+    day_start_hour: int
+    day_end_hour: int
+    days_of_week: List[int] = []
+    window_days: int
+    max_blocks: int
+    max_per_day: int
 
 
 class StudyProposal(BaseModel):
-    """The proposed set of blocks (read-only — writes nothing). ``connected=False`` means the
-    calendar isn't wired yet (honest 'connect' state, never a 500); ``message`` is the optional
-    negotiation line; ``unscheduled_step_ids`` are steps that didn't fit the window."""
+    """The proposed set of blocks (read-only against the calendar — writes no events). ``connected``
+    ``=False`` means the calendar isn't wired yet (honest 'connect' state, never a 500); ``message``
+    is the optional negotiation line; ``unscheduled_step_ids`` are steps that didn't fit the window;
+    ``applied`` echoes the effective knobs so the UI can reflect them."""
 
     ok: bool
     connected: bool
@@ -1176,6 +1198,7 @@ class StudyProposal(BaseModel):
     unscheduled_step_ids: List[str] = []
     message: Optional[str] = None
     error: Optional[str] = None
+    applied: Optional[AppliedPlan] = None
     total_cost_usd: Optional[float] = None
     duration_ms: Optional[int] = None
 
@@ -1186,9 +1209,19 @@ class StudyOptInRequest(BaseModel):
 
 
 class StudyProposeRequest(BaseModel):
-    preference: Optional[str] = None  # free-text -> the claude -p negotiation lane
+    """A propose request. ``preference`` is free-text for the claude -p negotiation lane; the rest are
+    explicit control knobs (an explicit knob wins over anything the LLM suggests for that key). Any
+    knob omitted falls back to the persisted pref, then the planner default. ``days_of_week`` is
+    Mon=0 … Sun=6; an empty list clears the restriction (every day)."""
+
+    preference: Optional[str] = None
     session_minutes: Optional[int] = None
-    days: Optional[int] = None
+    days: Optional[int] = None  # window_days
+    day_start_hour: Optional[int] = None
+    day_end_hour: Optional[int] = None
+    days_of_week: Optional[List[int]] = None
+    max_blocks: Optional[int] = None
+    max_per_day: Optional[int] = None
 
 
 class StudyConfirmRequest(BaseModel):

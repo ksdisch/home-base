@@ -35,23 +35,63 @@ def _block(step_id: str, event_id: str, start_at: str, end_at: str) -> dict:
 
 
 def test_opt_in_defaults_off_and_roundtrips(store: Path) -> None:
-    # No row yet → opted out at the default session length.
+    # No row yet → opted out at the default session length, with the window prefs unset (None).
     assert study_blocks.get_study_opt_in("path", "nb-1", db_path=store) == {
         "enabled": False,
         "session_minutes": 45,
+        "day_start_hour": None,
+        "day_end_hour": None,
+        "days_of_week": None,
+        "max_blocks": None,
     }
     study_blocks.set_study_opt_in("path", "nb-1", True, 30, db_path=store)
-    assert study_blocks.get_study_opt_in("path", "nb-1", db_path=store) == {
-        "enabled": True,
-        "session_minutes": 30,
-    }
+    got = study_blocks.get_study_opt_in("path", "nb-1", db_path=store)
+    assert got["enabled"] is True and got["session_minutes"] == 30
+    # Toggling opt-in leaves the window prefs untouched (they're set via set_study_prefs).
+    assert got["day_start_hour"] is None and got["days_of_week"] is None
     # Toggling again upserts (no duplicate row) and another track stays independent.
     study_blocks.set_study_opt_in("path", "nb-1", False, 60, db_path=store)
-    assert study_blocks.get_study_opt_in("path", "nb-1", db_path=store) == {
-        "enabled": False,
-        "session_minutes": 60,
-    }
+    got2 = study_blocks.get_study_opt_in("path", "nb-1", db_path=store)
+    assert got2["enabled"] is False and got2["session_minutes"] == 60
     assert study_blocks.get_study_opt_in("path", "nb-2", db_path=store)["enabled"] is False
+
+
+def test_study_prefs_roundtrip_and_preserve_enabled(store: Path) -> None:
+    # Opt in first, then save window prefs — enabled must survive the prefs upsert.
+    study_blocks.set_study_opt_in("path", "nb-1", True, 45, db_path=store)
+    study_blocks.set_study_prefs(
+        "path",
+        "nb-1",
+        session_minutes=30,
+        day_start_hour=8,
+        day_end_hour=14,
+        days_of_week=[0, 1, 2, 3, 4],
+        max_blocks=5,
+        db_path=store,
+    )
+    got = study_blocks.get_study_opt_in("path", "nb-1", db_path=store)
+    assert got == {
+        "enabled": True,  # preserved through the prefs upsert
+        "session_minutes": 30,
+        "day_start_hour": 8,
+        "day_end_hour": 14,
+        "days_of_week": [0, 1, 2, 3, 4],  # CSV in the column, list on the way out
+        "max_blocks": 5,
+    }
+    # None day-of-week clears the restriction (all days) and roundtrips as None.
+    study_blocks.set_study_prefs(
+        "path", "nb-1", session_minutes=45, day_start_hour=None, day_end_hour=None,
+        days_of_week=None, max_blocks=None, db_path=store,
+    )
+    got2 = study_blocks.get_study_opt_in("path", "nb-1", db_path=store)
+    assert got2["days_of_week"] is None and got2["day_start_hour"] is None
+    # set_study_prefs on a fresh track creates the row (enabled defaults off).
+    study_blocks.set_study_prefs(
+        "path", "nb-3", session_minutes=60, day_start_hour=9, day_end_hour=17,
+        days_of_week=[5, 6], max_blocks=3, db_path=store,
+    )
+    fresh = study_blocks.get_study_opt_in("path", "nb-3", db_path=store)
+    assert fresh["enabled"] is False and fresh["days_of_week"] == [5, 6] and fresh["session_minutes"] == 60
 
 
 def test_add_and_list_blocks_live_only_ordered(store: Path) -> None:

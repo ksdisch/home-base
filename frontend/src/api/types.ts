@@ -665,7 +665,9 @@ export interface WrittenBlock {
 }
 
 // The per-path scheduler state: opt-in flag + session length, whether the calendar is connected,
-// and the live (written, not removed) blocks.
+// the live (written, not removed) blocks, and the learner's persisted window prefs so the panel
+// hydrates its controls on load. A pref is null when it has never been set (planner default applies).
+// days_of_week uses Python weekday() ints — Mon=0 … Sun=6; null = every day.
 export interface StudyScheduleState {
   track_kind: string;
   track_id: string;
@@ -674,11 +676,28 @@ export interface StudyScheduleState {
   connected: boolean;
   calendar_id?: string | null;
   blocks: WrittenBlock[];
+  day_start_hour?: number | null;
+  day_end_hour?: number | null;
+  days_of_week?: number[] | null;
+  max_blocks?: number | null;
 }
 
-// The proposed set (read-only — writes nothing). connected=false means the calendar isn't wired yet
-// (honest "connect" state, never an HTTP error); message is the optional negotiation line;
-// unscheduled_step_ids are steps that didn't fit the window.
+// The effective planner knobs a propose actually used (controls merged with the LLM lane), echoed so
+// the panel can reflect them. days_of_week is Mon=0 … Sun=6; [] means every day (no restriction).
+export interface AppliedPlan {
+  session_minutes: number;
+  day_start_hour: number;
+  day_end_hour: number;
+  days_of_week: number[];
+  window_days: number;
+  max_blocks: number;
+  max_per_day: number;
+}
+
+// The proposed set (read-only against the calendar — writes no events). connected=false means the
+// calendar isn't wired yet (honest "connect" state, never an HTTP error); message is the optional
+// negotiation line; unscheduled_step_ids are steps that didn't fit the window; applied echoes the
+// effective knobs.
 export interface StudyProposal {
   ok: boolean;
   connected: boolean;
@@ -687,6 +706,7 @@ export interface StudyProposal {
   unscheduled_step_ids: string[];
   message?: string | null;
   error?: string | null;
+  applied?: AppliedPlan | null;
   total_cost_usd?: number | null;
   duration_ms?: number | null;
 }
@@ -696,10 +716,19 @@ export interface StudyOptInRequest {
   session_minutes?: number | null;
 }
 
+// A propose request. preference is free-text for the claude -p negotiation lane; the rest are explicit
+// control knobs (an explicit knob wins over anything the LLM suggests for that key). Any knob omitted
+// falls back to the persisted pref, then the planner default. days_of_week is Mon=0 … Sun=6; an empty
+// list clears the restriction (every day).
 export interface StudyProposeRequest {
-  preference?: string | null; // free-text -> the claude -p negotiation lane
+  preference?: string | null;
   session_minutes?: number | null;
-  days?: number | null;
+  days?: number | null; // window_days
+  day_start_hour?: number | null;
+  day_end_hour?: number | null;
+  days_of_week?: number[] | null;
+  max_blocks?: number | null;
+  max_per_day?: number | null;
 }
 
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse

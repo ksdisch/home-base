@@ -176,3 +176,77 @@ def test_schedule_404_for_an_unknown_path(env):
         assert client.get("/api/paths/not-a-real-topic/schedule").status_code == 404
     finally:
         _teardown(app)
+
+
+def _starts(body):
+    from datetime import datetime
+
+    return [datetime.fromisoformat(b["start"]) for b in body["blocks"]]
+
+
+def test_propose_honors_explicit_controls_without_a_preference(env):
+    # Structured controls drive the planner directly — no claude call needed. "weekday mornings"
+    # via day-of-week + a daytime window is honored (the bug the rework fixes).
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "days_of_week": [0, 1, 2, 3, 4],
+                "day_start_hour": 8,
+                "day_end_hour": 14,
+                "session_minutes": 30,
+            },
+        ).json()
+        assert body["ok"] is True and body["connected"] is True and len(body["blocks"]) >= 1
+        applied = body["applied"]  # echoed effective knobs, so the UI can reflect them
+        assert applied["days_of_week"] == [0, 1, 2, 3, 4]
+        assert applied["day_start_hour"] == 8 and applied["day_end_hour"] == 14
+        assert applied["session_minutes"] == 30
+        for s in _starts(body):  # real clock → assert shape, not absolute dates
+            assert s.weekday() in {0, 1, 2, 3, 4}
+            assert 8 <= s.hour < 14
+    finally:
+        _teardown(app)
+
+
+def test_propose_persists_prefs_across_visits(env):
+    client, app = _client(_fake())
+    try:
+        client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"days_of_week": [1, 3], "day_start_hour": 9, "day_end_hour": 17,
+                  "session_minutes": 60, "max_blocks": 4},
+        )
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["days_of_week"] == [1, 3]
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 17
+        assert state["session_minutes"] == 60 and state["max_blocks"] == 4
+    finally:
+        _teardown(app)
+
+
+def test_hand_controls_win_over_the_llm_per_key(env):
+    # The note asks for evenings+weekends+long sessions; the controls pin weekday mornings. Controls
+    # win for the keys the user set this turn; the LLM only fills the one they left open (session len).
+    answer = json.dumps({
+        "day_start_hour": 18, "day_end_hour": 21, "days_of_week": [5, 6],
+        "session_minutes": 90, "message": "Evenings and weekends.",
+    })
+    client, app = _client(_fake(), negotiate_answer=answer)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "preference": "evenings and weekends, long sessions",
+                "day_start_hour": 8, "day_end_hour": 14, "days_of_week": [0, 1, 2, 3, 4],
+            },
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 8 and applied["day_end_hour"] == 14  # controls win
+        assert applied["days_of_week"] == [0, 1, 2, 3, 4]
+        assert applied["session_minutes"] == 90  # the unset knob is filled by the LLM
+        for s in _starts(body):
+            assert s.weekday() in {0, 1, 2, 3, 4} and 8 <= s.hour < 14
+    finally:
+        _teardown(app)

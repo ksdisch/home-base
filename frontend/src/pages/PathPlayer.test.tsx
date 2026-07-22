@@ -217,8 +217,12 @@ describe("PathPlayer — Study Scheduler surface", () => {
     renderAt();
 
     await user.click(await screen.findByRole("button", { name: /Propose times/i }));
-    // Read-only: proposing writes nothing — just surfaces a reviewable set with one confirm.
-    expect(proposeSchedule).toHaveBeenCalledWith("nb-jac", { preference: null });
+    // Read-only: proposing writes nothing — just surfaces a reviewable set with one confirm. With an
+    // empty note the deterministic control knobs are sent (preference stays null).
+    expect(proposeSchedule).toHaveBeenCalledWith(
+      "nb-jac",
+      expect.objectContaining({ preference: null }),
+    );
     const confirmBtn = await screen.findByRole("button", { name: /Add 1 block to my calendar/i });
 
     await user.click(confirmBtn);
@@ -272,5 +276,103 @@ describe("PathPlayer — Study Scheduler surface", () => {
 
     await user.click(await screen.findByRole("button", { name: "Remove" }));
     expect(removeSchedule).toHaveBeenCalledWith("nb-jac", [7]);
+  });
+});
+
+describe("PathPlayer — Study Scheduler controls (v1)", () => {
+  it("renders the day / time / session controls when enabled + connected", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    renderAt();
+
+    // Day-of-week chips, a session-length chip, and the free-text note all present.
+    expect(await screen.findByRole("button", { name: "Monday" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Saturday" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "45-minute sessions" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Scheduling preference/i)).toBeInTheDocument();
+  });
+
+  it("hydrates the controls from the persisted prefs", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(
+      scheduleState({
+        enabled: true,
+        connected: true,
+        days_of_week: [0, 1, 2, 3, 4],
+        day_start_hour: 8,
+        day_end_hour: 14,
+        session_minutes: 30,
+      }),
+    );
+    renderAt();
+
+    // Weekdays pressed, weekend off; 30-min chip pressed; start hour reflects the saved 8am.
+    expect(await screen.findByRole("button", { name: "Monday" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Saturday" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "30-minute sessions" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText(/Start hour/i)).toHaveValue("8");
+  });
+
+  it("sends the explicit control knobs on a deterministic propose (empty note)", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    proposeSchedule.mockResolvedValue(makeProposal(["Ep 1", "s1"]));
+    const user = userEvent.setup();
+    renderAt();
+
+    // Turn off the weekend, then propose — the knobs (not a preference) drive the plan.
+    await user.click(await screen.findByRole("button", { name: "Saturday" }));
+    await user.click(screen.getByRole("button", { name: "Sunday" }));
+    await user.click(screen.getByRole("button", { name: /Propose times/i }));
+
+    expect(proposeSchedule).toHaveBeenCalledWith(
+      "nb-jac",
+      expect.objectContaining({ preference: null, days_of_week: [0, 1, 2, 3, 4] }),
+    );
+  });
+
+  it("reflects the applied knobs from the response back into the controls", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    proposeSchedule.mockResolvedValue({
+      ...makeProposal(["Ep 1", "s1"]),
+      applied: {
+        session_minutes: 30,
+        day_start_hour: 8,
+        day_end_hour: 14,
+        days_of_week: [0, 1, 2, 3, 4],
+        window_days: 14,
+        max_blocks: 8,
+        max_per_day: 1,
+      },
+    });
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.click(await screen.findByRole("button", { name: /Propose times/i }));
+    // The controls snap to what the plan actually used.
+    expect(await screen.findByRole("button", { name: "Saturday" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Monday" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "30-minute sessions" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText(/Start hour/i)).toHaveValue("8");
+  });
+
+  it("lets a free-text note drive the plan (the claude lane)", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
+    proposeSchedule.mockResolvedValue({
+      ...makeProposal(["Ep 1", "s1"]),
+      message: "Weekdays before 2pm it is.",
+    });
+    const user = userEvent.setup();
+    renderAt();
+
+    await user.type(await screen.findByLabelText(/Scheduling preference/i), "weekdays before 2pm");
+    // With a note present the action button becomes "Refine" (it drives the claude lane).
+    await user.click(screen.getByRole("button", { name: /Refine/i }));
+
+    // A note is sent as the preference (no explicit knobs) so the claude lane interprets it.
+    expect(proposeSchedule).toHaveBeenCalledWith("nb-jac", { preference: "weekdays before 2pm" });
+    expect(await screen.findByText(/Weekdays before 2pm it is\./)).toBeInTheDocument();
   });
 });
