@@ -14,7 +14,7 @@ so nobody has to click through a dozen docs to see the state of the project._
 > Adding a brand-new plan/milestone doc? Add it to the checklist, the board, and the doc map here.
 > The rule that enforces this lives in `CLAUDE.md` → "Master plan upkeep".
 
-**Last updated:** 2026-07-22 · **M8 — Learning Paths, the Designer curation polish ✅ SHIPPED (PR #134)** — the BACKLOG follow-up from #12's live-quality gate: the Designer arranged *every* artifact, so the richest topics blew the 180s `claude -p` ceiling + bloated the path. `build_designer_prompt` now shows a bounded, foundational-first slice per kind (`_MAX_PER_KIND` audio 8 · sg 4 · quiz 3 · fc 3) + asks for a FOCUSED path; timeout 180→240; validation stays against the FULL set (M0 bar intact). **Live re-validated:** engineering-abstractions (was a 180s timeout) now composes in ~90s / 17 steps · jlens tightened 17→13, bridge + real ids intact. Backend **669** green (+4). Prior: #12 Plan Continue lane (PR #132). **Moonshot queue: EMPTY.** Remaining M8: three-trend Progress · slice-quality gate. Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
+**Last updated:** 2026-07-22 · **M8 — Learning Paths, the three-trend Progress rebuild ✅ SHIPPED (PR #135)** — the last M8 feature: Progress now centers the path model's three honest axes instead of a quiz-only scoreboard. Design decision 8's data fork — coverage/confidence are latest-value-only (upsert, no time-series), only recall's `attempts` history is real — resolved to **Option B** (Kyle): Recall is the one real TREND line (attempt scores over time), Coverage + Confidence are honest CURRENT readouts, never faked into lines — **no new tables, no new writes**. `PathSummary` gains `confidence` (mean self-rating) so Progress reads one `/api/paths` call not N+1; the frontend adds a three-axis band + per-path coverage/confidence rows; the "Recent activity" heatmap stays the honest activity strip. Backend **670** green (+1) · frontend **167** green (+2) · typecheck + build + ruff clean. Prior: Designer curation polish (PR #134). **Moonshot queue: EMPTY.** Remaining M8: slice-quality FRONTEND green gate (#15). Also open: M6 phone trio (Kyle) · ~08-03 v1 check · ~08-19 re-grade · PR10 only-if-wobble. _Full history: [Changelog](#changelog-newest-first)._
 
 ---
 
@@ -83,7 +83,7 @@ kanban
     w4calibrated["W4 moonshot #3 —<br/>Calibrated Doubt v0<br/>'Yesterday's calls':<br/>optional wagers in all<br/>prompts · frozen-file<br/>normalize pass-through<br/>· zero-LLM next-sweep<br/>grading ·<br/>calibration.jsonl ·<br/>trial-week label · PR<br/>106 · ninth gate<br/>override"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
-    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · remaining: 3-trend<br/>Progress · green gate"]
+    m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>remaining: green gate"]
   next["📋 Planned"]
     hbm8["HB M8 — Learning Paths<br/>(design approved 2026-07-21):<br/>AI-composed guided paths<br/>over NotebookLM topics ·<br/>3 axes coverage/recall/<br/>confidence · outline+detail<br/>player · Plan two lanes ·<br/>Progress three trends ·<br/>→ /explore-plan (Jacobian<br/>Lens vertical slice)"]
   decide["⏸️ Awaiting decision"]
@@ -289,7 +289,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Phase 4 — the frontend (PR #129): outline+detail **PathPlayer** (left-rail TOC + active step + live three-axis panel; six step behaviors reusing the existing topic routes; inline ✨ bridge-check on the M5 lane) + **NotebookCard** reworked into three live axes + Generate/Continue/Review + the hand-synced `types.ts`/`client.ts` contract. Scoped to the one bundled fixture; typecheck + 163 frontend tests green
   - [x] The on-demand **Designer** (PR #130): `POST /api/paths/{id}/generate` composes a path over a topic's real artifacts on the M5 `claude -p` lane (`app/paths/designer.py`, reused like the bridge grader), validated against the catalog — the **M0 no-fabrication bar**: every artifact-backed step must cite a real id of the matching type or the whole path is rejected and nothing is written (`write_path_file` atomic; `PATHS_DESIGNER_MODEL` tunable, default sonnet). `NotebookCard`'s stub becomes a real busy-aware button. +8 M0-bar tests; backend 660 green
   - [x] **Plan — the Continue lane** (PR #132): `GET /api/paths` lists every composed path + its next-incomplete step (malformed skipped, never a 500) → `StudyPlan.tsx` renders a coverage-driven **Continue** lane (non-empty day one via the bundled example) above the unchanged SR **Review** lane, one shared minutes budget. +6 backend (665) / +2 frontend (165) tests
-  - [ ] Remaining: three-trend Progress + honest heatmap · slice-quality green gate — generated-path quality judged 2026-07-22 (good on normal topics; rich-topic curation → BACKLOG)
+  - [x] **Progress — the three axes** (PR #135): design decision 8's data fork — coverage/confidence are latest-value-only (upsert, no time-series), only recall's `attempts` history is real — resolved to **Option B** (Kyle): Recall is the one real TREND line (attempt scores over time), Coverage + Confidence are honest CURRENT readouts, never faked into lines (no new tables/writes). `PathSummary` gains `confidence` so Progress reads one `/api/paths` call not N+1; a three-axis band + per-path coverage/confidence rows; the "Recent activity" heatmap stays the honest activity strip. +1 backend (670) / +2 frontend (167) tests
+  - [ ] Remaining: slice-quality FRONTEND green gate (#15 — no PathPlayer/NotebookCard/Generate frontend tests yet); generated-path quality judged good 2026-07-22 (rich-topic curation shipped as PR #134)
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -333,6 +334,21 @@ glance instead of a sqlite dig._
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
+
+### 2026-07-22 — M8 Learning Paths · the three-trend Progress rebuild (PR #135)
+The last M8 feature. Progress stops being a quiz-only scoreboard and centers the path model's
+three honest axes. The build hit design decision 8's data fork head-on: `path_step_progress` /
+`path_confidence` are latest-value-only (upsert, no history) and confidence writes no `activity`
+row, so coverage + confidence have **no reconstructable time-series** — only recall does
+(`attempts.finished_at`). Kyle picked **Option B**: Recall is the one real TREND line (attempt
+scores over time); Coverage + Confidence are honest CURRENT readouts, never faked into lines —
+**no new tables, no new writes**. Backend: `PathSummary` gains `confidence` (mean self-rating),
+populated in `GET /api/paths` so Progress reads one list call, not N+1 per-path fetches. Frontend:
+a three-axis headline band (Recall sparkline + Coverage/Confidence gauges, each tagged honest
+"trend"/"now") + a per-path coverage/confidence rows section into the path player; header + empty
+state reframed; the "Recent activity" heatmap stays the honest activity strip (decision 8's
+relabel). +1 backend (670) / +2 frontend (167) tests; typecheck + build + ruff green. Remaining
+M8: the slice-quality FRONTEND green gate (#15).
 
 ### 2026-07-22 — M8 Learning Paths · Designer curation polish (PR #134)
 The BACKLOG follow-up surfaced by #12's live-quality gate: the on-demand Designer arranged
