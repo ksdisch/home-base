@@ -74,6 +74,30 @@ describe("StudyPlan page — Review lane", () => {
     expect(link).toHaveAttribute("href", "/topics/nb-a/quiz/qz-a");
   });
 
+  it("badges a course segment and links it to the course quiz player (topic_url is null)", async () => {
+    studyPlan.mockResolvedValue({
+      ...DUE_PLAN,
+      segments: [
+        {
+          notebook_id: "course:jlens",
+          title: "Global Workspace in LLMs",
+          quiz_artifact_id: "quizzes/m1.json",
+          topic_url: null,
+          item_count: 4,
+          due_count: 2,
+          minutes: 2,
+          priority: 15,
+        },
+      ],
+    } satisfies StudyPlanResponse);
+    renderPage();
+
+    expect(await screen.findByText("Global Workspace in LLMs")).toBeInTheDocument();
+    expect(screen.getByText("Course")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /Review/i });
+    expect(link).toHaveAttribute("href", "/courses/jlens/quiz?path=quizzes%2Fm1.json");
+  });
+
   it("shows the empty state when no questions are scheduled", async () => {
     studyPlan.mockResolvedValue(EMPTY_PLAN);
     renderPage();

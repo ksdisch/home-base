@@ -106,6 +106,23 @@ export function NotebookCard({ card }: { card: Card }) {
         )}
       </div>
 
+      {/* Cross-link: the course(s) built on this same notebook, so the topic + course stop
+          reading as duplicate entries across the Learning / Courses tabs. */}
+      {card.courses?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {card.courses.map((c) => (
+            <Link
+              key={c.slug}
+              to={`/courses/${encodeURIComponent(c.slug)}`}
+              className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent hover:opacity-90"
+              title={`Also taught as a course: ${c.title}`}
+            >
+              📘 Course: {c.title} →
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div className="mt-4 flex items-center gap-4 border-t border-line-soft pt-3 text-sm">
         <Link
           to={card.topic_url}

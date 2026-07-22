@@ -29,6 +29,7 @@ function makeCard(over: Partial<Card> = {}): Card {
     notebooklm_url: "https://notebooklm.google.com/nb-jac",
     topic_url: "/topics/nb-jac",
     counts: { audio: 12, quiz: 1 },
+    courses: [],
     progress_pct: null,
     mastery: null,
     due_for_review: false,
@@ -119,5 +120,13 @@ describe("NotebookCard — path entry + on-demand Generate (M8 #15)", () => {
       "/learning/path/nb-jac",
     );
     expect(screen.queryByRole("button", { name: /Generate path/ })).not.toBeInTheDocument();
+  });
+
+  it("cross-links to the course(s) built on this notebook", async () => {
+    path.mockResolvedValue(null);
+    renderCard(makeCard({ courses: [{ slug: "jlens-global-workspace", title: "Jacobian Lens" }] }));
+
+    const chip = await screen.findByRole("link", { name: /Course: Jacobian Lens/ });
+    expect(chip).toHaveAttribute("href", "/courses/jlens-global-workspace");
   });
 });

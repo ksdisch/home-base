@@ -7,6 +7,7 @@ import { Banner } from "../components/Banner";
 import { cx } from "../lib/format";
 import {
   PLAN_MINUTES,
+  isCourseSegment,
   pathProgressSummary,
   planSummary,
   quizPlayerPath,
@@ -72,14 +73,19 @@ function ContinueCard({ item }: { item: PathSummary }) {
 }
 
 function SegmentCard({ seg }: { seg: StudyPlanSegment }) {
-  const path = seg.topic_url
-    ? quizPlayerPath(seg.notebook_id, seg.quiz_artifact_id)
-    : null;
+  const isCourse = isCourseSegment(seg.notebook_id);
+  // Course segments carry no topic_url (the client derives their /courses/:slug/quiz link), so
+  // link whenever it's a course OR a resolved topic — an unresolved notebook still renders unlinked.
+  const path =
+    isCourse || seg.topic_url
+      ? quizPlayerPath(seg.notebook_id, seg.quiz_artifact_id)
+      : null;
   const inner = (
     <div className="flex items-center gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold text-ink">{seg.title}</span>
+          {isCourse && <Badge tone="neutral">Course</Badge>}
           {seg.due_count > 0 && <Badge tone="amber">🔁 {seg.due_count} due</Badge>}
         </div>
         <div className="mt-0.5 text-xs text-muted">{segmentSummary(seg)}</div>

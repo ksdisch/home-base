@@ -14,11 +14,28 @@ from fastapi import APIRouter, Depends
 
 from ..catalog.build import to_groups
 from ..catalog.ingest import load_sidecars
+from ..courses import courses_by_notebook
 from ..deps import get_app_settings
-from ..models import AuthState, CatalogResponse
+from ..models import AuthState, CatalogResponse, NotebookCourseRef
 from ..store import mastery as store_mastery
 
 router = APIRouter()
+
+
+def _stamp_courses(groups) -> None:
+    """Attach the course(s) that build on each notebook, so a topic card can cross-link to its
+    course (best-effort — the home feed must never 500 over the course catalog)."""
+    try:
+        by_nb = courses_by_notebook()
+    except Exception:
+        return
+    if not by_nb:
+        return
+    for g in groups:
+        for card in g.notebooks:
+            refs = by_nb.get(card.notebook_id)
+            if refs:
+                card.courses = [NotebookCourseRef(**r) for r in refs]
 
 
 def _stamp_mastery(groups) -> None:
@@ -42,6 +59,7 @@ def get_catalog(settings=Depends(get_app_settings)) -> CatalogResponse:
     load = load_sidecars(settings.notebooklm_root)
     groups = to_groups(load.sidecars)
     _stamp_mastery(groups)
+    _stamp_courses(groups)
     return CatalogResponse(
         generated_at=datetime.now(timezone.utc).isoformat(),
         groups=groups,

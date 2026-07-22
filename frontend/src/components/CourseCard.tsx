@@ -28,6 +28,20 @@ export function CourseCard({ course }: { course: CourseSummary }) {
         <p className="mt-2 line-clamp-3 text-sm text-muted">{course.summary}</p>
       )}
 
+      {/* Cross-link to the source notebook this course builds on, so the course + its topic stop
+          reading as duplicate entries across the Courses / Learning tabs. */}
+      {course.notebook?.found && (
+        <div className="mt-3">
+          <Link
+            to={course.notebook.topic_url || `/topics/${encodeURIComponent(course.notebook.notebook_id)}`}
+            className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent hover:opacity-90"
+            title={`Source notebook: ${course.notebook.title}`}
+          >
+            🎧 Source notebook: {course.notebook.title} →
+          </Link>
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-muted">
         {course.module_count} modules · {course.lesson_count} lessons
         {course.estimated_hours ? ` · ~${course.estimated_hours}h` : ""}

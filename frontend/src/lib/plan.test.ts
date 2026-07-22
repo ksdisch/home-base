@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StudyPlanResponse, StudyPlanSegment } from "../api/types";
-import { planSummary, quizPlayerPath, segmentSummary } from "./plan";
+import { isCourseSegment, planSummary, quizPlayerPath, segmentSummary } from "./plan";
 
 function seg(over: Partial<StudyPlanSegment> = {}): StudyPlanSegment {
   return {
@@ -31,14 +31,27 @@ function plan(over: Partial<StudyPlanResponse> = {}): StudyPlanResponse {
 }
 
 describe("quizPlayerPath", () => {
-  it("builds the encoded quiz-player route", () => {
+  it("builds the encoded topic quiz-player route", () => {
     expect(quizPlayerPath("nb 1", "qz/2")).toBe("/topics/nb%201/quiz/qz%2F2");
+  });
+
+  it("routes a course segment to the course quiz player with the path in the query string", () => {
+    expect(quizPlayerPath("course:jlens", "quizzes/m1.json")).toBe(
+      "/courses/jlens/quiz?path=quizzes%2Fm1.json",
+    );
+  });
+});
+
+describe("isCourseSegment", () => {
+  it("recognizes the course: namespace", () => {
+    expect(isCourseSegment("course:jlens")).toBe(true);
+    expect(isCourseSegment("nb-jac")).toBe(false);
   });
 });
 
 describe("planSummary", () => {
-  it("summarizes minutes, questions and distinct topics", () => {
-    expect(planSummary(plan())).toBe("~12 min · 18 questions across 2 topics");
+  it("summarizes minutes, questions and distinct areas (topics + courses)", () => {
+    expect(planSummary(plan())).toBe("~12 min · 18 questions across 2 areas");
   });
 
   it("handles an empty plan", () => {
@@ -47,9 +60,9 @@ describe("planSummary", () => {
     );
   });
 
-  it("singularizes one question / one topic", () => {
+  it("singularizes one question / one area", () => {
     const p = plan({ total_items: 1, total_minutes: 1, segments: [seg()] });
-    expect(planSummary(p)).toBe("~1 min · 1 question across 1 topic");
+    expect(planSummary(p)).toBe("~1 min · 1 question across 1 area");
   });
 });
 

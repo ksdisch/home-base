@@ -252,9 +252,11 @@ def sr_plan_items(
             SELECT notebook_id, quiz_artifact_id, question_key,
                    miss_count, ease, interval_days, reps, lapses, due_at, last_review_at
             FROM question_mastery
-            -- Exclude course-namespaced SR rows from the cross-notebook study plan (courses are
-            -- reviewed from their own page in M2; interleaving them is M3). See COURSE_NB_PREFIX.
-            WHERE notebook_id NOT LIKE 'course:%'
+            -- Course-namespaced SR rows (``course:<slug>``) ARE included here so course quizzes
+            -- resurface in the daily study plan alongside topics (the M3 the comment above once
+            -- anticipated). The *topic-only* surfaces — ``review_queue``/``due_topic_ids`` (the
+            -- home badge + /review) and the /progress trends — still filter ``course:%`` back out;
+            -- courses just gain a seat in the interleaved plan. See COURSE_NB_PREFIX.
             """
         ).fetchall()
     finally:

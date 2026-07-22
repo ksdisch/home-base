@@ -36,6 +36,15 @@ class QuizRef(ArtifactRef):
     takeable: bool = False  # Phase 2 flips this on
 
 
+class NotebookCourseRef(BaseModel):
+    """A course that builds on this notebook (the reverse of a course's ``notebooklm`` material).
+    Lets the topic card surface a 'part of a course →' chip so the topic and the course that
+    covers it stop looking like duplicate entries in two tabs. Merged in by the catalog endpoint."""
+
+    slug: str
+    title: str
+
+
 class NotebookCard(BaseModel):
     notebook_id: str
     alias: str
@@ -48,6 +57,7 @@ class NotebookCard(BaseModel):
     notebooklm_url: str
     topic_url: str
     counts: Dict[str, int] = {}
+    courses: List[NotebookCourseRef] = []  # courses that reference this notebook (M4 reverse link)
     # Deferred to later phases — explicit placeholders so the UI can render "—".
     progress_pct: Optional[float] = None
     mastery: Optional[float] = None
@@ -434,6 +444,10 @@ class CourseSummary(BaseModel):
     completed_lessons: int = 0
     progress_pct: int = 0
     editable: bool = False  # a user copy exists under COURSES_DIR, so M5 edits can land
+    # The source notebook this course builds on (its first ``notebooklm`` material), resolved
+    # against the sidecar catalog — the course card cross-links to the topic (M4 reverse of the
+    # course-detail join). ``None`` when the course references no notebook / it's not on this box.
+    notebook: Optional[CourseNotebookRef] = None
 
 
 class CourseDetail(CourseSummary):

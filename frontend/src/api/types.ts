@@ -29,6 +29,12 @@ export interface QuizRef extends ArtifactRef {
   takeable: boolean;
 }
 
+// A course that builds on this notebook — the reverse cross-link the catalog stamps on each card.
+export interface NotebookCourseRef {
+  slug: string;
+  title: string;
+}
+
 export interface NotebookCard {
   notebook_id: string;
   alias: string;
@@ -41,6 +47,7 @@ export interface NotebookCard {
   notebooklm_url: string;
   topic_url: string;
   counts: Record<string, number>;
+  courses: NotebookCourseRef[]; // courses that reference this notebook (M4 reverse cross-link)
   progress_pct?: number | null;
   mastery?: number | null;
   due_for_review: boolean;
@@ -385,6 +392,7 @@ export interface CourseSummary {
   completed_lessons: number;
   progress_pct: number;
   editable: boolean; // M5: a user copy exists under COURSES_DIR, so edits can land
+  notebook?: CourseNotebookRef | null; // the source notebook this course builds on (cross-link)
 }
 
 export interface CourseDetail extends CourseSummary {
