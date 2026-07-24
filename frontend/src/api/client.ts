@@ -191,7 +191,9 @@ export const api = {
     };
   },
   // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
-  briefAudioUrl: () => `${API_BASE}/brief/audio`,
+  // Accepts an optional date so archive views can stream historical audio.
+  briefAudioUrl: (date?: string) =>
+    date ? `${API_BASE}/brief/audio?date=${encodeURIComponent(date)}` : `${API_BASE}/brief/audio`,
   // QU1: an archived morning by date — live-only (the SW deliberately stands aside for
   // ?date= so an archive visit can't clobber the cached last morning).
   briefByDate: (date: string) => get<BriefResponse>(`/brief?date=${encodeURIComponent(date)}`),
