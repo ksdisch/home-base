@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { BriefResponse } from "../api/types";
+import type { BriefAudioChapter, BriefResponse } from "../api/types";
 import { Banner } from "../components/Banner";
 import { humanDate, humanDateShort, TopicSection } from "./Brief";
 
@@ -11,6 +11,56 @@ import { humanDate, humanDateShort, TopicSection } from "./Brief";
 // stands aside for ?date= requests, so this view is live-only (needs the hub). Notes on
 // an archived item stay fully live (they're date-scoped rows); Ask is hidden — chat
 // resolves the served (latest) day only. No audio for historical days in v1.
+function ArchiveAudioCard({
+  date,
+  chapters,
+}: {
+  date: string;
+  chapters: BriefAudioChapter[];
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const posKey = `audio-pos-${date}`;
+
+  const seekChapter = (t: number) => {
+    if (audioRef.current) audioRef.current.currentTime = t;
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-line bg-card/60 p-4">
+      <p className="mb-2 text-xs font-medium text-muted">🎧 Listen to this brief — the ~5-minute cut</p>
+      <audio
+        ref={audioRef}
+        controls
+        preload="none"
+        src={api.briefAudioUrl(date)}
+        className="w-full"
+        onTimeUpdate={(e) => {
+          localStorage.setItem(posKey, String(e.currentTarget.currentTime));
+        }}
+        onLoadedMetadata={(e) => {
+          const saved = Number(localStorage.getItem(posKey));
+          if (saved > 0) e.currentTarget.currentTime = saved;
+        }}
+        onEnded={() => localStorage.removeItem(posKey)}
+      />
+      {chapters.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {chapters.map((ch) => (
+            <button
+              key={ch.slug}
+              type="button"
+              onClick={() => seekChapter(ch.start_seconds)}
+              className="rounded-full border border-line bg-card/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+            >
+              {ch.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BriefArchive() {
   const { date } = useParams();
   const [brief, setBrief] = useState<BriefResponse | null>(null);
@@ -70,6 +120,13 @@ export default function BriefArchive() {
             is still there.
           </Banner>
         </div>
+      )}
+
+      {brief?.audio_available && brief.date && (
+        <ArchiveAudioCard
+          date={brief.date}
+          chapters={brief.audio_chapters ?? []}
+        />
       )}
 
       {brief && brief.topics.length > 0 && (
