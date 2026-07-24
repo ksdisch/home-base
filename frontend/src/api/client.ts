@@ -2,6 +2,7 @@
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
   BridgeGradeResponse,
+  BriefArchiveResponse,
   BriefChatRequest,
   BriefChatResponse,
   BriefHabitResponse,
@@ -200,6 +201,7 @@ export const api = {
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   briefHabit: () => get<BriefHabitResponse>("/brief/habit"),
+  briefArchive: () => get<BriefArchiveResponse>("/brief/archive"),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.
   briefNotes: (topic?: string) =>
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),

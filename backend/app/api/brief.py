@@ -38,6 +38,8 @@ from ..models import (
     BriefCalibration,
     BriefChatRequest,
     BriefChatResponse,
+    BriefArchiveEntry,
+    BriefArchiveResponse,
     BriefHabitResponse,
     BriefHabitWeek,
     BriefMissingTopic,
@@ -473,3 +475,21 @@ def discard_overnight_proposal(
             "status": "discarded",
         }
     )
+
+
+@router.get("/brief/archive", response_model=BriefArchiveResponse)
+def get_brief_archive(settings=Depends(get_app_settings)) -> BriefArchiveResponse:
+    """All renderable sweep dates, newest-first, with an ``has_audio`` flag.
+
+    Used by the archive index page to build a browsable history list. Dates are
+    the same renderable-content-gated set that ``GET /brief?date=`` accepts."""
+    sweeps_dir = Path(settings.sweeps_dir)
+    dates = list(reversed(sweep_dates(sweeps_dir)))
+    entries = [
+        BriefArchiveEntry(
+            date=d,
+            has_audio=(sweeps_dir / d / "brief.mp3").exists(),
+        )
+        for d in dates
+    ]
+    return BriefArchiveResponse(dates=entries)
