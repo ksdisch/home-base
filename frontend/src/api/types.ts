@@ -1007,6 +1007,16 @@ export interface BriefHabitResponse {
   last_graded?: string | null;
 }
 
+// Brief archive index — all renderable sweep dates, newest-first.
+export interface BriefArchiveEntry {
+  date: string; // YYYY-MM-DD
+  has_audio: boolean;
+}
+
+export interface BriefArchiveResponse {
+  dates: BriefArchiveEntry[];
+}
+
 // M5 chat-with-the-brief: one grounded follow-up answer about a served item. item_id is
 // date-scoped, so a stale tab's question 404s after the brief rolls to a new day.
 export interface BriefChatRequest {

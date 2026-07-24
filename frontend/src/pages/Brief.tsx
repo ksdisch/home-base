@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { BriefItem, BriefNote, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
@@ -516,6 +517,16 @@ export default function Brief() {
             : brief?.date
               ? `Your sweep from ${humanDate(brief.date)}.`
               : "Your cross-topic morning brief."}
+        </p>
+        <p className="mt-2 flex flex-wrap gap-3 text-sm">
+          {brief?.prev_date && (
+            <Link to={`/brief/${brief.prev_date}`} className="text-accent hover:underline">
+              ← {humanDateShort(brief.prev_date)}
+            </Link>
+          )}
+          <Link to="/archive" className="text-muted hover:text-accent hover:underline">
+            Archive
+          </Link>
         </p>
       </div>
 
