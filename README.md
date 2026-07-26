@@ -120,3 +120,7 @@ PWA-installable web app.
 - Quizzes taken *inside* NotebookLM aren't retrievable; the hub becomes the home for quiz-taking.
 - Phone access needs the Mac running + same network until/unless the app is hosted.
 - `nlm` requires a valid login (`nlm login`); the hub surfaces auth errors gracefully.
+
+---
+
+📚 **Project wiki:** [PROJECT.md](PROJECT.md) — status, scope, and next actions · [Wiki/_index.md](Wiki/_index.md) — topic pages and history
