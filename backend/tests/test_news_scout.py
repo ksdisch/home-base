@@ -140,13 +140,19 @@ def _env(tmp_path, monkeypatch):
 
 def _seed_quantum_events():
     """4 click rows across 3 calendar days, written straight into the store (the API
-    always stamps 'now', so persistence needs raw inserts)."""
+    always stamps 'now', so persistence needs raw inserts).
+
+    Timestamps are relative to the REAL clock, not the fixed NOW: the endpoint under
+    test scores with datetime.now() + ~0.95/day decay, so absolute seeds rot — seeded
+    at NOW=2026-07-18 the theme's score fell through the ≥9 floor around 07-23 and
+    the suggestion vanished (first red CI: PR #146, 2026-07-26)."""
     from app.config import get_settings
 
+    base = datetime.now(timezone.utc)
     conn = sqlite3.connect(str(get_settings().db_path))
     try:
         for n, (headline, days_ago) in enumerate(zip(QUANTUM_HEADLINES, (0, 0.2, 1, 2))):
-            ts = (NOW - timedelta(days=days_ago)).strftime("%Y-%m-%d %H:%M:%S")
+            ts = (base - timedelta(days=days_ago)).strftime("%Y-%m-%d %H:%M:%S")
             conn.execute(
                 "INSERT INTO news_events (kind, category_slug, item_id, headline, created_at) "
                 "VALUES ('click', 'technology', ?, ?, ?)",
