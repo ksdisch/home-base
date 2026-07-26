@@ -14,6 +14,7 @@ Both arcs are fully built and gated (see `docs/MASTER_PLAN.md` for the authorita
 Finish and land `feat/brief-archive-nav` — it's 2 commits ahead of main with no PR yet; landing it clears the only in-flight code work.
 
 ## Open questions / blockers
+- **CI is red for every PR as of 2026-07-26** (Fact — PR #146 runs): `tests/test_news_scout.py::test_foryou_carries_suggestions_even_while_learning` is a date time-bomb — it seeds click events hardcoded at `NOW = 2026-07-18` straight into SQLite, but `/api/news/foryou` scores against the real clock with ~0.95/day decay and a score-≥9 floor; the seeded theme decayed below the floor around 07-23. Fix: freeze the endpoint's clock in the test (or seed relative to now). Failed twice (initial + rerun) on the docs-only wiki PR; main last ran green 2026-07-22.
 - M6 phone-side proof needs Kyle's eyes-on trio: standalone install, airplane banner, iOS scrub (Mac-side and tailnet-reach verification are done).
 - ~2026-08-03 v1 success-criteria check (≥5 mornings/week · events reach Kyle first · ≥3 notes/week) — calendar-gated, not blocked.
 - Riskiest assumption (per `CLAUDE.md`): sweeps stay accurate/trustworthy enough to sustain the morning habit; ~2026-08-19 re-grade scheduled.
