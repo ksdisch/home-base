@@ -24,6 +24,7 @@ import threading
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -37,6 +38,12 @@ logger = logging.getLogger(__name__)
 CACHE_TTL_SECONDS = 15 * 60
 FETCH_TIMEOUT_SECONDS = 10
 MAX_ITEMS_PER_CATEGORY = 50
+
+# Feed fetches are independent 10s-timeout network calls, so wall time should be the
+# slowest feed, not the sum (docs/ideas/parallel-foryou-fanout.md). Six is enough to
+# cover the widest category and the whole For You roster in one wave without turning a
+# personal reader into a burst of connections.
+MAX_FETCH_WORKERS = 6
 
 # Google's frontends reject the default urllib UA; any honest identifying string works.
 _USER_AGENT = "home-base-news/1.0 (personal single-user reader)"
@@ -217,6 +224,41 @@ def _age_seconds(fetched_at: str, now: datetime) -> float:
         return float("inf")  # unreadable timestamp = expired, refetch
 
 
+def _fetch_one(url: str, fetcher: NewsFetcher) -> List[Dict[str, Any]]:
+    return parse_rss(fetcher.fetch(url))
+
+
+def fetch_feeds(
+    urls: List[str], fetcher: NewsFetcher
+) -> List[Any]:  # List[List[item] | NewsFeedError]
+    """Fetch + parse every feed concurrently, returning results in *feed order*.
+
+    A category's feeds are independent, so fetching them serially charges the sum of
+    their timeouts for no reason (docs/ideas/parallel-foryou-fanout.md). Failures come
+    back as the exception object rather than raised: the caller's per-feed policy — one
+    dead host must not discard the feeds that succeeded — is unchanged. Feed order is
+    preserved so first-feed-wins dedupe stays deterministic; only the *fetching* is
+    concurrent. A single feed skips the pool entirely.
+    """
+    if len(urls) <= 1:
+        out: List[Any] = []
+        for url in urls:
+            try:
+                out.append(_fetch_one(url, fetcher))
+            except NewsFeedError as e:
+                out.append(e)
+        return out
+    with ThreadPoolExecutor(max_workers=min(MAX_FETCH_WORKERS, len(urls))) as pool:
+        futures = [pool.submit(_fetch_one, url, fetcher) for url in urls]
+        results: List[Any] = []
+        for future in futures:
+            try:
+                results.append(future.result())
+            except NewsFeedError as e:
+                results.append(e)
+        return results
+
+
 def get_category_items(
     category: Dict[str, Any],
     fetcher: NewsFetcher,
@@ -238,13 +280,12 @@ def get_category_items(
     merged: Dict[str, Dict[str, Any]] = {}
     ok_feeds = 0
     last_error: Optional[NewsFeedError] = None
-    for url in category["feeds"]:
-        try:
-            for item in parse_rss(fetcher.fetch(url)):
-                merged.setdefault(item["id"], item)
-        except NewsFeedError as e:
-            last_error = e
+    for result in fetch_feeds(category["feeds"], fetcher):
+        if isinstance(result, NewsFeedError):
+            last_error = result
             continue
+        for item in result:
+            merged.setdefault(item["id"], item)
         ok_feeds += 1
     if ok_feeds == 0 and last_error is not None:
         if cached is not None:
