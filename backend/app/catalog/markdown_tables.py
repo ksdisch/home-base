@@ -160,6 +160,13 @@ def _type_from_section(section: str) -> Optional[str]:
         return "quiz"
     if "study guide" in s:
         return "study_guide"
+    # Format before shape. A whiteboard VIDEO series is written exactly like an audio one —
+    # "Ep N —" titles, a Season/Episodes heading — so the season/episode catch-alls below
+    # (and _type_from_title's "Ep N" default) claimed video rows for audio. That mistyped a
+    # video into the Designer's listen spine AND let it pass the M0 type cross-check, since
+    # the step kind and the artifact's wrong type agreed.
+    if any(k in s for k in ("video", "whiteboard", "explainer")):
+        return "video"
     if any(k in s for k in ("audio", "podcast", "season", "standalone", "episode")):
         return "audio"
     return None

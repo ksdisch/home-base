@@ -355,6 +355,59 @@ glance instead of a sqlite dig._
   out), not demand. The vision doc's three open questions (ledger granularity ·
   draft-only vs send-request · propose auth) stay deliberately open as the revisit's agenda.
 
+### 2026-07-27 — News fan-out goes concurrent (replenish small-wins 1/9)
+
+- The 15-minute news TTL guarantees a cold cache at 06:15, so the morning's first News tap
+  paid for every feed serially — 11 categories plus up to 3 profile search feeds, each a
+  10s-timeout fetch. `get_news_foryou` now fans the whole candidate pool out through one
+  `ThreadPoolExecutor(max_workers=6)`; wall time is the slowest feed, not the sum.
+- `app.news.fetch_feeds()` parallelizes a category's *own* feeds too — without it the
+  four-feed Uplifting category would just become the critical path of the fan-out it sits
+  inside, and the per-category route (a plain News tab tap) would keep paying the sum.
+- Semantics deliberately unchanged: results are drained in source/feed order, so the
+  ranker's candidate pool and the first-feed-wins dedupe are identical to the serial
+  version, and a dead feed is still skipped rather than fatal. New `test_news_parallel.py`
+  proves the concurrency with a peak-in-flight counter plus a wall-clock bound; all
+  existing fake-fetcher tests pass unchanged. Backend 793→795.
+
+### 2026-07-27 — Video overviews stop parsing as audio (PR #156)
+
+- **Bug #3, the Designer's audio spine.** `_PRESENT_ORDER` omits video by construction —
+  design decision 12 makes audio the backbone and video supplementary — but that guarantee is
+  only as strong as the catalog's typing. A whiteboard VIDEO series is written in the sidecars
+  *exactly* like an audio one ("Ep N —" titles under a generic id column), so with no `video`
+  branch in `_type_from_section` the rows fell through to `_type_from_title`'s "Ep N" → audio
+  default. Live-repro'd on the real jlens sidecar: all four whiteboard episodes typed `audio`.
+- **Worse than a wrong label: it defeats the check meant to catch it.** A mistyped video enters
+  the Designer prompt as a listen step *and* passes the M0 no-fabrication cross-check, because
+  the step's kind and the artifact's (wrong) type agree. jlens is saved today only by the
+  coincidence of the 8-per-kind cap.
+- **Fix: format before shape.** `video`/`whiteboard`/`explainer` now resolve ahead of the
+  `season`/`episode`/`standalone` audio catch-alls. Both mistyping paths are covered (the
+  catch-all one and the title-default one), with an audio-side regression guard so the spine
+  itself isn't stolen, and an end-to-end parser → `build_designer_prompt` test.
+- **This was the gate on M8 Designer scaling** — the stated next milestone walks straight into
+  this the moment a topic's video ids sort inside the cap.
+
+### 2026-07-27 — The phantom "Brief.chapters" topic card is gone (PR #154)
+
+- **Bug #1, live on every audio morning since FR4.** `brief.chapters.json` sits in the day
+  folder beside the topic files, so every place that read that folder as "the list of topics"
+  swept it up as a topic named `brief.chapters`. It has no `top_line`, so it failed validation
+  and rendered as a fallback card wearing the **"this topic's sweep didn't validate"** banner —
+  a fake topic reporting a fake sweep failure on the flagship page. Reproduced against the real
+  07-25 and 07-26 sweep dirs.
+- **One rule, four call sites.** A roster slug never contains a dot, so `_is_topic_stem` is the
+  whole fix — applied in `load_brief_topics`, `build_calibration`'s per-day slug listing,
+  `_has_renderable_content`, and `sweeps/audio_brief.load_topics`. This is the guard
+  `sweeps/actions_queue.py` already carried; the other four never got it.
+- **Two of the four were only accidentally safe.** The grading and narration lanes bail on the
+  artifact because it happens to be a JSON *list*, not because they exclude it — so those tests
+  write a **dict-shaped** `brief.chapters.json` to take the accident away. Without the fix the
+  narration literally speaks "Now, brief chapters." and the grader files a ledger row under
+  slug `brief.chapters`. Also fixed: a day folder holding only pipeline artifacts no longer
+  counts as a renderable morning, which would have hidden the last complete brief.
+
 ### 2026-07-27 — Brief archive lands + one shared audio player (PR #153)
 
 - The in-flight `feat/brief-archive-nav` (archive entry point + index page; audio on archived

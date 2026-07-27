@@ -59,15 +59,32 @@ def topic_title(slug: str, titles: Dict[str, str]) -> str:
     return titles.get(slug) or slug.replace("-", " ").capitalize()
 
 
+def _is_topic_stem(stem: str) -> bool:
+    """True for a topic slug, false for a pipeline artifact sharing the day folder.
+
+    The sweep writes <topic>.json / <topic>.md per topic; the audio render drops
+    brief.chapters.json in beside them. Roster slugs never contain a dot, so the dotted
+    stem is the marker that separates the two — the same guard sweeps/actions_queue.py
+    applies (bug #1: without it brief.chapters was loaded as a topic, failed validation,
+    and rendered a phantom "this topic's sweep didn't validate" card every audio morning).
+    """
+    return "." not in stem
+
+
 def _has_renderable_content(day_dir: Path) -> bool:
     """True when the day folder holds at least one servable brief file (*.json / *.md).
 
     sweep.sh mkdir-p's the day folder minutes before the first topic lands, and a fully
     failed sweep leaves only .raw.txt — neither may count as a servable day, or the
-    morning wake window hides yesterday's complete brief behind has_data=false.
+    morning wake window hides yesterday's complete brief behind has_data=false. A day
+    holding only pipeline artifacts (an orphan brief.chapters.json) is the same story:
+    nothing to read, so not a morning.
     """
     try:
-        return any(p.is_file() and p.suffix in (".json", ".md") for p in day_dir.iterdir())
+        return any(
+            p.is_file() and p.suffix in (".json", ".md") and _is_topic_stem(p.stem)
+            for p in day_dir.iterdir()
+        )
     except OSError:
         return False
 
@@ -518,7 +535,11 @@ def build_calibration(
     for i, day in enumerate(days):
         day_dir = sweeps_dir / day
         try:
-            slugs = sorted(p.stem for p in day_dir.iterdir() if p.is_file() and p.suffix == ".json")
+            slugs = sorted(
+                p.stem
+                for p in day_dir.iterdir()
+                if p.is_file() and p.suffix == ".json" and _is_topic_stem(p.stem)
+            )
         except OSError:
             continue
         for slug in slugs:
@@ -638,7 +659,11 @@ def load_brief_topics(
     roster_slugs = [t["slug"] for t in roster]
 
     slugs = sorted(
-        {p.stem for p in day_dir.iterdir() if p.is_file() and p.suffix in (".json", ".md")}
+        {
+            p.stem
+            for p in day_dir.iterdir()
+            if p.is_file() and p.suffix in (".json", ".md") and _is_topic_stem(p.stem)
+        }
     )
     slugs = [s for s in roster_slugs if s in slugs] + [s for s in slugs if s not in set(roster_slugs)]
 

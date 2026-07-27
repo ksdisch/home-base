@@ -223,6 +223,48 @@ def test_pipeline_failure_leaves_the_call_open(tmp_path, monkeypatch):
         _teardown()
 
 
+def test_pipeline_artifacts_are_never_graded_as_topics(tmp_path, monkeypatch):
+    """Bug #1's grading lane: the per-day slug listing globbed every *.json stem in the
+    day folder, which includes the brief.chapters.json the audio render drops there.
+
+    Today that artifact is a JSON *list*, so ``_topic_day_items`` bails on it and the
+    ledger is clean by accident of shape — not by rule. This writes a dict-shaped one to
+    take that accident away: the exclusion has to be the dotted stem (the marker
+    sweeps/actions_queue.py already reads), or a pipeline artifact can put rows into the
+    self-grading trust record and names into 'Yesterday's calls'.
+    """
+    sweeps, ledger = _env(tmp_path, monkeypatch, "artifactgrading")
+    try:
+        _write_day(
+            sweeps,
+            "2026-07-15",
+            "ai-llms",
+            [_item("OpenAI lifts caps", "https://x.com/a", "A rival answers", 70)],
+        )
+        _write_day(sweeps, TODAY, "ai-llms", [_item("A rival answered", "https://x.com/a")])
+        for day in ("2026-07-15", TODAY):
+            (sweeps / day / "brief.chapters.json").write_text(
+                json.dumps(
+                    {
+                        "top_line": "Chapter offsets.",
+                        "items": [
+                            _item("Chapter one", "https://x.com/ch", "chips still work", 60)
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+        c, _ = _build(sweeps, ledger)
+
+        assert c["resolved"] == 1  # the real topic's call, and only that one
+        assert [y["slug"] for y in c["yesterday"]] == ["ai-llms"]
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert [r["slug"] for r in rows] == ["ai-llms"]
+    finally:
+        _teardown()
+
+
 def test_catchup_grades_gap_days_against_the_next_readable_sweep(tmp_path, monkeypatch):
     """A missed morning doesn't strand a call: the 07-13 wager grades against 07-15 (the
     topic's next readable sweep), the 07-15 wager against today, in one serve. The strip
