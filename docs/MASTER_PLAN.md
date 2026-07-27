@@ -338,6 +338,23 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The store snapshot stops rotating itself away (replenish small-wins 3/9)
+
+- HA11's own hidden self-defeat. `_snapshot_before_migrations` fires on every `init_db` — i.e.
+  every server start — and kept the newest **5 files**. The LaunchAgent runs `KeepAlive=true`,
+  so a bad migration or a crash-loop afternoon burns all five slots with POST-damage copies in
+  minutes and rotates away the last clean store, under the exact failure the snapshot exists
+  to survive. Two same-day `.bak`s on disk (`20260724T003254` + `20260724T010342`) proved the
+  churn was already live.
+- Retention is now **the first snapshot of each local day, newest 5 distinct days**. The day's
+  first copy is by construction the most pre-damage one, so once today has one we take no more.
+  Stamps moved from UTC to local time so the leading `YYYYMMDD` *is* the bucket (pre-existing
+  UTC-stamped siblings simply bucket by their UTC date — harmless). A `_snapshot_now()` seam
+  lets tests walk days.
+- Four RED-first tests, headed by the scenario itself: Monday's clean copy survives ten Tuesday
+  respawns against a corrupted store and is still byte-for-byte restorable. Nothing else changes
+  — same trigger, same unconditional copy, same manual restore. Backend 800→803.
+
 ### 2026-07-27 — A fresh page opens at its top (replenish small-wins 2/9)
 
 - React Router neither restores nor resets window scroll across a route swap, so every page
