@@ -756,6 +756,16 @@ export interface StudyProposeRequest {
   allow_double_book?: boolean; // place into the window ignoring free/busy, flagging the overlaps
 }
 
+// The reviewed set to write — a subset of the proposal is fine (blocks can be dropped in review).
+export interface StudyConfirmRequest {
+  blocks: ProposedBlock[];
+}
+
+// A subset of live blocks to remove, or null/omitted to remove every live block.
+export interface StudyRemoveRequest {
+  block_ids?: number[] | null;
+}
+
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse
 // (+ the M2 note models).
 export interface BriefSource {

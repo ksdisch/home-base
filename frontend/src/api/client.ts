@@ -54,11 +54,13 @@ import type {
   QuizPrepareResponse,
   ReflectionsResponse,
   ReviewResponse,
+  StudyConfirmRequest,
   StudyGuideResponse,
   StudyOptInRequest,
   StudyPlanResponse,
   StudyProposal,
   StudyProposeRequest,
+  StudyRemoveRequest,
   StudyScheduleState,
   TopicDetail,
 } from "./types";
@@ -310,12 +312,20 @@ export const api = {
     post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/opt-in`, body),
   proposeSchedule: (notebookId: string, body: StudyProposeRequest) =>
     post<StudyProposal>(`/paths/${encodeURIComponent(notebookId)}/schedule/propose`, body),
-  confirmSchedule: (notebookId: string, blocks: ProposedBlock[]) =>
-    post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/confirm`, { blocks }),
-  removeSchedule: (notebookId: string, blockIds?: number[]) =>
-    post<StudyScheduleState>(`/paths/${encodeURIComponent(notebookId)}/schedule/remove`, {
-      block_ids: blockIds ?? null,
-    }),
+  confirmSchedule: (notebookId: string, blocks: ProposedBlock[]) => {
+    const body: StudyConfirmRequest = { blocks };
+    return post<StudyScheduleState>(
+      `/paths/${encodeURIComponent(notebookId)}/schedule/confirm`,
+      body,
+    );
+  },
+  removeSchedule: (notebookId: string, blockIds?: number[]) => {
+    const body: StudyRemoveRequest = { block_ids: blockIds ?? null };
+    return post<StudyScheduleState>(
+      `/paths/${encodeURIComponent(notebookId)}/schedule/remove`,
+      body,
+    );
+  },
   customTopics: () => get<CustomTopicsResponse>("/custom-topics"),
   addCustomTopic: (body: CustomTopicCreate) => post<CustomTopic>("/custom-topics", body),
   updateCustomTopic: (id: number, body: CustomTopicUpdate) =>
