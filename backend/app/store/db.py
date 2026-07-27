@@ -36,7 +36,19 @@ def _safe_alter(conn: sqlite3.Connection, stmt: str) -> None:
             raise
 
 
-_SNAPSHOT_KEEP = 5
+_SNAPSHOT_KEEP_DAYS = 5
+_DAY_LEN = len("YYYYMMDD")
+
+
+def _snapshot_now() -> datetime:
+    """The snapshot clock, as a local-time instant. A seam so tests can walk days."""
+    return datetime.now(timezone.utc).astimezone()
+
+
+def _snapshot_day(path: Path, bak: Path) -> str:
+    """The local-day bucket a ``.bak-`` sibling belongs to — the stamp's leading date."""
+    start = len(f"{path.name}.bak-")
+    return bak.name[start : start + _DAY_LEN]
 
 
 def _snapshot_before_migrations(path: Path) -> None:
@@ -45,16 +57,33 @@ def _snapshot_before_migrations(path: Path) -> None:
     a typo'd or shape-drifted ALTER must leave something to copy back. Unconditional,
     deliberately NOT gated on the schema_migrations ledger: the 2026-07-16 drift
     incident is exactly the case where the ledger lies about what's on disk. Only a
-    missing/empty store (fresh DB) skips; a failed copy never blocks startup. Bounded
-    retention: the newest _SNAPSHOT_KEEP timestamped .bak-* siblings are kept.
-    Restore is manual by design: copy the .bak back over the store."""
+    missing/empty store (fresh DB) skips; a failed copy never blocks startup.
+    Restore is manual by design: copy the .bak back over the store.
+
+    Retention is DAY-BUCKETED (docs/ideas/day-bucketed-store-snapshots.md): the first
+    snapshot of each local day, newest ``_SNAPSHOT_KEEP_DAYS`` days. Keeping the newest
+    N *files* defeated the guard under its own scenario — the LaunchAgent runs
+    KeepAlive=true and this fires on every start, so a crash loop burned all N slots
+    with post-damage copies in minutes and rotated away the last clean store. The
+    first copy of a day is the most pre-damage one, so once today has one we take no
+    more; a later same-day snapshot would only be worse and would cost a day's slot.
+    Stamps are local time so the leading date IS the bucket (pre-existing UTC-stamped
+    siblings simply bucket by their UTC date, which is harmless)."""
     try:
         if not path.is_file() or path.stat().st_size == 0:
             return
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
-        shutil.copy2(path, path.with_name(f"{path.name}.bak-{stamp}"))
-        for old in sorted(path.parent.glob(f"{path.name}.bak-*"))[:-_SNAPSHOT_KEEP]:
-            old.unlink(missing_ok=True)
+        now = _snapshot_now()
+        today = now.strftime("%Y%m%d")
+        siblings = sorted(path.parent.glob(f"{path.name}.bak-*"))
+        if not any(_snapshot_day(path, b) == today for b in siblings):
+            stamp = now.strftime("%Y%m%dT%H%M%S%f")
+            shutil.copy2(path, path.with_name(f"{path.name}.bak-{stamp}"))
+            siblings = sorted(path.parent.glob(f"{path.name}.bak-*"))
+        days = sorted({_snapshot_day(path, b) for b in siblings})
+        expired = set(days[:-_SNAPSHOT_KEEP_DAYS])
+        for old in siblings:
+            if _snapshot_day(path, old) in expired:
+                old.unlink(missing_ok=True)
     except OSError:
         pass
 
