@@ -127,3 +127,46 @@ def test_source_typed_rows_skipped_but_artifact_rows_kept():
     assert len(arts) == 1
     assert arts[0].artifact_id == U2
     assert arts[0].type == "audio"
+
+
+# -- video overviews are not audio (bug #3) ---------------------------------------------
+# A whiteboard VIDEO series is written exactly like an audio series in the sidecars —
+# "Ep N —" titles under a generic id column — so with no 'video' branch in
+# _type_from_section, video episodes resolved to 'audio'. That mistypes them into the
+# Designer's listen spine AND lets them pass the M0 type cross-check, which is the one
+# check meant to catch exactly this. Live-repro'd on the real jlens sidecar (4 episodes).
+
+
+def test_video_section_types_episodes_as_video_not_audio():
+    """The title-rule path: nothing in the heading trips the audio catch-all, but
+    ``_type_from_title``'s "Ep N —" default claimed the rows for audio."""
+    arts = _arts(
+        "## Video series (whiteboard)\n"
+        "| Ep | Title | Artifact ID | Length |\n|---|---|---|---|\n"
+        f"| 1 | Ep 1 — What a Jacobian Is | {U1} | 4:12 |\n"
+        f"| 2 | Ep 2 — The Chain Rule | {U2} | 5:03 |\n"
+    )
+    assert [a.type for a in arts] == ["video", "video"]
+    assert [a.episode for a in arts] == [1, 2]
+    assert [a.artifact_id for a in arts] == [U1, U2]
+
+
+def test_video_wins_over_the_episode_and_season_audio_catch_alls():
+    """The catch-all path: a heading naming both the format and 'episodes'/'season' must
+    resolve to the format. Ordering inside _type_from_section is the whole fix."""
+    for heading in (
+        "## Whiteboard video episodes",
+        "## Video season 1",
+        "## Explainer episodes",
+    ):
+        arts = _arts(
+            f"{heading}\n| Title | Artifact ID |\n|---|---|\n| Ep 1 — Opening | {U1} |\n"
+        )
+        assert [a.type for a in arts] == ["video"], heading
+
+
+def test_audio_sections_still_type_as_audio():
+    """The guard on the guard: adding the video branch must not steal the audio spine."""
+    for heading in ("## Audio series", "## Podcast", "## Season 1", "## Standalone episodes"):
+        arts = _arts(f"{heading}\n| Title | Artifact ID |\n|---|---|\n| Ep 1 — Opening | {U1} |\n")
+        assert [a.type for a in arts] == ["audio"], heading
