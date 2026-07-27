@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.studycal.port import CalendarNotConnected, FakeCalendarPort
+from app.studycal.port import CalendarNotConnected, FakeCalendarPort, FlakyCalendarPort
 
 CT = ZoneInfo("America/Chicago")
 
@@ -82,3 +82,77 @@ def test_disconnected_fake_refuses_every_calendar_call() -> None:
         port.busy_events(datetime.now(CT), datetime.now(CT))
     with pytest.raises(CalendarNotConnected):
         port.create_events("c", [{"summary": "s", "start": "x", "end": "y"}])
+    with pytest.raises(CalendarNotConnected):
+        port.create_event("c", {"summary": "s", "start": "x", "end": "y"})
+    # An EMPTY batch must still refuse — otherwise a loop-based create_events silently
+    # drops the disconnected contract for the zero-block case.
+    with pytest.raises(CalendarNotConnected):
+        port.create_events("c", [])
+
+
+# -- single-event create: the seam that lets confirm ledger each event as it lands ---------------
+
+
+def test_create_event_writes_one_event_and_shares_the_batch_id_sequence() -> None:
+    port = FakeCalendarPort()
+    cal = port.ensure_study_calendar()
+    first = port.create_event(cal, {"summary": "solo", "start": "x", "end": "y"})
+    rest = port.create_events(cal, [{"summary": "batch", "start": "x", "end": "y"}])
+    # One id space, so a confirm that mixes both paths can never collide.
+    assert first != rest[0] and len({first, *rest}) == 2
+    assert port.events()[first]["summary"] == "solo"
+    assert port.events()[first]["calendar_id"] == cal
+
+
+# -- feed-back mode: written study blocks become visible busy ------------------------------------
+
+
+def test_fake_hides_written_events_from_free_busy_by_default() -> None:
+    port = FakeCalendarPort()
+    cal = port.ensure_study_calendar()
+    port.create_event(cal, {"summary": "s", "start": "2026-07-22T18:00:00-05:00", "end": "2026-07-22T18:45:00-05:00"})
+    # The documented default: a test's propose sees a stable calendar, unperturbed by its own writes.
+    assert port.free_busy(datetime(2026, 7, 22, 0, 0, tzinfo=CT), datetime(2026, 7, 23, 0, 0, tzinfo=CT)) == []
+
+
+def test_feed_back_fake_reports_written_events_as_busy() -> None:
+    port = FakeCalendarPort(feed_back=True)
+    cal = port.ensure_study_calendar()
+    port.create_event(cal, {"summary": "📚 ep1", "start": "2026-07-22T18:00:00-05:00", "end": "2026-07-22T18:45:00-05:00"})
+    window = (datetime(2026, 7, 22, 0, 0, tzinfo=CT), datetime(2026, 7, 23, 0, 0, tzinfo=CT))
+    # A real calendar cannot un-see what you just wrote to it — this is what makes a
+    # self-double-booking re-propose reproducible at all.
+    assert port.free_busy(*window) == [
+        (datetime(2026, 7, 22, 18, 0, tzinfo=CT), datetime(2026, 7, 22, 18, 45, tzinfo=CT))
+    ]
+    assert [e["title"] for e in port.busy_events(*window)] == ["📚 ep1"]
+
+
+def test_feed_back_fake_ignores_an_unparseable_written_event() -> None:
+    port = FakeCalendarPort(feed_back=True)
+    cal = port.ensure_study_calendar()
+    port.create_event(cal, {"summary": "junk", "start": "x", "end": "y"})
+    # Best-effort: a garbage payload is skipped, never raised, so it can't break a later propose.
+    assert port.free_busy(datetime(2026, 7, 22, 0, 0, tzinfo=CT), datetime(2026, 7, 23, 0, 0, tzinfo=CT)) == []
+
+
+# -- flaky mode: the mid-batch failure the plain fake structurally cannot produce ----------------
+
+
+def test_flaky_port_fails_at_the_nth_event_leaving_the_earlier_ones_written() -> None:
+    port = FlakyCalendarPort(fail_at=2)
+    cal = port.ensure_study_calendar()
+    ev = {"summary": "s", "start": "x", "end": "y"}
+    assert port.create_event(cal, ev) and port.create_event(cal, ev)
+    with pytest.raises(RuntimeError) as exc:
+        port.create_event(cal, ev)
+    # NOT a CalendarNotConnected — this models a rate limit / transient 5xx, the case the
+    # router must translate into honest partial state rather than a bare 500.
+    assert not isinstance(exc.value, CalendarNotConnected)
+    assert len(port.events()) == 2  # the two that landed really are on the calendar
+
+
+def test_flaky_port_without_fail_at_behaves_like_the_plain_fake() -> None:
+    port = FlakyCalendarPort()
+    cal = port.ensure_study_calendar()
+    assert len(port.create_events(cal, [{"summary": "s", "start": "x", "end": "y"}] * 3)) == 3

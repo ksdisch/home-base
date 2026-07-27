@@ -109,6 +109,37 @@ def test_one_block_per_day_spreads_sessions_across_days() -> None:
     ]
 
 
+def test_a_long_first_session_never_lets_a_later_one_jump_ahead_of_it() -> None:
+    # The curriculum is ordered, so the calendar must be too. An over-long session 1 that can't fit
+    # what's left of today used to get pushed to tomorrow while session 2 took today's slot — the
+    # calendar then told the learner to study step 2 the day BEFORE step 1.
+    now = datetime(2026, 7, 22, 19, 30, tzinfo=CT)  # today's 18-21 window is already half gone
+    steps = [_step("long", "read", estimated_minutes=100), _audio("short", 20)]
+    plan = plan_sessions(
+        steps, busy=[], now=now, config=PlanConfig(session_minutes=45, day_start_hour=18, day_end_hour=21)
+    )
+    assert _ids(plan["blocks"][0]) == ["long"] and _ids(plan["blocks"][1]) == ["short"]
+    assert plan["blocks"][0]["start"] < plan["blocks"][1]["start"]
+
+
+def test_a_second_block_on_the_same_day_lands_after_the_first() -> None:
+    # With max_per_day > 1, the earliest-free-slot search hands back the first gap that fits — and
+    # a gap too small for the long session but big enough for the short one sits BEFORE the block
+    # already placed. Placement has to floor at the previous block's end, not just its day.
+    now = datetime(2026, 7, 22, 9, 0, tzinfo=CT)
+    steps = [_step("long", "read", estimated_minutes=170), _audio("short", 20)]
+    plan = plan_sessions(
+        steps,
+        busy=[(datetime(2026, 7, 22, 9, 50, tzinfo=CT), datetime(2026, 7, 22, 10, 0, tzinfo=CT))],
+        now=now,
+        config=PlanConfig(session_minutes=45, day_start_hour=9, day_end_hour=21, max_per_day=2),
+    )
+    assert len(plan["blocks"]) == 2
+    starts = [b["start"] for b in plan["blocks"]]
+    assert starts == sorted(starts)  # the docstring's "chronological" promise
+    assert plan["blocks"][1]["start"] >= plan["blocks"][0]["end"]
+
+
 def test_blocks_never_start_in_the_past() -> None:
     now = datetime(2026, 7, 22, 19, 30, tzinfo=CT)  # already inside today's window
     plan = plan_sessions(

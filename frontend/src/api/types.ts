@@ -686,6 +686,8 @@ export interface WrittenBlock {
 // the live (written, not removed) blocks, and the learner's persisted window prefs so the panel
 // hydrates its controls on load. A pref is null when it has never been set (planner default applies).
 // days_of_week uses Python weekday() ints — Mon=0 … Sun=6; null = every day.
+// token_age_days is how long ago the Google consent was granted (null when unknowable), so the panel
+// can warn before Google's testing-mode ~7-day refresh expiry silently disconnects the calendar.
 export interface StudyScheduleState {
   track_kind: string;
   track_id: string;
@@ -698,6 +700,7 @@ export interface StudyScheduleState {
   day_end_hour?: number | null;
   days_of_week?: number[] | null;
   max_blocks?: number | null;
+  token_age_days?: number | null;
 }
 
 // The effective planner knobs a propose actually used (controls merged with the LLM lane), echoed so
@@ -722,6 +725,7 @@ export interface StudyProposal {
   session_minutes: number;
   blocks: ProposedBlock[];
   unscheduled_step_ids: string[];
+  already_scheduled_step_ids?: string[]; // steps left out because a live block already covers them
   message?: string | null;
   error?: string | null;
   applied?: AppliedPlan | null;
@@ -750,6 +754,16 @@ export interface StudyProposeRequest {
   max_blocks?: number | null;
   max_per_day?: number | null;
   allow_double_book?: boolean; // place into the window ignoring free/busy, flagging the overlaps
+}
+
+// The reviewed set to write — a subset of the proposal is fine (blocks can be dropped in review).
+export interface StudyConfirmRequest {
+  blocks: ProposedBlock[];
+}
+
+// A subset of live blocks to remove, or null/omitted to remove every live block.
+export interface StudyRemoveRequest {
+  block_ids?: number[] | null;
 }
 
 // M1 Today brief — mirrors backend BriefSource/BriefItem/BriefTopic/BriefResponse

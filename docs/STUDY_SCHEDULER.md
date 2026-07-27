@@ -92,7 +92,12 @@ A distinct package `app.studycal` (**not** `app.study` — that's the unrelated 
 
 **Honest degrade:** every calendar op goes through the injected `CalendarPort`. When Google isn't
 wired (no token/libs), `is_connected()` returns `False`, propose returns `connected:false` with no
-blocks, and confirm/remove 409 — never a 500.
+blocks, and confirm/remove 409 — never a 500. That covers an *expired or corrupt* token too:
+`_service()` translates a rejected refresh (`RefreshError`), an unreadable token file, and an
+unreachable Google (`TransportError`, with copy that doesn't blame the token) into
+`CalendarNotConnected`, and `is_connected()` actually loads the credential rather than checking the
+file exists — so `GET /schedule` can't report `connected:true` over endpoints that are about to
+fail. `token_age_days` rides along in that payload so the panel warns near the 7-day mark below.
 
 ## One-time OAuth setup (Kyle — required for a live write)
 
@@ -103,12 +108,22 @@ The repo has no Google integration otherwise; this is the one part only you can 
 2. **Create an OAuth client** in [Google Cloud Console](https://console.cloud.google.com/): a
    project → enable the **Google Calendar API** → *Credentials* → *Create credentials* → *OAuth
    client ID* → application type **Desktop app**. Download the client-secret JSON.
-3. **Drop the secret** at `backend/data/google-oauth-client.json` (backend `data/` is gitignored).
-4. **Consent once:** from `backend/`, run
+3. **Publish the consent screen** — *APIs & Services* → *OAuth consent screen* → **Publish app**
+   (Testing → In production). **Do this, or the token dies every week:** while the project sits in
+   *Testing*, Google expires refresh tokens ~7 days after consent, and the calendar silently stops
+   working until you re-run step 5. A single-user app using only the Calendar scope publishes
+   without going through verification review.
+4. **Drop the secret** at `backend/data/google-oauth-client.json` (backend `data/` is gitignored).
+5. **Consent once:** from `backend/`, run
    `PYTHONPATH=. .venv/bin/python -m app.studycal.google login` — it opens a browser, you approve the
-   Calendar scope, and it writes `backend/data/google-token.json` (refreshed silently thereafter).
-5. Reload the hub. The Study-time panel on a path now shows the propose/confirm controls, and the
+   Calendar scope, and it writes `backend/data/google-token.json` (refreshed silently thereafter)
+   plus `backend/data/google-token-issued`, the consent timestamp behind the expiry warning.
+6. Reload the hub. The Study-time panel on a path now shows the propose/confirm controls, and the
    first confirm creates the "Study (Home Base)" calendar automatically.
+
+If you skipped step 3, the panel warns from day 6 ("Reconnect your calendar soon") and, once the
+consent does lapse, reports an honest disconnected state instead of failing behind a connected
+banner. The fix is always the same: re-run step 5.
 
 Scope: `https://www.googleapis.com/auth/calendar`. Tokens/secrets live under `backend/data/` (never a
 sidecar — the `guard-sidecars` invariant), never committed.
@@ -135,5 +150,7 @@ shows the reply)**. v1 migration verified to heal a pre-v12 store.
 ## Not in v0 (future)
 
 Recurring/unattended maintenance · completion-reclaim (block ↔ actual step completion) · Courses
-parity (the engine is shared — a `track_kind='course'` away) · scheduling against the Study
-calendar's own events in free/busy (v0 reads `primary` only) · scaling past the bundled fixture.
+parity (the engine is shared — a `track_kind='course'` away) · reading the Study calendar itself in
+free/busy (still `primary` only — but placement now merges *this path's own* live ledger blocks as
+busy, so the self-double-booking case that mattered is covered; blocks written for a **different**
+path remain invisible) · scaling past the bundled fixture.

@@ -1183,7 +1183,9 @@ class StudyScheduleState(BaseModel):
     connected, the live (written, not removed) blocks, and the learner's persisted window prefs
     (``day_start_hour``/``day_end_hour``/``days_of_week``/``max_blocks``) so the panel hydrates its
     controls on load. A pref is ``None`` when it has never been set (the planner default applies).
-    ``days_of_week`` uses Python ``weekday()`` ints — Mon=0 … Sun=6; ``None`` = every day."""
+    ``days_of_week`` uses Python ``weekday()`` ints — Mon=0 … Sun=6; ``None`` = every day.
+    ``token_age_days`` is how long ago the Google consent was granted (``None`` when unknowable), so
+    the panel can warn before Google's testing-mode ~7-day refresh expiry disconnects the calendar."""
 
     track_kind: str = "path"
     track_id: str
@@ -1196,6 +1198,7 @@ class StudyScheduleState(BaseModel):
     day_end_hour: Optional[int] = None
     days_of_week: Optional[List[int]] = None
     max_blocks: Optional[int] = None
+    token_age_days: Optional[float] = None
 
 
 class AppliedPlan(BaseModel):
@@ -1216,13 +1219,16 @@ class StudyProposal(BaseModel):
     """The proposed set of blocks (read-only against the calendar — writes no events). ``connected``
     ``=False`` means the calendar isn't wired yet (honest 'connect' state, never a 500); ``message``
     is the optional negotiation line; ``unscheduled_step_ids`` are steps that didn't fit the window;
-    ``applied`` echoes the effective knobs so the UI can reflect them."""
+    ``already_scheduled_step_ids`` are steps deliberately left out because a live ledger block
+    already covers them (so a revisit can't duplicate them); ``applied`` echoes the effective knobs
+    so the UI can reflect them."""
 
     ok: bool
     connected: bool
     session_minutes: int
     blocks: List[ProposedBlock] = []
     unscheduled_step_ids: List[str] = []
+    already_scheduled_step_ids: List[str] = []
     message: Optional[str] = None
     error: Optional[str] = None
     applied: Optional[AppliedPlan] = None

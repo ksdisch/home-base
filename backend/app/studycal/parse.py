@@ -40,10 +40,20 @@ _DAY_TOKEN = (
     r"weekends?|weekdays?|mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?|sundays?|"
     r"mon|tues?|weds?|thurs?|thu|fri|sat|sun"
 )
+# Connectors joining days in one exclusion ("not Mondays or Fridays", "skip Tue/Thu", "no mon, wed,
+# and fri"). Word-boundaried on the alphabetic ones so "Friday orientation" doesn't read "or".
+# The word connectors come FIRST so ", or " is consumed whole — a bare-comma branch tried first
+# would eat only ", " and strand the "or", which matters when splitting the captured list.
+_DAY_CONN = r"(?:\s*,?\s+(?:and|or|nor)\s+|\s*,\s*|\s*[/&]\s*)"
+# The capture is the WHOLE day list after the trigger, not just the first token — matching only one
+# left the rest of the list in the text, where the positive pass then read it as a day to *select*.
+# Every alternation is wrapped in (?:...) so the repetition binds to the group, not the last branch.
 _EXCLUDE_RE = re.compile(
-    r"\b(?:not|no|except|excluding|skip(?:ping)?|without|minus)\s+(?:on\s+)?(" + _DAY_TOKEN + r")\b",
+    r"\b(?:not|no|except|excluding|skip(?:ping)?|without|minus)\s+(?:on\s+)?"
+    r"((?:" + _DAY_TOKEN + r")(?:" + _DAY_CONN + r"(?:" + _DAY_TOKEN + r"))*)\b",
     re.I,
 )
+_DAY_SPLIT_RE = re.compile(_DAY_CONN, re.I)
 
 # -- times --------------------------------------------------------------------
 _MER = r"[ap]\.?\s*m\.?"
@@ -119,7 +129,8 @@ def _parse_session(t: str) -> Optional[int]:
 def _parse_days(t: str, current_days: Optional[Iterable[int]]) -> Optional[List[int]]:
     excluded: Set[int] = set()
     for m in _EXCLUDE_RE.finditer(t):
-        excluded |= _expand_day_token(m.group(1))
+        for tok in _DAY_SPLIT_RE.split(m.group(1)):
+            excluded |= _expand_day_token(tok.strip())
     positive = _EXCLUDE_RE.sub(" ", t)  # blank out exclusion spans so they aren't re-read as positive
 
     base: Set[int] = set()
@@ -156,8 +167,15 @@ def _parse_window(t: str) -> Dict[str, int]:
     rng = _RANGE_BETWEEN.search(t) or _RANGE_DASH.search(t)
     if rng:
         h1, mer1, h2, mer2 = rng.group(1), rng.group(2), rng.group(3), rng.group(4)
-        out["day_start_hour"] = _hour(h1, mer1 or mer2)
-        out["day_end_hour"] = _hour(h2, mer2)
+        end = _hour(h2, mer2)
+        start = _hour(h1, mer1 or mer2)
+        if mer1 is None and start >= end:
+            # "9 to 5pm": borrowing the second time's meridiem inverts the window, so the bare
+            # first number was meant as AM. Pick whichever reading gives a real same-day span.
+            alt = _hour(h1, "am")
+            if alt < end:
+                start = alt
+        out["day_start_hour"], out["day_end_hour"] = start, end
 
     ms = re.search(_START_TRIG + r"\s+" + _TIME, t, re.I)
     if ms:
