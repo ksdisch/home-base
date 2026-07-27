@@ -63,7 +63,8 @@ sweeps/schedule/                      NEW — the automation
   com.homebase.sweep.plist.template     launchd agent (StartCalendarInterval + on-wake catch-up)
   install-schedule.sh                   idempotent bootstrap/enable + uninstall; fills the template
   run-scheduled.sh                      wrapper: absolute nvm PATH · hard unset ANTHROPIC_API_KEY ·
-                                        SWEEP_SKIP_DONE=1 · log → data/sweeps/logs/<date>.log
+                                        SWEEP_SKIP_DONE=1 · network preflight (≤90s, honest
+                                        abort) · log → data/sweeps/logs/<date>.log
   README.md                             install/uninstall + how on-wake catch-up works
 
 sweep.sh                              per-topic `claude -p --output-format json`; unwrap the
