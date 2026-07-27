@@ -338,7 +338,7 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
-### 2026-07-27 — Video overviews stop parsing as audio (PR #155)
+### 2026-07-27 — Video overviews stop parsing as audio (PR #156)
 
 - **Bug #3, the Designer's audio spine.** `_PRESENT_ORDER` omits video by construction —
   design decision 12 makes audio the backbone and video supplementary — but that guarantee is
