@@ -64,11 +64,21 @@ def test_week_bucketing_distinct_days_and_window(tmp_path):
     assert [w["week_start"] for w in weeks] == [
         "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13"
     ]  # oldest first, current week last
-    assert weeks[3] == {"week_start": "2026-07-13", "mornings": 3, "notes": 2}
-    assert weeks[2] == {"week_start": "2026-07-06", "mornings": 2, "notes": 1}
+    # ``mornings_phone`` (v14) is 0 throughout: _seed writes no source, exactly like every
+    # row logged before attribution shipped. Unattributed, not "never read on the phone".
+    assert weeks[3] == {
+        "week_start": "2026-07-13", "mornings": 3, "mornings_phone": 0, "notes": 2
+    }
+    assert weeks[2] == {
+        "week_start": "2026-07-06", "mornings": 2, "mornings_phone": 0, "notes": 1
+    }
     # Empty weeks are zero-filled, present, and untouched by the out-of-window 06-01 visit.
-    assert weeks[0] == {"week_start": "2026-06-22", "mornings": 0, "notes": 0}
-    assert weeks[1] == {"week_start": "2026-06-29", "mornings": 0, "notes": 0}
+    assert weeks[0] == {
+        "week_start": "2026-06-22", "mornings": 0, "mornings_phone": 0, "notes": 0
+    }
+    assert weeks[1] == {
+        "week_start": "2026-06-29", "mornings": 0, "mornings_phone": 0, "notes": 0
+    }
 
 
 def test_weeks_clamped_and_empty_store_zero_fills(tmp_path):

@@ -874,6 +874,10 @@ export interface BriefMirror {
   sufficient: boolean;
   sentence: string;
   mornings: number;
+  // v14 visit-source attribution: the window's mornings restricted to tailnet-sourced
+  // ('phone') visits — the honest reader-Kyle number, carried BESIDE the raw count.
+  // Optional: absent from pre-v14 SW-cached payloads.
+  mornings_phone?: number;
   notes: number;
   asks: number;
   news_events: number;
@@ -995,6 +999,10 @@ export interface BriefVisitResponse {
   ok: boolean;
   day: string;
   visited_at: string;
+  // v14: the origin bucket this load was filed under ('phone' | 'mac-localhost' | 'dev' |
+  // 'test' | 'lan' | 'other' | 'unknown'), echoed back so a live check from the phone can
+  // confirm what it classifies as.
+  source?: string | null;
 }
 
 // FR2: the phone's stale-morning tap — started = a detached sweep.sh was spawned;
@@ -1010,6 +1018,11 @@ export interface BriefSweepResponse {
 export interface BriefHabitWeek {
   week_start: string; // Monday, YYYY-MM-DD, local calendar
   mornings: number;
+  // v14 (docs/ideas/builder-vs-reader-metric.md): the same distinct-day count restricted to
+  // tailnet-sourced visits, reported beside the raw one — never instead of it. Whether the
+  // v1 criterion moves to this number is Kyle's call. Optional: pre-v14 cached payloads
+  // lack it, and July's rows have no source so they read 0 (unattributed, not zero-habit).
+  mornings_phone?: number;
   notes: number;
 }
 

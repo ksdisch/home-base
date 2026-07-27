@@ -10,6 +10,15 @@ const NOTES_TARGET = 3;
 // (docs/sweep-trust-log.md), the strip flags "re-grade due" instead of quietly aging.
 const REGRADE_DUE_DAYS = 30;
 
+// v14 visit-source attribution: the raw morning count can't tell a Tuesday read from a
+// localhost dev load, so the phone-sourced count rides beside it. The tooltip carries the
+// one caveat a reader needs — visits logged before attribution shipped have no source and
+// so read 0 here, which is "unattributed", not "never read on the phone".
+const PHONE_TITLE =
+  "Distinct days a tailnet (phone) client opened Today — the reading-habit number, " +
+  "reported beside the raw count. Visits logged before 2026-07-27 carry no source and " +
+  "count as 0 here.";
+
 // ④ Milestones the strip finally notices — round lifetime-mornings thresholds worth a nod,
 // acknowledged once per crossing via localStorage so the ledger never nags.
 const MORNING_MILESTONES = [25, 50, 100, 200, 365];
@@ -143,6 +152,20 @@ export function HabitStrip() {
         >
           {current.mornings} of {MORNINGS_TARGET} mornings{targetHit ? " ✓" : ""}
         </span>
+        {/* v14 (docs/ideas/builder-vs-reader-metric.md): the phone-sourced number rides
+            BESIDE the raw one — the criterion above is unchanged. Rendered whenever the
+            field is present, including at 0: hiding a zero would hide exactly the signal
+            this exists to catch (the reading habit fading while dev traffic props up the
+            raw count). Absent only on pre-v14 SW-cached payloads. */}
+        {current.mornings_phone !== undefined && (
+          <span
+            className="text-muted"
+            title={PHONE_TITLE}
+          >
+            {" "}
+            ({current.mornings_phone} on phone)
+          </span>
+        )}
         {" · "}
         <span title={`v1 target: ≥${NOTES_TARGET} notes attached/week`}>
           {current.notes} of {NOTES_TARGET} notes
@@ -153,9 +176,10 @@ export function HabitStrip() {
       {previous.length > 0 && (
         <p className="mt-1 text-xs text-muted">
           {previous.map((w, i) => (
-            <span key={w.week_start}>
+            <span key={w.week_start} title={PHONE_TITLE}>
               {i > 0 && " · "}
-              week of {humanWeek(w.week_start)}: {w.mornings}m / {w.notes}n
+              week of {humanWeek(w.week_start)}: {w.mornings}m
+              {w.mornings_phone !== undefined && ` / ${w.mornings_phone}p`} / {w.notes}n
             </span>
           ))}
         </p>
