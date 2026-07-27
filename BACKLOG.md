@@ -691,6 +691,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Audio can never play without a visible control (now-playing pill portals in whenever isPlaying && no card on screen), and playing an archived day pauses the shell player (single-track rule) — landed on/with feat/brief-archive-nav BEFORE its merge.
 - **Size:** S–M
 - **Added:** 2026-07-26
+- _✅ shipped 2026-07-27 (PR #153): landed with the branch, before its merge, as specified. `BriefShell` owns `isPlaying` + `pauseAudio`; a "Now playing — {date} · Pause" pill appears whenever audio sounds with no card on screen (outside the portal, so it survives the host's detachment — the date links back to Today). The archive card's `onPlay` is wired to `pauseAudio`: the single-track rule._
 
 #### [Improvement] Every page except News opens at the previous page's scroll offset
 - **Why:** The bet: this is the highest-frequency papercut in the app — it fires on almost every tab tap, and the fix is the smallest possible diff. What makes a project veteran react: there is NO scroll reset anywhere (verified App.tsx has none; the only navigation window.scrollTo is News's own restore at… See [`docs/ideas/scroll-reset-on-nav.md`](docs/ideas/scroll-reset-on-nav.md) for the full write-up.
@@ -734,6 +735,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Rewrite the test to the new contract (archived day with mp3 → audio_available true + chapters) and add coverage for GET /brief/audio?date= (serves the historical mp3; 404 unknown date; 404 no mp3) and GET /brief/archive (newest-first, correct has_audio). Land… Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): rewritten to the shipped contract, plus the four tests the endpoints shipped without — `?date=` serving that day's bytes (distinct per day, so a fall-through to the latest sweep can't pass), its two distinct 404 branches, and `/brief/archive` newest-first with honest `has_audio`. All five fail against `origin/main`'s code._
 
 #### [Bug] #5: Persistent shell audio element never reloads when the served brief date changes — yesterday's narration plays under today's brief
 - **Where:** `frontend/src/components/BriefShell.tsx:98, 117-141` · severity medium · confidence high
@@ -741,6 +743,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Track the loaded date in a ref set in onLoadedMetadata; in an effect on brief?.date, pause + el.load() (or a cache-busting ?v=<date> src, minding SW pass-through rules) when it differs, and skip the onTimeUpdate write when the loaded-date ref disagrees with… Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): `loadedTrack` ref set in `onLoadedMetadata`; a `trackKey` effect pauses + `load()`s on a date flip, and `onTimeUpdate` refuses to persist until the element says which track it holds. Landed inside the shared `BriefAudioCard`, so both players get it._
 
 #### [Bug] #6: Regenerating a path never clears path_step_progress/path_confidence — stale rows keyed by old step ids transfer to the new path
 - **Where:** `backend/app/api/paths.py:198-247` · severity medium · confidence high
@@ -852,6 +855,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Extract the audio card + chip logic shared with BriefShell (or copy it faithfully): el.currentTime = Math.max(0, start - 2); el.play()?.catch(() => {}); onError state that hides the card. Delete the stale v1 comment and add a BriefArchive test asserting a… Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): extracted, not re-copied — `frontend/src/components/BriefAudioCard.tsx` is now the only brief player, so the −2s lead, the `play()` on tap, and the `onError` degrade can't drift apart again. Stale v1 comment deleted._
 
 #### [Bug] #21: Saved-resume restore clobbers a chapter seek made before metadata loads (both players)
 - **Where:** `frontend/src/components/BriefShell.tsx:105-110, 133-137 (same flaw in frontend/src/pages/BriefArchive.tsx:24-26, 40-43)` · severity low · confidence high
@@ -859,6 +863,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Set a pendingSeekRef in seekChapter; in onLoadedMetadata, apply the saved position only when no explicit seek is pending (and clear the ref). Alternatively restore only when currentTime === 0 and no seek was requested. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): `pendingSeek` ref set by the chip tap and cleared by the metadata handler it outranks — for exactly one load, so a later reload still resumes normally. One fix, both players, via the shared card._
 
 #### [Bug] #22: audioBroken latches for the whole session — the player never comes back after one failed load
 - **Where:** `frontend/src/components/BriefShell.tsx:50, 118, 129` · severity low · confidence high
@@ -866,6 +871,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Reset audioBroken to false when refresh() resolves from the network (fromCache false) or when brief.date changes; the next play attempt re-verifies honestly via onError. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): the shell counts network-resolved revalidates (`fromCache` false) into a `retryKey` the card watches; a bump un-hides the player and the next play attempt re-verifies through `onError`. Kept separate from `trackKey` on purpose — folding it in would `load()` mid-playback on every 30s poll._
 
 #### [Bug] #23: BriefArchive asserts "That morning isn't in the archive" for a plain network failure
 - **Where:** `frontend/src/pages/BriefArchive.tsx:113-123` · severity low · confidence high
@@ -873,6 +879,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Branch on failure type: ApiError 404 → 'isn't in the archive'; network/other → 'The hub is unreachable — archived days need a live connection', mirroring the Today page's honesty split. Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ fixed 2026-07-27 (PR #153, RED→green): only an `ApiError` 404 now licenses the not-in-archive claim; everything else says the hub is unreachable. The test mocks `../api/client` through `importOriginal` so the real `ApiError` class is kept and the `instanceof` branch is genuinely exercised._
 
 #### [Bug] #24: StudyConfirmRequest/StudyRemoveRequest have no TS mirror — confirm/remove bodies are untyped inline objects
 - _✅ fixed 2026-07-27 (PR #152, RED→green): both interfaces added beside `StudyProposeRequest`, and `confirmSchedule`/`removeSchedule` now build typed bodies. Call signatures unchanged; `tsc --noEmit` is the gate._

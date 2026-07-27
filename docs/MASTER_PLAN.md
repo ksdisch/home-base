@@ -87,7 +87,7 @@ kanban
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
-    rep0726["Replenish 2026-07-26 —<br/>remainder: 16 of 24<br/>bugs unfixed (the 8<br/>studycal ones landed<br/>in PR #152) + 17 ideas<br/>(4 Moonshot · 5 QuickWin<br/>· 2 Premortem · 3 Harden<br/>· 3 Friction) · awaiting<br/>wave sequencing via<br/>/backlog-hygiene"]
+    rep0726["Replenish 2026-07-26 —<br/>remainder: 10 of 24<br/>bugs unfixed (8 studycal<br/>in PR #152 · the audio/<br/>archive 6 in PR #153) +<br/>16 ideas (4 Moonshot ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· #1 and #3 are the<br/>highest-value remaining<br/>· awaiting wave<br/>sequencing via<br/>/backlog-hygiene"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
@@ -173,7 +173,8 @@ item-level record, with a vision doc per idea in [`ideas/`](ideas/)._
    Refresh now + a 30s poll. Deliberate assumption-2 crossing, guard-first.
    Backend 567 → 571, frontend 97 → 100.
    **QU1 yesterday's brief ✅ shipped 2026-07-20, PR #101**: ?date= serves any renderable
-   archived day (notes joined, honest 404s, prev/next neighbors, audio latest-only);
+   archived day (notes joined, honest 404s, prev/next neighbors; audio was latest-only here
+   — PR #153 opened it to any day that kept its mp3);
    sw.js stands aside for ?date= (clobber pin); /brief/:date BriefArchive page outside
    the FR15 shell (notes live, Ask hidden, no stale nag); /notes dates are Links.
    Backend 571 → 574, frontend 100 → 104. **Wave closed.**
@@ -336,6 +337,37 @@ glance instead of a sqlite dig._
 ---
 
 ## Changelog (newest first)
+
+### 2026-07-27 — Brief archive lands + one shared audio player (PR #153)
+
+- The in-flight `feat/brief-archive-nav` (archive entry point + index page; audio on archived
+  days) finally lands, rebased onto current `main`. Its backend suite had been **red since
+  `fe53288`** — a stale test still asserting the v1 "no historical audio" contract that commit
+  deliberately removed (#4) — so it could not pass the CI gate. Rewritten to the shipped
+  behaviour, plus the four tests `GET /brief/audio?date=` and `GET /brief/archive` shipped
+  without. All five fail against `origin/main`'s code.
+- **The merge blocker nobody had fixed was an interaction, not an assertion.** `BriefArchive`
+  mounted its own `<audio>` with zero coordination with the FR15-hoisted shell element, so an
+  archived morning layered a **second Kokoro voice** over Today's — and off-route playback had
+  no visible control anywhere. Merging as-was would have shipped that live.
+- **One player, not two copies.** `ArchiveAudioCard` was a drifted copy (#20: no −2s chapter
+  lead, no `play()` on tap, no `onError` degrade); both surfaces now render one
+  `BriefAudioCard`, which also carries **#21** (a chapter tap before metadata no longer
+  clobbered by the saved-resume restore), **#22** (`audioBroken` un-latches on a
+  network-resolved revalidate), and **#5** (a date flip pauses + `load()`s the never-remounted
+  element instead of playing yesterday's narration under today's brief). Extract over
+  re-copy was the whole point: the drift is what caused #20.
+- **Single audio owner** ([idea](ideas/single-audio-owner.md)): the shell owns `isPlaying` +
+  `pauseAudio`; a "Now playing — {date} · Pause" pill appears whenever audio sounds with no
+  card on screen, and the archive card's `onPlay` pauses the shell player — the single-track
+  rule. Also **#23**: only an `ApiError` 404 now licenses "that morning isn't in the archive";
+  a dead network says the hub is unreachable.
+- FR15's `expect(back).toBe(player)` — the audio element surviving a route hop as the same DOM
+  node — passed **unmodified** throughout; it was the gate on the refactor. One deliberate test
+  change: the QU3 save test now fires `loadedMetadata` before `timeUpdate`, the sequence real
+  media always follows, because #5's fix is precisely "don't persist until the element says
+  which track it holds."
+- Backend 788 → **792** · frontend 195 → **214** (22 → 24 files) · ruff/tsc/build green.
 
 ### 2026-07-27 — Study Scheduler correctness wave: 8 verified bugs, test-first (PR #152)
 
