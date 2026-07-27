@@ -49,3 +49,52 @@ def test_prompt_invites_a_focused_selection():
     prompt = build_designer_prompt("T", _artifacts({"audio": 3})).lower()
     assert "focused" in prompt
     assert "not need to use every" in prompt or "omit any" in prompt
+
+
+# -- video is never part of the audio spine (bug #3) -------------------------------------
+# _PRESENT_ORDER omits video by construction (design decision 12: video is supplementary,
+# audio is the backbone). That guarantee is only as good as the catalog's typing — a video
+# row typed 'audio' walks straight into the 🎧 group and the M0 cross-check waves it
+# through, since the step's kind and the artifact's (wrong) type agree.
+
+
+def test_video_artifacts_never_enter_the_audio_group():
+    arts = [
+        {"id": "aud-1", "type": "audio", "title": "Ep 1 — Deep dive"},
+        {"id": "vid-1", "type": "video", "title": "Ep 1 — Whiteboard walkthrough"},
+    ]
+    prompt = build_designer_prompt("Jacobians", arts)
+    audio_block = prompt.split("🎧 audio")[1].split("📖 study guides")[0]
+    assert "id aud-1" in audio_block
+    assert "vid-1" not in prompt  # not in the audio group, and not anywhere else
+
+
+def test_a_video_only_topic_offers_no_audio_at_all():
+    """The honest degrade: with video mistyped as audio this topic looked like it had a
+    listen spine; correctly typed, the designer is told there is none."""
+    arts = [{"id": f"vid-{i}", "type": "video", "title": f"Ep {i} — Whiteboard"} for i in range(4)]
+    prompt = build_designer_prompt("Jacobians", arts)
+    audio_block = prompt.split("🎧 audio")[1].split("📖 study guides")[0]
+    assert "(none available)" in audio_block
+    assert "vid-" not in prompt
+
+
+def test_catalog_typing_feeds_the_designer_video_free(tmp_path):
+    """End to end over the real parser: a jlens-shaped whiteboard series must not become
+    the audio spine of a generated path."""
+    from app.catalog.markdown_tables import classify_table_artifacts, extract_tables
+
+    md = (
+        "## Audio series\n"
+        "| Ep | Title | Artifact ID |\n|---|---|---|\n"
+        "| 1 | Ep 1 — The gradient | aaaaaaaa-1111-1111-1111-111111111111 |\n"
+        "\n## Video series (whiteboard)\n"
+        "| Ep | Title | Artifact ID |\n|---|---|---|\n"
+        "| 1 | Ep 1 — What a Jacobian Is | bbbbbbbb-2222-2222-2222-222222222222 |\n"
+    )
+    raw = [a for t in extract_tables(md) for a in classify_table_artifacts(t)]
+    arts = [{"id": a.artifact_id, "type": a.type, "title": a.title} for a in raw]
+
+    prompt = build_designer_prompt("Jacobians", arts)
+    assert "aaaaaaaa-1111-1111-1111-111111111111" in prompt
+    assert "bbbbbbbb-2222-2222-2222-222222222222" not in prompt

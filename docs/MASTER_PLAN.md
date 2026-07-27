@@ -338,6 +338,25 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — Video overviews stop parsing as audio (PR #156)
+
+- **Bug #3, the Designer's audio spine.** `_PRESENT_ORDER` omits video by construction —
+  design decision 12 makes audio the backbone and video supplementary — but that guarantee is
+  only as strong as the catalog's typing. A whiteboard VIDEO series is written in the sidecars
+  *exactly* like an audio one ("Ep N —" titles under a generic id column), so with no `video`
+  branch in `_type_from_section` the rows fell through to `_type_from_title`'s "Ep N" → audio
+  default. Live-repro'd on the real jlens sidecar: all four whiteboard episodes typed `audio`.
+- **Worse than a wrong label: it defeats the check meant to catch it.** A mistyped video enters
+  the Designer prompt as a listen step *and* passes the M0 no-fabrication cross-check, because
+  the step's kind and the artifact's (wrong) type agree. jlens is saved today only by the
+  coincidence of the 8-per-kind cap.
+- **Fix: format before shape.** `video`/`whiteboard`/`explainer` now resolve ahead of the
+  `season`/`episode`/`standalone` audio catch-alls. Both mistyping paths are covered (the
+  catch-all one and the title-default one), with an audio-side regression guard so the spine
+  itself isn't stolen, and an end-to-end parser → `build_designer_prompt` test.
+- **This was the gate on M8 Designer scaling** — the stated next milestone walks straight into
+  this the moment a topic's video ids sort inside the cap.
+
 ### 2026-07-27 — The phantom "Brief.chapters" topic card is gone (PR #154)
 
 - **Bug #1, live on every audio morning since FR4.** `brief.chapters.json` sits in the day

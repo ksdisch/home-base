@@ -724,6 +724,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Bug] #3: Catalog parser types video overviews as 'audio', voiding the Designer's audio-spine guarantee and the M0 type cross-check
+- _✅ fixed 2026-07-27 (PR #156, RED→green): `_type_from_section` now resolves format before shape — `video`/`whiteboard`/`explainer` return `'video'` ahead of the `season`/`episode` → audio catch-alls, so a whiteboard series written like an audio one (the jlens shape: "Ep N —" titles under a generic id column) no longer defaults to audio via `_type_from_title`. Both mistyping paths covered, plus an audio-side regression guard and an end-to-end parser→`build_designer_prompt` test proving a video id never reaches the 🎧 group. Unblocks Designer scaling past the fixture._
 - **Where:** `backend/app/catalog/markdown_tables.py:155-178` · severity high · confidence high
 - **Why:** Live-repro'd on the real jlens sidecar: all four whiteboard VIDEO episodes (fa4bda2a, 6b7e660a, 01ed5155, c3ccb11d) parse as type 'audio' because _type_from_section has no 'video' branch and 'Ep N —' titles default to audio. A mistyped video id both enters the Designer prompt as a listen step AND…
 - **Acceptance:** In _type_from_section, return 'video' for 'video'/'whiteboard'/'explainer' sections BEFORE the 'season'/'episode' → audio catch-alls; optionally classify rows as video from a Format/Style cell. Add a parser test with a jlens-shaped '## Video series' table… Regression test first.
