@@ -354,6 +354,25 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — News remembers what you already read (replenish small-wins 7/9)
+
+- Half the loop already existed: News.tsx has fired `signal("click", item)` into
+  `news_events` since M7 Phase 2, and the For-You ranker eats those clicks. Kyle's own eyes
+  never got the replay — and because the headline anchor is custom-styled, the browser's
+  native `:visited` never applies, so a story opened at 06:45 came back *pixel-identical* at
+  lunch. Repeat same-day visits are the 06:45/lunch pattern.
+- `recently_clicked_ids()` in `app.foryou` (48-hour window) stamps `NewsItem.clicked`; News.tsx
+  renders those headlines muted with a titled ✓. Zero new storage — one set-membership pass
+  over ids that are already stable `sha1(link)[:12]`.
+- **Worth recording: the warm For-You feed can't carry a clicked item at all.** `rank_candidates`
+  already drops everything in `seen_item_ids`, which is a stronger form of the same idea. So the
+  real surface is the category tabs plus the *cold-start* For-You path, which serves Top stories
+  unranked. Warm is stamped anyway and pinned by a test, so a future ranker change surfaces
+  dimmed rather than silently undimmed.
+- The client also dims on tap rather than waiting for the server stamp — the return visit two
+  seconds later is exactly the case this exists for. 48h, not forever, so a genuinely
+  re-newsworthy story can come back undimmed. 13 tests. Backend 871→880 · frontend 236→240.
+
 ### 2026-07-27 — The roster's mute finally has a button (replenish small-wins 6/9)
 
 - `paused` has been honored end to end since M2 — `load_roster` reads it, the sweep gate obeys

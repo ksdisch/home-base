@@ -22,7 +22,7 @@ event log and nothing else — Mode-A data is deliberately not an input.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -83,18 +83,24 @@ def _local_day(created_at: Optional[str]) -> str:
     return dt.astimezone(_LOCAL_TZ).date().isoformat()
 
 
+def _parse_ts(created_at: Optional[str]) -> Optional[datetime]:
+    """An event timestamp as an aware UTC instant, or None when unreadable. sqlite's
+    ``datetime('now')`` is naive UTC ("YYYY-MM-DD HH:MM:SS"); ISO strings also land here."""
+    if not created_at:
+        return None
+    try:
+        dt = datetime.fromisoformat(created_at)
+    except (TypeError, ValueError):
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+
 def _decay(created_at: Optional[str], now: datetime) -> float:
     """0.5 ** (age_days / 14). Unreadable timestamps decay to nothing rather than raise —
     a malformed row must never sink the whole profile."""
-    if not created_at:
+    dt = _parse_ts(created_at)
+    if dt is None:
         return 0.0
-    try:
-        # sqlite's datetime('now') is naive UTC ("YYYY-MM-DD HH:MM:SS"); ISO strings also land here.
-        dt = datetime.fromisoformat(created_at)
-    except (TypeError, ValueError):
-        return 0.0
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
     age_days = max(0.0, (now - dt).total_seconds() / 86400.0)
     return 0.5 ** (age_days / HALF_LIFE_DAYS)
 
@@ -150,6 +156,40 @@ def _jaccard(a: set, b: set) -> float:
     if not a or not b:
         return 0.0
     return len(a & b) / len(a | b)
+
+
+# Read-dimming (docs/ideas/news-read-dimming.md): a story Kyle opened comes back
+# pixel-identical, because the headline anchor is custom-styled and the browser's native
+# :visited never applies. The click rows are already in news_events — this is the replay.
+#
+# 48 hours, not forever: the window has to cover the repeat-visit pattern this exists for
+# (06:45, lunch, evening, next morning) without muting a genuinely re-newsworthy story
+# that resurfaces under the same link a week later.
+CLICKED_LOOKBACK_HOURS = 48
+
+
+def recently_clicked_ids(
+    events: List[Dict[str, Any]],
+    *,
+    now: Optional[datetime] = None,
+    hours: int = CLICKED_LOOKBACK_HOURS,
+) -> set:
+    """Item ids with a ``click`` inside the lookback — the "you already read this" set.
+
+    Clicks only. A ``visit`` isn't reading, and ``not_interested`` has its own stronger
+    treatment (the item is dropped, not greyed). A row missing an id or carrying an
+    unreadable timestamp is skipped, never fatal.
+    """
+    now_dt = now or datetime.now(timezone.utc)
+    cutoff = now_dt - timedelta(hours=hours)
+    out = set()
+    for e in events:
+        if e.get("kind") != "click" or not e.get("item_id"):
+            continue
+        stamp = _parse_ts(e.get("created_at"))
+        if stamp is not None and stamp >= cutoff:
+            out.add(e["item_id"])
+    return out
 
 
 def rank_candidates(

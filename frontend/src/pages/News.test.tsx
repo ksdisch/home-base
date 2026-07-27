@@ -541,4 +541,60 @@ describe("News (M7)", () => {
     expect(screen.getByPlaceholderText(/Your take/)).toBeInTheDocument();
     expect(screen.queryByText("✓ Saved")).not.toBeInTheDocument();
   });
+
+  // Read-dimming (docs/ideas/news-read-dimming.md): the headline anchor is custom-styled,
+  // so the browser's native :visited never fires — a story opened at 06:45 came back
+  // pixel-identical at lunch. The click rows were already in news_events; this is the
+  // replay Kyle's own eyes never got.
+
+  it("dims a story already opened and leaves the rest alone", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue({
+      ...TOP_FEED,
+      items: [
+        { ...TOP_FEED.items[0], clicked: true },
+        { ...TOP_FEED.items[1], clicked: false },
+      ],
+    });
+    renderNews("/news?cat=top");
+
+    const read = await screen.findByText(/Big national story/);
+    const unread = screen.getByText(/Undated story/);
+    expect(read.className).toMatch(/text-muted/);
+    expect(unread.className).not.toMatch(/text-muted/);
+  });
+
+  it("marks the read one with a ✓ a screen reader can also hear", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue({
+      ...TOP_FEED,
+      items: [{ ...TOP_FEED.items[0], clicked: true }, TOP_FEED.items[1]],
+    });
+    renderNews("/news?cat=top");
+
+    await screen.findByText(/Big national story/);
+    expect(screen.getByTitle(/already opened/i)).toBeInTheDocument();
+    expect(screen.queryAllByTitle(/already opened/i)).toHaveLength(1);
+  });
+
+  it("dims a card the moment it is opened, without waiting for a refetch", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+
+    const link = await screen.findByText(/Big national story/);
+    expect(link.className).not.toMatch(/text-muted/);
+    fireEvent.click(link);
+
+    await waitFor(() => expect(screen.getByText(/Big national story/).className).toMatch(/text-muted/));
+  });
+
+  it("a payload with no clicked field at all dims nothing (pre-dimming SW cache)", async () => {
+    newsCategories.mockResolvedValue(CATEGORIES);
+    newsCategory.mockResolvedValue(TOP_FEED);
+    renderNews("/news?cat=top");
+
+    await screen.findByText(/Big national story/);
+    expect(screen.queryByTitle(/already opened/i)).not.toBeInTheDocument();
+  });
 });

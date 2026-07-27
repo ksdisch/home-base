@@ -19,6 +19,7 @@ from ..foryou import (
     COLD_START_EVENTS,
     FORYOU_MAX_ITEMS,
     build_profile,
+    recently_clicked_ids,
     rank_candidates,
     search_feed_url,
     suggest_topics,
@@ -98,11 +99,16 @@ def get_news_foryou(
                 items = [{**i, "category_slug": top["slug"]} for i in fetched]
             except NewsFeedError:
                 items = []  # the tab already explains itself; stay calm
+        # Cold start serves Top stories UNRANKED, so unlike the warm path below it can
+        # carry an item Kyle already opened — dim it.
+        clicked = recently_clicked_ids(events)
         return NewsForYouResponse(
             generated_at=_now_iso(),
             learning=True,
             event_count=profile["event_count"],
-            items=[ForYouItem(**i) for i in items[:FORYOU_MAX_ITEMS]],
+            items=[
+                ForYouItem(**i, clicked=i["id"] in clicked) for i in items[:FORYOU_MAX_ITEMS]
+            ],
             suggestions=suggestions,
         )
 
@@ -127,11 +133,15 @@ def get_news_foryou(
                 continue
 
     ranked = rank_candidates(profile, items_by_category)[:FORYOU_MAX_ITEMS]
+    clicked = recently_clicked_ids(events)
     return NewsForYouResponse(
         generated_at=_now_iso(),
         learning=False,
         event_count=profile["event_count"],
-        items=[ForYouItem(**i) for i in ranked],
+        # Structurally empty today — rank_candidates already drops seen_item_ids, which
+        # is a stronger form of the same idea. Stamped anyway so that if the ranker ever
+        # lets clicked items back in, they arrive dimmed rather than silently undimmed.
+        items=[ForYouItem(**i, clicked=i["id"] in clicked) for i in ranked],
         suggestions=suggestions,
     )
 
@@ -196,11 +206,15 @@ def get_news_category(
         result = get_category_items(cat, fetcher)
     except NewsFeedError as e:
         raise HTTPException(status_code=502, detail=f"news feed unavailable: {e}")
+    # Read-dimming: replay the click log Kyle's own eyes never got back. One
+    # set-membership pass over ids that are already stable sha1(link)[:12] — zero new
+    # storage (docs/ideas/news-read-dimming.md).
+    clicked = recently_clicked_ids(list_news_events())
     return NewsCategoryResponse(
         generated_at=_now_iso(),
         slug=cat["slug"],
         title=cat["title"],
         fetched_at=result["fetched_at"],
         stale=result["stale"],
-        items=[NewsItem(**i) for i in result["items"]],
+        items=[NewsItem(**i, clicked=i["id"] in clicked) for i in result["items"]],
     )
