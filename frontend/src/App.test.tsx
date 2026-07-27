@@ -18,6 +18,7 @@ vi.mock("./api/client", () => ({
       Promise.resolve({ generated_at: "now", has_data: false, due_count: 0, items: [] }),
     courses: () => Promise.resolve({ generated_at: "now", courses: [] }),
     briefHabit: () => Promise.resolve({ generated_at: "now", weeks: [] }),
+    briefRunsSummary: () => Promise.resolve({ generated_at: "now", latest: null, days: [], window_days: 7, cost_usd: 0, errors: 0, missing_days: 0 }),
     newsCategories: () => Promise.resolve({ generated_at: "now", categories: [] }),
     newsForYou: () =>
       Promise.resolve({

@@ -24,6 +24,7 @@ vi.mock("../api/client", () => ({
     review: () => review(),
     courses: () => courses(),
     briefHabit: () => briefHabit(),
+    briefRunsSummary: () => Promise.resolve({ generated_at: "now", latest: null, days: [], window_days: 7, cost_usd: 0, errors: 0, missing_days: 0 }),
     addBriefNote: (body: unknown) => addBriefNote(body),
     deleteBriefNote: (id: number) => deleteBriefNote(id),
     briefAudioUrl: () => "/api/brief/audio",

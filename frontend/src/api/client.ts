@@ -6,6 +6,7 @@ import type {
   BriefChatRequest,
   BriefChatResponse,
   BriefHabitResponse,
+  BriefRunsSummaryResponse,
   BriefNote,
   BriefNoteCreate,
   BriefNoteDeleteResponse,
@@ -204,6 +205,8 @@ export const api = {
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   briefHabit: () => get<BriefHabitResponse>("/brief/habit"),
   briefArchive: () => get<BriefArchiveResponse>("/brief/archive"),
+  // The sweep cost/health ledger readout — per-day totals from data/sweeps/.runs.jsonl.
+  briefRunsSummary: (days = 7) => get<BriefRunsSummaryResponse>(`/brief/runs/summary?days=${days}`),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.
   briefNotes: (topic?: string) =>
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),

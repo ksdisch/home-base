@@ -5,6 +5,7 @@ import type { BriefItem, BriefNote, BriefTopic } from "../api/types";
 import { Banner } from "../components/Banner";
 import { useBriefShell } from "../components/BriefShell";
 import { HabitStrip } from "../components/HabitStrip";
+import { SweepLedgerStrip } from "../components/SweepLedgerStrip";
 import { Markdown } from "../components/Markdown";
 import { UndoToast, useUndoable } from "../components/undo";
 import { YourLearning } from "../components/YourLearning";
@@ -869,6 +870,9 @@ export default function Brief() {
           {/* v1 habit check: mornings/notes per week vs the kickoff targets (hides itself
               until there's any signal). */}
           <HabitStrip />
+          {/* The sweep's own cost/health self-report — one ops line + a 7-day roll-up, so
+              a missing or thin morning announces itself instead of hiding in a dotfile. */}
+          <SweepLedgerStrip />
         </div>
       )}
     </div>

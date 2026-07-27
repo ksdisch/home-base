@@ -1034,6 +1034,33 @@ export interface BriefHabitResponse {
   last_graded?: string | null;
 }
 
+// The sweep cost/health readout over data/sweeps/.runs.jsonl. Every day in the window is
+// present, including ones the sweep never ran — `ran: false` is how a missing morning stays
+// visible instead of vanishing from the list. `thin` marks a day that ran but cost far under
+// the window's median: a half-failed or content-starved sweep, which no "did it run?" check
+// can see. `topics` counts distinct topics, so a same-day re-sweep doesn't inflate it.
+export interface BriefRunDay {
+  date: string; // YYYY-MM-DD
+  topics: number;
+  errors: number;
+  cost_usd: number;
+  duration_ms: number;
+  ran: boolean;
+  thin: boolean;
+}
+
+export interface BriefRunsSummaryResponse {
+  generated_at: string;
+  // The newest day that actually ran — may predate today when this morning hasn't swept
+  // yet, so the UI names the day rather than implying "this morning". null = empty ledger.
+  latest?: BriefRunDay | null;
+  days: BriefRunDay[]; // newest-first, one entry per calendar day in the window
+  window_days: number;
+  cost_usd: number; // window total
+  errors: number; // window total
+  missing_days: number;
+}
+
 // Brief archive index — all renderable sweep dates, newest-first.
 export interface BriefArchiveEntry {
   date: string; // YYYY-MM-DD

@@ -354,6 +354,27 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The sweep ledger finally gets totaled (replenish small-wins 5/9)
+
+- `sweeps/envelope.py` has appended a row per topic run to `data/sweeps/.runs.jsonl` since M3
+  — cost, duration, model, `is_error`; its own docstring calls the file "the durable answer to
+  what do the sweeps cost" — and nobody ever wrote the totaler. The one place sweep pathology
+  shows up mechanically was grep-only on the Mac.
+- `runs_summary()` in `app.sweeps` → `GET /api/brief/runs/summary?days=` (clamped 1–90) → a
+  `SweepLedgerStrip` ops line under the habit strip: *"This morning: 9 topics · 21 min · $8.12
+  · 0 errors"*, plus a 7-day roll-up. Zero LLM, read-only, tolerant of a hand-mangled line.
+- **Both live anomaly shapes are surfaced by construction.** The window is calendar-dense, so
+  a day with no rows at all (the 07-24 gap) is present as `ran: false` rather than vanishing
+  from the list — iterating only over the dates that exist would have hidden the loudest
+  signal in the file. And a day that ran but cost far under the window's median (the $1-2
+  07-23/07-25 shape) is flagged `thin`; the median is taken over only the days that ran, so a
+  gap can't drag the norm down and mask a thin day.
+- `topics` counts distinct topics so a same-day re-sweep can't inflate it, while both runs'
+  cost still totals. The line claims "This morning" only when the newest day that actually ran
+  IS today — otherwise it names the date, so a stale total never wears today's label.
+  22 tests (13 backend + 9 frontend). Outstanding: Kyle's confirmation against the real
+  69-row ledger (`.runs.jsonl` is gitignored, so this clone has no live data).
+
 ### 2026-07-27 — The 06:00 sweep waits for Wi-Fi (replenish small-wins 4/9)
 
 - The wake-before-network race, and the failure mode of the unattended pipeline's whole reason
