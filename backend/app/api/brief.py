@@ -38,6 +38,8 @@ from ..models import (
     BriefCalibration,
     BriefChatRequest,
     BriefChatResponse,
+    BriefArchiveEntry,
+    BriefArchiveResponse,
     BriefHabitResponse,
     BriefHabitWeek,
     BriefMissingTopic,
@@ -144,11 +146,9 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
             if not t["paused"] and t["slug"] not in present
         ]
 
-    # QU1: audio only rides the LATEST day — GET /brief/audio serves nothing else, so an
-    # archived payload advertising a player would be a broken promise (no historical
-    # audio in v1).
-    is_latest = served is not None and served == latest
-    audio_available = is_latest and (settings.sweeps_dir / served / "brief.mp3").is_file()
+    # Audio is available for any day that has a brief.mp3, not just the latest — the
+    # archive pages can play historical audio via GET /brief/audio?date=YYYY-MM-DD.
+    audio_available = served is not None and (settings.sweeps_dir / served / "brief.mp3").is_file()
     # FR4: chapters only ride an actually-present mp3 — audio_brief.py writes them before
     # the render, so a failed Kokoro leaves an orphan file this gate keeps invisible.
     audio_chapters: List[BriefAudioChapter] = []
@@ -210,17 +210,25 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
 
 
 @router.get("/brief/audio")
-def get_brief_audio(settings=Depends(get_app_settings)) -> FileResponse:
-    """The served day's narrated MP3 (M4 — sweeps/audio_brief.py renders it after each sweep).
+def get_brief_audio(
+    date: Optional[str] = None, settings=Depends(get_app_settings)
+) -> FileResponse:
+    """The narrated MP3 for the given date (or the latest sweep when no date is given).
 
-    404 when the latest sweep has no audio (Kokoro was down, or a pre-M4 day) — the page just
-    hides the player. Always the *served* day's file, never a stale mp3 from an older folder.
+    404 when the day has no audio (Kokoro was down, or a pre-M4 day) — the page hides the
+    player. Accepts an optional ?date=YYYY-MM-DD so archive views can stream historical audio.
     """
-    date = latest_sweep_date(settings.sweeps_dir)
-    path = (settings.sweeps_dir / date / "brief.mp3") if date else None
+    if date is not None:
+        dates = sweep_dates(settings.sweeps_dir)
+        if date not in dates:
+            raise HTTPException(status_code=404, detail=f"no brief for {date}")
+        d = date
+    else:
+        d = latest_sweep_date(settings.sweeps_dir)
+    path = (settings.sweeps_dir / d / "brief.mp3") if d else None
     if path is None or not path.is_file():
-        raise HTTPException(status_code=404, detail="no audio brief for the latest sweep")
-    return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{date}.mp3")
+        raise HTTPException(status_code=404, detail="no audio brief for that sweep")
+    return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{d}.mp3")
 
 
 # FR2: one sweep at a time, guarded in-process — the always-on single server is the choke
@@ -473,3 +481,21 @@ def discard_overnight_proposal(
             "status": "discarded",
         }
     )
+
+
+@router.get("/brief/archive", response_model=BriefArchiveResponse)
+def get_brief_archive(settings=Depends(get_app_settings)) -> BriefArchiveResponse:
+    """All renderable sweep dates, newest-first, with an ``has_audio`` flag.
+
+    Used by the archive index page to build a browsable history list. Dates are
+    the same renderable-content-gated set that ``GET /brief?date=`` accepts."""
+    sweeps_dir = Path(settings.sweeps_dir)
+    dates = list(reversed(sweep_dates(sweeps_dir)))
+    entries = [
+        BriefArchiveEntry(
+            date=d,
+            has_audio=(sweeps_dir / d / "brief.mp3").exists(),
+        )
+        for d in dates
+    ]
+    return BriefArchiveResponse(dates=entries)

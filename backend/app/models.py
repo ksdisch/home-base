@@ -989,6 +989,15 @@ class BriefResponse(BaseModel):
     overnight: Optional[BriefOvernight] = None
 
 
+class BriefArchiveEntry(BaseModel):
+    date: str  # YYYY-MM-DD
+    has_audio: bool = False
+
+
+class BriefArchiveResponse(BaseModel):
+    dates: List[BriefArchiveEntry]  # newest-first
+
+
 class BriefVisitResponse(BaseModel):
     ok: bool = True
     day: str

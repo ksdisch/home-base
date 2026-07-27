@@ -5,6 +5,7 @@ import { NewsShell } from "./components/NewsShell";
 import { ThemeToggle } from "./components/ThemeToggle";
 import Brief from "./pages/Brief";
 import BriefArchive from "./pages/BriefArchive";
+import BriefIndex from "./pages/BriefIndex";
 import CourseDetail from "./pages/CourseDetail";
 import Courses from "./pages/Courses";
 import FlashcardReview from "./pages/FlashcardReview";
@@ -204,6 +205,8 @@ function AppChrome() {
           <Route path="/" element={<Brief />} />
           {/* QU1: an archived morning by date — read-only walk over the sweep record. */}
           <Route path="/brief/:date" element={<BriefArchive />} />
+          {/* Archive index: browsable list of all past sweep dates. */}
+          <Route path="/archive" element={<BriefIndex />} />
           {/* M7: the general news mode — RSS-backed categories, sibling of the brief. */}
           <Route path="/news" element={<News />} />
           {/* M2: every note attached to a brief item, browsable per topic. */}
