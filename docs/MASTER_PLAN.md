@@ -338,6 +338,18 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — A fresh page opens at its top (replenish small-wins 2/9)
+
+- React Router neither restores nor resets window scroll across a route swap, so every page
+  inherited the previous one's offset: finish a long Today read down at the habit strip, tap
+  Notes, and Notes opened pre-scrolled past its own header and filters. The highest-frequency
+  papercut in the app — it fired on almost every tab tap.
+- A 7-line `ScrollReset` inside `AppChrome` scrolls to top on every pathname change except
+  `/news`, which restores its own saved offset once the feed is back (F1) and would fight a
+  reset with a top-flash. No new per-page scroll memory — only the default for a fresh page.
+- Three tests pin it: a fresh page opens at the top, `/news` is untouched, and the reset fires
+  again on the way back OUT of News. Frontend 216→219.
+
 ### 2026-07-27 — Calibration integrity: write-once and re-gradeable (PR #158)
 
 - **Two holes in one file, shipped together** — report **#9** and the Harden idea

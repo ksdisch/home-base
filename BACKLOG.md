@@ -700,6 +700,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Every tab hop except into /news lands at the top of the destination page; News's own restore behavior is untouched (existing News.test.tsx restore tests stay green).
 - **Size:** S
 - **Added:** 2026-07-26
+- _✅ shipped 2026-07-27 (RED→green — replenish small-wins item 2/9): a 7-line `ScrollReset` inside `AppChrome` — `useEffect(() => { if (!pathname.startsWith("/news")) window.scrollTo(0, 0) }, [pathname])`. Three App.test.tsx tests pin the contract: a fresh page opens at the top, `/news` is left alone (its own post-feed restore owns that offset), and the reset fires again on the way back OUT of News. Idea-doc open questions decided: (1) no other route needs to preserve scroll — FR15's Today return restores the payload, not the offset, so there is nothing to fight; (2) plain two-arg `scrollTo(0, 0)`, an instant jump — `index.css` sets no global `scroll-behavior: smooth`, so no explicit `behavior` is warranted. Frontend 216→219._
 
 #### [Improvement] The News re-scan tax — read stories look identical to unread
 - **Why:** The bet: half the loop already exists and only the eyes-facing half is missing — the ranker eats Kyle's clicks but Kyle's own eyes never got the replay. What makes a project veteran react: News.tsx already fires signal('click', item) (verified line 366) into news_events with a stable id… See [`docs/ideas/news-read-dimming.md`](docs/ideas/news-read-dimming.md) for the full write-up.
