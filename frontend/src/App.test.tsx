@@ -18,12 +18,33 @@ vi.mock("./api/client", () => ({
       Promise.resolve({ generated_at: "now", has_data: false, due_count: 0, items: [] }),
     courses: () => Promise.resolve({ generated_at: "now", courses: [] }),
     briefHabit: () => Promise.resolve({ generated_at: "now", weeks: [] }),
+    newsCategories: () => Promise.resolve({ generated_at: "now", categories: [] }),
+    newsForYou: () =>
+      Promise.resolve({
+        generated_at: "now",
+        learning: true,
+        event_count: 0,
+        items: [],
+        suggestions: [],
+      }),
+    newsCategory: () =>
+      Promise.resolve({
+        generated_at: "now",
+        slug: "top",
+        title: "Top stories",
+        fetched_at: "now",
+        stale: false,
+        items: [],
+      }),
+    logNewsEvent: () => Promise.resolve({ ok: true, id: 1, created_at: "" }),
   },
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear(); // F5: the freshness dot reads localStorage — isolate per test.
+  // jsdom has no layout, so window.scrollTo is a "not implemented" stub — spy on it.
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   briefWithMeta.mockResolvedValue({
     brief: { generated_at: "now", has_data: false, date: null, topics: [] },
     fromCache: false,
@@ -207,6 +228,50 @@ describe("App shell navigation", () => {
     expect(screen.queryByText(/Reading your morning brief/)).not.toBeInTheDocument();
     // Let the background revalidate settle so nothing updates outside act().
     await waitFor(() => expect(briefWithMeta).toHaveBeenCalledTimes(2));
+  });
+});
+
+// F2: React Router doesn't restore (or reset) window scroll across route swaps, so every
+// page inherited the previous page's offset — finish a long Today read down at the habit
+// strip, tap Notes, and Notes opens pre-scrolled past its own header. News is the one
+// exception: it restores its saved offset itself once the feed is back, and a reset here
+// would fight that with a top-flash.
+
+describe("scroll reset on navigation (F2)", () => {
+  it("scrolls a freshly opened page to the top", async () => {
+    renderApp();
+    await screen.findByText(/No sweeps yet/);
+    (window.scrollTo as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Notes" })[0]);
+    await screen.findByText(/No notes yet/);
+
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("leaves News alone — its own restore owns that offset", async () => {
+    renderApp();
+    await screen.findByText(/No sweeps yet/);
+    (window.scrollTo as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    fireEvent.click(screen.getAllByRole("link", { name: "News" })[0]);
+    await screen.findByRole("heading", { name: "News" });
+
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("resets again on the way back out of News", async () => {
+    renderApp();
+    await screen.findByText(/No sweeps yet/);
+
+    fireEvent.click(screen.getAllByRole("link", { name: "News" })[0]);
+    await screen.findByRole("heading", { name: "News" });
+    (window.scrollTo as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Notes" })[0]);
+    await screen.findByText(/No notes yet/);
+
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
   });
 });
 

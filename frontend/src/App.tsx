@@ -114,6 +114,20 @@ function MobileTabBar({ todayFresh }: { todayFresh: boolean }) {
   );
 }
 
+// F2: React Router neither restores nor resets window scroll across a route swap, so every
+// page opened at the offset the previous one was left at — finish a long Today read down at
+// the habit strip, tap Notes, and Notes opens pre-scrolled past its own header and filters.
+// A fresh page starts at its top. News is the deliberate exception: it restores its own
+// saved offset once the feed is back (News.tsx), and a reset here would fight that with a
+// top-flash. No new per-page scroll memory — this is only the default for everything else.
+function ScrollReset() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!pathname.startsWith("/news")) window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   // FR15: BriefShell holds the brief payload + the single persistent audio element and must
   // outlive the Today↔News↔Notes bounce. F5 hoists it above the navs too, so both can read
@@ -151,6 +165,7 @@ function AppChrome() {
 
   return (
     <div className="min-h-full">
+      <ScrollReset />
       <header className="sticky top-0 z-10 border-b border-line bg-bg/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-ink">
