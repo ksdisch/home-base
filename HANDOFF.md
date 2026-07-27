@@ -3,6 +3,7 @@
 _Last updated: 2026-07-26_
 
 ## What was just done
+- `/replenish` 2026-07-26 (branch `docs/replenish-2026-07-26`): the dry backlog refilled — 24 verified bugs (report: `docs/bug-hunt/2026-07-26-post-studycal-m8.md`; 3 high, incl. a live phantom topic card on every audio morning and the studycal token-expiry facade due ~07-29) + 17 idea survivors captured as `docs/ideas/` vision docs + `BACKLOG.md ## Open` stubs. Awaiting wave sequencing via `/backlog-hygiene`.
 - Project wiki initialized (this file, `PROJECT.md`, `Sources.md`, `Decisions.md`, `Wiki/`) via the project-wiki skill, landed on `docs/wiki-init`.
 - In-flight: `feat/brief-archive-nav` carries 2 commits not yet on main — brief archive entry point + index page (`c0d8455`) and audio on archived days (`fe53288`).
 - Last merged work: PR #144 (2026-07-22) — topic↔course cross-links on both card types + course quizzes folded into the daily `/study-plan`. Backend 748 / frontend 193 tests green.

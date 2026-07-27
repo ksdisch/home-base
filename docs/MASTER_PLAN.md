@@ -87,6 +87,7 @@ kanban
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
+    rep0726["Replenish 2026-07-26 —<br/>backlog refilled: 24<br/>verified bugs (3 high;<br/>studycal cluster, token<br/>expiry ~07-29) + 17 ideas<br/>(4 Moonshot · 5 QuickWin<br/>· 2 Premortem · 3 Harden<br/>· 3 Friction) · awaiting<br/>wave sequencing via<br/>/backlog-hygiene"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
@@ -335,11 +336,25 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-26 — `/replenish`: combined bug-hunt + 5-lane brainstorm refills the dry backlog (this PR)
+
+- Docs-only capture from one combined run (workflow `wf_fa5ba667-333`, 51 agents): **24 verified
+  bugs** — full detail in [`bug-hunt/2026-07-26-post-studycal-m8.md`](bug-hunt/2026-07-26-post-studycal-m8.md) —
+  and **17 idea survivors** (4 long-leash Moonshot · 5 QuickWin · 2 Premortem · 3 Harden ·
+  3 Friction), each with a vision doc in [`ideas/`](ideas/) and a `BACKLOG.md ## Open` stub.
+- Cross-lane convergence was strong signal: four lanes independently hit the studycal
+  token-expiry facade (bug #2, token dies ~07-29); Harden's calendar-write guard folded into
+  bugs #2/#12; lock-screen Media Session controls found by three blind finders.
+- Backlog was empty at run start (waves 1–4 complete, moonshot queue empty, all 23 bugs from
+  the 07-19 hunt fixed). Next: sequence the refill via `/backlog-hygiene` — the report themes
+  argue studycal correctness first, and the builder-vs-reader visit-attribution antibody
+  before the ~08-03 v1 check reads the data.
+
 _One condensed entry per update — what shipped, the PR, the decisions that stick. Deep detail
 lives in the linked PRs, idea docs, and plan docs. (Until 2026-07-20 this history was a single
 run-on "Last updated" paragraph — see git history for the verbatim long-form entries.)_
 
-### 2026-07-22 — Topic↔course cross-links + course quizzes join the daily Plan (this PR)
+### 2026-07-22 — Topic↔course cross-links + course quizzes join the daily Plan (PR #144)
 Two fixes to stop the **Learning** and **Courses** tabs reading as redundant (Kyle flagged the
 Jacobian topic + its course looking like duplicates). **(a) Cross-link both ways** — the topic↔course
 association was already authored (each course's `notebooklm` materials name a `notebook_id`) but
