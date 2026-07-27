@@ -855,6 +855,11 @@ class BriefMirror(BaseModel):
     sufficient: bool = False
     sentence: str = ""
     mornings: int = 0
+    # v14: the window's mornings restricted to tailnet-sourced ('phone') visits — reported
+    # BESIDE the raw count so the strip stops recapping what may be verification traffic
+    # (docs/ideas/builder-vs-reader-metric.md). Absent from pre-v14 SW-cached payloads, so
+    # the TS side keeps it optional.
+    mornings_phone: int = 0
     notes: int = 0
     asks: int = 0
     news_events: int = 0
@@ -1002,6 +1007,10 @@ class BriefVisitResponse(BaseModel):
     ok: bool = True
     day: str
     visited_at: str
+    # v14: the origin bucket this load was filed under (app.visit_source — 'phone',
+    # 'mac-localhost', 'dev', 'test', …). Echoed back so a live check from the phone can
+    # confirm what it classifies as. None only on a pre-v14 client path.
+    source: Optional[str] = None
 
 
 class BriefSweepResponse(BaseModel):
@@ -1020,6 +1029,12 @@ class BriefHabitWeek(BaseModel):
 
     week_start: str  # Monday, YYYY-MM-DD, local calendar
     mornings: int = 0
+    # v14: the same distinct-day count restricted to tailnet-sourced ('phone') visits — the
+    # honest reader-Kyle number, reported BESIDE the raw one, never instead of it. Whether
+    # the v1 criterion moves to this number is Kyle's call
+    # (docs/ideas/builder-vs-reader-metric.md). Pre-v14 rows have no source, so July reads
+    # 0 here — unattributed, not zero-habit.
+    mornings_phone: int = 0
     notes: int = 0
 
 

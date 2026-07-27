@@ -99,3 +99,56 @@ describe("HabitStrip line — earned markers only, default byte-for-byte unchang
     expect(second.container.textContent).not.toContain("☀ 100 mornings");
   });
 });
+
+// v14 visit-source attribution (docs/ideas/builder-vs-reader-metric.md): the raw morning
+// count can't tell a Tuesday read from a localhost dev load, so the phone-sourced count
+// rides BESIDE it. The criterion itself must not move — that's Kyle's call, not a silent
+// side effect of shipping attribution.
+describe("HabitStrip phone attribution — reported beside the raw count, never instead of it", () => {
+  function wkp(
+    week_start: string,
+    mornings: number,
+    mornings_phone: number,
+    notes: number,
+  ): BriefHabitWeek {
+    return { week_start, mornings, mornings_phone, notes };
+  }
+
+  it("renders the phone-sourced count beside the raw one", async () => {
+    briefHabit.mockResolvedValue(resp([wkp("2026-06-29", 4, 1, 1), wkp("2026-07-06", 3, 2, 1)]));
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("3 of 5 mornings");
+    expect(container.textContent).toContain("(2 on phone)");
+    // prior-week history carries it too — the fade shows up as a falling p, not a falling m
+    expect(container.textContent).toContain("4m / 1p / 1n");
+  });
+
+  it("still renders the phone count at zero — the whole point is catching a fade", async () => {
+    // A week that looks healthy on the raw number and is pure build exhaust underneath.
+    briefHabit.mockResolvedValue(resp([wkp("2026-06-29", 5, 3, 1), wkp("2026-07-06", 5, 0, 1)]));
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("(0 on phone)");
+  });
+
+  it("leaves the v1 criterion on the RAW count — target ✓ ignores the phone number", async () => {
+    briefHabit.mockResolvedValue(resp([wkp("2026-06-29", 2, 0, 1), wkp("2026-07-06", 5, 1, 1)]));
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("5 of 5 mornings ✓");
+    expect(container.textContent).toContain("(1 on phone)");
+    // the accent (target hit) is bound to the raw fraction, not the phone count
+    expect(container.querySelector(".text-accent")?.textContent).toContain("mornings");
+  });
+
+  it("omits the phone count entirely on a pre-v14 payload", async () => {
+    // An SW-cached response from before attribution shipped: no mornings_phone field.
+    briefHabit.mockResolvedValue(resp([wk("2026-06-29", 2, 1), wk("2026-07-06", 3, 1)]));
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("3 of 5 mornings");
+    expect(container.textContent).not.toContain("on phone");
+    expect(container.textContent).toContain("2m / 1n"); // history stays in the old shape
+  });
+});
