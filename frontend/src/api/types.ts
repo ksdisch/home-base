@@ -1075,6 +1075,27 @@ export interface BriefArchiveResponse {
   dates: BriefArchiveEntry[];
 }
 
+// Archive search — one blended newest-first list over every brief item and every note.
+// `kind` labels which, so "where did I read that?" stays a one-place search; `date` is what
+// makes a hit useful, deep-linking to the morning the item belongs to.
+export interface BriefSearchHit {
+  kind: "item" | "note";
+  date: string; // YYYY-MM-DD
+  topic_slug: string;
+  topic_title: string;
+  item_id: string;
+  headline: string;
+  snippet: string;
+}
+
+export interface BriefSearchResponse {
+  generated_at: string;
+  query: string;
+  hits: BriefSearchHit[];
+  total: number; // what was found, not what fit — so a capped result can say so
+  truncated: boolean;
+}
+
 // M5 chat-with-the-brief: one grounded follow-up answer about a served item. item_id is
 // date-scoped, so a stale tab's question 404s after the brief rolls to a new day.
 export interface BriefChatRequest {

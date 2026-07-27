@@ -859,3 +859,96 @@ def runs_summary(
         "errors": sum(d["errors"] for d in entries),
         "missing_days": sum(1 for d in entries if not d["ran"]),
     }
+
+
+# -- archive search (docs/ideas/archive-search.md) -----------------------------------
+# The archive index made the corpus browsable but not findable, and nothing anywhere
+# searches Kyle's own history (News-mode's term feeds query Google, not him) — while the
+# corpus grows by 8 files a day forever. Zero LLM: a deterministic newest-first file walk
+# with plain case-insensitive substring matching. Read-only, like everything else here.
+
+SEARCH_MAX_HITS = 50
+_SNIPPET_RADIUS = 90
+
+
+def search_snippet(text: str, needle: str, *, radius: int = _SNIPPET_RADIUS) -> str:
+    """The matched span with a little context, so a hit is judgeable without opening it."""
+    lowered = text.lower()
+    at = lowered.find(needle)
+    if at < 0:
+        return text[: radius * 2].strip()
+    start = max(0, at - radius)
+    end = min(len(text), at + len(needle) + radius)
+    return ("…" if start > 0 else "") + text[start:end].strip() + ("…" if end < len(text) else "")
+
+
+def search_briefs(
+    sweeps_dir: Path,
+    query: str,
+    notes: Optional[List[Dict[str, Any]]] = None,
+    *,
+    limit: int = SEARCH_MAX_HITS,
+) -> Dict[str, Any]:
+    """Substring search over every sweep item and every note, newest day first.
+
+    Briefs and notes come back in ONE blended list, each hit labeled by ``kind`` — two
+    separate groups would turn "where did I read that?" into a two-place search. Every hit
+    carries its ``date`` so the UI can deep-link to ``?date=``: finding the item is only
+    useful if it opens the morning it belongs to.
+
+    A day whose JSON won't parse is skipped rather than fatal — the same honesty rule the
+    brief reader follows. ``total`` reports what was actually found, not what fit under the
+    cap, so a truncated result can say so instead of quietly looking complete.
+    """
+    needle = (query or "").strip().lower()
+    if not needle:
+        return {"hits": [], "total": 0, "truncated": False}
+    limit = max(1, min(SEARCH_MAX_HITS, int(limit)))
+
+    hits: List[Dict[str, Any]] = []
+    for day in reversed(sweep_dates(Path(sweeps_dir))):
+        day_dir = Path(sweeps_dir) / day
+        for path in sorted(day_dir.glob("*.json")):
+            if not _is_topic_stem(path.stem):
+                continue
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                topic = _structured_topic(path.stem, data, {}, day)
+            except (OSError, ValueError, KeyError, TypeError, UnicodeDecodeError):
+                continue  # a day that won't parse is skipped, never fatal
+            for item in topic["items"]:
+                haystack = " ".join(
+                    (item["headline"], item["digest"], item["why_it_matters"])
+                )
+                if needle in haystack.lower():
+                    hits.append(
+                        {
+                            "kind": "item",
+                            "date": day,
+                            "topic_slug": topic["slug"],
+                            "topic_title": topic["title"],
+                            "item_id": item["id"],
+                            "headline": item["headline"],
+                            "snippet": search_snippet(haystack, needle),
+                        }
+                    )
+
+    for note in notes or []:
+        haystack = f"{note.get('body') or ''} {note.get('item_headline') or ''}"
+        if needle in haystack.lower():
+            hits.append(
+                {
+                    "kind": "note",
+                    "date": note.get("brief_date") or "",
+                    "topic_slug": note.get("topic_slug") or "",
+                    "topic_title": topic_title(note.get("topic_slug") or "", {}),
+                    "item_id": note.get("item_id") or "",
+                    "headline": note.get("item_headline") or "",
+                    "snippet": search_snippet(note.get("body") or "", needle),
+                }
+            )
+
+    # One blended list, newest day first; notes sort into place beside the morning they
+    # annotate rather than sitting in a separate pile.
+    hits.sort(key=lambda h: (h["date"], h["kind"] == "item"), reverse=True)
+    return {"hits": hits[:limit], "total": len(hits), "truncated": len(hits) > limit}

@@ -354,6 +354,25 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — Archive search: "where did I read that?" (replenish small-wins 9/9 — BATCH COMPLETE)
+
+- The archive index made the corpus browsable but not **findable**, and no search existed
+  anywhere over Kyle's own history (News-mode's term feeds query Google, not him) — while the
+  corpus grows by 8 files a day forever.
+- `search_briefs()` walks `data/sweeps/*/<topic>.json` newest-day-first over headline +
+  digest + why_it_matters, plus `brief_notes` (body + item_headline), with plain
+  case-insensitive substring matching → `GET /api/brief/search?q=` → a search box atop
+  `/archive`, each hit deep-linking to `/brief/<date>`. Zero LLM, zero index, strictly
+  read-only — one test asserts no mtime under `data/sweeps` changes.
+- One **blended** newest-first list labeled by `kind`, because two groups would turn "where
+  did I read that?" into a two-place search. `total` reports what was *found*, not what fit
+  under the cap, so a truncated result says "Showing 25 of 110" instead of quietly looking
+  complete. A blank query returns nothing rather than the corpus — that's a browse, and
+  `/archive` already is one. Hit `item_id`s come from `_structured_topic`, so they're the same
+  read-time anchors notes attach to. Backend 880→892 · frontend 253→258.
+- **This closes the nine-item replenish small-wins batch** (PRs #155 · #160 · #161 · #162 ·
+  #163 · #164 · #165 · #166 · this one), each shipped test-first on its own green PR.
+
 ### 2026-07-27 — The audio brief gets lock-screen controls + speed (replenish small-wins 8/9)
 
 - The walk-listen is the audio brief's real use, and it degraded the instant the phone locked:

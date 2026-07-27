@@ -998,6 +998,30 @@ class BriefResponse(BaseModel):
     overnight: Optional[BriefOvernight] = None
 
 
+class BriefSearchHit(BaseModel):
+    """One archive-search result — a brief item or a note (docs/ideas/archive-search.md).
+
+    ``kind`` labels which, so briefs and notes can share one blended newest-first list
+    instead of splitting "where did I read that?" into a two-place search. ``date`` is what
+    makes a hit useful: it deep-links to ``/brief?date=`` — the morning the item belongs to."""
+
+    kind: str  # "item" | "note"
+    date: str  # YYYY-MM-DD — the sweep day, or the note's brief_date
+    topic_slug: str
+    topic_title: str
+    item_id: str
+    headline: str
+    snippet: str
+
+
+class BriefSearchResponse(BaseModel):
+    generated_at: str
+    query: str
+    hits: List[BriefSearchHit] = []
+    total: int = 0  # what was found, not what fit — so a capped result can say so
+    truncated: bool = False
+
+
 class BriefTopicPauseRequest(BaseModel):
     """Flip one roster topic's mute (docs/ideas/pause-topic-from-phone.md)."""
 
