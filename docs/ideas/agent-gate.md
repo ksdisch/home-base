@@ -1,6 +1,7 @@
 # The Agent Gate — Home Base as the accreditation chokepoint for every AI acting on Kyle's behalf
 
-**Status:** Idea — not committed. Added by `/replenish` (Moonshot lane) on 2026-07-26.
+**Status:** Idea — PARKED at the 2026-07-27 gate conversation; revisit after the ~08-03 v1
+check. Added by `/replenish` (Moonshot lane) on 2026-07-26.
 
 _IDENTITY-SHIFT. Home Base stops being only the app Kyle reads and becomes the single gate every other agent in his life — Claude Code crons, future email/shopping/scheduling agents — must file through. Proposals land in the existing draft-only Overnight queue tagged by source agent; Kyle's approve/discard verdicts accrue into a per-agent calibration ledger; an agent's earned track record then governs how its future proposals are framed (the untrusted-item-framing idea generalized from news items to acting agents). The whole thing reuses machinery that already exists: the Overnight queue reduce, the approve/discard resolution rows, the trust-framing surface. Nothing new gets sent — this is the inverse of the parked vault bridge: agents reach IN through the queue; Home Base still reaches out to nothing._
 
@@ -17,6 +18,24 @@ THE ONE THING THAT MUST BE TRUE: in 2-5 years of agent proliferation, the scarce
 ## Decisions / open questions
 
 (1) Trust ledger granularity — per-agent, or per-agent-per-errand-type (matching the Overnight send-gate design)? (2) Does an external proposal ever get to REQUEST a send, or is inbound strictly draft-only forever? (3) Auth for the propose endpoint beyond localhost-only (tailnet peers?).
+
+**PARKED at the 2026-07-27 gate conversation (Kyle's call, recorded outcome):**
+
+1. **Parked until after the ~08-03 v1 success-criteria check.** The check's verdict on the
+   morning habit decides whether a second author belongs in the queue; Agent Gate gets the
+   next gate-conversation slot after the verdict, if Kyle still wants it. The park is
+   scoped to Agent Gate only — the other three 07-26 moonshots (Free-Inference Rebuild,
+   The Correspondence, The Session Note) stay "Idea — not committed," each keeping its own
+   future gate conversation.
+2. **Demand-side finding (recorded so the revisit starts from it):** pressed on who would
+   actually file through a propose endpoint in the next 1–3 months, Kyle's answer was
+   "Claude Code crons/sessions — and that's enough." A real, if modest, first tenant. The
+   bet's demand side passed the pressure test; the park is about timing — the practical
+   backlog is full (10 open replenish bugs, 16 idea stubs) and the v1 check is a week out
+   — not about demand.
+3. **The three numbered open questions above remain deliberately unanswered** — they are
+   the future gate conversation's agenda, per the answers-become-recorded-scope pattern
+   the Overnight v0 gate set.
 
 ## Credible first step
 

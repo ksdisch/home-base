@@ -87,9 +87,10 @@ kanban
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
-    rep0726["Replenish 2026-07-26 —<br/>remainder: 10 of 24<br/>bugs unfixed (8 studycal<br/>in PR #152 · the audio/<br/>archive 6 in PR #153) +<br/>16 ideas (4 Moonshot ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· #1 and #3 are the<br/>highest-value remaining<br/>· awaiting wave<br/>sequencing via<br/>/backlog-hygiene"]
+    rep0726["Replenish 2026-07-26 —<br/>remainder: 10 of 24<br/>bugs unfixed (8 studycal<br/>in PR #152 · the audio/<br/>archive 6 in PR #153) +<br/>16 ideas (4 Moonshot,<br/>Agent Gate parked 07-27 ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· #1 and #3 are the<br/>highest-value remaining<br/>· awaiting wave<br/>sequencing via<br/>/backlog-hygiene"]
   decide["⏸️ Awaiting decision"]
   later["🧊 Later / parked"]
+    agentgate["Agent Gate — PARKED at<br/>its 07-27 gate<br/>conversation (D7):<br/>revisit after the<br/>~08-03 v1 check ·<br/>demand finding: Claude<br/>Code crons = a<br/>sufficient first tenant<br/>· open questions stay<br/>open for the revisit"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
@@ -306,6 +307,12 @@ glance instead of a sqlite dig._
 
 ## Parked / deferred (not scheduled — do not build without a decision)
 
+- **Agent Gate** ([ideas/agent-gate.md](ideas/agent-gate.md)): PARKED at its 2026-07-27 gate
+  conversation (decision D7) — revisit after the ~08-03 v1 check, whose verdict on the
+  morning habit decides whether a second author belongs in the Overnight queue. Demand-side
+  finding recorded for the revisit: Claude Code crons/sessions are a sufficient first
+  tenant. The vision doc's three open questions stay deliberately unanswered; the other
+  three 07-26 moonshots remain undecided with their own future gate conversations.
 - **Kickoff-deferred v1 outs**: ESPN league integration · auto-courses from news items ·
   breaking-news alerts · public writing. _(The audio brief became M4 and chat-with-the-brief
   became M5 on 2026-07-16; mobile access became M6 on 2026-07-18.)_
@@ -337,6 +344,16 @@ glance instead of a sqlite dig._
 ---
 
 ## Changelog (newest first)
+
+### 2026-07-27 — Agent Gate gate conversation: PARKED (D7, docs-only)
+
+- The first of the four 07-26 replenish moonshots got its standing gate conversation
+  (Overnight-gate model: questions answered before any code). Kyle's call: **park Agent
+  Gate until after the ~08-03 v1 check**; the other three moonshots stay undecided.
+- Demand-side finding recorded for the revisit: Claude Code crons/sessions are a
+  sufficient first tenant — the park is timing (full practical backlog, v1 check a week
+  out), not demand. The vision doc's three open questions (ledger granularity ·
+  draft-only vs send-request · propose auth) stay deliberately open as the revisit's agenda.
 
 ### 2026-07-27 — Brief archive lands + one shared audio player (PR #153)
 
