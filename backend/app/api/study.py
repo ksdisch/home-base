@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Set
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -37,7 +37,7 @@ from ..store import study_blocks
 from ..studycal.negotiate import negotiate_plan
 from ..studycal.parse import parse_preference
 from ..studycal.planner import PlanConfig, plan_sessions
-from ..studycal.port import CalendarNotConnected
+from ..studycal.port import CalendarNotConnected, Interval
 
 router = APIRouter()
 
@@ -153,6 +153,33 @@ def _incomplete_steps(notebook_id: str, raw: Dict[str, Any]) -> List[Dict[str, A
     return [s for s in raw["steps"] if not done.get(s["id"])]
 
 
+def _scheduled_step_ids(rows: Sequence[Dict[str, Any]]) -> Set[str]:
+    """Every step id covered by a live ('written') ledger block. Reads the full ``step_ids`` set —
+    a block packs several steps, and keying off the first one alone is how a revisit came to
+    re-schedule the rest of them."""
+    return {sid for r in rows for sid in (r.get("step_ids") or []) if sid}
+
+
+def _ledger_intervals(rows: Sequence[Dict[str, Any]]) -> List[Interval]:
+    """Live study blocks as busy intervals, so new placement dodges them. free/busy only reads the
+    primary calendar (a documented v0 deferral), which leaves the dedicated Study calendar invisible.
+
+    Defensive by design: a row whose times don't parse — or that predates the confirm-side
+    validation — is skipped rather than raised, and a naive datetime would blow up the planner's
+    interval comparisons, so those go too. One bad row must never 500 every future propose."""
+    out: List[Interval] = []
+    for r in rows:
+        try:
+            start = datetime.fromisoformat(str(r.get("start_at")))
+            end = datetime.fromisoformat(str(r.get("end_at")))
+        except (TypeError, ValueError):
+            continue
+        if start.tzinfo is None or end.tzinfo is None or end <= start:
+            continue
+        out.append((start.astimezone(_TZ), end.astimezone(_TZ)))
+    return out
+
+
 def _connected(port: Any) -> bool:
     try:
         return bool(port.is_connected())
@@ -238,7 +265,12 @@ def propose(
     can read it, the plan is unchanged and an honest message is returned (never a silent no-op)."""
     raw = _load_path_or_404(notebook_id)
     opt = study_blocks.get_study_opt_in(TRACK_KIND, notebook_id)
-    steps = _incomplete_steps(notebook_id, raw)
+    # Steps with a live block are already on the calendar; re-planning them is how a second visit
+    # (or a double-tap, or a retry after a timeout) wrote a whole duplicate event set.
+    live_rows = study_blocks.list_study_blocks(TRACK_KIND, notebook_id)
+    already = _scheduled_step_ids(live_rows)
+    steps = [s for s in _incomplete_steps(notebook_id, raw) if s["id"] not in already]
+    already_ids = [s["id"] for s in _incomplete_steps(notebook_id, raw) if s["id"] in already]
 
     def _pref(key: str, default: int) -> int:
         v = opt.get(key)
@@ -333,6 +365,7 @@ def propose(
             connected=False,
             session_minutes=config.session_minutes,
             unscheduled_step_ids=unscheduled,
+            already_scheduled_step_ids=already_ids,
             message=message,
             error=negotiate_error,
             applied=applied,
@@ -348,12 +381,26 @@ def propose(
             connected=False,
             session_minutes=config.session_minutes,
             unscheduled_step_ids=unscheduled,
+            already_scheduled_step_ids=already_ids,
             message=message,
+            error=negotiate_error,
             applied=applied,
         )
 
     events = _busy_events(port, now, horizon)  # titled, for flagging + double-book annotation
-    plan = plan_sessions(steps, busy=busy, now=now, config=config, ignore_busy=body.allow_double_book)
+    # Live study blocks are pinned busy even in double-book mode: studying through someone else's
+    # meeting is the point of that mode; stacking a block on your own study time never is.
+    plan = plan_sessions(
+        steps,
+        busy=busy,
+        now=now,
+        config=config,
+        ignore_busy=body.allow_double_book,
+        always_busy=_ledger_intervals(live_rows),
+    )
+    if already_ids and not steps:
+        # Don't hand back an empty plan with no explanation — say why there's nothing to do.
+        message = message or "Every remaining step is already on your calendar."
 
     if body.allow_double_book:
         # Placed over free/busy: annotate each block with what it double-books (⚠), no conflict flag.
@@ -374,6 +421,7 @@ def propose(
         session_minutes=config.session_minutes,
         blocks=blocks,
         unscheduled_step_ids=plan["unscheduled_step_ids"],
+        already_scheduled_step_ids=already_ids,
         message=message,
         error=negotiate_error,
         applied=applied,
@@ -435,13 +483,24 @@ def confirm(
         )
     _validate_block_times(body.blocks)
 
+    # Skip blocks whose steps already have a live block, so a double-tap or a retry-after-timeout
+    # can't write a second copy. Skip-and-continue rather than reject-the-batch: resubmitting the
+    # whole set is exactly how a partially-written confirm gets finished.
+    already = _scheduled_step_ids(study_blocks.list_study_blocks(TRACK_KIND, notebook_id))
+    pending = [b for b in body.blocks if not (already & set(b.step_ids))]
+    if not pending:
+        raise HTTPException(
+            status_code=409,
+            detail="Those steps are already on your calendar — remove the existing blocks first.",
+        )
+
     try:
         calendar_id = port.ensure_study_calendar()
     except CalendarNotConnected as e:
         raise HTTPException(status_code=409, detail=str(e))
 
-    total, written = len(body.blocks), 0
-    for b in body.blocks:
+    total, written = len(pending), 0
+    for b in pending:
         event = {
             "summary": f"📚 {b.title}".strip(),
             "description": _describe(b),

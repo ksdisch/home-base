@@ -150,5 +150,7 @@ shows the reply)**. v1 migration verified to heal a pre-v12 store.
 ## Not in v0 (future)
 
 Recurring/unattended maintenance · completion-reclaim (block ↔ actual step completion) · Courses
-parity (the engine is shared — a `track_kind='course'` away) · scheduling against the Study
-calendar's own events in free/busy (v0 reads `primary` only) · scaling past the bundled fixture.
+parity (the engine is shared — a `track_kind='course'` away) · reading the Study calendar itself in
+free/busy (still `primary` only — but placement now merges *this path's own* live ledger blocks as
+busy, so the self-double-booking case that mattered is covered; blocks written for a **different**
+path remain invisible) · scaling past the bundled fixture.

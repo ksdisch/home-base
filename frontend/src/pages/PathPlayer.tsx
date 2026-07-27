@@ -1037,6 +1037,14 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
                   schedule next time.
                 </p>
               )}
+              {(proposal.already_scheduled_step_ids?.length ?? 0) > 0 && (
+                <p className="mt-2 text-xs text-muted">
+                  {proposal.already_scheduled_step_ids!.length} step
+                  {proposal.already_scheduled_step_ids!.length === 1 ? " is" : "s are"} already on your
+                  calendar and left out here — remove the block below to re-plan{" "}
+                  {proposal.already_scheduled_step_ids!.length === 1 ? "it" : "them"}.
+                </p>
+              )}
               {kept > 0 && (
                 <button
                   onClick={confirm}

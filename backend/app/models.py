@@ -1219,13 +1219,16 @@ class StudyProposal(BaseModel):
     """The proposed set of blocks (read-only against the calendar — writes no events). ``connected``
     ``=False`` means the calendar isn't wired yet (honest 'connect' state, never a 500); ``message``
     is the optional negotiation line; ``unscheduled_step_ids`` are steps that didn't fit the window;
-    ``applied`` echoes the effective knobs so the UI can reflect them."""
+    ``already_scheduled_step_ids`` are steps deliberately left out because a live ledger block
+    already covers them (so a revisit can't duplicate them); ``applied`` echoes the effective knobs
+    so the UI can reflect them."""
 
     ok: bool
     connected: bool
     session_minutes: int
     blocks: List[ProposedBlock] = []
     unscheduled_step_ids: List[str] = []
+    already_scheduled_step_ids: List[str] = []
     message: Optional[str] = None
     error: Optional[str] = None
     applied: Optional[AppliedPlan] = None

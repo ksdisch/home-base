@@ -725,6 +725,7 @@ export interface StudyProposal {
   session_minutes: number;
   blocks: ProposedBlock[];
   unscheduled_step_ids: string[];
+  already_scheduled_step_ids?: string[]; // steps left out because a live block already covers them
   message?: string | null;
   error?: string | null;
   applied?: AppliedPlan | null;

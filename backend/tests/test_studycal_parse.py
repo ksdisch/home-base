@@ -50,6 +50,36 @@ def test_exclusions_refine_current_days() -> None:
     assert parse_preference("except Friday", current_days=[0, 1, 2, 3, 4])["days_of_week"] == [0, 1, 2, 3]
 
 
+def test_multi_day_exclusions_exclude_every_named_day() -> None:
+    # An exclusion listing several days used to consume only the FIRST one; the leftover tail was
+    # then re-read as a positive pick, so the plan landed exclusively on a day Kyle ruled out.
+    assert parse_preference("not Mondays or Fridays", [0, 1, 2, 3, 4])["days_of_week"] == [1, 2, 3]
+    assert parse_preference("except Saturdays and Sundays", None)["days_of_week"] == [0, 1, 2, 3, 4]
+    assert parse_preference("not mon, wed, or fri", [0, 1, 2, 3, 4])["days_of_week"] == [1, 3]
+    assert parse_preference("skip Tue/Thu", [0, 1, 2, 3, 4])["days_of_week"] == [0, 2, 4]
+    assert parse_preference("no weekends nor mondays", None)["days_of_week"] == [1, 2, 3, 4]
+
+
+def test_a_multi_day_exclusion_does_not_swallow_the_rest_of_the_note() -> None:
+    # The exclusion span must end at the day list — "mornings" still has to reach the window pass.
+    assert parse_preference("no saturday or sunday mornings", None) == {
+        "days_of_week": [0, 1, 2, 3, 4],
+        "day_start_hour": 8,
+        "day_end_hour": 12,
+    }
+    # A trailing non-day word after a connector must not be eaten either.
+    assert parse_preference("except Friday orientation", [0, 1, 2, 3, 4])["days_of_week"] == [0, 1, 2, 3]
+
+
+def test_exclusion_trigger_words_do_not_misfire_on_time_phrases() -> None:
+    # "no"/"not" also open the window triggers ("no earlier than", "not before") — widening the day
+    # regex must not start eating those.
+    assert parse_preference("no earlier than 2:00 p.m.", None) == {"day_start_hour": 14}
+    assert parse_preference("no later than 5 p.m.", None) == {"day_end_hour": 17}
+    assert parse_preference("no more than 2 blocks", None) == {"max_blocks": 2}
+    assert "days_of_week" not in parse_preference("not before 2pm", None)
+
+
 # -- time-of-day window --------------------------------------------------------
 
 def test_before_and_after() -> None:
@@ -63,6 +93,16 @@ def test_ranges() -> None:
     assert parse_preference("between 2 and 5pm", None) == {"day_start_hour": 14, "day_end_hour": 17}
     assert parse_preference("2-5pm", None) == {"day_start_hour": 14, "day_end_hour": 17}
     assert parse_preference("9am to 11am", None) == {"day_start_hour": 9, "day_end_hour": 11}
+
+
+def test_a_shared_meridiem_range_reads_the_first_number_as_am() -> None:
+    # "9 to 5pm" is the commonest English range there is. Borrowing the pm from the second time
+    # gave 21:00-17:00, which the API then "repaired" into a single hour at 9 PM and persisted.
+    assert parse_preference("9 to 5pm", None) == {"day_start_hour": 9, "day_end_hour": 17}
+    assert parse_preference("11 to 2pm", None) == {"day_start_hour": 11, "day_end_hour": 14}
+    assert parse_preference("between 9 and 5 pm", None) == {"day_start_hour": 9, "day_end_hour": 17}
+    # Where borrowing the meridiem DOES yield a sane window, it still wins ("2 to 5pm" is 2 PM).
+    assert parse_preference("2 to 5pm", None) == {"day_start_hour": 14, "day_end_hour": 17}
 
 
 def test_named_windows() -> None:

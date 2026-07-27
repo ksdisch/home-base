@@ -6,10 +6,12 @@ property is deterministic to assert:
 1. **Pack** the path's incomplete steps, in order, into sessions capped at ``session_minutes`` — a
    step is never split across two blocks, an over-long single step gets its own (longer) block, and
    micro-glue (intro/reflect/recap) rides along in the current session rather than opening its own.
-2. **Place** each session-length block in the earliest free slot inside a daily study window,
-   skipping ``busy`` intervals, never scheduling in the past, one block per day by default so
-   sessions spread out (spacing beats cramming). Blocks that don't fit the window are reported as
-   ``unscheduled_step_ids`` rather than dropped silently.
+2. **Place** each session-length block in the earliest free slot **at or after the previously
+   placed block** inside a daily study window, skipping ``busy`` intervals, never scheduling in the
+   past, one block per day by default so sessions spread out (spacing beats cramming). Placement is
+   monotonic because the curriculum is ordered — a later session may never land before an earlier
+   one, even when it would fit an earlier gap. The cost is honest: a tight window surfaces more
+   ``unscheduled_step_ids`` rather than quietly scheduling the path out of order.
 
 Times are computed in ``America/Chicago`` (Kyle is CT) as timezone-aware datetimes and serialized
 RFC3339-with-offset, so the summer/winter offset (-05:00 / -06:00) is correct without special-casing.
@@ -120,6 +122,7 @@ def plan_sessions(
     now: datetime,
     config: PlanConfig,
     ignore_busy: bool = False,
+    always_busy: Sequence[Interval] = (),
 ) -> Dict[str, Any]:
     """Propose calendar blocks for a path's incomplete ``steps`` against ``busy`` free/busy, as of
     ``now`` (both tz-aware). Writes nothing — pure planning. Returns ``blocks`` (chronological) +
@@ -128,7 +131,10 @@ def plan_sessions(
     ``ignore_busy=True`` is the deliberate **double-book** mode: placement ignores ``busy`` entirely
     (a block lands at the earliest window start regardless of existing events), for the "someone put
     stuff on my calendar but I can study through it" case. Everything else — the day window,
-    ``days_of_week``, one-per-day, never-in-the-past — still holds; the caller flags the overlaps."""
+    ``days_of_week``, one-per-day, never-in-the-past, curriculum order — still holds; the caller
+    flags the overlaps. ``always_busy`` is honoured even then — it carries the study blocks this
+    path has *already written*, and "study through a meeting" should never mean "book myself twice
+    over my own study block"."""
     tz = ZoneInfo(config.tz)
     now = now.astimezone(tz)
     base_date = _local_window(now, config.day_start_hour)  # today's window start (tz-aware anchor)
@@ -139,6 +145,11 @@ def plan_sessions(
     unscheduled: List[str] = []
     placed_by_day: Dict[int, List[Interval]] = {}
     count_by_day: Dict[int, int] = {}
+    # Placement is monotonic: a session may never land before the one it follows in the curriculum.
+    # ``min_day`` bounds the day search and ``floor`` the time-of-day within a day; both advance
+    # only on a successful placement, so an unplaceable session doesn't drag the rest forward.
+    min_day = 0
+    floor: Optional[datetime] = None
 
     for session in sessions:
         session_ids = [s["id"] for s in session]
@@ -150,24 +161,28 @@ def plan_sessions(
         need = timedelta(minutes=block_len)
 
         placed: Optional[datetime] = None
-        for d in range(config.window_days):
+        placed_day: Optional[int] = None
+        for d in range(min_day, config.window_days):
             if count_by_day.get(d, 0) >= config.max_per_day:
                 continue
             win_start = base_date + timedelta(days=d)
             if config.days_of_week is not None and win_start.weekday() not in config.days_of_week:
                 continue  # this weekday isn't allowed (e.g. weekends when the learner asked for weekdays)
             win_end = _local_window(win_start, config.day_end_hour)
-            eff_start = max(win_start, now)
+            eff_start = max(win_start, now) if floor is None else max(win_start, now, floor)
             if win_end <= eff_start:
                 continue
-            external = [] if ignore_busy else [iv for iv in busy if iv[1] > eff_start and iv[0] < win_end]
+            pinned = [iv for iv in always_busy if iv[1] > eff_start and iv[0] < win_end]
+            external = pinned if ignore_busy else (
+                pinned + [iv for iv in busy if iv[1] > eff_start and iv[0] < win_end]
+            )
             occ = sorted(external + placed_by_day.get(d, []))
             slot = _earliest_slot(eff_start, win_end, occ, need)
             if slot is not None:
                 # A slot snapped to a busy-interval boundary inherits that interval's tz (Google
                 # free/busy comes back in UTC); normalize to CT so every block serializes with the
                 # CT offset — same instant, consistent -05:00/-06:00.
-                placed = slot.astimezone(tz)
+                placed, placed_day = slot.astimezone(tz), d
                 placed_by_day.setdefault(d, []).append((placed, placed + need))
                 count_by_day[d] = count_by_day.get(d, 0) + 1
                 break
@@ -176,6 +191,7 @@ def plan_sessions(
             unscheduled.extend(session_ids)
         else:
             blocks.append(_block(session, placed, placed + need, block_len))
+            min_day, floor = placed_day or 0, placed + need
 
     return {
         "session_minutes": config.session_minutes,

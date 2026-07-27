@@ -281,6 +281,105 @@ def test_confirm_rejects_block_times_that_are_not_tz_aware_iso(env):
         _teardown(app)
 
 
+# -- a second visit must not duplicate what's already on the calendar ---------------------------
+
+
+def test_re_proposing_after_a_confirm_does_not_re_schedule_written_steps(env):
+    port = _fake(feed_back=True)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        first = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": first["blocks"]})
+        written_events = len(port.events())
+
+        again = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        # An innocent revisit re-proposed the identical plan, and confirming it wrote a full
+        # duplicate event set. Steps already on the calendar are reported, not re-planned.
+        scheduled = [sid for b in first["blocks"] for sid in b["step_ids"]]
+        assert sorted(again["already_scheduled_step_ids"]) == sorted(scheduled)
+        assert again["blocks"] == []
+        assert again["message"] and "already" in again["message"].lower()
+
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": again["blocks"]})
+        assert len(port.events()) == written_events  # nothing new written
+    finally:
+        _teardown(app)
+
+
+def test_confirm_skips_blocks_whose_steps_are_already_on_the_calendar(env):
+    port = _fake(feed_back=True)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+        n = len(port.events())
+
+        # A double-tap / retry-after-timeout replays the same reviewed batch verbatim.
+        r = client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+        assert r.status_code == 409
+        assert len(port.events()) == n  # not one duplicate event
+    finally:
+        _teardown(app)
+
+
+def test_a_partial_retry_writes_only_the_blocks_that_are_missing(env):
+    port = _fake(feed_back=True)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        blocks = proposal["blocks"]
+        assert len(blocks) >= 2
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": blocks[:1]})
+
+        # Resubmitting the whole batch after a partial write must complete it, not 409 the lot —
+        # this is exactly the recovery path a mid-batch failure leaves behind.
+        state = client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": blocks}).json()
+        assert len(state["blocks"]) == len(blocks)
+        assert len(port.events()) == len(blocks)
+    finally:
+        _teardown(app)
+
+
+def test_new_blocks_dodge_the_study_blocks_already_written(env):
+    port = _fake(feed_back=True)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        first = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={"max_blocks": 1}).json()
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": first["blocks"]})
+        taken = {(b["start"], b["end"]) for b in first["blocks"]}
+
+        again = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        # free/busy only reads the primary calendar, so without merging the ledger the planner
+        # would cheerfully book the learner on top of their own study block.
+        assert again["blocks"]
+        assert not any((b["start"], b["end"]) in taken for b in again["blocks"])
+    finally:
+        _teardown(app)
+
+
+def test_a_ledger_row_with_unparseable_times_cannot_break_a_later_propose(env):
+    port = _fake()
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        from app.store import study_blocks
+
+        study_blocks.add_study_blocks(
+            "path",
+            JACOBIAN,
+            [{"step_id": "ghost", "step_ids": ["ghost"], "calendar_id": "c", "event_id": "e",
+              "title": "t", "start_at": "not-a-time", "end_at": "also-not"}],
+        )
+        # Rows predating the confirm-side validation must degrade, not 500 a propose forever.
+        assert client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).status_code == 200
+    finally:
+        _teardown(app)
+
+
 # -- the 7-day testing-mode consent leash, surfaced before it bites ------------------------------
 
 
