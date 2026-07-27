@@ -264,6 +264,30 @@ def test_chapters_json_written_with_word_offset_starts(tmp_path):
     assert not list((sweeps / "2026-07-15").glob("*.tmp"))  # atomic like the mp3
 
 
+def test_pipeline_artifacts_are_never_narrated_as_topics(tmp_path):
+    """Bug #1's audio lane: load_topics built its slug set from every *.json in the day
+    folder — including the brief.chapters.json this very script writes there.
+
+    Today that file is a JSON *list*, so the ``data["top_line"]`` read raises and the
+    artifact is skipped by accident of shape. A dict-shaped one removes the accident: the
+    guard has to be the dotted stem (as sweeps/actions_queue.py already reads it), or the
+    narration can open a segment for a file that is not a topic.
+    """
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={
+            "ai-llms.json": _brief("One release worth your time.", "OpenAI lifts caps"),
+            "brief.chapters.json": json.dumps(
+                {"top_line": "Chapter offsets, read aloud.", "items": []}
+            ),
+        },
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "Chapter offsets" not in r.stdout
+    assert "across 1 topics" in r.stderr
+
+
 def test_print_script_writes_no_chapters(tmp_path):
     sweeps, roster_file = _setup(tmp_path, files={"ai-llms.json": _brief("Line.", "Headline")})
     r = _run(sweeps, roster_file, "--print-script")

@@ -338,6 +338,25 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The phantom "Brief.chapters" topic card is gone (PR #154)
+
+- **Bug #1, live on every audio morning since FR4.** `brief.chapters.json` sits in the day
+  folder beside the topic files, so every place that read that folder as "the list of topics"
+  swept it up as a topic named `brief.chapters`. It has no `top_line`, so it failed validation
+  and rendered as a fallback card wearing the **"this topic's sweep didn't validate"** banner —
+  a fake topic reporting a fake sweep failure on the flagship page. Reproduced against the real
+  07-25 and 07-26 sweep dirs.
+- **One rule, four call sites.** A roster slug never contains a dot, so `_is_topic_stem` is the
+  whole fix — applied in `load_brief_topics`, `build_calibration`'s per-day slug listing,
+  `_has_renderable_content`, and `sweeps/audio_brief.load_topics`. This is the guard
+  `sweeps/actions_queue.py` already carried; the other four never got it.
+- **Two of the four were only accidentally safe.** The grading and narration lanes bail on the
+  artifact because it happens to be a JSON *list*, not because they exclude it — so those tests
+  write a **dict-shaped** `brief.chapters.json` to take the accident away. Without the fix the
+  narration literally speaks "Now, brief chapters." and the grader files a ledger row under
+  slug `brief.chapters`. Also fixed: a day folder holding only pipeline artifacts no longer
+  counts as a renderable morning, which would have hidden the last complete brief.
+
 ### 2026-07-27 — Brief archive lands + one shared audio player (PR #153)
 
 - The in-flight `feat/brief-archive-nav` (archive entry point + index page; audio on archived
