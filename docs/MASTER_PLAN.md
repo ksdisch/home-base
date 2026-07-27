@@ -360,6 +360,20 @@ glance instead of a sqlite dig._
   what makes a correction count. Corrections run **both directions** (a resweep that lands the
   story and one that drops it), so this can't be a one-way upgrade that only flatters the grader.
 - `sweeps/render_brief.py` untouched — the renderer stays frozen.
+### 2026-07-27 — News fan-out goes concurrent (replenish small-wins 1/9)
+
+- The 15-minute news TTL guarantees a cold cache at 06:15, so the morning's first News tap
+  paid for every feed serially — 11 categories plus up to 3 profile search feeds, each a
+  10s-timeout fetch. `get_news_foryou` now fans the whole candidate pool out through one
+  `ThreadPoolExecutor(max_workers=6)`; wall time is the slowest feed, not the sum.
+- `app.news.fetch_feeds()` parallelizes a category's *own* feeds too — without it the
+  four-feed Uplifting category would just become the critical path of the fan-out it sits
+  inside, and the per-category route (a plain News tab tap) would keep paying the sum.
+- Semantics deliberately unchanged: results are drained in source/feed order, so the
+  ranker's candidate pool and the first-feed-wins dedupe are identical to the serial
+  version, and a dead feed is still skipped rather than fatal. New `test_news_parallel.py`
+  proves the concurrency with a peak-in-flight counter plus a wall-clock bound; all
+  existing fake-fetcher tests pass unchanged. Backend 793→795.
 
 ### 2026-07-27 — Video overviews stop parsing as audio (PR #156)
 
