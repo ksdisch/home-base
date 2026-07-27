@@ -1,6 +1,12 @@
 # Re-gradeable calibration ledger: a resweep can't freeze a wrong self-grade forever
 
-**Status:** Idea — not committed. Added by `/replenish` (Harden lane) on 2026-07-26.
+**Status:** ✅ **Shipped 2026-07-27 (PR #158)**, together with bug-hunt report #9 — one PR, as
+open question (3) proposed. Recompute window = `_DEDUP_LOOKBACK_DAYS` (question 1: the existing
+`_readiness_history_dates` walk, not a tighter same-day one — a re-grade should follow the same
+horizon the grading itself uses). Question (2), visibly marking a revised grade in the
+"Yesterday's calls" strip, was deliberately left out of scope: the row carries
+`revises_resolved_at`, so the UI can surface it later without another data change.
+Added by `/replenish` (Harden lane) on 2026-07-26.
 
 _Harden lane; bug-hunt independently verified a second defect in the same ledger (report #9, concurrent-append duplicates) — treat as one calibration-integrity theme._
 

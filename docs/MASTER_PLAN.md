@@ -355,6 +355,40 @@ glance instead of a sqlite dig._
   out), not demand. The vision doc's three open questions (ledger granularity ·
   draft-only vs send-request · propose auth) stay deliberately open as the revisit's agenda.
 
+### 2026-07-27 — A fresh page opens at its top (replenish small-wins 2/9)
+
+- React Router neither restores nor resets window scroll across a route swap, so every page
+  inherited the previous one's offset: finish a long Today read down at the habit strip, tap
+  Notes, and Notes opened pre-scrolled past its own header and filters. The highest-frequency
+  papercut in the app — it fired on almost every tab tap.
+- A 7-line `ScrollReset` inside `AppChrome` scrolls to top on every pathname change except
+  `/news`, which restores its own saved offset once the feed is back (F1) and would fight a
+  reset with a top-flash. No new per-page scroll memory — only the default for a fresh page.
+- Three tests pin it: a fresh page opens at the top, `/news` is untouched, and the reset fires
+  again on the way back OUT of News. Frontend 216→219.
+
+### 2026-07-27 — Calibration integrity: write-once and re-gradeable (PR #158)
+
+- **Two holes in one file, shipped together** — report **#9** and the Harden idea
+  [re-gradeable calibration ledger](ideas/regradeable-calibration-ledger.md) — because both turn
+  on `_read_ledger`'s semantics. The **~08-19 re-grade** rides on these numbers, so either one
+  left open would have poisoned the verdict that decides whether the strip drops its trial label.
+- **#9 — the append wasn't once.** `build_calibration` is check-then-act (read ledger → grade →
+  append) with no synchronization, on FastAPI's threadpool. The realistic phone+Mac ~06:00
+  double-load had both serves read an unwritten ledger and both append the same wagers, and
+  nothing dedupes on read. Now: one module-level lock over the whole critical section with the
+  ledger re-read inside it, plus a last-per-key collapse on read that also **heals duplicates
+  already on disk**. The two-thread test is deterministic — 5/5 fail with the lock removed.
+- **Harden — a graded call was frozen forever.** `if key in graded: continue` was written before
+  resweep-from-the-phone existed. That feature rewrites the comparator day's files *hours after*
+  the morning grade, so a call graded MISS at 06:00 stayed a miss even when the 08:00 resweep
+  carried the story. Calls are now re-checked against the files as they read **now**, with a
+  superseding `revises_resolved_at` row appended **only on an actual outcome flip** — so
+  re-checking every serve costs the ledger nothing when nothing moved.
+- **Append-only stayed append-only.** Nothing on disk is ever rewritten; the collapse on read is
+  what makes a correction count. Corrections run **both directions** (a resweep that lands the
+  story and one that drops it), so this can't be a one-way upgrade that only flatters the grader.
+- `sweeps/render_brief.py` untouched — the renderer stays frozen.
 ### 2026-07-27 — News fan-out goes concurrent (replenish small-wins 1/9)
 
 - The 15-minute news TTL guarantees a cold cache at 06:15, so the morning's first News tap
