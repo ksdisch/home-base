@@ -1,6 +1,6 @@
 # Re-gradeable calibration ledger: a resweep can't freeze a wrong self-grade forever
 
-**Status:** ✅ **Shipped 2026-07-27 (PR #157)**, together with bug-hunt report #9 — one PR, as
+**Status:** ✅ **Shipped 2026-07-27 (PR #158)**, together with bug-hunt report #9 — one PR, as
 open question (3) proposed. Recompute window = `_DEDUP_LOOKBACK_DAYS` (question 1: the existing
 `_readiness_history_dates` walk, not a tighter same-day one — a re-grade should follow the same
 horizon the grading itself uses). Question (2), visibly marking a revised grade in the

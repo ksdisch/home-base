@@ -338,7 +338,7 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
-### 2026-07-27 — Calibration integrity: write-once and re-gradeable (PR #157)
+### 2026-07-27 — Calibration integrity: write-once and re-gradeable (PR #158)
 
 - **Two holes in one file, shipped together** — report **#9** and the Harden idea
   [re-gradeable calibration ledger](ideas/regradeable-calibration-ledger.md) — because both turn
