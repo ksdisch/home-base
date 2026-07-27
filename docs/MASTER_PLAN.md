@@ -354,6 +354,25 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The 06:00 sweep waits for Wi-Fi (replenish small-wins 4/9)
+
+- The wake-before-network race, and the failure mode of the unattended pipeline's whole reason
+  to exist. The pmset wake starts `run-scheduled.sh` in the seconds before Wi-Fi
+  re-associates; every topic's `claude` call fails, and because the scheduled fire technically
+  *happened*, launchd's missed-time on-wake re-fire never triggers — so the brief stays empty
+  until Kyle sweeps by hand, on exactly the sleep-wake mornings it's most needed.
+- A `wait_for_network` preflight now sits between the `command -v claude` check and
+  `./sweep.sh`: `curl -s -m 3` every 5s for up to 90s, ticks to the existing dated log, then
+  **exit 69 before `sweep.sh` is ever invoked**. Aborting *before* the sweep is the load-bearing
+  part — no topic state is written, so `SWEEP_SKIP_DONE=1` lets the next wake (or a
+  phone-triggered sweep) finish the day. Cap, interval, and probe URL are env-overridable.
+- The probe is HTTPS on purpose: a captive portal can answer a plain `http://` GET with its own
+  200 and look like the internet, but it cannot complete someone else's TLS handshake. No
+  `--fail`, so any real reply proves reachability.
+- Pure shell, per the idea doc's scope — no Python, no plist change, no retry logic inside the
+  sweep. Five sandboxed tests plus a real-`curl` check of both paths. Backend 839→844.
+  Outstanding: Kyle's live Wi-Fi-off pass on the Mac.
+
 ### 2026-07-27 — Agent Gate gate conversation: PARKED (D7, docs-only)
 
 - The first of the four 07-26 replenish moonshots got its standing gate conversation
@@ -398,7 +417,6 @@ over-counts rather than under-counts._
   stable numbers. (The two `test_brief_unreadable_*` failures seen locally are the known
   uid-0 container artifact — `chmod(0o000)` is a no-op for root; they fail identically on a
   clean `origin/main` and are green in CI.)
-
 
 ### 2026-07-27 — The store snapshot stops rotating itself away (replenish small-wins 3/9)
 
