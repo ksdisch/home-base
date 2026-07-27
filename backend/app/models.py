@@ -1121,6 +1121,10 @@ class NewsItem(BaseModel):
     url: str
     source: Optional[str] = None
     published_at: Optional[str] = None  # UTC ISO 8601; None when the feed omitted it
+    # Read-dimming: this item has a `click` in news_events within the lookback window, so
+    # the card renders muted. The anchor is custom-styled, so the browser's native :visited
+    # never fires — without this a story opened at 06:45 returns identical at lunch.
+    clicked: bool = False
 
 
 class NewsCategory(BaseModel):

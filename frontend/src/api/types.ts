@@ -1095,6 +1095,11 @@ export interface NewsItem {
   url: string; // a Google News redirect link — opens the original article
   source?: string | null;
   published_at?: string | null; // UTC ISO 8601; null when the feed omitted it
+  // Read-dimming: this item has a `click` in news_events within the lookback window, so
+  // the card renders muted. The headline anchor is custom-styled, so the browser's native
+  // :visited never fires — without this a story opened at 06:45 returns identical at lunch.
+  // Optional so a pre-dimming SW-cached payload stays valid.
+  clicked?: boolean;
 }
 
 export interface NewsCategory {

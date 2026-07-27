@@ -152,6 +152,13 @@ export default function News() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [scrollY]);
 
+  // Read-dimming (docs/ideas/news-read-dimming.md): the server stamps `clicked` from the
+  // news_events log it already keeps, and `opened` covers the taps made since this feed was
+  // fetched — the server stamp can't know about those until the next request, and the
+  // return visit two seconds later is exactly the case this exists for.
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const isRead = (item: FeedItem) => Boolean(item.clicked) || opened.has(item.id);
+
   // Same origin-crediting rule as signal(): a For You item's note lands under the
   // section it actually came from, not the synthetic "foryou" tab.
   const saveNote = (item: FeedItem) => {
@@ -363,12 +370,23 @@ export default function News() {
                   href={item.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  onClick={() => signal("click", item)}
-                  className={`mt-1 block py-0.5 font-semibold text-ink transition hover:text-accent ${
-                    isLead ? "text-lede" : ""
-                  }`}
+                  onClick={() => {
+                    signal("click", item);
+                    // Dim on the spot. The server stamp only arrives on the next fetch,
+                    // and the whole point is the return visit — including the one two
+                    // seconds from now when the tab comes back.
+                    setOpened((prev) => new Set(prev).add(item.id));
+                  }}
+                  className={`mt-1 block py-0.5 font-semibold transition hover:text-accent ${
+                    isRead(item) ? "text-muted" : "text-ink"
+                  } ${isLead ? "text-lede" : ""}`}
                 >
                   {item.headline}
+                  {isRead(item) && (
+                    <span className="ml-1 text-muted" title="You already opened this one">
+                      ✓
+                    </span>
+                  )}
                   <span aria-hidden="true" className="ml-1 text-muted">
                     ↗
                   </span>
