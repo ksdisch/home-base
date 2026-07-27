@@ -374,7 +374,7 @@ over-counts rather than under-counts._
   carrying no attribution at all: `(0 on your phone)` there would be a fabricated accusation
   rather than a measurement. Once the window *is* attributed, a genuine 0 is shown loudly —
   that's the fade this exists to catch.
-- Backend 795 → **831 passed** (+36, `test_visit_source.py`) · frontend 216 → **220**
+- Backend 800 → **836 passed** (+36, `test_visit_source.py`) · frontend 216 → **220**
   (+4 HabitStrip) · ruff/tsc/build green. (The two `test_brief_unreadable_*` failures seen
   locally are the known uid-0 container artifact — `chmod(0o000)` is a no-op for root; they
   fail identically on a clean `origin/main` and pass in CI.)
