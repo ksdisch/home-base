@@ -338,6 +338,28 @@ glance instead of a sqlite dig._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — Calibration integrity: write-once and re-gradeable (PR #158)
+
+- **Two holes in one file, shipped together** — report **#9** and the Harden idea
+  [re-gradeable calibration ledger](ideas/regradeable-calibration-ledger.md) — because both turn
+  on `_read_ledger`'s semantics. The **~08-19 re-grade** rides on these numbers, so either one
+  left open would have poisoned the verdict that decides whether the strip drops its trial label.
+- **#9 — the append wasn't once.** `build_calibration` is check-then-act (read ledger → grade →
+  append) with no synchronization, on FastAPI's threadpool. The realistic phone+Mac ~06:00
+  double-load had both serves read an unwritten ledger and both append the same wagers, and
+  nothing dedupes on read. Now: one module-level lock over the whole critical section with the
+  ledger re-read inside it, plus a last-per-key collapse on read that also **heals duplicates
+  already on disk**. The two-thread test is deterministic — 5/5 fail with the lock removed.
+- **Harden — a graded call was frozen forever.** `if key in graded: continue` was written before
+  resweep-from-the-phone existed. That feature rewrites the comparator day's files *hours after*
+  the morning grade, so a call graded MISS at 06:00 stayed a miss even when the 08:00 resweep
+  carried the story. Calls are now re-checked against the files as they read **now**, with a
+  superseding `revises_resolved_at` row appended **only on an actual outcome flip** — so
+  re-checking every serve costs the ledger nothing when nothing moved.
+- **Append-only stayed append-only.** Nothing on disk is ever rewritten; the collapse on read is
+  what makes a correction count. Corrections run **both directions** (a resweep that lands the
+  story and one that drops it), so this can't be a one-way upgrade that only flatters the grader.
+- `sweeps/render_brief.py` untouched — the renderer stays frozen.
 ### 2026-07-27 — News fan-out goes concurrent (replenish small-wins 1/9)
 
 - The 15-minute news TTL guarantees a cold cache at 06:15, so the morning's first News tap

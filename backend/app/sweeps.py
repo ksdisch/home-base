@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import threading
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -447,9 +448,28 @@ def build_readiness(
 _CALIBRATION_TRIAL_DAYS = 7
 
 
+# Grading is a check-then-act (read the ledger → decide → append) and sync FastAPI
+# endpoints run on a threadpool, so the realistic phone+Mac ~06:00 double-load had both
+# serves read an unwritten ledger and both append the same wagers. One process-wide lock
+# over the whole critical section; the ledger is re-read inside it (bug #9).
+_CALIBRATION_LOCK = threading.Lock()
+
+
+def _ledger_key(row: Dict[str, Any]) -> tuple:
+    """A resolution's identity: which morning's call this row grades."""
+    return (row["day"], row["slug"], row["headline"])
+
+
 def _read_ledger(ledger_path: Path) -> List[Dict[str, Any]]:
-    """Every well-formed row in calibration.jsonl, in file order — a junk line is
-    skipped, never fatal, and the file not existing yet is just an empty record."""
+    """The effective record: one row per (day, slug, headline), LAST occurrence winning.
+
+    A junk line is skipped, never fatal, and the file not existing yet is just an empty
+    record. The collapse does two jobs at once. It heals duplicates a pre-lock race
+    already wrote — resolved/hits sum raw rows, so a duplicate would skew the record
+    permanently. And it is what makes a *supersede-by-append* correction take effect
+    (docs/ideas/regradeable-calibration-ledger.md): calibration.jsonl stays append-only
+    and immutable on disk, while the newest grade of a call is the one that counts.
+    """
     try:
         text = ledger_path.read_text(encoding="utf-8")
     except OSError:
@@ -475,7 +495,11 @@ def _read_ledger(ledger_path: Path) -> List[Dict[str, Any]]:
             and isinstance(row.get("outcome"), bool)
         ):
             rows.append(row)
-    return rows
+    # Last-per-key, but held in first-appearance order so the record reads chronologically.
+    collapsed: Dict[tuple, Dict[str, Any]] = {}
+    for row in rows:
+        collapsed[_ledger_key(row)] = row
+    return list(collapsed.values())
 
 
 def _topic_day_items(sweeps_dir: Path, day: str, slug: str) -> Optional[List[Dict[str, Any]]]:
@@ -514,67 +538,81 @@ def build_calibration(
     confidence+outcome (never trusting stored derived bytes) and keeps ``trial`` true
     below ``_CALIBRATION_TRIAL_DAYS`` distinct graded mornings — the assumption-4 gate
     the strip wears as a label until an M0-style graded week is on the books.
+
+    A graded call is not frozen. Resweep-from-the-phone rewrites the comparator day's
+    files hours after the morning grade, so a call is re-checked against the files as they
+    read *now*; when the outcome flips, a superseding row is appended carrying
+    ``revises_resolved_at``. Nothing on disk is ever rewritten — calibration.jsonl stays
+    append-only, and ``_read_ledger``'s last-per-key collapse is what makes the correction
+    count (docs/ideas/regradeable-calibration-ledger.md).
     """
-    ledger = _read_ledger(ledger_path)
-    graded = {(r["day"], r["slug"], r["headline"]) for r in ledger}
+    # One lock over the whole read→grade→append critical section, with the ledger read
+    # inside it: two concurrent serves must not both grade and both append (bug #9).
+    with _CALIBRATION_LOCK:
+        ledger = _read_ledger(ledger_path)
+        graded = {_ledger_key(r): r for r in ledger}
 
-    # Today's readable items per slug — the newest comparator. Today's own wagers are
-    # never graded here: their comparator doesn't exist until tomorrow's sweep.
-    today_keys: Dict[str, set] = {}
-    for topic in topics:
-        items = topic.get("items")
-        if isinstance(items, list):
-            keys: set = set()
-            for item in items:
-                if isinstance(item, dict):
-                    keys |= _item_identity_keys(item)
-            today_keys[topic["slug"]] = keys
+        # Today's readable items per slug — the newest comparator. Today's own wagers are
+        # never graded here: their comparator doesn't exist until tomorrow's sweep.
+        today_keys: Dict[str, set] = {}
+        for topic in topics:
+            items = topic.get("items")
+            if isinstance(items, list):
+                keys: set = set()
+                for item in items:
+                    if isinstance(item, dict):
+                        keys |= _item_identity_keys(item)
+                today_keys[topic["slug"]] = keys
 
-    days = _readiness_history_dates(sweeps_dir, date)  # renderable walk, oldest→newest
-    new_rows: List[Dict[str, Any]] = []
-    for i, day in enumerate(days):
-        day_dir = sweeps_dir / day
-        try:
-            slugs = sorted(
-                p.stem
-                for p in day_dir.iterdir()
-                if p.is_file() and p.suffix == ".json" and _is_topic_stem(p.stem)
-            )
-        except OSError:
-            continue
-        for slug in slugs:
-            items = _topic_day_items(sweeps_dir, day, slug)
-            if not items:
+        days = _readiness_history_dates(sweeps_dir, date)  # renderable walk, oldest→newest
+        new_rows: List[Dict[str, Any]] = []
+        for i, day in enumerate(days):
+            day_dir = sweeps_dir / day
+            try:
+                slugs = sorted(
+                    p.stem
+                    for p in day_dir.iterdir()
+                    if p.is_file() and p.suffix == ".json" and _is_topic_stem(p.stem)
+                )
+            except OSError:
                 continue
-            wagered = [(item, _wager_pair(item)) for item in items]
-            wagered = [(item, pair) for item, pair in wagered if pair]
-            if not wagered:
-                continue
-            # The topic's next readable sweep: a later archived day, else today's live
-            # items; a missing/garbled later file just moves the comparator onward.
-            comparator: Optional[str] = None
-            comparator_keys: set = set()
-            for later in days[i + 1 :]:
-                later_items = _topic_day_items(sweeps_dir, later, slug)
-                if later_items is None:
+            for slug in slugs:
+                items = _topic_day_items(sweeps_dir, day, slug)
+                if not items:
                     continue
-                comparator = later
-                for it in later_items:
-                    comparator_keys |= _item_identity_keys(it)
-                break
-            if comparator is None and slug in today_keys:
-                comparator, comparator_keys = date, today_keys[slug]
-            if comparator is None:
-                continue  # no readable later sweep yet — the calls stay open
-            for item, pair in wagered:
-                headline = str(item.get("headline") or "").strip()
-                if not headline or (day, slug, headline) in graded:
+                wagered = [(item, _wager_pair(item)) for item in items]
+                wagered = [(item, pair) for item, pair in wagered if pair]
+                if not wagered:
                     continue
-                outcome = bool(_item_identity_keys(item) & comparator_keys)
-                confidence = pair["confidence"]
-                graded.add((day, slug, headline))
-                new_rows.append(
-                    {
+                # The topic's next readable sweep: a later archived day, else today's live
+                # items; a missing/garbled later file just moves the comparator onward.
+                comparator: Optional[str] = None
+                comparator_keys: set = set()
+                for later in days[i + 1 :]:
+                    later_items = _topic_day_items(sweeps_dir, later, slug)
+                    if later_items is None:
+                        continue
+                    comparator = later
+                    for it in later_items:
+                        comparator_keys |= _item_identity_keys(it)
+                    break
+                if comparator is None and slug in today_keys:
+                    comparator, comparator_keys = date, today_keys[slug]
+                if comparator is None:
+                    continue  # no readable later sweep yet — the calls stay open
+                for item, pair in wagered:
+                    headline = str(item.get("headline") or "").strip()
+                    if not headline:
+                        continue
+                    outcome = bool(_item_identity_keys(item) & comparator_keys)
+                    prior = graded.get((day, slug, headline))
+                    # Already graded and the comparator still says the same thing: nothing
+                    # to record. Only a genuine flip earns a row, so re-checking every
+                    # serve costs the ledger nothing.
+                    if prior is not None and bool(prior["outcome"]) == outcome:
+                        continue
+                    confidence = pair["confidence"]
+                    row = {
                         "resolved_at": datetime.now(timezone.utc).isoformat(),
                         "day": day,
                         "comparator": comparator,
@@ -586,17 +624,22 @@ def build_calibration(
                         "outcome": outcome,
                         "brier": round((confidence / 100 - (1 if outcome else 0)) ** 2, 3),
                     }
-                )
+                    if prior is not None:
+                        row["revises_resolved_at"] = prior["resolved_at"]
+                    graded[(day, slug, headline)] = row
+                    new_rows.append(row)
 
-    if new_rows:
-        try:
-            ledger_path.parent.mkdir(parents=True, exist_ok=True)
-            with ledger_path.open("a", encoding="utf-8") as fh:
-                for row in new_rows:
-                    fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-        except OSError:
-            pass  # this morning still gets its grades; the append retries next serve
-        ledger.extend(new_rows)
+        if new_rows:
+            try:
+                ledger_path.parent.mkdir(parents=True, exist_ok=True)
+                with ledger_path.open("a", encoding="utf-8") as fh:
+                    for row in new_rows:
+                        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            except OSError:
+                pass  # this morning still gets its grades; the append retries next serve
+            # Rebuild from the keyed view rather than extending: a superseding row
+            # REPLACES the grade it revises, it doesn't add a second one to the totals.
+            ledger = list(graded.values())
 
     resolved = len(ledger)
     hits = sum(1 for r in ledger if r["outcome"])

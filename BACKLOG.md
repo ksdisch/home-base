@@ -670,6 +670,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Improvement] Re-gradeable calibration ledger: a resweep can't freeze a wrong self-grade forever
+- _✅ shipped 2026-07-27 (PR #158, RED→green): `_read_ledger` keeps last-per-(day,slug,headline), and `build_calibration` re-checks every graded call against the comparator files as they read **now**, appending a superseding `revises_resolved_at` row only when the outcome actually flips. `calibration.jsonl` stays append-only — nothing on disk is rewritten; the collapse on read is what makes the correction count. Corrects in both directions (a resweep that lands the story and one that drops it), so it can't only ever flatter the grader. Landed with report #9 in one PR, per the idea doc's open question (3)._
 - **Why:** That Calibrated Doubt is the trust instrument Assumption 1 leans on — a self-grader that is silently wrong is worse than no self-grader, because it launders a fabricated verdict as a measured one. The row already stores its `comparator` day; nothing ever re-reads it against the file that may have… See [`docs/ideas/regradeable-calibration-ledger.md`](docs/ideas/regradeable-calibration-ledger.md) for the full write-up.
 - **Acceptance:** A pytest that grades a fixture day, rewrites the comparator day's JSON (simulating a phone resweep), re-runs build_calibration, and asserts a superseding revises_resolved_at row flips the outcome; Brier/hit-rate read last-per-key.
 - **Size:** S
@@ -772,6 +773,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Bug] #9: Calibration ledger append is not once under concurrent live serves — duplicates permanently skew the trust record
+- _✅ fixed 2026-07-27 (PR #158, RED→green): a module-level `threading.Lock` now spans the whole read→grade→append critical section with the ledger re-read inside it, and `_read_ledger` collapses to one row per (day, slug, headline) so a duplicate already on disk stops double-counting. The two-thread test is deterministic, not hopeful — it fails 5/5 with the lock removed and passes 5/5 with it. Landed with the paired Harden re-grade fix; both touch `_read_ledger` semantics._
 - **Where:** `backend/app/sweeps.py:501-620` · severity medium · confidence high
 - **Why:** build_calibration's check-then-act (read ledger → compute new_rows → append) runs with zero synchronization on FastAPI's threadpool, and the realistic phone+Mac ~06:00 double-load can both grade and both append the same wagers. Nothing dedups on read — resolved/hits/Brier sum raw rows and…
 - **Acceptance:** Two layers: guard the grade+append critical section with a module-level threading.Lock (re-read the ledger inside), and make _read_ledger self-healing by deduping rows on (day, slug, headline), first row wins. Add a two-thread concurrent-serve test. Regression test first.
