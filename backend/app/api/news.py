@@ -9,6 +9,7 @@ refresh serves marked ``stale`` instead — never a blank page when we have some
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,6 +39,7 @@ from ..models import (
     NewsTopicSuggestion,
 )
 from ..news import (
+    MAX_FETCH_WORKERS,
     NewsFeedError,
     append_roster_topic,
     get_category_items,
@@ -104,19 +106,25 @@ def get_news_foryou(
             suggestions=suggestions,
         )
 
+    # One fan-out over the whole candidate pool — the roster's categories plus a search
+    # feed per strong profile term. The 15-minute TTL guarantees a cold cache at 06:15,
+    # so this loop pays for every feed on the morning's first tap; serial that's the sum
+    # of ~15 timeouts, concurrent it's the slowest one (docs/ideas/parallel-foryou-fanout.md).
+    sources = list(cats) + [
+        {"slug": f"search:{term}", "title": term, "feeds": [search_feed_url(term)]}
+        for term in top_search_terms(profile)
+    ]
     items_by_category = {}
-    for cat in cats:
-        try:
-            items_by_category[cat["slug"]] = get_category_items(cat, fetcher)["items"]
-        except NewsFeedError:
-            continue
-    for term in top_search_terms(profile):
-        slug = f"search:{term}"
-        pseudo = {"slug": slug, "title": term, "feeds": [search_feed_url(term)]}
-        try:
-            items_by_category[slug] = get_category_items(pseudo, fetcher)["items"]
-        except NewsFeedError:
-            continue
+    if sources:
+        with ThreadPoolExecutor(max_workers=min(MAX_FETCH_WORKERS, len(sources))) as pool:
+            pending = [(s, pool.submit(get_category_items, s, fetcher)) for s in sources]
+        # Drained in source order, so the ranker's candidate pool is identical to the
+        # serial version's — a dead feed is still skipped, never fatal.
+        for source, future in pending:
+            try:
+                items_by_category[source["slug"]] = future.result()["items"]
+            except NewsFeedError:
+                continue
 
     ranked = rank_candidates(profile, items_by_category)[:FORYOU_MAX_ITEMS]
     return NewsForYouResponse(
