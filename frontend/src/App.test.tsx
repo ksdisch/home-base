@@ -117,6 +117,62 @@ describe("App shell navigation", () => {
     expect((back as HTMLAudioElement).currentTime).toBe(137);
   });
 
+  // Single audio owner: FR15 keeps the narration alive across a route hop, which is the
+  // point — but off Today the card goes with the route, leaving a voice with no visible
+  // source and no way to stop it. The pill is that missing control.
+
+  it("a now-playing pill appears off-route while audio plays, and pauses it", async () => {
+    briefWithMeta.mockResolvedValue({
+      brief: {
+        generated_at: "now",
+        has_data: true,
+        date: "2099-01-01",
+        topics: [],
+        audio_available: true,
+      },
+      fromCache: false,
+    });
+    renderApp();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    const player = document.querySelector("audio")!;
+    const pause = vi.spyOn(player, "pause").mockImplementation(() => {});
+    fireEvent.play(player);
+    // On Today the card is right there — a pill would be redundant chrome.
+    expect(screen.queryByText(/Now playing/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Notes" })[0]);
+    expect(await screen.findByText(/No notes yet/)).toBeInTheDocument();
+
+    expect(screen.getByText(/Now playing/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(pause).toHaveBeenCalled();
+
+    // The element reports the stop; the pill goes with it.
+    fireEvent.pause(player);
+    await waitFor(() => expect(screen.queryByText(/Now playing/)).not.toBeInTheDocument());
+  });
+
+  it("no pill when the narration was never playing", async () => {
+    briefWithMeta.mockResolvedValue({
+      brief: {
+        generated_at: "now",
+        has_data: true,
+        date: "2099-01-01",
+        topics: [],
+        audio_available: true,
+      },
+      fromCache: false,
+    });
+    renderApp();
+
+    expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("link", { name: "Notes" })[0]);
+    expect(await screen.findByText(/No notes yet/)).toBeInTheDocument();
+
+    expect(screen.queryByText(/Now playing/)).not.toBeInTheDocument();
+  });
+
   it("returning to Today shows the held brief instantly — no skeleton, no flash (FR15)", async () => {
     briefWithMeta.mockResolvedValue({
       brief: {

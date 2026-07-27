@@ -546,6 +546,10 @@ describe("Brief (Today page)", () => {
     expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
     const player = document.querySelector("audio")!;
     Object.defineProperty(player, "currentTime", { value: 137, writable: true, configurable: true });
+    // Bug #5: a position is only persisted once the element has said which track it
+    // loaded, so the resume key can't be poisoned by the previous day's playhead. Real
+    // media always fires loadedmetadata before its first timeupdate.
+    fireEvent.loadedMetadata(player);
     fireEvent.timeUpdate(player);
     expect(localStorage.getItem("audio-pos-2099-01-01")).toBe("137");
   });

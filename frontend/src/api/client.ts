@@ -2,6 +2,7 @@
 // the FastAPI backend in dev). To point elsewhere, set VITE_API_BASE at build time.
 import type {
   BridgeGradeResponse,
+  BriefArchiveResponse,
   BriefChatRequest,
   BriefChatResponse,
   BriefHabitResponse,
@@ -190,7 +191,9 @@ export const api = {
     };
   },
   // M4: the served day's narrated MP3 — a plain URL for an <audio> element, not a fetch.
-  briefAudioUrl: () => `${API_BASE}/brief/audio`,
+  // Accepts an optional date so archive views can stream historical audio.
+  briefAudioUrl: (date?: string) =>
+    date ? `${API_BASE}/brief/audio?date=${encodeURIComponent(date)}` : `${API_BASE}/brief/audio`,
   // QU1: an archived morning by date — live-only (the SW deliberately stands aside for
   // ?date= so an archive visit can't clobber the cached last morning).
   briefByDate: (date: string) => get<BriefResponse>(`/brief?date=${encodeURIComponent(date)}`),
@@ -200,6 +203,7 @@ export const api = {
   // The habit metric — one row per Today-page load; fire-and-forget from the page.
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   briefHabit: () => get<BriefHabitResponse>("/brief/habit"),
+  briefArchive: () => get<BriefArchiveResponse>("/brief/archive"),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.
   briefNotes: (topic?: string) =>
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),

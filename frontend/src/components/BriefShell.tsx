@@ -8,8 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { BriefResponse } from "../api/types";
+import { shortDate } from "../lib/format";
+import { BriefAudioCard } from "./BriefAudioCard";
 
 // FR15: the core loop bounces Today↔News↔Notes mid-walk, but React Router remounts the
 // Today route on every return — skeleton flash, refetch, and the audio brief snapping
@@ -28,6 +31,10 @@ type BriefShellState = {
   refresh: () => void;
   /** Brief hands the shell the div the audio card should live in (null on unmount). */
   registerAudioSlot: (el: HTMLElement | null) => void;
+  /** True while the Today narration is actually playing (drives the now-playing pill). */
+  isPlaying: boolean;
+  /** Stop the Today narration — the single-track rule's lever for other players. */
+  pauseAudio: () => void;
 };
 
 const BriefShellContext = createContext<BriefShellState | null>(null);
@@ -43,12 +50,18 @@ export function BriefShell({ children }: { children: ReactNode }) {
   const [fromCache, setFromCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // Bug #15 (hoisted with the player): audio_available reflects the served (possibly
-  // cached) payload, but the mp3 itself can be unreachable — offline with an uncached
-  // copy (iOS Range → 206 → never stored) or evicted by the SW's date pairing. No
-  // player beats a broken one.
-  const [audioBroken, setAudioBroken] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  // The single-audio-owner rule: the shell knows when its narration is sounding, so a
+  // walk off the Today route can surface a control for it and the archive player can
+  // stop it before starting a second voice.
+  const [isPlaying, setIsPlaying] = useState(false);
+  const shellAudio = useRef<HTMLAudioElement | null>(null);
+  const pauseAudio = useCallback(() => {
+    shellAudio.current?.pause();
+  }, []);
+  // #22: a load error hides the player, but a successful network revalidate is honest
+  // evidence the mp3 may be reachable again — bumping this un-hides it.
+  const [netLoads, setNetLoads] = useState(0);
 
   // Stable portal target — created once, moved between Brief's slot and detachment.
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -66,6 +79,7 @@ export function BriefShell({ children }: { children: ReactNode }) {
         setBrief(r.brief);
         setFromCache(r.fromCache);
         setError(null);
+        if (!r.fromCache) setNetLoads((n) => n + 1);
       })
       .catch((e) => {
         // A failed revalidate with a payload in hand keeps serving it silently — a
@@ -97,63 +111,56 @@ export function BriefShell({ children }: { children: ReactNode }) {
   // QU3 (hoisted with the player): date-keyed resume, cleared on ended.
   const audioPosKey = brief?.date ? `audio-pos-${brief.date}` : null;
 
-  // FR4: chapter chips seek the single track. Offsets are word-count estimates, so land
-  // 2s early — the spoken "Next up:" lead confirms the jump instead of a mid-sentence
-  // surprise. `?? []` tolerates a stale pre-FR4 payload from the service-worker cache.
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const chapters = brief?.audio_chapters ?? [];
-  const seekChapter = (start: number) => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.currentTime = Math.max(0, start - 2);
-    el.play()?.catch(() => {});
-  };
-
   return (
     <BriefShellContext.Provider
-      value={{ brief, fromCache, error, loading, refresh, registerAudioSlot: setSlot }}
+      value={{
+        brief,
+        fromCache,
+        error,
+        loading,
+        refresh,
+        registerAudioSlot: setSlot,
+        isPlaying,
+        pauseAudio,
+      }}
     >
       {children}
-      {createPortal(
-        brief?.audio_available && !audioBroken ? (
-          <div className="mb-6 rounded-2xl border border-line bg-card/60 p-4">
-            <p className="mb-2 text-xs font-medium text-muted">
-              🎧 Listen to this brief — the ~5-minute cut
-            </p>
-            <audio
-              ref={audioRef}
-              controls
-              preload="none"
-              src={api.briefAudioUrl()}
-              className="w-full"
-              onError={() => setAudioBroken(true)}
-              onTimeUpdate={(e) => {
-                if (audioPosKey) localStorage.setItem(audioPosKey, String(e.currentTarget.currentTime));
-              }}
-              onLoadedMetadata={(e) => {
-                if (!audioPosKey) return;
-                const saved = Number(localStorage.getItem(audioPosKey));
-                if (saved > 0) e.currentTarget.currentTime = saved;
-              }}
-              onEnded={() => {
-                if (audioPosKey) localStorage.removeItem(audioPosKey);
-              }}
-            />
-            {chapters.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {chapters.map((ch) => (
-                  <button
-                    key={ch.slug}
-                    type="button"
-                    onClick={() => seekChapter(ch.start_seconds)}
-                    className="rounded-full border border-line bg-card/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
-                  >
-                    {ch.title}
-                  </button>
-                ))}
-              </div>
-            )}
+      {/* The narration keeps sounding off the Today route (the walk case FR15 exists for),
+          but until now nothing on screen said so or could stop it. When audio is playing
+          with no card mounted anywhere, this pill is the control — and the honest label
+          for a voice with no visible source. Rendered outside the portal so it survives
+          the host div's detachment. */}
+      {isPlaying && slot === null && brief?.date && (
+        <div className="fixed inset-x-0 bottom-20 z-20 flex justify-center px-4 sm:bottom-4">
+          <div className="flex items-center gap-3 rounded-full border border-line bg-card/95 px-4 py-2 text-xs shadow-lg backdrop-blur">
+            <span className="text-muted">
+              Now playing —{" "}
+              <Link to="/" className="font-medium text-accent hover:underline">
+                {shortDate(brief.date)}
+              </Link>
+            </span>
+            <button
+              type="button"
+              onClick={pauseAudio}
+              className="rounded-full border border-line px-3 py-1 font-medium text-ink hover:border-accent hover:text-accent"
+            >
+              Pause
+            </button>
           </div>
+        </div>
+      )}
+      {createPortal(
+        brief?.audio_available ? (
+          <BriefAudioCard
+            src={api.briefAudioUrl()}
+            chapters={brief.audio_chapters ?? []}
+            posKey={audioPosKey}
+            trackKey={brief.date ?? ""}
+            retryKey={netLoads}
+            mediaRef={shellAudio}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
         ) : null,
         hostRef.current,
       )}
