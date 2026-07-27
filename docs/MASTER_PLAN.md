@@ -374,10 +374,13 @@ over-counts rather than under-counts._
   carrying no attribution at all: `(0 on your phone)` there would be a fabricated accusation
   rather than a measurement. Once the window *is* attributed, a genuine 0 is shown loudly —
   that's the fade this exists to catch.
-- Backend 800 → **836 passed** (+36, `test_visit_source.py`) · frontend 216 → **220**
-  (+4 HabitStrip) · ruff/tsc/build green. (The two `test_brief_unreadable_*` failures seen
-  locally are the known uid-0 container artifact — `chmod(0o000)` is a no-op for root; they
-  fail identically on a clean `origin/main` and pass in CI.)
+- Backend **+36** (`test_visit_source.py`; 803 → **839 passed**, 7 skipped at the final
+  rebase onto #161) · frontend **+4** (HabitStrip; 216 → **220**) · ruff/tsc/build green.
+  Absolute counts moved four times while this was in flight — #155/#156/#160/#161 all landed
+  mid-review and the branch was rebased and re-verified on each new base; the deltas are the
+  stable numbers. (The two `test_brief_unreadable_*` failures seen locally are the known
+  uid-0 container artifact — `chmod(0o000)` is a no-op for root; they fail identically on a
+  clean `origin/main` and are green in CI.)
 
 
 ### 2026-07-27 — The store snapshot stops rotating itself away (replenish small-wins 3/9)
