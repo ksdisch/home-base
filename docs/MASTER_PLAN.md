@@ -87,10 +87,13 @@ kanban
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
-    rep0726["Replenish 2026-07-26 —<br/>remainder: 10 of 24<br/>bugs unfixed (8 studycal<br/>in PR #152 · the audio/<br/>archive 6 in PR #153) +<br/>16 ideas (4 Moonshot,<br/>Agent Gate parked 07-27 ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· #1 and #3 are the<br/>highest-value remaining<br/>· awaiting wave<br/>sequencing via<br/>/backlog-hygiene"]
+    rep0726["Replenish 2026-07-26 —<br/>remainder: 16 ideas<br/>(4 Moonshot — ALL FOUR<br/>dispositioned 07-27:<br/>Free-Inference GO, the<br/>other three parked ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· BUG COUNT + PRIORITY<br/>CLAIMS ARE STALE: the<br/>former top two were<br/>fixed 07-27 (#154, #156)<br/>and the remaining tally<br/>is unverified · awaiting<br/>wave sequencing +<br/>re-count via<br/>/backlog-hygiene"]
   decide["⏸️ Awaiting decision"]
+    freeinf["Free-Inference Rebuild —<br/>GO at its 07-27 gate<br/>(D8), scope recorded:<br/>ids-only never prose ·<br/>Ollama + small instruct<br/>· lens beside the fixed<br/>brief, default earned ·<br/>AWAITING Kyle's approval<br/>of LOCAL_READER_BAKEOFF_PLAN<br/>before any code"]
   later["🧊 Later / parked"]
     agentgate["Agent Gate — PARKED at<br/>its 07-27 gate<br/>conversation (D7):<br/>revisit after the<br/>~08-03 v1 check ·<br/>demand finding: Claude<br/>Code crons = a<br/>sufficient first tenant<br/>· open questions stay<br/>open for the revisit"]
+    sessionnote["The Session Note —<br/>PARKED at its 07-27<br/>gate (D9): the 'months<br/>deep' premise was FALSE<br/>(corpus = 13 days) ·<br/>revisit at ~6 months of<br/>brief_notes, ~2027-01 ·<br/>needs a MIN_SIGNAL-style<br/>floor + an answer for<br/>the interpretive half"]
+    correspondence["The Correspondence —<br/>PARKED at its 07-27<br/>gate (D10): behavior is<br/>REAL (marlee-sent<br/>already captures it) but<br/>no peer will run a node<br/>· loopback proof would<br/>test plumbing, not the<br/>bet · no-protocol<br/>re-scope needs the<br/>parked vault bridge"]
     wave4["Wave 4 remainder —<br/>moonshot queue EMPTY<br/>(all four built; Overnight<br/>v0 PR #107 closed it) ·<br/>Overnight send gate =<br/>per-errand-type graded<br/>record + conversation,<br/>later · vault feed PR10<br/>only if habit wobbles"]
     defer["Kickoff-deferred: ESPN<br/>· auto-courses ·<br/>alerts · public<br/>writing"]
 ```
@@ -322,6 +325,26 @@ over-counts rather than under-counts._
   finding recorded for the revisit: Claude Code crons/sessions are a sufficient first
   tenant. The vision doc's three open questions stay deliberately unanswered; the other
   three 07-26 moonshots remain undecided with their own future gate conversations.
+  _(Superseded 2026-07-27 by the bullets below — all four are now dispositioned.)_
+- **The Session Note** ([ideas/the-session-note.md](ideas/the-session-note.md)): PARKED at its
+  2026-07-27 gate conversation (decision D9) until `brief_notes` has real depth — roughly six
+  months of accrual, so approximately **2027-01**. The idea's stated "why now" was **false**
+  and is now struck in the doc: M2 shipped 2026-07-14, so the corpus was **13 days** old at
+  the gate (~5–6 notes), not "months deep." Two findings recorded for the revisit —
+  `mirror.py`'s `MIN_SIGNAL = 5` is the project's own written refusal to describe Kyle from a
+  handful of rows, so this needs an explicit signal floor of its own; and the exact-substring
+  verifier proves the *quotes* but not the *interpretations*, which are the trust-fatal half.
+  Open questions 1–3 stay deliberately unanswered as the revisit agenda.
+- **The Correspondence** ([ideas/the-correspondence.md](ideas/the-correspondence.md)): PARKED
+  at its 2026-07-27 gate conversation (decision D10) on a demand-side finding. The
+  human-curated wire it describes **already runs** — Marlee sends Kyle links and the vault's
+  `marlee-sent` skill captures them — so the thesis is confirmed by observed behavior. What
+  failed is the delivery mechanism: **no peer will run a node**, so v1 would be a protocol
+  for a network of one, and the loopback proof would verify the plumbing while leaving the
+  bet untested. Constraint recorded so it isn't rediscovered: the tempting no-protocol
+  re-scope (a Dispatches strip off the existing capture path) reads from the **vault**, which
+  the Overnight v0 gate already ruled out pending its own parked bridge — it trades one gate
+  for another rather than avoiding one. Questions 2–3 stay deliberately unanswered.
 - **Kickoff-deferred v1 outs**: ESPN league integration · auto-courses from news items ·
   breaking-news alerts · public writing. _(The audio brief became M4 and chat-with-the-brief
   became M5 on 2026-07-16; mobile access became M6 on 2026-07-18.)_
@@ -345,6 +368,7 @@ over-counts rather than under-counts._
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`bug-hunt/2026-07-26-post-studycal-m8.md`](bug-hunt/2026-07-26-post-studycal-m8.md) | Post-studycal/M8 verified bug audit — 24 findings, ranked; the 8 studycal ones fixed in PR #152 |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
+| [`LOCAL_READER_BAKEOFF_PLAN.md`](LOCAL_READER_BAKEOFF_PLAN.md) | **Free-Inference Rebuild** bake-off plan (2026-07-27, D8) — `/explore-plan` output: 3 ranked approaches, ids-only decoder, grading rubric + hard-gate pass bar. **Plan only, awaiting Kyle's approval; no code written** |
 | [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
 | [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0→v1** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook); v1 = flexible preferences (day-of-week + time-of-day controls, `applied` echo, schema v12 persistence); v1.3 = the correctness wave (honest token degrade + the 7-day consent leash, per-event ledgering, curriculum-ordered placement, schema v13) |
 | [`ideas/study-scheduler.md`](ideas/study-scheduler.md) | Study Scheduler idea/write-up (captured 2026-07-22) — premise, settled decisions, open questions |
@@ -353,6 +377,45 @@ over-counts rather than under-counts._
 ---
 
 ## Changelog (newest first)
+
+### 2026-07-27 — Gate conversations for the last three 07-26 moonshots: 1 go, 2 parks (D8/D9/D10)
+
+- Docs-only. With Agent Gate parked earlier the same day (D7), the remaining three 07-26
+  Moonshot ideas got their standing gate conversations back to back, on the Overnight-gate
+  model: pressure-test the bet's demand side first, then drive the doc's open questions, and
+  on a park leave those questions deliberately unanswered as the revisit agenda. **All four
+  07-26 moonshots are now dispositioned.**
+- **Free-Inference Rebuild → GO (D8)**, on the bake-off only. Demand passed the pressure test
+  (the want is open-ended natural language, explicitly *not* the doc's own filter-shaped
+  examples). Recorded scope: **ids-only, never prose** — the model emits item ids plus an
+  ordering and no text at all, so fabrication is structurally impossible rather than detected
+  after the fact; **Ollama + a small instruct model** first, behind the existing `chat.py`
+  `Runner` seam; the reshaped view lives **beside** the fixed brief with default status
+  earned via its own graded record. The ~08-03 park rationale explicitly does not transfer —
+  a bench script that writes a verdict table cannot perturb the v1 measurement, and the two
+  bugs that formed the capacity argument were fixed the same day (#154, #156).
+- Plan written to [`LOCAL_READER_BAKEOFF_PLAN.md`](LOCAL_READER_BAKEOFF_PLAN.md) and **stopped
+  for approval — no code**. Grounding it surfaced two corrections to the vision doc's first
+  step: `brief-chat.jsonl` **contains no questions** (`append_chat_ledger` writes a usage row
+  only), so the "replay real questions" corpus does not exist — and would have been the wrong
+  task anyway, since M5 questions are per-item while reshape requests span a whole day; and
+  item ids are read-time-derived sha1 prefixes (`sweeps.py:164`), so the bench presents
+  **ordinal indices** and maps back in Python rather than asking a small model to transcribe
+  hex.
+- **The Session Note → PARKED (D9)** until the corpus is real (~6 months of `brief_notes`,
+  so ~2027-01). Its "why now" was **false**: M2 shipped 2026-07-14, making the corpus 13 days
+  old — roughly five or six notes — not "months deep"; the claim is struck in the doc.
+  Recorded for the revisit: `mirror.py`'s `MIN_SIGNAL = 5` is the project's own written
+  refusal to invent a lean from a handful of rows, and the exact-substring verifier protects
+  the quotes but not the interpretations that would actually break trust.
+- **The Correspondence → PARKED (D10)** on demand. The curated wire already runs — Marlee
+  sends links, the vault's `marlee-sent` skill captures them — so the thesis is confirmed by
+  behavior; the **node** is what nobody will adopt, which makes v1 a protocol for a network
+  of one whose loopback proof tests plumbing, not the bet. Recorded constraint: the
+  no-protocol re-scope reads from the vault, trading this gate for the parked vault bridge.
+- Flagged for `/backlog-hygiene`, deliberately not fixed here: the `rep0726` card's bug tally
+  and "highest-value remaining" ranking are stale — both former top bugs landed 07-27 — and
+  the remaining count is unverified.
 
 ### 2026-07-27 — Archive search: "where did I read that?" (replenish small-wins 9/9 — BATCH COMPLETE)
 

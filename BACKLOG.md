@@ -610,18 +610,21 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Exploration] Free-Inference Rebuild — the brief becomes a reshapeable corpus behind a graded quote-only gate
+- **Status:** **GO** 2026-07-27 at its gate conversation, on the bake-off only (decision D8). Recorded scope: ids-only never prose · Ollama + small instruct model · lens beside the fixed brief, default earned. Plan at [`docs/LOCAL_READER_BAKEOFF_PLAN.md`](docs/LOCAL_READER_BAKEOFF_PLAN.md) — **awaiting Kyle's approval, no code written.**
 - **Why:** The bet: assumption 2 ('zero/minimal LLM at read time') encoded 2025 economics — LLM meant remote, metered, trust-risky — and the assumption's real content was never 'no LLM' but 'no cost, no cloud, no fabrication at read time'. Local inference deletes the cost and privacy halves; the quote-only… See [`docs/ideas/free-inference-rebuild.md`](docs/ideas/free-inference-rebuild.md) for the full write-up.
 - **Acceptance:** Run the graded bake-off (sweeps/local_reader_bench.py over real brief-chat questions) and judge groundedness against the recorded claude -p answers; nothing ships to the read surface until a full graded week passes at the sweep's own bar.
 - **Size:** L (Moonshot)
 - **Added:** 2026-07-26
 
 #### [Exploration] The Correspondence — a second node on the wire, the anti-social-network
+- **Status:** PARKED 2026-07-27 at its gate conversation (decision D10) — the curated wire already runs (`marlee-sent`), but no peer will run a node, so v1 would be a protocol for a network of one. See the vision doc's Decisions section.
 - **Why:** The bet: the durable answer to algorithmic feeds is not a better algorithm but a trusted human's hand — a small number of people you actually trust curating for each other beats any ranker, and a private signed wire between owned nodes is the shape that delivers it without becoming a social… See [`docs/ideas/the-correspondence.md`](docs/ideas/the-correspondence.md) for the full write-up.
 - **Acceptance:** Prototype the loopback proof (outbox JSONL + signed digest endpoint + inbox strip against a second local backend) and judge whether the dispatch schema + the felt value hold.
 - **Size:** L (Moonshot)
 - **Added:** 2026-07-26
 
 #### [Exploration] The Session Note — a therapist reads six months of Kyle's own notes back to him
+- **Status:** PARKED 2026-07-27 at its gate conversation (decision D9) until `brief_notes` has real depth (~6 months of accrual, so ~2027-01). Its "months deep" premise was false — the corpus was 13 days old at the gate. See the vision doc's Decisions section.
 - **Why:** The bet: Home Base's accumulated notes are a longitudinal text about Kyle worth reading for meaning, not just counting — and a fabricated quote of Kyle's own words would be more trust-fatal than any fabricated news item, so the sourcing bar must extend to this new content class, where (unlike news)… See [`docs/ideas/the-session-note.md`](docs/ideas/the-session-note.md) for the full write-up.
 - **Acceptance:** Prototype the credible first step (sweeps/session_note.py generator + deterministic exact-substring verifier against July's real notes) and judge whether the reading says something true and worth hearing.
 - **Size:** L (Moonshot · wildcard)
