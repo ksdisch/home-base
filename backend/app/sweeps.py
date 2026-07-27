@@ -727,3 +727,135 @@ def load_brief_topics(
 
     _annotate_developing(topics, sweeps_dir, date)
     return topics
+
+
+# -- the sweep cost/health readout (docs/ideas/sweep-ledger-readout.md) --------------
+# sweeps/envelope.py has appended one row per topic run to <sweeps_dir>/.runs.jsonl since
+# M3 — cost, duration, model, is_error — and nothing ever totaled it, so sweep pathology
+# was visible only by grepping a dotfile on the Mac. Zero LLM, strictly read-only.
+
+RUNS_LEDGER_NAME = ".runs.jsonl"
+_RUNS_MAX_DAYS = 90
+# A day under this fraction of the window's median cost is "thin": it ran, so nothing is
+# missing, but well under the norm is the mechanical shadow of a half-failed sweep.
+_THIN_COST_FRACTION = 0.25
+
+
+def _read_runs_ledger(path: Path) -> List[Dict[str, Any]]:
+    """Rows from .runs.jsonl. A hand-mangled line is skipped, never fatal; no file yet is
+    just an empty ledger. A row without a date and topic can't be totaled, so it's dropped."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    rows: List[Dict[str, Any]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        if not isinstance(row.get("date"), str) or not isinstance(row.get("topic"), str):
+            continue
+        rows.append(row)
+    return rows
+
+
+def _num(value: Any) -> float:
+    """envelope.py writes null when the envelope carried no number — count it as zero for
+    totals (the run still happened; it just reported no cost)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0.0
+    return float(value)
+
+
+def _median(values: List[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def runs_summary(
+    sweeps_dir: Path, *, days: int = 7, today: Optional[str] = None
+) -> Dict[str, Any]:
+    """Per-day totals from the sweep ledger, newest first.
+
+    The window is CALENDAR-DENSE: a day with no rows is present with ``ran: False`` rather
+    than skipped. That is deliberate — a day missing from the ledger entirely (2026-07-24 in
+    the live file) is the loudest signal it carries and the easiest one to lose by iterating
+    only over the dates that exist.
+
+    ``topics`` counts distinct topics, not rows, so a same-day re-sweep doesn't inflate it —
+    while both runs' cost still totals, because both were paid for. A day that ran but cost
+    far under the window's median is flagged ``thin``: the 07-23/07-25 shape ($1-2 against a
+    ~$10 norm), which no "did it run?" check can see.
+    """
+    days = max(1, min(_RUNS_MAX_DAYS, int(days)))
+    end = date.fromisoformat(today) if today else datetime.now().astimezone().date()
+    window = [(end - timedelta(days=n)).isoformat() for n in range(days)]
+
+    by_day: Dict[str, Dict[str, Any]] = {}
+    for row in _read_runs_ledger(Path(sweeps_dir) / RUNS_LEDGER_NAME):
+        day = by_day.setdefault(
+            row["date"], {"topics": set(), "cost_usd": 0.0, "duration_ms": 0.0, "errors": 0}
+        )
+        day["topics"].add(row["topic"])
+        day["cost_usd"] += _num(row.get("total_cost_usd"))
+        day["duration_ms"] += _num(row.get("duration_ms"))
+        if row.get("is_error"):
+            day["errors"] += 1
+
+    def _day(iso: str) -> Dict[str, Any]:
+        totals = by_day.get(iso)
+        if totals is None:
+            return {
+                "date": iso,
+                "topics": 0,
+                "errors": 0,
+                "cost_usd": 0.0,
+                "duration_ms": 0,
+                "ran": False,
+                "thin": False,
+            }
+        return {
+            "date": iso,
+            "topics": len(totals["topics"]),
+            "errors": totals["errors"],
+            "cost_usd": round(totals["cost_usd"], 4),
+            "duration_ms": int(totals["duration_ms"]),
+            "ran": True,
+            "thin": False,
+        }
+
+    entries = [_day(iso) for iso in window]
+
+    # Median over the days that ran, so a gap can't drag the norm down and mask a thin day.
+    ran_costs = [d["cost_usd"] for d in entries if d["ran"]]
+    norm = _median(ran_costs)
+    if norm > 0:
+        for entry in entries:
+            entry["thin"] = entry["ran"] and entry["cost_usd"] < norm * _THIN_COST_FRACTION
+
+    # The newest day that actually ran — may predate `today` when this morning hasn't swept
+    # yet, so the caller can say which morning it is reporting instead of implying "today".
+    latest = next((d for d in entries if d["ran"]), None)
+    if latest is None and by_day:
+        newest = max(by_day)
+        latest = _day(newest)
+
+    return {
+        "days": entries,
+        "latest": latest,
+        "window_days": days,
+        "cost_usd": round(sum(d["cost_usd"] for d in entries), 4),
+        "errors": sum(d["errors"] for d in entries),
+        "missing_days": sum(1 for d in entries if not d["ran"]),
+    }

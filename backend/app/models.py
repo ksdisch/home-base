@@ -994,6 +994,39 @@ class BriefResponse(BaseModel):
     overnight: Optional[BriefOvernight] = None
 
 
+class BriefRunDay(BaseModel):
+    """One local calendar day of the sweep cost/health ledger (data/sweeps/.runs.jsonl).
+
+    Every day in the requested window gets an entry, including days the sweep never ran —
+    ``ran: False`` is how a missing morning stays visible instead of vanishing from the
+    list. ``thin`` marks a day that ran but cost far under the window's median: the
+    mechanical shadow of a half-failed or content-starved sweep, which no "did it run?"
+    check can see. ``topics`` counts distinct topics, so a same-day re-sweep doesn't
+    inflate it — though both runs' cost still totals into ``cost_usd``."""
+
+    date: str  # YYYY-MM-DD
+    topics: int = 0
+    errors: int = 0
+    cost_usd: float = 0.0
+    duration_ms: int = 0
+    ran: bool = False
+    thin: bool = False
+
+
+class BriefRunsSummaryResponse(BaseModel):
+    """The always-on ops line: "This morning: 9 topics · 21 min · $8.12 · 0 errors"."""
+
+    generated_at: str
+    # The newest day that actually ran — may predate today when this morning hasn't swept
+    # yet, so the UI names the day rather than implying "this morning". None = empty ledger.
+    latest: Optional[BriefRunDay] = None
+    days: List[BriefRunDay] = []  # newest-first, one entry per calendar day in the window
+    window_days: int = 7
+    cost_usd: float = 0.0  # window total
+    errors: int = 0  # window total
+    missing_days: int = 0
+
+
 class BriefArchiveEntry(BaseModel):
     date: str  # YYYY-MM-DD
     has_audio: bool = False

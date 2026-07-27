@@ -51,6 +51,8 @@ from ..models import (
     BriefOvernightProposal,
     BriefReadiness,
     BriefResponse,
+    BriefRunDay,
+    BriefRunsSummaryResponse,
     BriefSweepResponse,
     BriefTopic,
     BriefVisitResponse,
@@ -70,6 +72,7 @@ from ..sweeps import (
     latest_sweep_date,
     load_brief_topics,
     load_roster,
+    runs_summary,
     sweep_dates,
     topic_title,
 )
@@ -509,3 +512,27 @@ def get_brief_archive(settings=Depends(get_app_settings)) -> BriefArchiveRespons
         for d in dates
     ]
     return BriefArchiveResponse(dates=entries)
+
+
+@router.get("/brief/runs/summary", response_model=BriefRunsSummaryResponse)
+def get_brief_runs_summary(
+    days: int = 7, settings=Depends(get_app_settings)
+) -> BriefRunsSummaryResponse:
+    """The sweep cost/health readout (docs/ideas/sweep-ledger-readout.md).
+
+    ``sweeps/envelope.py`` has logged every topic run's cost, duration, model, and error
+    flag to ``data/sweeps/.runs.jsonl`` since M3 — its own docstring calls the file "the
+    durable answer to what do the sweeps cost" — and nothing ever read it back, so a
+    silently-degraded or expensive sweep was visible only by grepping a dotfile. Zero LLM,
+    strictly read-only, and tolerant of a hand-mangled line. ``days`` is clamped (1-90)."""
+    summary = runs_summary(Path(settings.sweeps_dir), days=days)
+    latest = summary["latest"]
+    return BriefRunsSummaryResponse(
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        latest=BriefRunDay(**latest) if latest else None,
+        days=[BriefRunDay(**d) for d in summary["days"]],
+        window_days=summary["window_days"],
+        cost_usd=summary["cost_usd"],
+        errors=summary["errors"],
+        missing_days=summary["missing_days"],
+    )
