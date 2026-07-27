@@ -17,6 +17,7 @@ const deleteBriefNote = vi.fn();
 const sweepBrief = vi.fn();
 const approveOvernight = vi.fn();
 const discardOvernight = vi.fn();
+const setTopicPaused = vi.fn();
 vi.mock("../api/client", () => ({
   api: {
     briefWithMeta: () => briefWithMeta(),
@@ -31,6 +32,7 @@ vi.mock("../api/client", () => ({
     sweepBrief: () => sweepBrief(),
     approveOvernight: (id: string) => approveOvernight(id),
     discardOvernight: (id: string) => discardOvernight(id),
+    setTopicPaused: (slug: string, paused: boolean) => setTopicPaused(slug, paused),
   },
 }));
 
@@ -45,6 +47,7 @@ beforeEach(() => {
   review.mockReset();
   courses.mockReset();
   briefHabit.mockReset();
+  setTopicPaused.mockReset();
   addBriefNote.mockReset();
   deleteBriefNote.mockReset();
   sweepBrief.mockReset();
@@ -617,6 +620,106 @@ describe("Brief (Today page)", () => {
 
     expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Jump to topic" })).not.toBeInTheDocument();
+  });
+
+  // Pause from the phone (docs/ideas/pause-topic-from-phone.md): `paused` has been honored
+  // end to end since M2, but setting it meant SSH-editing JSON on the Mac. The chip row is
+  // where a topic already is, so it's where the mute belongs — as its own explicit control,
+  // never a long-press (the row scrolls horizontally; a long-press there is a misfire
+  // waiting to happen).
+
+  it("mutes a topic from its chip and marks it paused without a reload", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          STRUCTURED.topics[0],
+          { ...STRUCTURED.topics[0], slug: "chiefs", title: "Kansas City Chiefs", items: [] },
+        ],
+      }),
+    );
+    setTopicPaused.mockResolvedValue({
+      ok: true,
+      slug: "chiefs",
+      title: "Kansas City Chiefs",
+      paused: true,
+    });
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Pause Kansas City Chiefs/i }));
+
+    expect(setTopicPaused).toHaveBeenCalledWith("chiefs", true);
+    // The same control flips to resume — reversible on the spot, so no confirm beat.
+    expect(await screen.findByRole("button", { name: /Resume Kansas City Chiefs/i })).toBeTruthy();
+  });
+
+  it("keeps the jump action separate from the mute — the chip label still scrolls", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          STRUCTURED.topics[0],
+          { ...STRUCTURED.topics[0], slug: "chiefs", title: "Kansas City Chiefs", items: [] },
+        ],
+      }),
+    );
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    const target = document.getElementById("chiefs") as HTMLElement;
+    const scrolled = vi.fn();
+    target.scrollIntoView = scrolled;
+
+    fireEvent.click(screen.getByRole("button", { name: "Kansas City Chiefs" }));
+
+    expect(scrolled).toHaveBeenCalled();
+    expect(setTopicPaused).not.toHaveBeenCalled();
+  });
+
+  it("shows an already-muted topic so the pause can be undone from the page", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          STRUCTURED.topics[0],
+          { ...STRUCTURED.topics[0], slug: "celtics", title: "Boston Celtics", items: [] },
+        ],
+        paused_topics: [{ slug: "blues", title: "St. Louis Blues" }],
+      }),
+    );
+    setTopicPaused.mockResolvedValue({
+      ok: true,
+      slug: "blues",
+      title: "St. Louis Blues",
+      paused: false,
+    });
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    // A paused topic swept nothing, so it has no card — but it must still be reachable.
+    fireEvent.click(screen.getByRole("button", { name: /Resume St. Louis Blues/i }));
+    expect(setTopicPaused).toHaveBeenCalledWith("blues", false);
+  });
+
+  it("a failed toggle leaves the chip as it was rather than lying", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        topics: [
+          STRUCTURED.topics[0],
+          { ...STRUCTURED.topics[0], slug: "chiefs", title: "Kansas City Chiefs", items: [] },
+        ],
+      }),
+    );
+    setTopicPaused.mockRejectedValue(new Error("roster file is unusable"));
+    renderBrief();
+
+    expect(await screen.findByText("OpenAI lifts caps")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Pause Kansas City Chiefs/i }));
+
+    await waitFor(() => expect(setTopicPaused).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: /Pause Kansas City Chiefs/i })).toBeTruthy();
   });
 
   // FR4 audio chapters: the ~5-min cut is one featureless track — chapter chips seek to

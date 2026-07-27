@@ -153,17 +153,60 @@ def append_roster_topic(roster_file: Path, term: str) -> Dict[str, Any]:
             raise ValueError(f"'{slug}' is already on the roster")
         entry = {"slug": slug, "title": term.title(), "paused": False}
         _write_topic_prompt(roster_file, slug, entry["title"])
-        fd, tmp_name = tempfile.mkstemp(
-            dir=str(Path(roster_file).parent), prefix=f"{Path(roster_file).name}.", suffix=".tmp"
-        )
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                fh.write(json.dumps(roster + [entry], indent=2) + "\n")
-            Path(tmp_name).replace(roster_file)
-        except BaseException:
-            Path(tmp_name).unlink(missing_ok=True)
-            raise
+        _write_roster(roster_file, roster + [entry])
     return entry
+
+
+def _write_roster(roster_file: Path, roster: List[Any]) -> None:
+    """Replace the roster atomically — sweep.sh reads this file and must never catch it
+    half-written. The unique tempfile (vs a fixed .tmp name) keeps an out-of-process
+    writer from clobbering our staging. Caller holds ``_roster_write_lock``."""
+    fd, tmp_name = tempfile.mkstemp(
+        dir=str(Path(roster_file).parent), prefix=f"{Path(roster_file).name}.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(roster, indent=2) + "\n")
+        Path(tmp_name).replace(roster_file)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
+
+
+def set_topic_paused(roster_file: Path, slug: str, paused: bool) -> Dict[str, Any]:
+    """Flip one roster topic's ``paused`` flag (docs/ideas/pause-topic-from-phone.md).
+
+    The flag has been honored end to end since M2 — ``load_roster`` reads it, the sweep
+    gate obeys it — but the only way to set it was hand-editing JSON on the Mac. This is
+    that verb, sharing ``append_roster_topic``'s lock and atomic replace: sync FastAPI
+    handlers run on a threadpool, so two taps could otherwise race the read-modify-write
+    and drop the loser's change (bug #12's shape).
+
+    Only the named entry's flag changes — every other entry, and every key this code
+    doesn't know about, is written back verbatim (the roster is hand-editable). An unknown
+    slug raises rather than appending: growing the roster is the scout's job, not a
+    typo's. Returns the updated entry.
+    """
+    slug = (slug or "").strip()
+    if not slug:
+        raise ValueError("slug must be a non-empty string")
+    with _roster_write_lock:
+        try:
+            roster = json.loads(Path(roster_file).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise ValueError(f"roster file is unusable: {e}")
+        if not isinstance(roster, list):
+            raise ValueError("roster file is unusable: not a JSON list")
+        target = next(
+            (t for t in roster if isinstance(t, dict) and t.get("slug") == slug), None
+        )
+        if target is None:
+            raise ValueError(f"no roster topic '{slug}'")
+        if bool(target.get("paused")) is bool(paused):
+            return dict(target)  # already there — don't rewrite the file for a no-op
+        target["paused"] = bool(paused)
+        _write_roster(roster_file, roster)
+        return dict(target)
 
 
 def parse_rss(xml_bytes: bytes) -> List[Dict[str, Any]]:

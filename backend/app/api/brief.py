@@ -55,9 +55,12 @@ from ..models import (
     BriefRunsSummaryResponse,
     BriefSweepResponse,
     BriefTopic,
+    BriefTopicPauseRequest,
+    BriefTopicPauseResponse,
     BriefVisitResponse,
 )
 from ..mirror import build_mirror
+from ..news import set_topic_paused
 from ..overnight import append_status, build_overnight, load_queue
 from ..store import (
     add_brief_note,
@@ -150,6 +153,15 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
             if not t["paused"] and t["slug"] not in present
         ]
 
+    # The roster's muted topics, so the page can show what's off and turn it back on.
+    # Unlike `missing`, this is roster state and not day state: it holds even when there
+    # is no served day at all, or the pause would be invisible on a blank morning.
+    paused = [
+        BriefMissingTopic(slug=t["slug"], title=topic_title(t["slug"], titles))
+        for t in roster
+        if t["paused"]
+    ]
+
     # Audio is available for any day that has a brief.mp3, not just the latest — the
     # archive pages can play historical audio via GET /brief/audio?date=YYYY-MM-DD.
     audio_available = served is not None and (settings.sweeps_dir / served / "brief.mp3").is_file()
@@ -174,6 +186,7 @@ def get_brief(date: Optional[str] = None, settings=Depends(get_app_settings)) ->
         audio_available=audio_available,
         audio_chapters=audio_chapters,
         missing_topics=missing,
+        paused_topics=paused,
         prev_date=prev_date,
         next_date=next_date,
         # Mirror v0: the live view's 'You this week' self-read — an archived ?date=
@@ -535,4 +548,28 @@ def get_brief_runs_summary(
         cost_usd=summary["cost_usd"],
         errors=summary["errors"],
         missing_days=summary["missing_days"],
+    )
+
+
+@router.patch("/brief/topics/{slug}", response_model=BriefTopicPauseResponse)
+def patch_brief_topic(
+    slug: str, payload: BriefTopicPauseRequest, settings=Depends(get_app_settings)
+) -> BriefTopicPauseResponse:
+    """Mute or un-mute a roster topic (docs/ideas/pause-topic-from-phone.md).
+
+    ``paused`` has been honored end to end since M2, but the only way to set it was
+    hand-editing ``sweeps/topics.json`` on the Mac — so a topic that went quiet (6 of 8 are
+    sports, and it's late July) kept costing ~$1.2/day and kept pressuring the sweep to
+    find news that isn't there. The write goes through ``set_topic_paused``, sharing the
+    scout's roster lock and atomic replace. An unknown slug is a 404, not a silent append."""
+    try:
+        entry = set_topic_paused(settings.roster_file, slug, payload.paused)
+    except ValueError as e:
+        status = 404 if str(e).startswith("no roster topic") else 400
+        raise HTTPException(status_code=status, detail=str(e))
+    return BriefTopicPauseResponse(
+        ok=True,
+        slug=entry["slug"],
+        title=topic_title(entry["slug"], _roster_titles(settings)),
+        paused=bool(entry["paused"]),
     )

@@ -7,6 +7,7 @@ import type {
   BriefChatResponse,
   BriefHabitResponse,
   BriefRunsSummaryResponse,
+  BriefTopicPauseResponse,
   BriefNote,
   BriefNoteCreate,
   BriefNoteDeleteResponse,
@@ -207,6 +208,9 @@ export const api = {
   briefArchive: () => get<BriefArchiveResponse>("/brief/archive"),
   // The sweep cost/health ledger readout — per-day totals from data/sweeps/.runs.jsonl.
   briefRunsSummary: (days = 7) => get<BriefRunsSummaryResponse>(`/brief/runs/summary?days=${days}`),
+  // Mute/un-mute a roster topic — the first roster verb with UI besides the scout's add.
+  setTopicPaused: (slug: string, paused: boolean) =>
+    patch<BriefTopicPauseResponse>(`/brief/topics/${encodeURIComponent(slug)}`, { paused }),
   // M2 inline notes on brief items — browse (optionally per topic), add, delete.
   briefNotes: (topic?: string) =>
     get<BriefNotesResponse>(`/brief/notes${topic ? `?topic=${encodeURIComponent(topic)}` : ""}`),

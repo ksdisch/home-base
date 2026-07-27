@@ -354,6 +354,25 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The roster's mute finally has a button (replenish small-wins 6/9)
+
+- `paused` has been honored end to end since M2 — `load_roster` reads it, the sweep gate obeys
+  it — and `sweeps/README.md`'s official procedure for using it was literally "flip
+  `paused: true` by hand." An SSH-and-edit-JSON errand, on a roster where 6 of 8 topics are
+  sports in late July and each opus topic runs ~$1.2/day.
+- `set_topic_paused()` sits beside `append_roster_topic` in `app.news` and shares its
+  `_roster_write_lock` + atomic replace (both now go through one extracted `_write_roster`),
+  so two taps can't race the read-modify-write. `PATCH /api/brief/topics/{slug}` drives it;
+  an unknown slug is a 404, never a silent append. Every other entry — and every key this
+  code doesn't know about, since the roster is hand-editable — is written back verbatim.
+- **`BriefResponse.paused_topics` is load-bearing, not decoration.** A paused topic produces
+  no file, so it has no card and no jump chip; without it the mute would be one-way from the
+  phone. Today's chip row now carries a ⏸ per active topic and a dashed ▶ chip per muted one.
+- The mute is an explicit control, never a long-press: the chip row scrolls horizontally, so
+  press-and-hold would misfire on every drag. The label keeps the jump; the ⏸ owns the mute.
+  No confirm beat either — the opposite tap is on the same chip, which is only true because
+  paused topics stay visible. 19 tests. Backend 857→871 · frontend 232→236.
+
 ### 2026-07-27 — The sweep ledger finally gets totaled (replenish small-wins 5/9)
 
 - `sweeps/envelope.py` has appended a row per topic run to `data/sweeps/.runs.jsonl` since M3
