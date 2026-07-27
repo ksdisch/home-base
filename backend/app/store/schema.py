@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -274,6 +274,7 @@ STATEMENTS = [
         track_kind  TEXT NOT NULL,
         track_id    TEXT NOT NULL,
         step_id     TEXT NOT NULL,
+        step_ids    TEXT,
         calendar_id TEXT NOT NULL,
         event_id    TEXT NOT NULL,
         title       TEXT NOT NULL,
@@ -309,5 +310,11 @@ MIGRATIONS = {
         "ALTER TABLE study_opt_in ADD COLUMN day_end_hour INTEGER",
         "ALTER TABLE study_opt_in ADD COLUMN days_of_week TEXT",
         "ALTER TABLE study_opt_in ADD COLUMN max_blocks INTEGER",
+    ],
+    # v13 (studycal correctness wave): the FULL step-id set a block covers, CSV. ``step_id`` only
+    # ever held step_ids[0], so a re-propose couldn't see the other steps a written block already
+    # covers and happily re-scheduled them. Nullable — pre-v13 rows fall back to ``step_id``.
+    13: [
+        "ALTER TABLE study_blocks ADD COLUMN step_ids TEXT",
     ],
 }

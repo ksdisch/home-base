@@ -21,6 +21,7 @@ _BLOCK_COLUMNS = (
     "track_kind",
     "track_id",
     "step_id",
+    "step_ids",
     "calendar_id",
     "event_id",
     "title",
@@ -156,7 +157,22 @@ def set_study_prefs(
 
 
 def _row(r: Any) -> Dict[str, Any]:
-    return {k: r[k] for k in _BLOCK_COLUMNS}
+    out = {k: r[k] for k in _BLOCK_COLUMNS}
+    # ``step_ids`` is the full set a block covers; pre-v13 rows only recorded the first one.
+    out["step_ids"] = _steps_from_csv(out.get("step_ids")) or ([out["step_id"]] if out["step_id"] else [])
+    return out
+
+
+def _steps_to_csv(step_ids: Optional[Sequence[str]]) -> Optional[str]:
+    """The step-id list -> a stable CSV column value; empty stays NULL."""
+    ids = [str(s) for s in (step_ids or []) if str(s)]
+    return ",".join(ids) or None
+
+
+def _steps_from_csv(value: Any) -> List[str]:
+    if not value:
+        return []
+    return [p for p in str(value).split(",") if p]
 
 
 def add_study_blocks(
@@ -166,8 +182,10 @@ def add_study_blocks(
     db_path: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     """Record the batch of blocks the scheduler just WROTE to the calendar (status 'written').
-    Each block carries its Google ``event_id`` + ``calendar_id`` so it stays removable. Returns the
-    inserted rows (with ids), ordered by start_at."""
+    Each block carries its Google ``event_id`` + ``calendar_id`` so it stays removable, and its full
+    ``step_ids`` set so a later propose knows which steps are already on the calendar. Returns the
+    inserted rows (with ids), ordered by start_at. Callers that must survive a partial calendar
+    write pass one block at a time, so each commit lands with its event."""
     conn = connect(db_path)
     ids: List[int] = []
     try:
@@ -175,13 +193,15 @@ def add_study_blocks(
             cur = conn.execute(
                 """
                 INSERT INTO study_blocks
-                    (track_kind, track_id, step_id, calendar_id, event_id, title, start_at, end_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (track_kind, track_id, step_id, step_ids, calendar_id, event_id, title,
+                     start_at, end_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     track_kind,
                     track_id,
                     b["step_id"],
+                    _steps_to_csv(b.get("step_ids") or ([b["step_id"]] if b.get("step_id") else [])),
                     b["calendar_id"],
                     b["event_id"],
                     b["title"],

@@ -65,6 +65,32 @@ def _fake(**kw):
     return FakeCalendarPort(**kw)
 
 
+def _flaky(**kw):
+    from app.studycal.port import FlakyCalendarPort
+
+    return FlakyCalendarPort(**kw)
+
+
+def _block_body(**kw):
+    """A minimal well-formed confirm block (tz-aware RFC3339, as the planner emits)."""
+    return {
+        "start": "2099-07-22T18:00:00-05:00",
+        "end": "2099-07-22T18:45:00-05:00",
+        "minutes": 45,
+        "title": "t",
+        "step_ids": ["ep1"],
+        **kw,
+    }
+
+
+def _opt_in(client, minutes=45):
+    """Turn scheduling on. Required before any confirm — calendar writes are opt-in server-side,
+    not just hidden in the UI."""
+    return client.post(
+        f"/api/paths/{JACOBIAN}/schedule/opt-in", json={"enabled": True, "session_minutes": minutes}
+    )
+
+
 def test_opt_in_roundtrips_and_state_reflects_it(env):
     client, app = _client(_fake())
     try:
@@ -103,6 +129,7 @@ def test_confirm_writes_the_batch_and_records_a_removable_ledger(env):
     port = _fake()
     client, app = _client(port)
     try:
+        _opt_in(client)
         proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
         state = client.post(
             f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]}
@@ -121,6 +148,7 @@ def test_remove_deletes_events_and_clears_live_blocks(env):
     port = _fake()
     client, app = _client(port)
     try:
+        _opt_in(client)
         proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
         client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
         n = len(proposal["blocks"])
@@ -135,14 +163,16 @@ def test_remove_deletes_events_and_clears_live_blocks(env):
 def test_propose_when_calendar_not_connected_degrades_honestly(env):
     client, app = _client(_fake(connected=False))
     try:
+        _opt_in(client)  # required, or the 409 below would pass for the wrong reason (opted out)
         body = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
         assert body["ok"] is False and body["connected"] is False and body["blocks"] == []
         # A confirm against a disconnected calendar is a clean 409, never a 500.
         r = client.post(
             f"/api/paths/{JACOBIAN}/schedule/confirm",
-            json={"blocks": [{"start": "x", "end": "y", "minutes": 45, "title": "t", "step_ids": ["ep1"]}]},
+            json={"blocks": [_block_body()]},
         )
         assert r.status_code == 409
+        assert "connect" in r.json()["detail"].lower()  # the disconnect, not the opt-in gate
     finally:
         _teardown(app)
 
@@ -151,6 +181,122 @@ def test_confirm_with_no_blocks_is_422(env):
     client, app = _client(_fake())
     try:
         assert client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": []}).status_code == 422
+    finally:
+        _teardown(app)
+
+
+# -- opt-in is a server-side gate, not just a hidden panel ---------------------------------------
+
+
+def test_confirm_without_opt_in_is_409_and_writes_nothing(env):
+    port = _fake()
+    client, app = _client(port)
+    try:
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        r = client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+        assert r.status_code == 409
+        # "Calendar writes only happen when you opt in" is load-bearing — a stale tab or a retried
+        # POST must not be able to write events while GET /schedule reports enabled:false.
+        assert port.events() == {}
+        assert client.get(f"/api/paths/{JACOBIAN}/schedule").json()["blocks"] == []
+    finally:
+        _teardown(app)
+
+
+def test_propose_still_works_while_opted_out(env):
+    client, app = _client(_fake())
+    try:
+        # Propose writes no events, so it stays open — the panel needs it to preview a plan.
+        assert client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).status_code == 200
+    finally:
+        _teardown(app)
+
+
+# -- partial calendar writes: every created event keeps a ledger row -----------------------------
+
+
+def test_a_mid_batch_calendar_failure_still_ledgers_every_created_event(env):
+    port = _flaky(fail_at=2)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        assert len(proposal["blocks"]) > 3  # the batch must actually straddle the failure point
+        r = client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+
+        # Honest partial state, not a bare 500 and not a silent success.
+        assert r.status_code == 502
+        assert "2 of" in r.json()["detail"]
+
+        written = client.get(f"/api/paths/{JACOBIAN}/schedule").json()["blocks"]
+        created = set(port.events())
+        # THE hard rule: nothing exists on the calendar without a ledger row to remove it by.
+        assert created and {b["event_id"] for b in written} == created
+    finally:
+        _teardown(app)
+
+
+def test_blocks_written_before_a_failure_are_still_removable(env):
+    port = _flaky(fail_at=2)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+
+        state = client.post(f"/api/paths/{JACOBIAN}/schedule/remove", json={}).json()
+        # The recovery the ledger exists for: one tap clears the orphans a partial write left.
+        assert state["blocks"] == [] and port.events() == {}
+    finally:
+        _teardown(app)
+
+
+def test_a_failure_on_the_very_first_event_writes_nothing(env):
+    port = _flaky(fail_at=0)
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        proposal = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={}).json()
+        r = client.post(f"/api/paths/{JACOBIAN}/schedule/confirm", json={"blocks": proposal["blocks"]})
+        assert r.status_code == 502
+        assert port.events() == {}
+        assert client.get(f"/api/paths/{JACOBIAN}/schedule").json()["blocks"] == []
+    finally:
+        _teardown(app)
+
+
+def test_confirm_rejects_block_times_that_are_not_tz_aware_iso(env):
+    port = _fake()
+    client, app = _client(port)
+    try:
+        _opt_in(client)
+        r = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/confirm",
+            json={"blocks": [{"start": "x", "end": "y", "minutes": 45, "title": "t", "step_ids": ["ep1"]}]},
+        )
+        # Unvalidated strings reach Google as a 400 mid-batch, and land in the ledger as rows a
+        # later propose can't parse. Reject them at the door instead.
+        assert r.status_code == 422 and port.events() == {}
+    finally:
+        _teardown(app)
+
+
+# -- the 7-day testing-mode consent leash, surfaced before it bites ------------------------------
+
+
+def test_schedule_state_carries_the_token_age_so_the_ui_can_warn(env):
+    client, app = _client(_fake(token_age_days=6.2))
+    try:
+        body = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert body["token_age_days"] == pytest.approx(6.2)
+    finally:
+        _teardown(app)
+
+
+def test_schedule_state_token_age_is_null_when_the_port_cannot_say(env):
+    client, app = _client(_fake())
+    try:
+        assert client.get(f"/api/paths/{JACOBIAN}/schedule").json()["token_age_days"] is None
     finally:
         _teardown(app)
 

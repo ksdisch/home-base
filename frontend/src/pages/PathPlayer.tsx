@@ -623,6 +623,10 @@ const DEFAULT_END = 17;
 const DEFAULT_SESSION = 45;
 const DEFAULT_MAX_BLOCKS = 8;
 
+// Google refresh tokens for an app still in "testing" publishing status expire ~7 days after
+// consent, which silently disconnects the calendar. Warn on day 6 so there's a day of runway.
+const TOKEN_WARN_DAYS = 6;
+
 function fmtHour(h: number): string {
   const norm = ((h % 24) + 24) % 24;
   if (norm === 0) return "12 AM";
@@ -792,6 +796,18 @@ function StudySchedule({ notebookId }: { notebookId: string }) {
             Study blocks write to a dedicated “Study” calendar. Run the one-time{" "}
             <code className="rounded bg-line-soft px-1">python -m app.studycal.google login</code> (see
             docs/STUDY_SCHEDULER.md), then reload.
+          </Banner>
+        </div>
+      )}
+
+      {state.connected && (state.token_age_days ?? 0) >= TOKEN_WARN_DAYS && (
+        <div className="mt-3">
+          <Banner tone="warning" title="Reconnect your calendar soon">
+            Google’s consent for this app lapses about 7 days after login (it’s still in testing
+            mode) — yours is {Math.floor(state.token_age_days ?? 0)} days old. Re-run{" "}
+            <code className="rounded bg-line-soft px-1">python -m app.studycal.google login</code> to
+            keep scheduling working. When it does lapse, the panel says so rather than failing
+            silently.
           </Banner>
         </div>
       )}

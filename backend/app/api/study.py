@@ -160,6 +160,16 @@ def _connected(port: Any) -> bool:
         return False
 
 
+def _token_age(port: Any) -> Optional[float]:
+    """Days since the Google consent, best-effort — a port that can't say (or blows up saying)
+    degrades to ``None`` rather than breaking the whole state payload."""
+    try:
+        fn = getattr(port, "token_age_days", None)
+        return fn() if callable(fn) else None
+    except Exception:
+        return None
+
+
 def _written(rows: List[Dict[str, Any]]) -> List[WrittenBlock]:
     return [
         WrittenBlock(
@@ -190,6 +200,7 @@ def _state(notebook_id: str, port: Any) -> StudyScheduleState:
         day_end_hour=opt["day_end_hour"],
         days_of_week=opt["days_of_week"],
         max_blocks=opt["max_blocks"],
+        token_age_days=_token_age(port),
     )
 
 
@@ -373,42 +384,104 @@ def propose(
     )
 
 
+def _validate_block_times(blocks: Sequence[ProposedBlock]) -> None:
+    """Every block must carry tz-aware RFC3339 times with end after start — what the planner emits.
+
+    Confirm bodies are client-controlled, and an unvalidated string is a real hazard on both sides:
+    Google rejects it mid-batch with a 400, and it lands in the ledger as a row a later propose
+    can't parse. Reject at the door instead."""
+    for b in blocks:
+        try:
+            start, end = datetime.fromisoformat(b.start), datetime.fromisoformat(b.end)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=422, detail="Block start/end must be RFC3339 timestamps with an offset."
+            )
+        if start.tzinfo is None or end.tzinfo is None or end <= start:
+            raise HTTPException(
+                status_code=422, detail="Block start/end must carry an offset, and end after start."
+            )
+
+
+def _partial_write_detail(written: int, total: int, exc: Optional[Exception] = None) -> str:
+    """Honest copy for a confirm that died mid-batch: say exactly how far it got, and that the part
+    that landed is still removable (the one hard rule holds even on the failure path)."""
+    tail = f" ({exc})" if exc else ""
+    return (
+        f"Wrote {written} of {total} blocks before the calendar failed{tail}. "
+        "The ones that were written are on your calendar and can still be removed from here."
+    )
+
+
 @router.post("/paths/{notebook_id}/schedule/confirm", response_model=StudyScheduleState)
 def confirm(
     notebook_id: str, body: StudyConfirmRequest, port: Any = Depends(get_calendar_port)
 ) -> StudyScheduleState:
-    """Write the reviewed batch to the 'Study' calendar in one pass, recording each event id so the
-    block stays removable. Nothing writes before this call (the single plan-level confirm)."""
+    """Write the reviewed batch to the 'Study' calendar, recording each event in the removable
+    ledger **as it lands** — create one, ledger one, repeat. That ordering is what makes the
+    feature's one hard rule ("every written event is removable") survive a mid-batch failure: a
+    batch that only ledgers after every insert succeeds strands whatever it already created.
+
+    Calendar writes are opt-in, enforced here rather than by the UI hiding the panel — a stale tab
+    or a retried POST must not be able to write events for an opted-out path. A partial failure
+    returns 502 with an honest count; everything written before it stays removable."""
     _load_path_or_404(notebook_id)
     if not body.blocks:
         raise HTTPException(status_code=422, detail="No blocks to write.")
-    events = [
-        {
+    if not study_blocks.get_study_opt_in(TRACK_KIND, notebook_id)["enabled"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Calendar scheduling is off for this path — turn it on before writing blocks.",
+        )
+    _validate_block_times(body.blocks)
+
+    try:
+        calendar_id = port.ensure_study_calendar()
+    except CalendarNotConnected as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    total, written = len(body.blocks), 0
+    for b in body.blocks:
+        event = {
             "summary": f"📚 {b.title}".strip(),
             "description": _describe(b),
             "start": b.start,
             "end": b.end,
         }
-        for b in body.blocks
-    ]
-    try:
-        calendar_id = port.ensure_study_calendar()
-        event_ids = port.create_events(calendar_id, events)
-    except CalendarNotConnected as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        try:
+            event_id = port.create_event(calendar_id, event)
+        except CalendarNotConnected as e:
+            # A clean 409 only while nothing has been written yet; once events exist, the partial
+            # count is the honest answer regardless of *why* the rest failed.
+            if written == 0:
+                raise HTTPException(status_code=409, detail=str(e))
+            raise HTTPException(status_code=502, detail=_partial_write_detail(written, total, e))
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=_partial_write_detail(written, total, e))
 
-    rows = [
-        {
+        row = {
             "step_id": (b.step_ids[0] if b.step_ids else ""),
+            "step_ids": list(b.step_ids),
             "calendar_id": calendar_id,
-            "event_id": eid,
+            "event_id": event_id,
             "title": b.title,
             "start_at": b.start,
             "end_at": b.end,
         }
-        for b, eid in zip(body.blocks, event_ids)
-    ]
-    study_blocks.add_study_blocks(TRACK_KIND, notebook_id, rows)
+        try:
+            study_blocks.add_study_blocks(TRACK_KIND, notebook_id, [row])
+        except Exception as e:
+            # The ledger is what makes an event removable, so an event we can't record must not
+            # survive: drop it again, best-effort, rather than leave an orphan on the calendar.
+            try:
+                port.delete_events(calendar_id, [event_id])
+            except Exception:
+                pass
+            raise HTTPException(status_code=502, detail=_partial_write_detail(written, total, e))
+        written += 1
+
     return _state(notebook_id, port)
 
 

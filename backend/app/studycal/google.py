@@ -14,7 +14,7 @@ after which the backend refreshes silently.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -36,6 +36,10 @@ class GoogleCalendarPort:
         base = data_dir or get_settings().data_dir
         self.client_secret_path = base / "google-oauth-client.json"
         self.token_path = base / "google-token.json"
+        # Consent timestamp, stamped once at login. Separate from the token file *because*
+        # ``_service`` rewrites that file on every silent refresh — its mtime tracks the last
+        # refresh (minutes ago), not the consent the 7-day leash actually counts from.
+        self.issued_path = base / "google-token-issued"
 
     # -- connection -------------------------------------------------------------
 
@@ -44,18 +48,62 @@ class GoogleCalendarPort:
         """Lazily import the google-api client. Returns a small namespace, or ``None`` if the
         libraries aren't installed — so an un-provisioned machine degrades instead of crashing."""
         try:
+            from google.auth.exceptions import RefreshError, TransportError
             from google.auth.transport.requests import Request
             from google.oauth2.credentials import Credentials
             from googleapiclient.discovery import build
 
-            return {"Request": Request, "Credentials": Credentials, "build": build}
+            return {
+                "Request": Request,
+                "Credentials": Credentials,
+                "build": build,
+                "RefreshError": RefreshError,
+                "TransportError": TransportError,
+            }
         except ImportError:
             return None
 
+    def _load_creds(self, libs: Any) -> Any:
+        """Parse the saved token. File I/O + JSON only — never a refresh, never the network, so
+        this is safe on the read-only ``is_connected`` path."""
+        return libs["Credentials"].from_authorized_user_file(str(self.token_path), SCOPES)
+
     def is_connected(self) -> bool:
-        """True only when both the libraries and a saved token are present — the honest gate the API
-        checks before proposing/writing."""
-        return self.token_path.is_file() and self._import_libs() is not None
+        """True only when the libraries, a saved token, and a *usable* credential are all present.
+
+        Deliberately more than a file-existence check: a corrupt token, or one whose access token
+        has expired with no refresh token left, cannot serve a single call — reporting ``True`` for
+        it is how ``GET /schedule`` came to claim ``connected`` while every other endpoint 500'd."""
+        libs = self._import_libs()
+        if libs is None or not self.token_path.is_file():
+            return False
+        try:
+            creds = self._load_creds(libs)
+        except Exception:
+            return False  # unreadable/corrupt token — honestly disconnected
+        # Valid now, or stale-but-renewable (the normal steady state between hourly refreshes).
+        return bool(getattr(creds, "valid", False) or getattr(creds, "refresh_token", None))
+
+    def token_age_days(self) -> Optional[float]:
+        """Days since the OAuth consent that minted the current token, or ``None`` when unknown.
+
+        Read from the login-time stamp; falls back to the token file's mtime for installs that
+        predate the stamp (imprecise — the refresh rewrite resets it — but better than nothing)."""
+        try:
+            if self.issued_path.is_file():
+                stamped = datetime.fromisoformat(self.issued_path.read_text(encoding="utf-8").strip())
+                if stamped.tzinfo is None:
+                    stamped = stamped.replace(tzinfo=timezone.utc)
+                return max(0.0, (datetime.now(timezone.utc) - stamped).total_seconds() / 86400)
+        except (OSError, ValueError):
+            pass  # corrupt stamp — fall through to the mtime estimate
+        try:
+            if self.token_path.is_file():
+                age = datetime.now(timezone.utc).timestamp() - self.token_path.stat().st_mtime
+                return max(0.0, age / 86400)
+        except OSError:
+            pass
+        return None
 
     def _service(self) -> Any:
         libs = self._import_libs()
@@ -67,14 +115,35 @@ class GoogleCalendarPort:
             raise CalendarNotConnected(
                 "Google Calendar not connected — run `python -m app.studycal.google login`"
             )
-        creds = libs["Credentials"].from_authorized_user_file(str(self.token_path), SCOPES)
-        if not creds.valid:
-            if creds.expired and creds.refresh_token:
-                creds.refresh(libs["Request"]())
-                self.token_path.write_text(creds.to_json(), encoding="utf-8")
-            else:
-                raise CalendarNotConnected("Google Calendar token invalid — re-run login")
-        return libs["build"]("calendar", "v3", credentials=creds, cache_discovery=False)
+        # Everything from here to the built service is wrapped: an expired consent (the documented
+        # ~7-day testing-mode leash), a truncated/corrupt token file, or an unreachable Google must
+        # all surface as CalendarNotConnected — the one exception the router degrades on. Anything
+        # else escapes as a 500 behind a `connected: true` state, which is the lie this prevents.
+        try:
+            creds = self._load_creds(libs)
+            if not creds.valid:
+                if creds.expired and creds.refresh_token:
+                    creds.refresh(libs["Request"]())
+                    self.token_path.write_text(creds.to_json(), encoding="utf-8")
+                else:
+                    raise CalendarNotConnected(
+                        "Google Calendar token invalid — run `python -m app.studycal.google login`"
+                    )
+            return libs["build"]("calendar", "v3", credentials=creds, cache_discovery=False)
+        except libs["TransportError"] as e:
+            # A dropped connection is not an expired consent — never tell Kyle to re-run the login
+            # because his wifi blinked.
+            raise CalendarNotConnected(f"Couldn't reach Google Calendar — try again shortly ({e})")
+        except libs["RefreshError"] as e:
+            raise CalendarNotConnected(
+                "Google Calendar access expired — run `python -m app.studycal.google login` again "
+                f"(testing-mode consent lapses after ~7 days; see docs/STUDY_SCHEDULER.md) [{e}]"
+            )
+        except (ValueError, KeyError, OSError) as e:
+            # json.JSONDecodeError/UnicodeDecodeError subclass ValueError; OSError does not.
+            raise CalendarNotConnected(
+                f"Google Calendar token unreadable — run `python -m app.studycal.google login` [{e}]"
+            )
 
     # -- CalendarPort -----------------------------------------------------------
 
@@ -156,22 +225,26 @@ class GoogleCalendarPort:
                 break
         return out
 
-    def create_events(self, calendar_id: str, events: Sequence[Mapping[str, Any]]) -> List[str]:
-        """Insert each proposed block as an event; return the created event ids (order preserved), so
-        the ledger can delete them later. Each ``event`` carries ``summary``/``start``/``end`` and an
-        optional ``description``."""
+    def create_event(self, calendar_id: str, event: Mapping[str, Any]) -> str:
+        """Insert ONE proposed block and return its event id. The single-event primitive exists so
+        the caller can record each event in the removable ledger the moment it lands — a batch that
+        only reports ids after every insert succeeds strands the earlier ones on a mid-batch
+        failure. ``event`` carries ``summary``/``start``/``end`` and an optional ``description``."""
         svc = self._service()
-        ids: List[str] = []
-        for e in events:
-            body = {
-                "summary": e["summary"],
-                "description": e.get("description", ""),
-                "start": {"dateTime": e["start"], "timeZone": _TZ},
-                "end": {"dateTime": e["end"], "timeZone": _TZ},
-            }
-            created = svc.events().insert(calendarId=calendar_id, body=body).execute()
-            ids.append(created["id"])
-        return ids
+        body = {
+            "summary": event["summary"],
+            "description": event.get("description", ""),
+            "start": {"dateTime": event["start"], "timeZone": _TZ},
+            "end": {"dateTime": event["end"], "timeZone": _TZ},
+        }
+        created = svc.events().insert(calendarId=calendar_id, body=body).execute()
+        return created["id"]
+
+    def create_events(self, calendar_id: str, events: Sequence[Mapping[str, Any]]) -> List[str]:
+        """Insert each proposed block as an event; return the created event ids (order preserved).
+        Convenience batch over :meth:`create_event` — callers that must not strand a partial write
+        should drive ``create_event`` themselves and ledger as they go."""
+        return [self.create_event(calendar_id, e) for e in events]
 
     def delete_events(self, calendar_id: str, event_ids: Sequence[str]) -> None:
         """Delete events by id. An already-gone event (404/410) is treated as success — removal must
@@ -201,6 +274,9 @@ def _login(data_dir: Optional[Path] = None) -> None:
     flow = InstalledAppFlow.from_client_secrets_file(str(port.client_secret_path), SCOPES)
     creds = flow.run_local_server(port=0)
     port.token_path.write_text(creds.to_json(), encoding="utf-8")
+    # Stamp the consent time separately — the token file itself gets rewritten on every silent
+    # refresh, so only this survives to tell the UI how close the 7-day leash is.
+    port.issued_path.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
     print(f"✓ Google Calendar connected — token saved to {port.token_path}")
 
 

@@ -1183,7 +1183,9 @@ class StudyScheduleState(BaseModel):
     connected, the live (written, not removed) blocks, and the learner's persisted window prefs
     (``day_start_hour``/``day_end_hour``/``days_of_week``/``max_blocks``) so the panel hydrates its
     controls on load. A pref is ``None`` when it has never been set (the planner default applies).
-    ``days_of_week`` uses Python ``weekday()`` ints — Mon=0 … Sun=6; ``None`` = every day."""
+    ``days_of_week`` uses Python ``weekday()`` ints — Mon=0 … Sun=6; ``None`` = every day.
+    ``token_age_days`` is how long ago the Google consent was granted (``None`` when unknowable), so
+    the panel can warn before Google's testing-mode ~7-day refresh expiry disconnects the calendar."""
 
     track_kind: str = "path"
     track_id: str
@@ -1196,6 +1198,7 @@ class StudyScheduleState(BaseModel):
     day_end_hour: Optional[int] = None
     days_of_week: Optional[List[int]] = None
     max_blocks: Optional[int] = None
+    token_age_days: Optional[float] = None
 
 
 class AppliedPlan(BaseModel):

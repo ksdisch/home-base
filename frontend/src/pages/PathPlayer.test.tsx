@@ -200,6 +200,23 @@ describe("PathPlayer — Study Scheduler surface", () => {
     expect(await screen.findByText(/Connect your Google Calendar/i)).toBeInTheDocument();
   });
 
+  it("warns when the Google consent is close to its 7-day expiry", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true, token_age_days: 6.3 }));
+    renderAt();
+    // The whole point of surfacing token age: warn while re-login is still cheap, rather than
+    // letting the calendar go dead behind a "connected" banner.
+    expect(await screen.findByText(/Reconnect your calendar soon/i)).toBeInTheDocument();
+  });
+
+  it("stays quiet about the token while the consent is fresh", async () => {
+    path.mockResolvedValue(makePath());
+    schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true, token_age_days: 1.2 }));
+    renderAt();
+    await screen.findByText(/Schedule on my calendar/i);
+    expect(screen.queryByText(/Reconnect your calendar soon/i)).not.toBeInTheDocument();
+  });
+
   it("proposes a batch then writes it on confirm", async () => {
     path.mockResolvedValue(makePath());
     schedule.mockResolvedValue(scheduleState({ enabled: true, connected: true }));
