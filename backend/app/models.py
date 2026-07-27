@@ -972,6 +972,10 @@ class BriefResponse(BaseModel):
     # QU12: active (non-paused) roster topics missing from the served day, roster order.
     # Empty when there's no served day at all — has_data=false already tells that story.
     missing_topics: List[BriefMissingTopic] = []
+    # The roster's muted topics, roster order. A paused topic produces no file, so it has
+    # no card and no jump chip — without this the phone-side pause would be one-way.
+    # Absent from pre-pause SW-cached payloads, so the TS side keeps it optional.
+    paused_topics: List[BriefMissingTopic] = []
     # QU1: the served day's renderable neighbors — the archive's prev/next walk. None at
     # either edge (or when there's no served day).
     prev_date: Optional[str] = None
@@ -992,6 +996,19 @@ class BriefResponse(BaseModel):
     # ?date= morning is a record, not a to-do list). Absent from pre-overnight SW-cached
     # payloads, so the TS side keeps it optional.
     overnight: Optional[BriefOvernight] = None
+
+
+class BriefTopicPauseRequest(BaseModel):
+    """Flip one roster topic's mute (docs/ideas/pause-topic-from-phone.md)."""
+
+    paused: bool
+
+
+class BriefTopicPauseResponse(BaseModel):
+    ok: bool = True
+    slug: str
+    title: str
+    paused: bool
 
 
 class BriefRunDay(BaseModel):

@@ -461,6 +461,28 @@ export default function Brief() {
 
   const stale = brief?.date != null && brief.date < localToday();
   const missingTopics = brief?.missing_topics ?? [];
+  // Roster mute (docs/ideas/pause-topic-from-phone.md). The served payload is the source of
+  // truth; a completed toggle is overlaid locally (slug -> paused) so the chip flips on the
+  // spot without refetching the whole brief. A FAILED toggle overlays nothing — the chip
+  // stays as it was rather than claiming a mute the roster never took.
+  const [pausedOverride, setPausedOverride] = useState<Record<string, boolean>>({});
+  const [pausing, setPausing] = useState<string | null>(null);
+  const topicTitles = new Map<string, string>([
+    ...(brief?.topics ?? []).map((t) => [t.slug, t.title] as [string, string]),
+    ...(brief?.paused_topics ?? []).map((t) => [t.slug, t.title] as [string, string]),
+  ]);
+  const pausedTopics = [...topicTitles]
+    .filter(([slug]) => pausedOverride[slug] ?? (brief?.paused_topics ?? []).some((p) => p.slug === slug))
+    .map(([slug, title]) => ({ slug, title }));
+
+  const togglePaused = (slug: string, paused: boolean) => {
+    setPausing(slug);
+    api
+      .setTopicPaused(slug, paused)
+      .then((r) => setPausedOverride((prev) => ({ ...prev, [r.slug]: r.paused })))
+      .catch(() => {})
+      .finally(() => setPausing(null));
+  };
   // Readiness v0: a const binding so the row map below keeps the narrowed type.
   const readiness = brief?.readiness;
   // Calibrated Doubt v0: the same narrowed-type binding for the calls strip below.
@@ -824,24 +846,55 @@ export default function Brief() {
           header (top-0 z-10, 53px: py-3 + h-7 logo + border); single scrolling line so
           the row never competes with the header for phone vertical space. Hidden for a
           single-topic brief — nothing to skip. */}
-      {brief && brief.topics.length > 1 && (
+      {brief && (brief.topics.length > 1 || pausedTopics.length > 0) && (
         <nav
           aria-label="Jump to topic"
           className="sticky top-[53px] z-[9] mb-4 overflow-x-auto bg-bg/85 py-2 backdrop-blur"
         >
           <div className="flex gap-2">
             {brief.topics.map((t) => (
+              <span
+                key={t.slug}
+                className="flex shrink-0 items-center rounded-full border border-line bg-card/70 text-xs font-medium text-ink"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById(t.slug)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="rounded-l-full py-1 pl-3 pr-1.5 hover:text-accent"
+                >
+                  {t.title}
+                </button>
+                {/* The mute is its own control, never a long-press: this row scrolls
+                    horizontally, so a press-and-hold here would misfire on every drag. */}
+                <button
+                  type="button"
+                  aria-label={`Pause ${t.title}`}
+                  title={`Pause ${t.title} — the next sweep skips it`}
+                  onClick={() => togglePaused(t.slug, true)}
+                  disabled={pausing === t.slug}
+                  className="rounded-r-full py-1 pl-1 pr-2.5 text-muted hover:text-accent disabled:opacity-50"
+                >
+                  ⏸
+                </button>
+              </span>
+            ))}
+            {/* A paused topic swept nothing, so it has no card and no jump chip — without
+                these the mute would be one-way from the phone. */}
+            {pausedTopics.map((t) => (
               <button
                 key={t.slug}
                 type="button"
-                onClick={() =>
-                  document
-                    .getElementById(t.slug)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-                className="shrink-0 rounded-full border border-line bg-card/70 px-3 py-1 text-xs font-medium text-ink hover:border-accent hover:text-accent"
+                aria-label={`Resume ${t.title}`}
+                title={`${t.title} is paused — the next sweep skips it. Tap to resume.`}
+                onClick={() => togglePaused(t.slug, false)}
+                disabled={pausing === t.slug}
+                className="shrink-0 rounded-full border border-dashed border-line px-3 py-1 text-xs font-medium text-muted hover:border-accent hover:text-accent disabled:opacity-50"
               >
-                {t.title}
+                ▶ {t.title}
               </button>
             ))}
           </div>

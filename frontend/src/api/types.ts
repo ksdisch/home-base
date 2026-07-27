@@ -975,6 +975,10 @@ export interface BriefResponse {
   // QU12: active (non-paused) roster topics missing from the served day, roster order.
   // Optional so a pre-QU12 payload replayed from the service-worker cache stays valid.
   missing_topics?: BriefMissingTopic[];
+  // The roster's muted topics, roster order. A paused topic produces no file, so it has no
+  // card and no jump chip — this is what makes the phone-side pause reversible. Optional so
+  // a pre-pause SW-cached payload stays valid.
+  paused_topics?: BriefMissingTopic[];
   // QU1: the served day's renderable neighbors — the archive's prev/next walk. Optional
   // for pre-QU1 SW-cached payloads; null at either edge.
   prev_date?: string | null;
@@ -1164,4 +1168,16 @@ export interface NewsSuggestionAddResponse {
 export interface NewsSuggestionDismissResponse {
   ok: boolean;
   term: string;
+}
+
+// Flip one roster topic's mute — PATCH /api/brief/topics/{slug}.
+export interface BriefTopicPauseRequest {
+  paused: boolean;
+}
+
+export interface BriefTopicPauseResponse {
+  ok: boolean;
+  slug: string;
+  title: string;
+  paused: boolean;
 }
