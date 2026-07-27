@@ -163,6 +163,30 @@ describe("BriefAudioCard", () => {
     expect(onPause).toHaveBeenCalled();
   });
 
+  // Losing the element fires no `pause` — the owner has to be told, or a now-playing
+  // pill outlives the audio and its Pause button points at nothing.
+  it("reports the stop when a load error degrades the card away", () => {
+    const onPause = vi.fn();
+    const { player } = renderCard({ onPause });
+
+    fireEvent.play(player);
+    fireEvent.error(player);
+
+    expect(document.querySelector("audio")).toBeNull();
+    expect(onPause).toHaveBeenCalled();
+  });
+
+  it("reports the stop when the card unmounts mid-playback", () => {
+    const onPause = vi.fn();
+    const { player, unmount } = renderCard({ onPause });
+
+    fireEvent.play(player);
+    onPause.mockClear();
+    unmount();
+
+    expect(onPause).toHaveBeenCalled();
+  });
+
   it("reports play/pause to its owner and exposes the element through mediaRef", () => {
     const onPlay = vi.fn();
     const onPause = vi.fn();

@@ -76,6 +76,13 @@ export function BriefAudioCard({
     setBroken(false);
   }, [retryKey]);
 
+  // Losing the element is not an event it can report: unmounting an <audio> mid-playback
+  // fires no `pause`. Without this the owner would still believe a narration is sounding
+  // — a "Now playing" pill over silence, with a Pause button wired to nothing.
+  const onPauseRef = useRef(onPause);
+  onPauseRef.current = onPause;
+  useEffect(() => () => onPauseRef.current?.(), []);
+
   if (broken) return null;
 
   // FR4: chapter chips seek the single track. Offsets are word-count estimates, so land
@@ -100,7 +107,12 @@ export function BriefAudioCard({
         preload="none"
         src={src}
         className="w-full"
-        onError={() => setBroken(true)}
+        onError={() => {
+          setBroken(true);
+          // Same reason as the unmount cleanup: the element is about to disappear, and a
+          // mid-playback failure never reports the stop it caused.
+          onPause?.();
+        }}
         onPlay={onPlay}
         onPause={onPause}
         onTimeUpdate={(e) => {
