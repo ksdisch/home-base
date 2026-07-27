@@ -27,8 +27,37 @@ function renderCard(props: Partial<Parameters<typeof BriefAudioCard>[0]> = {}) {
   return { ...utils, player };
 }
 
+// jsdom ships no Media Session API at all, so the whole surface is stubbed: handlers
+// land in a map the tests can invoke exactly as the OS would from a locked screen.
+type Handler = (details?: { seekTime?: number }) => void;
+let handlers: Map<string, Handler | null>;
+let mediaSession: {
+  metadata: unknown;
+  playbackState: string;
+  setActionHandler: (a: string, h: Handler | null) => void;
+  setPositionState?: (s: unknown) => void;
+};
+
 beforeEach(() => {
   localStorage.clear();
+  handlers = new Map();
+  mediaSession = {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler: (a, h) => handlers.set(a, h),
+    setPositionState: vi.fn(),
+  };
+  Object.defineProperty(navigator, "mediaSession", {
+    value: mediaSession,
+    writable: true,
+    configurable: true,
+  });
+  // MediaMetadata is likewise absent — a plain passthrough is enough to assert on.
+  (globalThis as unknown as { MediaMetadata: unknown }).MediaMetadata = class {
+    constructor(init: Record<string, unknown>) {
+      Object.assign(this, init);
+    }
+  };
 });
 
 describe("BriefAudioCard", () => {
@@ -198,5 +227,129 @@ describe("BriefAudioCard", () => {
     expect(onPlay).toHaveBeenCalled();
     fireEvent.pause(player);
     expect(onPause).toHaveBeenCalled();
+  });
+
+  // Lock-screen controls (docs/ideas/lock-screen-audio-controls.md). The walk-listen is the
+  // audio brief's real use, and it degraded the moment the phone locked: an anonymous file,
+  // no seek, no chapter skip, stuck at 1x. Zero mediaSession references existed anywhere in
+  // frontend/src, yet every hard part — chapters with offsets, the seek, the single element
+  // — had already shipped. This lands on the ONE shared card, so the archive player gets it
+  // in the same pass (idea-doc question 2, answered by bug #20's extract).
+
+  it("names the brief on the lock screen instead of an anonymous file", () => {
+    renderCard();
+    expect((mediaSession.metadata as { title: string }).title).toMatch(/Morning brief/);
+    expect((mediaSession.metadata as { title: string }).title).toMatch(/2026-07-14|Jul 14/);
+  });
+
+  it("shows which chapter is playing as the track moves", () => {
+    const { player } = renderCard();
+
+    (player as HTMLAudioElement).currentTime = 120;
+    fireEvent.timeUpdate(player);
+
+    // 120s is past AI / LLMs' 95.5s offset — the later chapter wins.
+    expect((mediaSession.metadata as { artist: string }).artist).toBe("AI / LLMs");
+  });
+
+  it("play and pause work from the lock screen", () => {
+    const { player } = renderCard();
+    const pause = vi.spyOn(player, "pause").mockImplementation(() => {});
+
+    handlers.get("play")?.();
+    expect(player.play).toHaveBeenCalled();
+
+    handlers.get("pause")?.();
+    expect(pause).toHaveBeenCalled();
+  });
+
+  it("the lock-screen scrubber seeks the track", () => {
+    const { player } = renderCard();
+
+    handlers.get("seekto")?.({ seekTime: 42 });
+
+    expect(player.currentTime).toBe(42);
+  });
+
+  it("gives its two skip slots to chapters, not a blind 15 seconds", () => {
+    // The brief HAS real chapters with offsets; ±15s is already reachable via the
+    // scrubber, so the scarce lock-screen slots go to the thing nothing else provides.
+    renderCard();
+    expect(handlers.get("nexttrack")).toBeTypeOf("function");
+    expect(handlers.get("previoustrack")).toBeTypeOf("function");
+    expect(handlers.get("seekforward") ?? null).toBeNull();
+    expect(handlers.get("seekbackward") ?? null).toBeNull();
+  });
+
+  it("skips forward to the next chapter", () => {
+    const { player } = renderCard();
+
+    // Chapters sort by offset: Fantasy football (1.0) then AI / LLMs (95.5).
+    (player as HTMLAudioElement).currentTime = 10;
+    handlers.get("nexttrack")?.();
+
+    expect(player.currentTime).toBe(93.5); // the same −2s lead the chips use
+  });
+
+  it("skips back the way every media player does — restart, then previous", () => {
+    const { player } = renderCard();
+
+    // Mid-chapter, ⏮ restarts the chapter you're in rather than skipping past it.
+    (player as HTMLAudioElement).currentTime = 120;
+    handlers.get("previoustrack")?.();
+    expect(player.currentTime).toBe(93.5);
+
+    // Pressed again from the top of that chapter, it goes to the one before.
+    handlers.get("previoustrack")?.();
+    expect(player.currentTime).toBe(0); // Fantasy football at 1.0 − 2, clamped
+  });
+
+  it("skipping past the last chapter does nothing rather than jumping to the end", () => {
+    const { player } = renderCard();
+
+    (player as HTMLAudioElement).currentTime = 200;
+    handlers.get("nexttrack")?.();
+
+    expect(player.currentTime).toBe(200);
+  });
+
+  it("a card with no chapters registers no chapter skips", () => {
+    renderCard({ chapters: [] });
+    expect(handlers.get("nexttrack") ?? null).toBeNull();
+    expect(handlers.get("previoustrack") ?? null).toBeNull();
+  });
+
+  // Speed chips: 1.5x returns ~100 seconds of every single morning.
+
+  it("applies a chosen rate to the element and remembers it", () => {
+    const { player, unmount } = renderCard();
+
+    fireEvent.click(screen.getByRole("button", { name: "1.5x" }));
+    expect(player.playbackRate).toBe(1.5);
+
+    unmount();
+    const again = renderCard();
+    fireEvent.loadedMetadata(again.player);
+    expect(again.player.playbackRate).toBe(1.5);
+  });
+
+  it("defaults to 1x when nothing was ever chosen", () => {
+    const { player } = renderCard();
+    fireEvent.loadedMetadata(player);
+    expect(player.playbackRate).toBe(1);
+  });
+
+  it("a junk stored rate falls back to 1x rather than breaking playback", () => {
+    localStorage.setItem("audio-rate", "not-a-number");
+    const { player } = renderCard();
+    fireEvent.loadedMetadata(player);
+    expect(player.playbackRate).toBe(1);
+  });
+
+  it("renders nothing media-session-ish when the browser has no support", () => {
+    // iOS < 15 and any non-supporting browser: the card must still work.
+    Object.defineProperty(navigator, "mediaSession", { value: undefined, configurable: true });
+    expect(() => renderCard()).not.toThrow();
+    expect(screen.getByRole("button", { name: "1.5x" })).toBeInTheDocument();
   });
 });

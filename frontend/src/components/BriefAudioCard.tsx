@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { BriefAudioChapter } from "../api/types";
+import { shortDate } from "../lib/format";
+
+// Lock-screen controls + speed (docs/ideas/lock-screen-audio-controls.md). The walk-listen
+// is this player's real use and it degraded the instant the phone locked: an anonymous
+// file, no seek, no chapter skip, stuck at 1x. Living on the ONE shared card means the
+// archive player gets the same wiring for free — the point of bug #20's extract.
+const RATES = [1, 1.25, 1.5];
+const RATE_KEY = "audio-rate";
+
+function storedRate(): number {
+  const raw = Number(localStorage.getItem(RATE_KEY));
+  return RATES.includes(raw) ? raw : 1;
+}
 
 // The one narrated-brief player. BriefShell's hoisted Today card and BriefArchive's
 // historical card were separate copies until they drifted (bug #20: the archive lost the
@@ -35,6 +48,7 @@ export function BriefAudioCard({
   onPause?: () => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [rate, setRate] = useState<number>(storedRate);
   // #21: set by a chapter tap, cleared by the metadata handler it must outrank.
   const pendingSeek = useRef(false);
   // #5: which track the element has actually loaded — null until metadata lands.
@@ -83,6 +97,70 @@ export function BriefAudioCard({
   onPauseRef.current = onPause;
   useEffect(() => () => onPauseRef.current?.(), []);
 
+  // Chapters in play order. audio_brief.py writes them in narration order already, but the
+  // skip handlers below do arithmetic on the offsets, so sort rather than assume.
+  const ordered = [...chapters].sort((a, b) => a.start_seconds - b.start_seconds);
+  const orderedKey = ordered.map((c) => `${c.slug}:${c.start_seconds}`).join("|");
+
+  // The lock screen. Registered on the shared card, so Today and the archive both get it.
+  useEffect(() => {
+    const ms = navigator.mediaSession;
+    if (!ms) return; // iOS < 15 and any non-supporting browser — the card still works
+    ms.metadata = new MediaMetadata({
+      title: `Morning brief — ${shortDate(trackKey) || trackKey}`,
+      artist: ordered[0]?.title ?? "Home Base",
+      album: "Home Base",
+    });
+
+    const el = () => audioRef.current;
+    // The same −2s lead the chips use: land on the spoken "Next up:" rather than
+    // mid-sentence. Shared so the two entry points can never drift apart.
+    const jump = (start: number) => {
+      const a = el();
+      if (!a) return;
+      pendingSeek.current = true;
+      a.currentTime = Math.max(0, start - 2);
+    };
+
+    const set = (action: string, handler: (() => void) | ((d: { seekTime?: number }) => void) | null) => {
+      try {
+        ms.setActionHandler(action as MediaSessionAction, handler as never);
+      } catch {
+        /* an action this browser doesn't know: skip it, keep the rest */
+      }
+    };
+
+    set("play", () => el()?.play()?.catch(() => {}));
+    set("pause", () => el()?.pause());
+    set("seekto", (d: { seekTime?: number } = {}) => {
+      const a = el();
+      if (a && typeof d.seekTime === "number") a.currentTime = d.seekTime;
+    });
+
+    // Idea-doc question 1: the two scarce skip slots go to CHAPTERS, not a blind ±15s.
+    // The brief has real chapters with offsets and nothing else surfaces them, while ±15s
+    // is already reachable through the scrubber `seekto` registers above.
+    if (ordered.length > 0) {
+      set("nexttrack", () => {
+        const a = el();
+        if (!a) return;
+        const next = ordered.find((c) => c.start_seconds > a.currentTime + 2);
+        if (next) jump(next.start_seconds);
+      });
+      set("previoustrack", () => {
+        const a = el();
+        if (!a) return;
+        const prior = [...ordered].reverse().find((c) => c.start_seconds < a.currentTime - 2);
+        jump(prior ? prior.start_seconds : 0);
+      });
+    }
+
+    return () => {
+      for (const a of ["play", "pause", "seekto", "nexttrack", "previoustrack"]) set(a, null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- orderedKey stands in for `ordered`
+  }, [trackKey, orderedKey]);
+
   if (broken) return null;
 
   // FR4: chapter chips seek the single track. Offsets are word-count estimates, so land
@@ -94,6 +172,16 @@ export function BriefAudioCard({
     pendingSeek.current = true;
     el.currentTime = Math.max(0, start - 2);
     el.play()?.catch(() => {});
+  };
+
+  const applyRate = (next: number) => {
+    setRate(next);
+    try {
+      localStorage.setItem(RATE_KEY, String(next));
+    } catch {
+      /* localStorage unavailable — the rate simply doesn't persist */
+    }
+    if (audioRef.current) audioRef.current.playbackRate = next;
   };
 
   return (
@@ -116,12 +204,23 @@ export function BriefAudioCard({
         onPlay={onPlay}
         onPause={onPause}
         onTimeUpdate={(e) => {
+          // Keep the lock screen's chapter label current — "which topic is this?" is the
+          // one thing a locked phone can't otherwise answer.
+          const ms = navigator.mediaSession;
+          if (ms?.metadata && ordered.length > 0) {
+            const now = e.currentTarget.currentTime;
+            const current = [...ordered].reverse().find((c) => c.start_seconds <= now + 2);
+            if (current && ms.metadata.artist !== current.title) ms.metadata.artist = current.title;
+          }
           // #5: never persist a position read off the previous track under the new key.
           if (!posKey || loadedTrack.current !== trackKey) return;
           localStorage.setItem(posKey, String(e.currentTarget.currentTime));
         }}
         onLoadedMetadata={(e) => {
           loadedTrack.current = trackKey;
+          // A load() resets playbackRate to 1, so the chosen speed is re-applied here
+          // rather than only at tap time.
+          e.currentTarget.playbackRate = rate;
           // #21: a chapter tap already chose a position — with preload="none" that tap is
           // what triggered this load, so restoring the saved point here would silently
           // discard the jump the tap just made.
@@ -141,6 +240,24 @@ export function BriefAudioCard({
           onPause?.();
         }}
       />
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-xs text-muted">Speed</span>
+        {RATES.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => applyRate(r)}
+            aria-pressed={rate === r}
+            className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+              rate === r
+                ? "border-accent text-accent"
+                : "border-line text-muted hover:border-accent hover:text-accent"
+            }`}
+          >
+            {r}x
+          </button>
+        ))}
+      </div>
       {chapters.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {chapters.map((ch) => (
