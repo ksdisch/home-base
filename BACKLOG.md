@@ -708,6 +708,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 ### Bugs — 2026-07-26 hunt (24 verified — full detail in the [report](docs/bug-hunt/2026-07-26-post-studycal-m8.md))
 
 #### [Bug] #1: Phantom "Brief.chapters" error topic card served on every day that has audio chapters
+- _✅ fixed 2026-07-27 (PR #154, RED→green): one `_is_topic_stem` rule — a roster slug never contains a dot — now gates all four places a day folder was read as a list of topics (`load_brief_topics`, `build_calibration`'s per-day listing, `_has_renderable_content`, `audio_brief.load_topics`), mirroring the guard `sweeps/actions_queue.py` already had. Two of the four were only saved by `brief.chapters.json` happening to be a JSON *list*; those tests write a dict-shaped one so the guard can't rest on the artifact's shape again._
 - **Where:** `backend/app/sweeps.py:640-658` · severity high · confidence high
 - **Why:** Live in production right now — reproduced against the real 2026-07-25 and 2026-07-26 sweep dirs. Since FR4, brief.chapters.json is swept up as a topic slug, fails _structured_topic, and degrades to a fallback error card, so every audio morning (and every archived audio day) the flagship Today page…
 - **Acceptance:** Filter dotted stems out of the topic-slug set in load_brief_topics (mirror collect_candidates), and apply the same exclusion in build_calibration's per-day slug listing (sweeps.py:521), _has_renderable_content, and audio_brief.load_topics. Extend the FR4… Regression test first.

@@ -869,6 +869,53 @@ def test_brief_mangled_chapters_degrade_to_empty(tmp_path, monkeypatch):
         get_settings.cache_clear()
 
 
+def test_chapters_file_is_never_served_as_a_topic(tmp_path, monkeypatch):
+    """Bug #1: brief.chapters.json lands in the day folder beside the topic files, so a
+    slug set built from "every .json/.md stem" swept it up as a topic named
+    'brief.chapters'. It has no top_line, so it failed _structured_topic and degraded to
+    the honest fallback card — meaning every audio morning put a fake topic wearing the
+    "this topic's sweep didn't validate" banner on the flagship page. A recurring false
+    validation failure is a direct hit on the sweep-trust invariant the morning habit
+    rests on. The dotted stem is the marker sweeps/actions_queue.py already reads to tell
+    a pipeline artifact from a topic; the backend loader gets the same guard.
+    """
+    sweeps = _env(tmp_path, monkeypatch, "chaptersnotatopic")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    (day / "brief.chapters.json").write_text(json.dumps(CHAPTERS), encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert [t["slug"] for t in body["topics"]] == ["ai-llms"]
+        assert all(t.get("error") is None for t in body["topics"])
+        # The chips still ride that same file — it's excluded as a *topic*, not ignored.
+        assert body["audio_chapters"] == CHAPTERS
+    finally:
+        get_settings.cache_clear()
+
+
+def test_a_day_holding_only_pipeline_artifacts_is_not_a_renderable_morning(tmp_path, monkeypatch):
+    """The renderability bar picks which day gets served. A folder holding an audio
+    artifact but no topic file has nothing to read, and counting it would hide the last
+    complete brief behind an empty page — the same failure mode the .raw.txt-only guard
+    exists to prevent.
+    """
+    sweeps = _env(tmp_path, monkeypatch, "artifactonly")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    day15 = _write_day(sweeps, "2026-07-15", {})
+    (day15 / "brief.chapters.json").write_text(json.dumps(CHAPTERS), encoding="utf-8")
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief").json()
+        assert body["date"] == "2026-07-14"
+        assert body["has_data"] is True
+        assert [t["slug"] for t in body["topics"]] == ["ai-llms"]
+    finally:
+        get_settings.cache_clear()
+
+
 def test_brief_chapters_without_mp3_stay_hidden(tmp_path, monkeypatch):
     """A failed Kokoro render leaves chapters beside no mp3 (written before the render by
     design) — the API must treat the pair as absent, not advertise seeks into nothing."""

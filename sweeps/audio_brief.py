@@ -112,9 +112,11 @@ def load_topics(day_dir: Path, roster: list[dict]) -> list[dict]:
     """Every usable <slug>.json for the day, page order (roster first, leftovers appended).
 
     md-only or unparseable topics are simply skipped — they still render on the page via its
-    raw-markdown fallback; the audio cut only narrates validated briefs.
+    raw-markdown fallback; the audio cut only narrates validated briefs. Dotted stems are
+    pipeline artifacts, never topics — including the brief.chapters.json this script writes
+    into the same folder (bug #1).
     """
-    present = {p.stem for p in day_dir.glob("*.json")}
+    present = {p.stem for p in day_dir.glob("*.json") if "." not in p.stem}
     roster_slugs = [t["slug"] for t in roster]
     ordered = [s for s in roster_slugs if s in present]
     ordered += sorted(present - set(roster_slugs))
