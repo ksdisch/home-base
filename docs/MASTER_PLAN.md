@@ -354,6 +354,25 @@ over-counts rather than under-counts._
 
 ## Changelog (newest first)
 
+### 2026-07-27 — The audio brief gets lock-screen controls + speed (replenish small-wins 8/9)
+
+- The walk-listen is the audio brief's real use, and it degraded the instant the phone locked:
+  an anonymous file, no seek, no chapter skip, stuck at 1x. Zero `mediaSession` references
+  existed anywhere in `frontend/src` — yet every hard part had already shipped (chapters with
+  offsets, the −2s seek, the single persistent element, the resume point).
+- `navigator.mediaSession` metadata ("Morning brief — Jul 14", artist = the chapter currently
+  playing, refreshed on timeupdate) plus play/pause/seekto/previoustrack/nexttrack handlers,
+  and persisted 1x/1.25x/1.5x chips (re-applied on `loadedmetadata`, since `load()` resets
+  `playbackRate`). 1.5x returns ~100 seconds of every morning.
+- It lands on `BriefAudioCard` — the one shared player after bug #20's extract — so the
+  **archive player gets the same wiring in the same pass, for free**. That was the idea doc's
+  second open question, answered by construction rather than by a second implementation.
+- The two scarce skip slots go to **chapters, not a blind ±15s**: the brief has real chapters
+  and nothing else surfaces them, while ±15s is already reachable through the scrubber
+  `seekto` registers. ⏮ restarts the current chapter before stepping back, as every media
+  player does. No `mediaSession` (iOS < 15) degrades silently. Frontend 240→253. Outstanding:
+  Kyle's eyes-on lock-screen pass — jsdom has no Media Session API, so it's stubbed here.
+
 ### 2026-07-27 — News remembers what you already read (replenish small-wins 7/9)
 
 - Half the loop already existed: News.tsx has fired `signal("click", item)` into

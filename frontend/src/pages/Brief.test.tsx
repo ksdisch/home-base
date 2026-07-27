@@ -752,15 +752,19 @@ describe("Brief (Today page)", () => {
     expect(player.currentTime).toBe(0); // 1 − 2 clamps at the start, never negative
   });
 
-  it("a cached pre-FR4 payload gets the player with no chips (FR4)", async () => {
+  it("a cached pre-FR4 payload gets the player with no chapter chips (FR4)", async () => {
     // A stale SW-cached BriefResponse has no audio_chapters key at all — the card must
-    // render chip-free, not crash.
+    // render chapter-chip-free, not crash. (The speed chips are unconditional and are not
+    // chapter chips, so they're excluded by name rather than by counting every button.)
     briefWithMeta.mockResolvedValue(offline({ ...STRUCTURED, audio_available: true }));
     renderBrief();
 
     expect(await screen.findByText(/Listen to this brief/)).toBeInTheDocument();
     const card = screen.getByText(/Listen to this brief/).closest("div")!;
-    expect(within(card as HTMLElement).queryAllByRole("button")).toHaveLength(0);
+    const chapterChips = within(card as HTMLElement)
+      .queryAllByRole("button")
+      .filter((b) => !/^\d+(\.\d+)?x$/.test(b.textContent ?? ""));
+    expect(chapterChips).toHaveLength(0);
   });
 
   // FR13: the developing badge finally names what changed — tapping it reveals the
