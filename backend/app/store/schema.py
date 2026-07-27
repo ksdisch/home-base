@@ -5,7 +5,7 @@ clock, feeding a deterministic "Review next" queue. None of that is implemented 
 
 from __future__ import annotations
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 # Each statement is applied idempotently (IF NOT EXISTS) on startup.
 STATEMENTS = [
@@ -121,11 +121,18 @@ STATEMENTS = [
     # = distinct days). `day` is the LOCAL calendar day, written by the app (sqlite's
     # datetime('now') is UTC, which would file a 7pm CDT visit under tomorrow). v4 adds this
     # table; being a plain CREATE IF NOT EXISTS it needs no ALTER migration entry.
+    # v14 adds `source`: which Kyle opened it (app.visit_source — 'phone' = a tailnet peer,
+    # 'mac-localhost', 'dev', 'test', …). Without it the metric could not tell a Tuesday
+    # morning from a Playwright run, so the ~08-03 v1 check would have certified build
+    # exhaust as a reading habit (docs/ideas/builder-vs-reader-metric.md). NULLABLE on
+    # purpose: July's pre-v14 rows are genuinely unattributed and stay that way rather than
+    # being back-filled with a guess.
     """
     CREATE TABLE IF NOT EXISTS brief_visits (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         day        TEXT NOT NULL,
-        visited_at TEXT NOT NULL
+        visited_at TEXT NOT NULL,
+        source     TEXT
     )
     """,
     # Phase 6: per-lesson "I finished this lesson" checkbox for generated courses. Course
@@ -316,5 +323,11 @@ MIGRATIONS = {
     # covers and happily re-scheduled them. Nullable — pre-v13 rows fall back to ``step_id``.
     13: [
         "ALTER TABLE study_blocks ADD COLUMN step_ids TEXT",
+    ],
+    # v14 (visit-source attribution): which origin a Today-page load came from, so the v1
+    # habit check can report phone-sourced distinct days beside the raw count. Nullable —
+    # existing rows stay unattributed, which is the honest state for them.
+    14: [
+        "ALTER TABLE brief_visits ADD COLUMN source TEXT",
     ],
 }

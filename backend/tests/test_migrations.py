@@ -10,6 +10,7 @@ were lost to a drop/recreate outside the app.
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -87,12 +88,84 @@ def test_fresh_store_takes_no_snapshot(tmp_path):
 
 
 def test_snapshot_retention_is_bounded(tmp_path):
-    """Every startup snapshots, so retention must be bounded — newest five kept."""
+    """Every startup snapshots, so retention must be bounded — one per local day."""
     db = tmp_path / "learning-hub.sqlite"
     _make_v2_store(db)
+    before = db.read_bytes()
     for _ in range(7):
         init_db(db)
-    assert len(list(tmp_path.glob("learning-hub.sqlite.bak-*"))) == 5
+    baks = list(tmp_path.glob("learning-hub.sqlite.bak-*"))
+    assert len(baks) == 1
+    # And it's the FIRST of the day — the copy taken before anything ran, not the last.
+    assert baks[0].read_bytes() == before
+
+
+# -- The guard's own self-defeat (docs/ideas/day-bucketed-store-snapshots.md) ---------
+# The LaunchAgent runs KeepAlive=true and init_db snapshots on every start, so a
+# newest-N-*files* policy let a crash loop burn every slot with post-damage copies in
+# minutes — rotating away the last clean store under the exact failure the snapshot
+# exists to survive. Retention is now the first snapshot of each local day, newest N days.
+
+
+def _on_day(monkeypatch, day: str, hhmmss: str = "090000"):
+    """Pin the snapshot clock to a local wall-clock instant (YYYY-MM-DD, HHMMSS)."""
+    import app.store.db as store_db
+
+    stamp = datetime.fromisoformat(f"{day}T{hhmmss[:2]}:{hhmmss[2:4]}:{hhmmss[4:]}")
+    monkeypatch.setattr(store_db, "_snapshot_now", lambda: stamp.astimezone())
+
+
+def _bak_days(tmp_path) -> list[str]:
+    prefix = len("learning-hub.sqlite.bak-")
+    return sorted(p.name[prefix : prefix + 8] for p in tmp_path.glob("learning-hub.sqlite.bak-*"))
+
+
+def test_a_crash_loop_cannot_rotate_away_the_pre_damage_snapshot(tmp_path, monkeypatch):
+    """The whole point. Monday's clean copy must survive Tuesday's respawn storm."""
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    clean = db.read_bytes()
+
+    _on_day(monkeypatch, "2026-07-20")
+    init_db(db)  # Monday: the last good bytes land on disk
+
+    db.write_bytes(b"corrupted-store-not-a-sqlite-file")  # the damage
+    _on_day(monkeypatch, "2026-07-21")
+    for _ in range(10):  # Tuesday: KeepAlive respawns all afternoon
+        with pytest.raises(sqlite3.DatabaseError):
+            init_db(db)
+
+    days = _bak_days(tmp_path)
+    assert days == ["20260720", "20260721"]  # one per day, not eleven files
+    monday = next(tmp_path.glob("learning-hub.sqlite.bak-20260720T*"))
+    assert monday.read_bytes() == clean  # restorable, after ten post-damage starts
+
+
+def test_retention_keeps_the_newest_five_distinct_days(tmp_path, monkeypatch):
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    for n in range(1, 9):  # eight distinct days, several starts each
+        _on_day(monkeypatch, f"2026-07-{n:02d}")
+        init_db(db)
+        init_db(db)
+
+    assert _bak_days(tmp_path) == ["20260704", "20260705", "20260706", "20260707", "20260708"]
+
+
+def test_a_days_first_snapshot_wins_over_its_later_ones(tmp_path, monkeypatch):
+    """Within a day the earliest copy is the most pre-damage one, so it's the keeper."""
+    db = tmp_path / "learning-hub.sqlite"
+    _make_v2_store(db)
+    morning = db.read_bytes()
+
+    _on_day(monkeypatch, "2026-07-20", "060000")
+    init_db(db)
+    _on_day(monkeypatch, "2026-07-20", "180000")
+    init_db(db)
+
+    baks = list(tmp_path.glob("learning-hub.sqlite.bak-*"))
+    assert len(baks) == 1
+    assert baks[0].read_bytes() == morning
 
 
 def test_failing_migration_leaves_a_restorable_snapshot(tmp_path, monkeypatch):

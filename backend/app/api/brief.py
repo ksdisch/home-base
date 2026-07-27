@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from ..chat import (
@@ -73,6 +73,7 @@ from ..sweeps import (
     sweep_dates,
     topic_title,
 )
+from ..visit_source import source_from_request
 
 router = APIRouter()
 
@@ -342,9 +343,18 @@ def chat_about_brief_item(
 
 
 @router.post("/brief/visit", response_model=BriefVisitResponse)
-def log_brief_visit() -> BriefVisitResponse:
-    row = record_brief_visit()
-    return BriefVisitResponse(ok=True, day=row["day"], visited_at=row["visited_at"])
+def log_brief_visit(request: Request) -> BriefVisitResponse:
+    """Log one Today-page load, tagged with where it came from (v14).
+
+    Untagged, this endpoint could not tell a Tuesday morning read from a localhost dev load
+    or a verify pass, so the ~08-03 v1 check would have graded build exhaust as a reading
+    habit (docs/ideas/builder-vs-reader-metric.md). The bucket is echoed back so a live
+    check from the phone can confirm what it lands as."""
+    source = source_from_request(request)
+    row = record_brief_visit(source=source)
+    return BriefVisitResponse(
+        ok=True, day=row["day"], visited_at=row["visited_at"], source=source
+    )
 
 
 _GRADE_HEADING = re.compile(r"^##\s+(\d{4}-\d{2}-\d{2})\b")

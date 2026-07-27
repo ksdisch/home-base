@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from ..config import get_settings
+from ..visit_source import PHONE
 from . import scheduler
 from .schema import MIGRATIONS, SCHEMA_VERSION, STATEMENTS
 
@@ -36,7 +37,19 @@ def _safe_alter(conn: sqlite3.Connection, stmt: str) -> None:
             raise
 
 
-_SNAPSHOT_KEEP = 5
+_SNAPSHOT_KEEP_DAYS = 5
+_DAY_LEN = len("YYYYMMDD")
+
+
+def _snapshot_now() -> datetime:
+    """The snapshot clock, as a local-time instant. A seam so tests can walk days."""
+    return datetime.now(timezone.utc).astimezone()
+
+
+def _snapshot_day(path: Path, bak: Path) -> str:
+    """The local-day bucket a ``.bak-`` sibling belongs to — the stamp's leading date."""
+    start = len(f"{path.name}.bak-")
+    return bak.name[start : start + _DAY_LEN]
 
 
 def _snapshot_before_migrations(path: Path) -> None:
@@ -45,16 +58,33 @@ def _snapshot_before_migrations(path: Path) -> None:
     a typo'd or shape-drifted ALTER must leave something to copy back. Unconditional,
     deliberately NOT gated on the schema_migrations ledger: the 2026-07-16 drift
     incident is exactly the case where the ledger lies about what's on disk. Only a
-    missing/empty store (fresh DB) skips; a failed copy never blocks startup. Bounded
-    retention: the newest _SNAPSHOT_KEEP timestamped .bak-* siblings are kept.
-    Restore is manual by design: copy the .bak back over the store."""
+    missing/empty store (fresh DB) skips; a failed copy never blocks startup.
+    Restore is manual by design: copy the .bak back over the store.
+
+    Retention is DAY-BUCKETED (docs/ideas/day-bucketed-store-snapshots.md): the first
+    snapshot of each local day, newest ``_SNAPSHOT_KEEP_DAYS`` days. Keeping the newest
+    N *files* defeated the guard under its own scenario — the LaunchAgent runs
+    KeepAlive=true and this fires on every start, so a crash loop burned all N slots
+    with post-damage copies in minutes and rotated away the last clean store. The
+    first copy of a day is the most pre-damage one, so once today has one we take no
+    more; a later same-day snapshot would only be worse and would cost a day's slot.
+    Stamps are local time so the leading date IS the bucket (pre-existing UTC-stamped
+    siblings simply bucket by their UTC date, which is harmless)."""
     try:
         if not path.is_file() or path.stat().st_size == 0:
             return
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
-        shutil.copy2(path, path.with_name(f"{path.name}.bak-{stamp}"))
-        for old in sorted(path.parent.glob(f"{path.name}.bak-*"))[:-_SNAPSHOT_KEEP]:
-            old.unlink(missing_ok=True)
+        now = _snapshot_now()
+        today = now.strftime("%Y%m%d")
+        siblings = sorted(path.parent.glob(f"{path.name}.bak-*"))
+        if not any(_snapshot_day(path, b) == today for b in siblings):
+            stamp = now.strftime("%Y%m%dT%H%M%S%f")
+            shutil.copy2(path, path.with_name(f"{path.name}.bak-{stamp}"))
+            siblings = sorted(path.parent.glob(f"{path.name}.bak-*"))
+        days = sorted({_snapshot_day(path, b) for b in siblings})
+        expired = set(days[:-_SNAPSHOT_KEEP_DAYS])
+        for old in siblings:
+            if _snapshot_day(path, old) in expired:
+                old.unlink(missing_ok=True)
     except OSError:
         pass
 
@@ -190,11 +220,18 @@ def list_reflections(
     ]
 
 
-def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
+def record_brief_visit(
+    source: Optional[str] = None, db_path: Optional[Path] = None
+) -> Dict[str, Optional[str]]:
     """Log one Today-page visit (M1's habit metric: opened ≥5 mornings/week = distinct days).
 
     Uses the LOCAL calendar day — "did I open it this morning" is a local-time question, and
     sqlite's ``datetime('now')`` is UTC (a 7pm CDT visit would land on tomorrow's day).
+
+    ``source`` is the v14 origin bucket (:mod:`app.visit_source` — 'phone' = a tailnet peer,
+    'mac-localhost', 'dev', 'test', …) so the v1 check can separate reader-Kyle from
+    builder-Kyle plus the robots. None stays None: an unattributed visit is honestly
+    unattributed, never guessed.
     """
     now = datetime.now().astimezone()
     day = now.strftime("%Y-%m-%d")
@@ -202,13 +239,13 @@ def record_brief_visit(db_path: Optional[Path] = None) -> Dict[str, str]:
     conn = connect(db_path)
     try:
         conn.execute(
-            "INSERT INTO brief_visits (day, visited_at) VALUES (?, ?)",
-            (day, visited_at),
+            "INSERT INTO brief_visits (day, visited_at, source) VALUES (?, ?, ?)",
+            (day, visited_at, source),
         )
         conn.commit()
     finally:
         conn.close()
-    return {"day": day, "visited_at": visited_at}
+    return {"day": day, "visited_at": visited_at, "source": source}
 
 
 def list_brief_visit_days(db_path: Optional[Path] = None) -> List[str]:
@@ -220,6 +257,27 @@ def list_brief_visit_days(db_path: Optional[Path] = None) -> List[str]:
     finally:
         conn.close()
     return [r["day"] for r in rows]
+
+
+def list_brief_visit_day_sources(
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Optional[str]]]:
+    """Distinct (day, source) pairs, newest day first — the Mirror's attributed read (v14).
+
+    Pairs rather than a filtered day list because the Mirror needs three things off one
+    read: the raw distinct-day count, the phone-sourced count, and whether the window
+    carries ANY attribution at all. That last one matters — a window of pre-v14 rows has
+    no source on any row, and telling Kyle "0 on your phone" for it would be a fabricated
+    accusation rather than a measurement (docs/ideas/builder-vs-reader-metric.md).
+    """
+    conn = connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT day, source FROM brief_visits ORDER BY day DESC"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [{"day": r["day"], "source": r["source"]} for r in rows]
 
 
 def brief_habit_weeks(
@@ -239,22 +297,33 @@ def brief_habit_weeks(
     zero-filled — ``mornings`` = distinct visit days, ``notes`` = notes attached. ``now``
     is injectable for deterministic tests. Malformed hand-edited rows are skipped, never
     a 500 (defensive like the rest of the read layer).
+
+    ``mornings_phone`` (v14) is the same distinct-day count restricted to tailnet-sourced
+    visits — the honest reader-Kyle number, reported BESIDE ``mornings`` rather than
+    replacing it. Changing which one certifies v1 is Kyle's call, not this function's
+    (docs/ideas/builder-vs-reader-metric.md); pre-v14 rows have no source and so count
+    toward ``mornings`` only.
     """
     weeks = max(1, min(12, int(weeks)))
     now_dt = now or datetime.now().astimezone()
     this_monday = now_dt.date() - timedelta(days=now_dt.date().weekday())
     starts = [this_monday - timedelta(weeks=w) for w in range(weeks - 1, -1, -1)]
     slots: Dict[date, Dict[str, Any]] = {
-        s: {"week_start": s.isoformat(), "mornings": 0, "notes": 0} for s in starts
+        s: {"week_start": s.isoformat(), "mornings": 0, "mornings_phone": 0, "notes": 0}
+        for s in starts
     }
 
     conn = connect(db_path)
     try:
-        visit_rows = conn.execute("SELECT DISTINCT day FROM brief_visits").fetchall()
+        visit_rows = conn.execute("SELECT DISTINCT day, source FROM brief_visits").fetchall()
         note_rows = conn.execute("SELECT created_at FROM brief_notes").fetchall()
     finally:
         conn.close()
 
+    # Rows are distinct (day, source) pairs, so a morning read on the phone AND on the Mac
+    # arrives twice — the day sets keep both counts "distinct DAYS", never distinct rows.
+    week_days: Dict[date, set] = {s: set() for s in starts}
+    phone_days: Dict[date, set] = {s: set() for s in starts}
     for r in visit_rows:
         try:
             d = date.fromisoformat(r["day"])
@@ -262,7 +331,12 @@ def brief_habit_weeks(
             continue
         monday = d - timedelta(days=d.weekday())
         if monday in slots:
-            slots[monday]["mornings"] += 1
+            week_days[monday].add(d)
+            if r["source"] == PHONE:
+                phone_days[monday].add(d)
+    for monday in starts:
+        slots[monday]["mornings"] = len(week_days[monday])
+        slots[monday]["mornings_phone"] = len(phone_days[monday])
     for r in note_rows:
         try:
             created = datetime.strptime(r["created_at"], "%Y-%m-%d %H:%M:%S")

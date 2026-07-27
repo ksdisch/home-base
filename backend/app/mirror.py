@@ -18,8 +18,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .models import BriefMirror, BriefMirrorAttention
-from .store import list_brief_notes, list_brief_visit_days, list_news_events
+from .store import list_brief_notes, list_brief_visit_day_sources, list_news_events
 from .sweeps import topic_title
+from .visit_source import PHONE
 
 WINDOW_DAYS = 7
 # Below this many total logged signals the week has no honest shape yet — render the
@@ -75,7 +76,10 @@ def build_mirror(
     window = {today - timedelta(days=i) for i in range(WINDOW_DAYS)}
     titles = {t["slug"]: t["title"] for t in roster if t.get("title")}
 
-    mornings = notes = asks = news = 0
+    mornings = mornings_phone = notes = asks = news = 0
+    # v14: False until a visit in the window carries a source. Gates the phone clause in
+    # the sentence — see list_brief_visit_day_sources.
+    attributed = False
     attention: Dict[str, int] = {}
 
     def _touch(slug: Any) -> None:
@@ -85,13 +89,22 @@ def build_mirror(
     # Each source degrades independently: a missing table (store drift) or unreadable
     # file zeroes that source, never the endpoint.
     try:
-        for day in list_brief_visit_days():
+        # v14: raw days, phone days, and whether the window is attributed at all — all off
+        # one read, so a broken brief_visits zeroes them together rather than leaving a raw
+        # count beside a phantom phone count.
+        in_window: Dict[str, set] = {}
+        for row in list_brief_visit_day_sources():
+            day = row["day"]
             try:
                 d = date.fromisoformat(day)
             except (TypeError, ValueError):
                 continue
             if d in window:
-                mornings += 1
+                in_window.setdefault(day, set()).add(row["source"])
+        mornings = len(in_window)
+        mornings_phone = sum(1 for sources in in_window.values() if PHONE in sources)
+        # Any non-NULL source anywhere in the window means attribution was running for it.
+        attributed = any(s is not None for sources in in_window.values() for s in sources)
     except (sqlite3.Error, OSError):
         pass
 
@@ -133,8 +146,13 @@ def build_mirror(
     sufficient = (mornings + notes + asks + news) >= MIN_SIGNAL
     sentence = ""
     if sufficient:
+        # v14: the phone-sourced count rides BESIDE the raw one — the strip used to recap a
+        # "habit" that could be pure localhost/verify traffic. Gated on ``attributed``: a
+        # window whose rows all predate attribution gets the original sentence, because
+        # "(0 on your phone)" there would be a fabricated accusation, not a measurement.
+        phone_clause = f" ({mornings_phone} on your phone)" if attributed else ""
         sentence = (
-            f"You showed up {mornings} of the last {WINDOW_DAYS} mornings, "
+            f"You showed up {mornings} of the last {WINDOW_DAYS} mornings{phone_clause}, "
             f"left {_count(notes, 'note')}, and asked {_count(asks, 'question')}"
         )
         if slices:
@@ -148,6 +166,7 @@ def build_mirror(
         sufficient=sufficient,
         sentence=sentence,
         mornings=mornings,
+        mornings_phone=mornings_phone,
         notes=notes,
         asks=asks,
         news_events=news,
