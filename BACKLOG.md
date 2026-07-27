@@ -603,6 +603,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 ### Ideas — replenish 2026-07-26 (17 — one vision doc each)
 
 #### [Exploration] The Agent Gate — Home Base as the accreditation chokepoint for every AI acting on Kyle's behalf
+- **Status:** PARKED 2026-07-27 at its gate conversation — revisit after the ~08-03 v1 check (decision D7; see the vision doc's Decisions section).
 - **Why:** The bet: in 2-5 years of agent proliferation, the scarce asset is a single trusted human-in-the-loop chokepoint that arbitrates competing agents — and Home Base already owns the only ground truth for it: years of Kyle's real approve/discard/note/wager verdicts. TARGETS: the implicit single-author… See [`docs/ideas/agent-gate.md`](docs/ideas/agent-gate.md) for the full write-up.
 - **Acceptance:** Prototype the credible first step (source_agent field + localhost-only POST /api/overnight/propose + per-agent tally) and judge whether the bet holds.
 - **Size:** L (Moonshot)

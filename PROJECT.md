@@ -15,12 +15,12 @@ Kyle's daily home base: a self-updating morning brief across his topics (AI/LLMs
 - Scaling the Learning Paths Designer beyond the bundled fixture to the rest of the library — future M8 work, not started.
 
 ## Current status
-Active. Both arcs' planned milestones are fully built and gated: Learning Hub Phases 1–7 + Courses M1–M5 + Learning Paths slice shipped; Home Base M0–M7 shipped with M0's sweep-quality week closed 2026-07-19 (verdict PASS, zero fabrications). Open: Kyle's phone-side M6 eyes-on trio, the ~2026-08-03 v1 success-criteria check, the ~2026-08-19 re-grade, and the in-flight brief-archive-nav branch. (Fact — `docs/MASTER_PLAN.md`, `CLAUDE.md`.)
+Active. Both arcs' planned milestones are fully built and gated: Learning Hub Phases 1–7 + Courses M1–M5 + Learning Paths slice shipped; Home Base M0–M7 shipped with M0's sweep-quality week closed 2026-07-19 (verdict PASS, zero fabrications). Open: Kyle's phone-side M6 eyes-on trio, the ~2026-08-03 v1 success-criteria check, and the ~2026-08-19 re-grade (brief-archive-nav landed as PR #153). The 07-26 moonshot lane is quiet until the ~08-03 verdict: Agent Gate PARKED at its 2026-07-27 gate conversation (decision D7), the other three undecided. (Fact — `docs/MASTER_PLAN.md`, `CLAUDE.md`, `Decisions.md`.)
 
 ## Next actions
-1. Finish and land `feat/brief-archive-nav` (archive entry point + index page + audio on archived days — 2 commits ahead of main, not yet PR'd).
+1. Sequence the remaining replenish backlog (10 bugs + 16 ideas) into waves via `/backlog-hygiene`.
 2. M6 phone eyes-on trio (Kyle): standalone install, airplane banner, iOS scrub.
-3. ~2026-08-03 v1 success-criteria check: ≥5 mornings/week, events reach Kyle first, ≥3 notes/week.
+3. ~2026-08-03 v1 success-criteria check: ≥5 mornings/week, events reach Kyle first, ≥3 notes/week — its verdict also gates the Agent Gate revisit (D7).
 
 ## Boundaries
 - Local-first: Vite + React + TS + Tailwind frontend, FastAPI backend, SQLite store; served on one port by the `com.homebase.server` LaunchAgent; phone reach via Tailscale.
