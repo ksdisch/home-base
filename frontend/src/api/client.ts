@@ -7,6 +7,7 @@ import type {
   BriefChatResponse,
   BriefHabitResponse,
   BriefRunsSummaryResponse,
+  BriefSearchResponse,
   BriefTopicPauseResponse,
   BriefNote,
   BriefNoteCreate,
@@ -206,6 +207,8 @@ export const api = {
   logBriefVisit: () => post<BriefVisitResponse>("/brief/visit"),
   briefHabit: () => get<BriefHabitResponse>("/brief/habit"),
   briefArchive: () => get<BriefArchiveResponse>("/brief/archive"),
+  // Archive search — substring over every sweep item and note; blank q returns nothing.
+  briefSearch: (q: string) => get<BriefSearchResponse>(`/brief/search?q=${encodeURIComponent(q)}`),
   // The sweep cost/health ledger readout — per-day totals from data/sweeps/.runs.jsonl.
   briefRunsSummary: (days = 7) => get<BriefRunsSummaryResponse>(`/brief/runs/summary?days=${days}`),
   // Mute/un-mute a roster topic — the first roster verb with UI besides the scout's add.

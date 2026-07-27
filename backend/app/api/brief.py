@@ -52,6 +52,8 @@ from ..models import (
     BriefReadiness,
     BriefResponse,
     BriefRunDay,
+    BriefSearchHit,
+    BriefSearchResponse,
     BriefRunsSummaryResponse,
     BriefSweepResponse,
     BriefTopic,
@@ -76,6 +78,7 @@ from ..sweeps import (
     load_brief_topics,
     load_roster,
     runs_summary,
+    search_briefs,
     sweep_dates,
     topic_title,
 )
@@ -572,4 +575,27 @@ def patch_brief_topic(
         slug=entry["slug"],
         title=topic_title(entry["slug"], _roster_titles(settings)),
         paused=bool(entry["paused"]),
+    )
+
+
+@router.get("/brief/search", response_model=BriefSearchResponse)
+def get_brief_search(
+    q: str = "", limit: int = 50, settings=Depends(get_app_settings)
+) -> BriefSearchResponse:
+    """Find a half-remembered item across every brief and note (docs/ideas/archive-search.md).
+
+    The archive index made the corpus browsable but not findable, and nothing anywhere
+    searched Kyle's own history — while it grows by 8 files a day forever. Zero LLM: a
+    deterministic newest-first walk with plain case-insensitive substring matching, capped.
+    A blank query returns nothing rather than the whole corpus (that's a browse, and
+    ``/archive`` already is one)."""
+    result = search_briefs(
+        Path(settings.sweeps_dir), q, list_brief_notes(limit=1000), limit=limit
+    )
+    return BriefSearchResponse(
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        query=q.strip(),
+        hits=[BriefSearchHit(**h) for h in result["hits"]],
+        total=result["total"],
+        truncated=result["truncated"],
     )

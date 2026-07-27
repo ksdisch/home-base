@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { BriefArchiveEntry } from "../api/types";
+import type { BriefArchiveEntry, BriefSearchResponse } from "../api/types";
 import { humanDate } from "./Brief";
 
 function localToday(): string {
@@ -19,6 +19,29 @@ export default function BriefIndex() {
   const [entries, setEntries] = useState<BriefArchiveEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const today = localToday();
+
+  // Archive search (docs/ideas/archive-search.md). Browsable was only half the job — the
+  // corpus grows by 8 files a day forever, and nothing anywhere searched Kyle's own
+  // history. Submit-driven rather than as-you-type: every keystroke would re-walk every
+  // sweep file on the Mac for a query that isn't finished yet.
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<BriefSearchResponse | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  const runSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) {
+      setResults(null); // a blank box goes back to browsing, it doesn't dump the corpus
+      return;
+    }
+    setSearching(true);
+    api
+      .briefSearch(q)
+      .then((r) => setResults(r))
+      .catch((err) => setError(err.message ?? "Search failed"))
+      .finally(() => setSearching(false));
+  };
 
   useEffect(() => {
     api
@@ -51,8 +74,61 @@ export default function BriefIndex() {
         </p>
       </div>
 
+      <form role="search" onSubmit={runSearch} className="mb-6 flex gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search every brief and note…"
+          aria-label="Search the archive"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-card/60 px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:border-accent hover:text-accent"
+        >
+          Search
+        </button>
+      </form>
+
       {error && (
         <p className="text-sm text-warning">{error}</p>
+      )}
+
+      {searching && <p className="text-sm text-muted">Searching…</p>}
+
+      {results !== null && !searching && (
+        <div className="mb-8">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
+            {results.hits.length === 0
+              ? "No matches"
+              : results.truncated
+                ? `Showing ${results.hits.length} of ${results.total} matches`
+                : `${results.total} match${results.total === 1 ? "" : "es"}`}
+          </h2>
+          <ul className="space-y-3">
+            {results.hits.map((hit) => (
+              <li key={`${hit.kind}-${hit.date}-${hit.item_id}-${hit.snippet.slice(0, 20)}`}>
+                <Link
+                  to={`/brief/${hit.date}`}
+                  className="text-sm font-medium text-ink hover:text-accent"
+                >
+                  {hit.headline}
+                </Link>
+                <p className="mt-0.5 text-xs text-muted">
+                  {hit.kind === "note" && (
+                    <span className="mr-1 rounded bg-accent-soft px-1.5 py-0.5 text-accent">
+                      Note
+                    </span>
+                  )}
+                  {humanDate(hit.date)}
+                  {hit.topic_title && ` · ${hit.topic_title}`}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">{hit.snippet}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {entries === null && !error && (
