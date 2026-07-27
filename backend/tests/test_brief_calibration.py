@@ -12,6 +12,7 @@ Assumption-4 gate: ``trial`` stays true until a week of graded mornings is on th
 """
 
 import json
+import time
 
 TODAY = "2026-07-16"
 
@@ -447,5 +448,193 @@ def test_brief_without_a_served_day_carries_no_calibration(tmp_path, monkeypatch
         body = client.get("/api/brief").json()
         assert body["has_data"] is False
         assert body["calibration"] is None
+    finally:
+        _teardown()
+
+
+# -- calibration integrity: the ledger must be write-once and re-gradeable ----------------
+# Two holes in the same file, one theme (report #9 + docs/ideas/regradeable-calibration-ledger.md).
+# The ~08-19 re-grade rides on these numbers, so a silently-wrong self-grader is worse than
+# no self-grader — it launders a fabricated verdict as a measured one.
+
+
+def test_concurrent_serves_append_each_grade_once(tmp_path, monkeypatch):
+    """#9: build_calibration is check-then-act (read ledger → grade → append) with no
+    synchronization, and FastAPI runs sync endpoints on a threadpool. The realistic
+    phone+Mac ~06:00 double-load has both serves read an unwritten ledger and both append
+    the same wagers — and nothing dedups on read, so the duplicate skews Brier and hit
+    rate permanently in an append-only trust record.
+
+    The grading walk is slowed to make the interleaving deterministic rather than hoped
+    for; the second serve must block, re-read, and find the work already done.
+    """
+    import threading
+
+    sweeps, ledger = _env(tmp_path, monkeypatch, "concurrent")
+    try:
+        _write_day(
+            sweeps,
+            "2026-07-15",
+            "ai-llms",
+            [_item("OpenAI lifts caps", "https://x.com/a", "A rival answers", 70)],
+        )
+        _write_day(sweeps, TODAY, "ai-llms", [_item("OpenAI lifts caps", "https://x.com/a")])
+
+        import app.sweeps as sweeps_mod
+
+        real_items = sweeps_mod._topic_day_items
+
+        def slow_items(*a, **kw):
+            time.sleep(0.05)  # widen the read→append window both serves race through
+            return real_items(*a, **kw)
+
+        monkeypatch.setattr(sweeps_mod, "_topic_day_items", slow_items)
+
+        start = threading.Barrier(2)
+        results: list = []
+
+        def serve():
+            start.wait()
+            results.append(_build(sweeps, ledger)[0])
+
+        threads = [threading.Thread(target=serve) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert len(rows) == 1, f"the wager was graded {len(rows)}x by two concurrent serves"
+        assert all(c["resolved"] == 1 and c["hits"] == 1 for c in results)
+    finally:
+        _teardown()
+
+
+def test_duplicate_rows_already_in_the_ledger_are_counted_once(tmp_path, monkeypatch):
+    """The second layer, and the only repair for damage already on disk: reads collapse to
+    one row per (day, slug, headline). Without it a ledger that already lost the race keeps
+    double-counting that wager into Brier and hit rate forever."""
+    sweeps, ledger = _env(tmp_path, monkeypatch, "dupes")
+    try:
+        _write_day(sweeps, TODAY, "ai-llms", [_item("Live story", "https://x.com/live")])
+        ledger.parent.mkdir(parents=True, exist_ok=True)
+        row = {
+            "resolved_at": "2026-07-16T06:00:00+00:00",
+            "day": "2026-07-15",
+            "comparator": TODAY,
+            "slug": "ai-llms",
+            "title": "AI / LLMs",
+            "headline": "OpenAI lifts caps",
+            "prediction": "A rival answers",
+            "confidence": 70,
+            "outcome": True,
+            "brier": 0.09,
+        }
+        ledger.write_text(
+            "".join(json.dumps(row) + "\n" for _ in range(3)), encoding="utf-8"
+        )
+
+        c, _ = _build(sweeps, ledger)
+
+        # resolved/hits sum raw rows and the strip lists them, so those are what a
+        # duplicate corrupts. (Brier is a mean, so identical dupes hide inside it — which
+        # is exactly why the count is the assertion that matters.)
+        assert c["resolved"] == 1
+        assert c["hits"] == 1
+        assert c["days"] == 1
+        assert len(c["yesterday"]) == 1
+        assert c["brier"] == 0.09
+    finally:
+        _teardown()
+
+
+def test_a_resweep_that_lands_the_story_corrects_a_wrong_miss(tmp_path, monkeypatch):
+    """The Harden hole: resweep-from-the-phone rewrites the comparator day's <slug>.json
+    AFTER the morning grade, but `if key in graded: continue` meant the row never
+    re-checked. A call graded MISS at 06:00 stayed a miss forever even though the 08:00
+    resweep carried the story — a permanent mis-grade in the record the ~08-19 re-grade
+    reads. Supersede by append: the file stays append-only, the newer row wins."""
+    sweeps, ledger = _env(tmp_path, monkeypatch, "regrade")
+    try:
+        _write_day(
+            sweeps,
+            "2026-07-15",
+            "ai-llms",
+            [_item("OpenAI lifts caps", "https://x.com/a", "A rival answers", 70)],
+        )
+        # 06:00 — today's sweep ran quiet on that story, so the call grades false.
+        _write_day(sweeps, TODAY, "ai-llms", [_item("Unrelated", "https://x.com/z")])
+        first, _ = _build(sweeps, ledger)
+        assert (first["resolved"], first["hits"]) == (1, 0)
+        assert first["brier"] == 0.49
+
+        # 08:00 — Kyle resweeps from the phone and this time the story is there.
+        _write_day(
+            sweeps,
+            TODAY,
+            "ai-llms",
+            [_item("Anthropic answers the caps move", "https://x.com/a")],
+        )
+        second, _ = _build(sweeps, ledger)
+
+        assert (second["resolved"], second["hits"]) == (1, 1)
+        assert second["brier"] == 0.09
+        assert [y["outcome"] for y in second["yesterday"]] == [True]
+
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert len(rows) == 2, "append-only: the wrong row is superseded, never rewritten"
+        assert rows[0]["outcome"] is False and "revises_resolved_at" not in rows[0]
+        assert rows[1]["outcome"] is True
+        assert rows[1]["revises_resolved_at"] == rows[0]["resolved_at"]
+    finally:
+        _teardown()
+
+
+def test_a_resweep_that_drops_the_story_corrects_a_wrong_hit(tmp_path, monkeypatch):
+    """The same seam in the other direction — proof this is a real recompute against the
+    current files, not a one-way upgrade that can only ever flatter the grader."""
+    sweeps, ledger = _env(tmp_path, monkeypatch, "regradedown")
+    try:
+        _write_day(
+            sweeps,
+            "2026-07-15",
+            "ai-llms",
+            [_item("OpenAI lifts caps", "https://x.com/a", "A rival answers", 70)],
+        )
+        _write_day(sweeps, TODAY, "ai-llms", [_item("OpenAI lifts caps", "https://x.com/a")])
+        first, _ = _build(sweeps, ledger)
+        assert (first["resolved"], first["hits"]) == (1, 1)
+
+        _write_day(sweeps, TODAY, "ai-llms", [_item("Something else", "https://x.com/z")])
+        second, _ = _build(sweeps, ledger)
+
+        assert (second["resolved"], second["hits"]) == (1, 0)
+        assert second["brier"] == 0.49
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert [r["outcome"] for r in rows] == [True, False]
+        assert rows[1]["revises_resolved_at"] == rows[0]["resolved_at"]
+    finally:
+        _teardown()
+
+
+def test_an_unchanged_regrade_appends_nothing(tmp_path, monkeypatch):
+    """The cost of re-checking must be zero when nothing moved. A recompute that appended
+    a row per serve would grow the ledger without bound and make 'resolved' meaningless —
+    only an actual outcome FLIP earns a superseding row."""
+    sweeps, ledger = _env(tmp_path, monkeypatch, "nochurn")
+    try:
+        _write_day(
+            sweeps,
+            "2026-07-15",
+            "ai-llms",
+            [_item("OpenAI lifts caps", "https://x.com/a", "A rival answers", 70)],
+        )
+        _write_day(sweeps, TODAY, "ai-llms", [_item("OpenAI lifts caps", "https://x.com/a")])
+
+        for _ in range(4):
+            c, _ = _build(sweeps, ledger)
+
+        assert len(ledger.read_text(encoding="utf-8").splitlines()) == 1
+        assert (c["resolved"], c["hits"]) == (1, 1)
     finally:
         _teardown()
