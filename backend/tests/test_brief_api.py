@@ -943,9 +943,9 @@ def test_brief_unknown_or_garbage_date_is_a_404(tmp_path, monkeypatch):
         get_settings.cache_clear()
 
 
-def test_brief_archived_day_hides_audio_even_when_its_mp3_exists(tmp_path, monkeypatch):
-    """No historical audio in v1: GET /brief/audio only serves the latest day, so an
-    archived payload advertising a player would be a broken promise."""
+def test_brief_archived_day_serves_its_audio_and_chapters(tmp_path, monkeypatch):
+    """Historical audio is the archive's whole point: a day that still has its brief.mp3
+    advertises the player, and GET /brief/audio?date= makes that advertisement real."""
     sweeps = _env(tmp_path, monkeypatch, "archiveaudio")
     day = _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
     (day / "brief.mp3").write_bytes(b"\xff\xfbold")
@@ -956,7 +956,84 @@ def test_brief_archived_day_hides_audio_even_when_its_mp3_exists(tmp_path, monke
     try:
         body = _client().get("/api/brief?date=2026-07-13").json()
         assert body["date"] == "2026-07-13"
-        assert body["audio_available"] is False
-        assert body["audio_chapters"] == []
+        assert body["audio_available"] is True
+        assert body["audio_chapters"] == CHAPTERS
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_by_date_serves_that_days_bytes_not_the_latest(tmp_path, monkeypatch):
+    """The archive player's load-bearing promise: ?date= streams the morning you asked
+    for. Distinct bytes per day catch a silent fall-through to the latest sweep."""
+    sweeps = _env(tmp_path, monkeypatch, "audiobydate")
+    old = _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (old / "brief.mp3").write_bytes(b"\xff\xfbOLDDAY")
+    new = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (new / "brief.mp3").write_bytes(b"\xff\xfbNEWDAY")
+    from app.config import get_settings
+
+    try:
+        client = _client()
+        r = client.get("/api/brief/audio?date=2026-07-13")
+        assert r.status_code == 200
+        assert r.content == b"\xff\xfbOLDDAY"
+        assert r.headers["content-type"] == "audio/mpeg"
+        assert "brief-2026-07-13.mp3" in r.headers["content-disposition"]
+        # …and no param still means the latest day, byte for byte unchanged.
+        assert client.get("/api/brief/audio").content == b"\xff\xfbNEWDAY"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_unknown_date_is_a_404(tmp_path, monkeypatch):
+    """A date with no sweep dir at all — the same honest 404 GET /brief?date= gives,
+    never a silent fall-back to today's narration under yesterday's link."""
+    sweeps = _env(tmp_path, monkeypatch, "audio404date")
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    from app.config import get_settings
+
+    try:
+        r = _client().get("/api/brief/audio?date=2026-07-01")
+        assert r.status_code == 404
+        assert r.json()["detail"] == "no brief for 2026-07-01"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_audio_renderable_date_without_an_mp3_is_a_404(tmp_path, monkeypatch):
+    """A real archived morning that predates M4 (or whose Kokoro render failed): the day
+    exists, the audio doesn't. Distinct from the unknown-date branch on purpose."""
+    sweeps = _env(tmp_path, monkeypatch, "audionomp3")
+    _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    day = _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    from app.config import get_settings
+
+    try:
+        r = _client().get("/api/brief/audio?date=2026-07-13")
+        assert r.status_code == 404
+        assert r.json()["detail"] == "no audio brief for that sweep"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_brief_archive_lists_renderable_days_newest_first_with_audio_flags(tmp_path, monkeypatch):
+    """The index page's whole payload: every renderable morning, newest first, and the
+    🎧 marker set only where an mp3 actually sits beside the sweep."""
+    sweeps = _env(tmp_path, monkeypatch, "archivelist")
+    _write_day(sweeps, "2026-07-12", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    day = _write_day(sweeps, "2026-07-13", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    (day / "brief.mp3").write_bytes(b"\xff\xfbfake")
+    _write_day(sweeps, "2026-07-14", {"ai-llms.json": json.dumps(VALID_BRIEF)})
+    # A day with nothing renderable never enters the archive — the index must not link
+    # to a date GET /brief?date= would 404 on.
+    _write_day(sweeps, "2026-07-11", {"ai-llms.raw.txt": "unvalidated"})
+    from app.config import get_settings
+
+    try:
+        body = _client().get("/api/brief/archive").json()
+        assert [e["date"] for e in body["dates"]] == ["2026-07-14", "2026-07-13", "2026-07-12"]
+        assert [e["has_audio"] for e in body["dates"]] == [False, True, False]
     finally:
         get_settings.cache_clear()
