@@ -1,0 +1,228 @@
+{
+  "slug": "research-portfolio",
+  "title": "Research Portfolio — Reproduce & Measure",
+  "topic": "reproduce-and-measure AI-failure research (interview defense)",
+  "level": "advanced",
+  "summary": "An advanced, interview-defense course over six reproduce-and-measure research projects. Learn the shared statistical and methodological spine once — Wilson and Newcombe intervals, pre-registration, judge-free oracles, budget guards — then reverse-learn each project (dim-stage, forge-gap, decay-pin, lossy-wall, ghost-patch, blind-cite) to defend every claim, number, and honesty caveat claim-by-claim, capped by a mock-defense capstone. Authored from the portfolio's LEARNING-ROADMAP, learn/ guides, PRACTICE, and METHODOLOGY.",
+  "prerequisites": [
+    "You built or have deeply read the six repos (dim-stage, forge-gap, decay-pin, lossy-wall, ghost-patch, blind-cite).",
+    "Comfortable reading Python and basic probability (proportions and percentages)."
+  ],
+  "estimated_hours": 5,
+  "created_at": "2026-07-21",
+  "generator": "course-builder v1",
+  "modules": [
+    {
+      "id": "m1",
+      "title": "The Shared Spine — learn once, unlock every card",
+      "summary": "The statistical and methodological spine every project shares: the reproduce-and-measure loop, Wilson and Newcombe intervals, pre-registration, judge-free oracles, and the repo skeleton.",
+      "lessons": [
+        {
+          "id": "m1l1",
+          "title": "The reproduce-and-measure method & honesty charter",
+          "objectives": [
+            "Describe the five-point reproduce-and-measure loop",
+            "Justify why each step closes a specific credibility hole",
+            "Explain the through-line that makes six projects one engine"
+          ],
+          "estimated_minutes": 20,
+          "materials": [
+            { "type": "lesson", "title": "The loop, and why each step is load-bearing", "path": "lessons/m1l1.md" },
+            { "type": "diagram", "title": "The five-point loop", "path": "diagrams/m1l1.mmd", "format": "mermaid" },
+            { "type": "flashcards", "title": "Method & honesty charter", "path": "flashcards/m1l1.json", "count": 6 }
+          ]
+        },
+        {
+          "id": "m1l2",
+          "title": "The statistics: Wilson, Newcombe, pre-registration, judge-free oracles",
+          "objectives": [
+            "Compute a Wilson interval and explain why the naive interval fails at small N and at 0% or 100%",
+            "Interpret a Newcombe interval and apply the includes-zero-means-null rule",
+            "Justify pre-registration and judge-free oracles"
+          ],
+          "estimated_minutes": 30,
+          "materials": [
+            { "type": "lesson", "title": "Four ideas that put an honest number on every claim", "path": "lessons/m1l2.md" },
+            { "type": "flashcards", "title": "The statistics", "path": "flashcards/m1l2.json", "count": 7 },
+            { "type": "exercise", "title": "Re-derive a Wilson interval by hand", "path": "exercises/m1l2.md" },
+            { "type": "reading", "title": "Binomial proportion confidence interval (Wilson score) — Wikipedia", "url": "https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval", "note": "Reference for the Wilson score interval used across the portfolio; see the 'Wilson score interval' section." }
+          ]
+        },
+        {
+          "id": "m1l3",
+          "title": "The plumbing: cheap models, budget guards, the repo skeleton",
+          "objectives": [
+            "Describe how one model call executes through OpenRouter",
+            "Explain the budget-guard pattern and why it exists",
+            "Identify the five standard parts of any repo and what each is for"
+          ],
+          "estimated_minutes": 20,
+          "materials": [
+            { "type": "lesson", "title": "The harness, learned once", "path": "lessons/m1l3.md" },
+            { "type": "diagram", "title": "The repo skeleton", "path": "diagrams/m1l3.mmd", "format": "mermaid" },
+            { "type": "flashcards", "title": "The plumbing", "path": "flashcards/m1l3.json", "count": 6 },
+            { "type": "quiz", "title": "Module 1 check — The Shared Spine", "path": "quizzes/m1l3.json", "count": 6, "purpose": "summative" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Read These First — the flagship pair",
+      "summary": "The two projects to open with — dim-stage (mechanistic interpretability, a pre-registered null) and forge-gap (agent reliability, an owned injected gap) — showing interpretability and reliability run on one method.",
+      "lessons": [
+        {
+          "id": "m2l1",
+          "title": "dim-stage — a Jacobian lens & a pre-registered null",
+          "objectives": [
+            "Explain what a Jacobian lens is and why a mid-layer vector needs one",
+            "Justify why dim-stage's 0/6 is a measured null rather than a broken instrument",
+            "Distinguish what the AGREE gate proves from what it does not"
+          ],
+          "estimated_minutes": 30,
+          "materials": [
+            { "type": "lesson", "title": "The deepest project — make the null land as a result", "path": "lessons/m2l1.md" },
+            { "type": "diagram", "title": "The lens readout path", "path": "diagrams/m2l1.mmd", "format": "mermaid" },
+            { "type": "flashcards", "title": "dim-stage", "path": "flashcards/m2l1.json", "count": 7 },
+            { "type": "exercise", "title": "Re-derive the 30/101 introspection interval", "path": "exercises/m2l1.md" },
+            { "type": "reading", "title": "dim-stage repo (ksdisch/dim-stage)", "url": "https://github.com/ksdisch/dim-stage", "note": "Reverse-learn it: README, then DECISIONS.md (D2, the band transplant), then trace one run, then re-derive one stat. Portfolio card: projects/dim-stage.md." },
+            { "type": "reading", "title": "Verbalizable Representations Form a Global Workspace in Language Models (Gurnee et al. 2026)", "url": "https://transformer-circuits.pub/2026/workspace/index.html", "note": "The source paper dim-stage reproduces — the Jacobian lens and the global-workspace properties." }
+          ]
+        },
+        {
+          "id": "m2l2",
+          "title": "forge-gap — an injected gap, owned",
+          "objectives": [
+            "Explain the injected 67.5-to-100 gap and state the injection unprompted",
+            "Match each of the four guardrails to the failure class it fixes",
+            "Explain forge-gap's validation blind spot"
+          ],
+          "estimated_minutes": 25,
+          "materials": [
+            { "type": "lesson", "title": "Owning the word 'injected'", "path": "lessons/m2l2.md" },
+            { "type": "flashcards", "title": "forge-gap", "path": "flashcards/m2l2.json", "count": 7 },
+            { "type": "exercise", "title": "Re-derive the flagship and a natural gap", "path": "exercises/m2l2.md" },
+            { "type": "reading", "title": "forge-gap repo (ksdisch/forge-gap)", "url": "https://github.com/ksdisch/forge-gap", "note": "Reverse-learn it: README (the injection disclosure and validation blind spot), then DECISIONS.md (D12, the pivot), then trace one arm. Card: projects/forge-gap.md." },
+            { "type": "quiz", "title": "Module 2 check — dim-stage & forge-gap", "path": "quizzes/m2l2.json", "count": 6, "purpose": "summative" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Same Stats Spine, Replicated",
+      "summary": "Two projects on the same statistical spine: decay-pin (a safety rule evicted by compaction, restored by re-pinning) and lossy-wall (a lossy memory note that is worse than empty).",
+      "lessons": [
+        {
+          "id": "m3l1",
+          "title": "decay-pin — eviction not forgetting; equivalence as the fix",
+          "objectives": [
+            "Explain compaction eviction as the mechanism rather than forgetting",
+            "List the three arms and their numbers from memory",
+            "Justify why equivalence-to-floor is the right test for the fix"
+          ],
+          "estimated_minutes": 25,
+          "materials": [
+            { "type": "lesson", "title": "Eviction, not forgetting", "path": "lessons/m3l1.md" },
+            { "type": "diagram", "title": "The three arms and eviction", "path": "diagrams/m3l1.mmd", "format": "mermaid" },
+            { "type": "flashcards", "title": "decay-pin", "path": "flashcards/m3l1.json", "count": 6 },
+            { "type": "exercise", "title": "Re-derive the pinned upper bound and the gap", "path": "exercises/m3l1.md" },
+            { "type": "reading", "title": "decay-pin repo (ksdisch/decay-pin)", "url": "https://github.com/ksdisch/decay-pin", "note": "Reverse-learn it: README, then DECISIONS.md (D19, D28), then test_stats.py, then runner.py. Card: projects/decay-pin.md." }
+          ]
+        },
+        {
+          "id": "m3l2",
+          "title": "lossy-wall — matched budget & 'worse than empty'",
+          "objectives": [
+            "Explain matched budget and the padded control",
+            "List the wall numbers and the worse-than-empty gap",
+            "Defend the qwen-7b to 72b substitution as an honest disclosure"
+          ],
+          "estimated_minutes": 25,
+          "materials": [
+            { "type": "lesson", "title": "The crux is matched budget", "path": "lessons/m3l2.md" },
+            { "type": "flashcards", "title": "lossy-wall", "path": "flashcards/m3l2.json", "count": 7 },
+            { "type": "exercise", "title": "Re-derive 'worse than empty' and the wall", "path": "exercises/m3l2.md" },
+            { "type": "reading", "title": "lossy-wall repo (ksdisch/lossy-wall)", "url": "https://github.com/ksdisch/lossy-wall", "note": "Reverse-learn it: README, then DECISIONS.md (D1, D5, D8/D13), then m1.py, then pytest. Card: projects/lossy-wall.md." },
+            { "type": "quiz", "title": "Module 3 check — decay-pin & lossy-wall", "path": "quizzes/m3l2.json", "count": 6, "purpose": "summative" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "Honest Nulls",
+      "summary": "The two projects that headline honest nulls: ghost-patch (two pre-registered nulls at the cheap tier) and blind-cite (an in-progress M0 fit-pilot null).",
+      "lessons": [
+        {
+          "id": "m4l1",
+          "title": "ghost-patch — two nulls as the headline",
+          "objectives": [
+            "List the five links of the chain and identify which reproduced",
+            "Explain 'blindness, not blind obedience'",
+            "Interpret the obedience-drop CI and explain why crossing zero is a null"
+          ],
+          "estimated_minutes": 25,
+          "materials": [
+            { "type": "lesson", "title": "Presenting two nulls with confidence", "path": "lessons/m4l1.md" },
+            { "type": "flashcards", "title": "ghost-patch", "path": "flashcards/m4l1.json", "count": 7 },
+            { "type": "exercise", "title": "Read a null CI against a pre-committed bar", "path": "exercises/m4l1.md" },
+            { "type": "reading", "title": "ghost-patch repo (ksdisch/ghost-patch)", "url": "https://github.com/ksdisch/ghost-patch", "note": "Reverse-learn it: README, then M0/M1-BRIEF, then m1.py (run and verdict), then the spend ledger. Card: projects/ghost-patch.md." }
+          ]
+        },
+        {
+          "id": "m4l2",
+          "title": "blind-cite — an honest in-progress null",
+          "objectives": [
+            "Explain why blind-cite is an in-progress M0 pilot and resist inflating it",
+            "Explain why a fabricated corpus gives exact attribution ground truth",
+            "Explain why the null may be surface-specific"
+          ],
+          "estimated_minutes": 20,
+          "materials": [
+            { "type": "lesson", "title": "An M0 pilot, presented honestly", "path": "lessons/m4l2.md" },
+            { "type": "flashcards", "title": "blind-cite", "path": "flashcards/m4l2.json", "count": 7 },
+            { "type": "exercise", "title": "Account for the 0/36 right-reason null", "path": "exercises/m4l2.md" },
+            { "type": "reading", "title": "blind-cite repo (ksdisch/blind-cite)", "url": "https://github.com/ksdisch/blind-cite", "note": "Reverse-learn it: docs/M0-BRIEF.md (the README is stale), then data/m0_verdict.json, then m0.py. Card: projects/blind-cite.md." },
+            { "type": "quiz", "title": "Module 4 check — ghost-patch & blind-cite", "path": "quizzes/m4l2.json", "count": 6, "purpose": "summative" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "The Mock Defense",
+      "summary": "Synthesis: the cross-cutting probes and the through-line, then a rubric-assessed mock defense that combines the statistical spine with a project defended claim-by-claim.",
+      "lessons": [
+        {
+          "id": "m5l1",
+          "title": "Cross-cutting fluency & the through-line",
+          "objectives": [
+            "Answer the five cross-cutting probes in two sentences each",
+            "Summarize the portfolio in one sentence",
+            "Explain why the honesty is load-bearing"
+          ],
+          "estimated_minutes": 20,
+          "materials": [
+            { "type": "lesson", "title": "The questions that make six projects one thing", "path": "lessons/m5l1.md" },
+            { "type": "flashcards", "title": "Cross-cutting fluency", "path": "flashcards/m5l1.json", "count": 7 },
+            { "type": "quiz", "title": "Module 5 check — The Mock Defense", "path": "quizzes/m5l1.json", "count": 6, "purpose": "summative" }
+          ]
+        },
+        {
+          "id": "m5l2",
+          "title": "Capstone: defend a project claim-by-claim",
+          "objectives": [
+            "Defend one project claim-by-claim across all four fluency gates",
+            "Reproduce a headline statistic and its interval from memory",
+            "Evaluate the defense against the rubric"
+          ],
+          "estimated_minutes": 45,
+          "materials": [
+            { "type": "capstone", "title": "The mock defense", "path": "capstones/m5l2.md", "rubric": "rubrics/m5l2.json" }
+          ]
+        }
+      ]
+    }
+  ]
+}

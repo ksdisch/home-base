@@ -1,0 +1,8 @@
+[
+  { "front": "The reproduce-and-measure loop (5 steps)", "back": "Pick a recent no-code failure paper, reproduce a narrow slice on cheap models, pre-commit the statistics, grade judge-free, then state the honest delta (nulls as headlines)." },
+  { "front": "Why pick papers that ship no code?", "back": "Rebuilding a claim with no reference implementation is harder and more credible than re-running someone's repo. You cross-check against a reference only where one exists." },
+  { "front": "The three ways a reproduction cheats — and what kills each", "back": "Self-graded homework is killed by no LLM judge. Moving goalposts is killed by pre-registered stats. Hiding misses is killed by nulls-as-headlines." },
+  { "front": "The 'why cheap models' answer", "back": "It is the *stated scope*: mechanical reliability of small models under a hard budget (often under $5), not frontier capability. A deliberate choice, disclosed everywhere." },
+  { "front": "Is a null a failed project?", "back": "No. A pre-registered, judge-free null is a *measured result*. Two projects here headline nulls on purpose." },
+  { "front": "The through-line in one sentence", "back": "One repeatable reproduce-and-measure *engine* run across many recent papers — not six unrelated experiments." }
+]

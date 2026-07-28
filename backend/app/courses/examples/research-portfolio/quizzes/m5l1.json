@@ -1,0 +1,65 @@
+{
+  "title": "Module 5 check — The Mock Defense",
+  "questions": [
+    {
+      "question": "Which one sentence best captures the whole portfolio?",
+      "answerOptions": [
+        { "text": "A repeatable reproduce-and-measure engine run on several recent papers — each an honest, pre-registered, judge-free measurement, with nulls reported as headlines", "isCorrect": true, "rationale": "It names the engine (repeatability), the discipline (pre-registered, judge-free), and the honesty (nulls as headlines)." },
+        { "text": "Six unrelated experiments showing that small models are bad at various tasks", "isCorrect": false, "rationale": "The through-line is one repeatable engine, not six one-offs, and the point is honest measurement, not 'small models are bad.'" },
+        { "text": "A benchmark suite proving frontier models beat cheap ones", "isCorrect": false, "rationale": "Scope is mechanical reliability of small models under a budget, not a frontier-vs-cheap benchmark." },
+        { "text": "A set of reproductions that all confirm their source papers", "isCorrect": false, "rationale": "Two projects headline nulls; the work reports honest deltas, not uniform confirmations." }
+      ],
+      "hint": "Engine, discipline, honesty — in one breath."
+    },
+    {
+      "question": "'Lead with the caveat' — which project's headline caveat is 'the gap is injected'?",
+      "answerOptions": [
+        { "text": "forge-gap", "isCorrect": true, "rationale": "forge-gap seeds a disclosed transient fault to create the recovery scenario; the injection is its load-bearing caveat." },
+        { "text": "dim-stage", "isCorrect": false, "rationale": "dim-stage's headline caveat is a pre-registered null and the band-transplant risk, not an injected gap." },
+        { "text": "decay-pin", "isCorrect": false, "rationale": "decay-pin's caveat is claiming the gap's structure (not the point estimate) and the summarize tail risk." },
+        { "text": "lossy-wall", "isCorrect": false, "rationale": "lossy-wall's caveat is the matched-budget design and the qwen model substitution." }
+      ],
+      "hint": "Which project runs a controlled fault-recovery testbed?"
+    },
+    {
+      "question": "Two gaps: A has a Newcombe interval of [+17.3, +48.0]; B has one of [−0.022, +0.103]. Which counts as a reproduced effect?",
+      "answerOptions": [
+        { "text": "A only — its interval is entirely above zero; B straddles zero and is reported as a null", "isCorrect": true, "rationale": "Entirely-above-zero is a real effect (forge-gap); straddling zero is a null (ghost-patch)." },
+        { "text": "Both, because both point estimates are positive", "isCorrect": false, "rationale": "A positive point estimate with an interval covering zero is a null, not an effect." },
+        { "text": "B only, because its interval is narrower", "isCorrect": false, "rationale": "Narrowness is precision, not effect; B still includes zero." },
+        { "text": "Neither, because Newcombe cannot decide effects", "isCorrect": false, "rationale": "Newcombe is exactly the tool that decides this, via whether the interval excludes zero." }
+      ],
+      "hint": "Does the interval exclude zero?"
+    },
+    {
+      "question": "Asked 'which is your best work and why?', what is the strongest answer?",
+      "answerOptions": [
+        { "text": "dim-stage — the deepest project, with a bitwise-validated instrument (AGREE gate) and a pre-registered null answered on the paper's own open question about small models", "isCorrect": true, "rationale": "It is the highest-status surface: a validated instrument makes the null about the models, and it answers an open question." },
+        { "text": "Whichever had the biggest headline number", "isCorrect": false, "rationale": "Impressiveness of a number is not the bar; depth and defensibility are, and dim-stage's headline is a null." },
+        { "text": "blind-cite, because it is the newest", "isCorrect": false, "rationale": "blind-cite is an in-progress M0 pilot — the honest lead is dim-stage, not the newest." },
+        { "text": "forge-gap, because its gap is the largest", "isCorrect": false, "rationale": "forge-gap's headline gap is injected; leading with it as 'best' invites the manufactured-gap probe." }
+      ],
+      "hint": "Deepest, validated instrument, answers an open question."
+    },
+    {
+      "question": "A skeptic says: 'You did not really write this — Claude Code did.' What is the best response?",
+      "answerOptions": [
+        { "text": "Whether a human or an agent typed a line is not something a skeptic can tell; what they can tell is whether you can reconstruct the reasoning and re-derive every number — which you can", "isCorrect": true, "rationale": "The portfolio's own principle: optimize for reconstruction, not recall; ownership is understanding, not authorship of keystrokes." },
+        { "text": "'I wrote every line myself without any tools.'", "isCorrect": false, "rationale": "Dishonest and beside the point; the credibility is in reconstruction, not in denying tool use." },
+        { "text": "'It does not matter how it was built.'", "isCorrect": false, "rationale": "It dodges the probe; the right answer engages it by demonstrating understanding." },
+        { "text": "'The LLM judge verified the code, so it is correct.'", "isCorrect": false, "rationale": "There is no LLM judge, and code-correctness is not the same as your understanding." }
+      ],
+      "hint": "Optimize for reconstruction, not recall."
+    },
+    {
+      "question": "Why is the honesty described as 'load-bearing' rather than a disclaimer?",
+      "answerOptions": [
+        { "text": "It removes the three ways reproductions cheat — self-graded homework, moving goalposts, hiding misses — which is what turns 'I reproduced it' into a checkable claim", "isCorrect": true, "rationale": "Each honesty commitment closes a specific credibility hole; together they are the credibility, not an add-on." },
+        { "text": "It makes the write-ups sound more modest", "isCorrect": false, "rationale": "It is not about tone; it is about structurally removing ways to cheat." },
+        { "text": "It is required by the journals the work is submitted to", "isCorrect": false, "rationale": "This is hobby-scale open work; the honesty is a design choice, not a submission requirement." },
+        { "text": "It lets the projects avoid reporting nulls", "isCorrect": false, "rationale": "The opposite — the honesty is why nulls are reported as headlines." }
+      ],
+      "hint": "Three cheats, three closes."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+%% Reading a thought: a mid-layer vector is garbage until the lens maps it to output coordinates.
+flowchart LR
+    mid[Mid-layer residual vector] -->|read directly| garbage[Garbage - wrong coordinates]
+    mid -->|Jacobian lens transport| final[Final-layer coordinates]
+    final -->|unembedding| readout[Token readout - the thought in words]
+    ref[Anthropic reference] -.->|AGREE gate 3220/3220| final

@@ -1,0 +1,9 @@
+[
+  { "front": "The one-sentence portfolio", "back": "A repeatable reproduce-and-measure engine run on half a dozen recent agent-reliability and interpretability papers — each an honest, pre-registered, judge-free measurement, nulls reported as headlines." },
+  { "front": "'Why Wilson and Newcombe?' (one line each)", "back": "Wilson = honest error bar on one proportion (sane at small N and 0%/100%). Newcombe = honest error bar on the gap between two; includes zero → report a null." },
+  { "front": "'Why no LLM judge?'", "back": "It is self-graded homework — sweet-talkable, not reproducible. Deterministic oracles trade subtlety for a verdict any skeptic can re-run." },
+  { "front": "'Why cheap models / hobby scale?'", "back": "The stated scope: mechanical reliability of small models under a hard budget, disclosed everywhere. A deliberate choice, not a limitation." },
+  { "front": "The four fluency gates", "back": "For every project, without notes: (1) 60-second pitch, (2) defend the caveat unprompted, (3) re-derive the headline number + its interval, (4) answer the top skeptic probe." },
+  { "front": "'Which is your best work?'", "back": "Lead with dim-stage: the deepest, a bitwise-validated instrument, and a pre-registered null answered on the paper's own open question about small models." },
+  { "front": "The through-line (engine, not six one-offs)", "back": "Published paper → rebuild or reuse the harness → iterate a metric under verification → publish openly, with unusual statistical honesty at a scale one person can own every number." }
+]

@@ -1,0 +1,65 @@
+{
+  "title": "Module 1 check — The Shared Spine",
+  "questions": [
+    {
+      "question": "An arm scores 0/40. Why report the Wilson interval instead of the naive p ± 1.96·√(p(1−p)/n)?",
+      "answerOptions": [
+        { "text": "The naive interval collapses to zero width at 0/40, falsely claiming certainty; Wilson gives an honest asymmetric upper bound inside [0,1]", "isCorrect": true, "rationale": "At p=0 the naive half-width is 0, so it 'proves' 0% from 40 trials. Wilson stays in [0,1] and yields a real upper bound (about 8.8%)." },
+        { "text": "Wilson is centered exactly on the observed proportion, which the naive interval is not", "isCorrect": false, "rationale": "Backwards — Wilson is deliberately not centered on p (it shrinks toward 0.5 at small N); that asymmetry is the honesty." },
+        { "text": "The naive interval requires an LLM judge to compute", "isCorrect": false, "rationale": "Neither interval involves a judge; this confuses the statistics step with the grading step." },
+        { "text": "Wilson needs no sample size, so it works when N is unknown", "isCorrect": false, "rationale": "Wilson very much uses N; the point is it behaves well at small N, not that N is optional." }
+      ],
+      "hint": "Think about the width of the naive interval when p is exactly 0."
+    },
+    {
+      "question": "A gap between two arms has a Newcombe 95% interval of [−0.02, +0.10]. How should it be reported?",
+      "answerOptions": [
+        { "text": "As a null — the interval includes zero, so the gap is indistinguishable from no effect", "isCorrect": true, "rationale": "The portfolio's rule: a difference whose interval contains zero is reported as a null, not spun as a trend." },
+        { "text": "As a +10 percentage-point effect, using the upper bound", "isCorrect": false, "rationale": "Cherry-picking the upper bound ignores that the interval also covers zero and negatives." },
+        { "text": "As a real effect, since most of the interval is positive", "isCorrect": false, "rationale": "'Mostly positive' is exactly the spin pre-registration forbids; containing zero means null." },
+        { "text": "As invalid, because Newcombe cannot be used on a difference", "isCorrect": false, "rationale": "Newcombe is the correct tool for a difference of proportions; it is not invalid here." }
+      ],
+      "hint": "What is the single decision rule for a difference interval?"
+    },
+    {
+      "question": "Why compute a Newcombe interval for the gap rather than subtracting the two arms' Wilson intervals?",
+      "answerOptions": [
+        { "text": "Subtracting two intervals mishandles the combined uncertainty of a difference; Newcombe is built for it", "isCorrect": true, "rationale": "The uncertainty of a difference is not the naive combination of two single-proportion intervals; Newcombe accounts for it." },
+        { "text": "Wilson intervals cannot be computed for treatment arms", "isCorrect": false, "rationale": "Wilson applies to any single proportion, treatment or baseline." },
+        { "text": "Newcombe is just Wilson with a bigger z, so it is always wider", "isCorrect": false, "rationale": "Newcombe is not 'Wilson with a bigger z'; it is a method for the difference." },
+        { "text": "Because two overlapping Wilson intervals always mean a real effect", "isCorrect": false, "rationale": "Overlap (or not) of single-arm intervals does not by itself determine whether the gap excludes zero." }
+      ],
+      "hint": "The quantity you care about is a difference, not two separate proportions."
+    },
+    {
+      "question": "What does pre-registration concretely guarantee in these projects?",
+      "answerOptions": [
+        { "text": "The scoring script and pass bar are frozen before paid data exists, and the verdict exits INVALID on wrong-arm input", "isCorrect": true, "rationale": "Committing the gate as code before data removes goalpost-moving — the core reason a null here is credible." },
+        { "text": "That the result will be statistically significant", "isCorrect": false, "rationale": "Pre-registration makes results honest, not significant; it often produces pre-committed nulls." },
+        { "text": "That an LLM judge approved the rubric in advance", "isCorrect": false, "rationale": "No LLM judge is involved; the gate is deterministic code." },
+        { "text": "That the budget cap will not be exceeded", "isCorrect": false, "rationale": "That is the budget guard, a separate mechanism from pre-registering the statistics." }
+      ],
+      "hint": "It is about when the verdict logic is written relative to the data."
+    },
+    {
+      "question": "Why grade with a deterministic oracle (exact-match / token-ownership) instead of an LLM judge?",
+      "answerOptions": [
+        { "text": "A deterministic checker is reproducible and cannot be sweet-talked; you trade subtlety for a verdict any skeptic can re-run", "isCorrect": true, "rationale": "Judge-free grading sidesteps the self-graded-homework trap — the checker gives everyone the same answer." },
+        { "text": "An LLM judge is too slow to run at hobby scale", "isCorrect": false, "rationale": "Speed is not the issue; credibility and reproducibility are." },
+        { "text": "Deterministic oracles capture nuance an LLM judge would miss", "isCorrect": false, "rationale": "It is the opposite — you give up nuance to buy reproducibility." },
+        { "text": "Because Wilson intervals require an oracle to compute", "isCorrect": false, "rationale": "The interval math is independent of how you grade pass/fail." }
+      ],
+      "hint": "Which grader can a hostile reviewer reproduce exactly?"
+    },
+    {
+      "question": "A skeptic asks how you keep the claim that these run 'cheap' honest. What is the concrete answer?",
+      "answerOptions": [
+        { "text": "A hard budget guard tracks spend to the cent against a fixed cap and stops the run — e.g. ghost-patch closed for $1.42", "isCorrect": true, "rationale": "'Cheap' is a controlled claim backed by a tracked, committed spend ledger, not a vague intention." },
+        { "text": "The models are free, so cost is never a concern", "isCorrect": false, "rationale": "They are paid OpenRouter calls; the guard is what bounds the cost." },
+        { "text": "Costs are estimated afterward from the number of runs", "isCorrect": false, "rationale": "Spend is tracked live to the cent against a cap, not back-estimated." },
+        { "text": "The budget is enforced by the LLM judge", "isCorrect": false, "rationale": "There is no LLM judge, and grading is unrelated to spend tracking." }
+      ],
+      "hint": "There is a committed ledger and a hard cap."
+    }
+  ]
+}

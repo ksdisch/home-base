@@ -1,0 +1,65 @@
+{
+  "title": "Module 2 check — dim-stage & forge-gap",
+  "questions": [
+    {
+      "question": "Why must a Jacobian lens be applied before reading a mid-layer residual vector as tokens?",
+      "answerOptions": [
+        { "text": "A mid-layer vector is not yet in the model's output (unembedding) coordinates, so reading it directly yields garbage; the lens transports it to final-layer coordinates", "isCorrect": true, "rationale": "The lens is a per-layer transport into output coordinates — that is exactly why a raw mid-layer read is meaningless." },
+        { "text": "The lens compresses the vector so it fits in the context window", "isCorrect": false, "rationale": "The lens is a coordinate transform for readout, not a compression step, and has nothing to do with context length." },
+        { "text": "Mid-layer vectors are encrypted and the lens decrypts them", "isCorrect": false, "rationale": "Nothing is encrypted; the issue is coordinate space, not secrecy." },
+        { "text": "Without the lens the unembedding would exceed the budget guard", "isCorrect": false, "rationale": "This confuses an interpretability transform with the cost-control mechanism from Module 1." }
+      ],
+      "hint": "Think about which coordinate space the unembedding expects."
+    },
+    {
+      "question": "dim-stage validates its lens bit-for-bit against Anthropic's reference (the AGREE gate). What does that let you claim about the 0/6 null?",
+      "answerOptions": [
+        { "text": "That the null is about the models, not a broken instrument — the lens is proven correct before any measurement", "isCorrect": true, "rationale": "A bitwise-correct instrument means '0/6' cannot be waved away as 'your lens is broken.'" },
+        { "text": "That the workspace definitely exists in tiny models after all", "isCorrect": false, "rationale": "The gate validates the instrument; the measured result is still a null." },
+        { "text": "That the chosen band depth is guaranteed correct", "isCorrect": false, "rationale": "The AGREE gate does not prove band placement — that remains the honest caveat." },
+        { "text": "That an LLM judge confirmed the readouts", "isCorrect": false, "rationale": "Grading is judge-free; the gate is a bitwise comparison to reference code." }
+      ],
+      "hint": "It proves the tool, not the territory — and not the band."
+    },
+    {
+      "question": "Why is the 1.5B introspection result (30/101 at α=8 vs 0/101 at α=0) read as causal rather than correlational?",
+      "answerOptions": [
+        { "text": "The only thing changed is the steering dose, and the α=0 control is exactly 0/101 — a manipulated cause with an inert control moving the outcome", "isCorrect": true, "rationale": "A pinned-at-zero control plus a dose–response is the signature of a causal effect." },
+        { "text": "Because 30/101 has a large sample size", "isCorrect": false, "rationale": "N alone does not make an effect causal; the control comparison does." },
+        { "text": "Because the Wilson interval for 30/101 is wide", "isCorrect": false, "rationale": "Interval width is about precision, not causality." },
+        { "text": "Because the paper already proved it at 27B", "isCorrect": false, "rationale": "The large-scale result does not establish causality in the 1.5B reproduction; the control does." }
+      ],
+      "hint": "What is the control doing, and what changed between arms?"
+    },
+    {
+      "question": "In forge-gap, what does it mean that the flagship gap is 'injected'?",
+      "answerOptions": [
+        { "text": "A deterministic transient fault is seeded at a disclosed rate to create a recovery scenario the model would not otherwise face", "isCorrect": true, "rationale": "Injection is a controlled fault-recovery testbed, disclosed on every figure — not a claim about the model's natural failure rate." },
+        { "text": "The results were fabricated to hit 100%", "isCorrect": false, "rationale": "Injection is a disclosed experimental manipulation, not fabricated data; the grading is still judge-free." },
+        { "text": "The gap was measured on a natural failure of GLM-4.6", "isCorrect": false, "rationale": "The opposite — GLM-4.6 had no natural gap, which is why a fault is injected." },
+        { "text": "The model was fine-tuned to fail", "isCorrect": false, "rationale": "No fine-tuning; a runtime tool fault (a 503) is injected into the environment." }
+      ],
+      "hint": "Where does the fault come from, and is it disclosed?"
+    },
+    {
+      "question": "What is the honest blind spot of forge-gap's validation guardrail?",
+      "answerOptions": [
+        { "text": "It checks only the run's own retrieved evidence (self-consistency), so a self-consistent-but-wrong answer passes — about 10% of llama-8b misses", "isCorrect": true, "rationale": "Reading only run-local evidence keeps it judge-free and deployable but can accept a confident wrong answer; the rate is disclosed." },
+        { "text": "It calls an LLM judge that can be sweet-talked", "isCorrect": false, "rationale": "It is judge-free; the limitation is self-consistency, not a judge." },
+        { "text": "It requires the correct answer key at run time", "isCorrect": false, "rationale": "It has no answer key — that is precisely why it can be fooled by a consistent wrong retrieval." },
+        { "text": "It only works on the strong model", "isCorrect": false, "rationale": "It runs across models; the blind spot is quantified on the weak-model misses." }
+      ],
+      "hint": "What evidence does it get to look at?"
+    },
+    {
+      "question": "A skeptic says: 'You manufactured the gap — isn't that cheating?' What is the strongest honest response?",
+      "answerOptions": [
+        { "text": "It is a controlled fault-recovery testbed, disclosed on every figure at a stated fault rate; and natural gaps are shown separately on weaker models", "isCorrect": true, "rationale": "Owning the injection plus showing natural gaps is exactly the honest, load-bearing framing." },
+        { "text": "'No — the gap is completely natural on GLM-4.6.'", "isCorrect": false, "rationale": "False; GLM-4.6 had no natural gap, which is why the fault is injected." },
+        { "text": "'It does not matter because an LLM judge verified it.'", "isCorrect": false, "rationale": "There is no LLM judge, and it would not address the injection concern." },
+        { "text": "'The injection rate is hidden so it cannot bias the result.'", "isCorrect": false, "rationale": "The opposite — the rate is disclosed; hiding it would be the actual problem." }
+      ],
+      "hint": "Own the injection, then point to the natural gaps."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+[
+  { "front": "Wilson interval — what and when", "back": "The honest error bar on a *single* proportion. Use it because it stays in `[0,1]` and gives sane bounds at small N and at 0%/100%, where the naive `p ± 1.96√…` fails." },
+  { "front": "Why does the naive interval fail at 0/40 or 40/40?", "back": "It collapses to *zero width*, claiming perfect certainty from a few trials. Wilson is asymmetric and gives a real bound instead." },
+  { "front": "Newcombe interval — what and when", "back": "The honest error bar on the *gap* between two proportions. You cannot just subtract two Wilson intervals; Newcombe handles the combined uncertainty." },
+  { "front": "The null rule", "back": "If a gap's Newcombe interval includes zero, you cannot distinguish it from no effect — so you report it as a null." },
+  { "front": "What does pre-registration buy?", "back": "The scoring script and pass bar are frozen *before* paid data exists, and exit `INVALID` on wrong-arm input. No moving the goalposts — that is what makes a null credible." },
+  { "front": "Why no LLM judge?", "back": "An LLM judge is self-graded homework — sweet-talkable and non-reproducible. A deterministic oracle (exact-match / token-ownership) trades subtlety for reproducibility." },
+  { "front": "forge-gap headline interval", "back": "+32.5 pp gap, Newcombe `[+17.3, +48.0]` at N=40 — clears zero, so a real effect. Contrast ghost-patch, whose drop CI straddles zero (a null)." }
+]

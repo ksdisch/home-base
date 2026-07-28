@@ -1,0 +1,8 @@
+[
+  { "front": "decay-pin: the mechanism (in one line)", "back": "Context compaction *evicts* the rule text — the model does not 'forget,' the instruction is physically removed. A control at 0/20 and restoration on re-pin prove it." },
+  { "front": "The three arms and numbers", "back": "floor (rule visible) 0/20 → truncate (compaction evicts) 20/20 → pinned (re-inject after each compaction) 0/40." },
+  { "front": "Why is pinned 0/40 a fix, not just 'low'?", "back": "You test *equivalence*: the (pinned minus floor) upper bound sits under a pre-set +10% margin. Pinned 0/40 has a Wilson UB of ~8.8% → 'RESTORED,' indistinguishable from never losing the rule." },
+  { "front": "The three compaction strategies (v2)", "back": "recency-truncate (evicts — the failure), head-tail (protective by construction, freezes the head), LLM-summarize (leaks ~5% per compaction — reported as a null / tail risk)." },
+  { "front": "Why claim the gap's structure, not the point estimate?", "back": "The direct-request framing inflates the truncate rate above the paper's pooled ~38%. Honest move: claim the structure (present→compliant, evicted→violated, re-pinned→restored) and the interval, not '100%.'" },
+  { "front": "What does head-tail buy 'for free'?", "back": "It is protective by construction — it freezes the head of the context where the rule sits, so that specific rule is not evicted. Not a general guarantee for rules elsewhere." }
+]

@@ -1,0 +1,65 @@
+{
+  "title": "Module 4 check — ghost-patch & blind-cite",
+  "questions": [
+    {
+      "question": "ghost-patch reports two nulls as its headline. Why is that a legitimate result rather than a failed project?",
+      "answerOptions": [
+        { "text": "The pass bars were pre-registered before data and grading is judge-free, so a null is a measured, credible finding", "isCorrect": true, "rationale": "Pre-registration plus a deterministic oracle make a null a result you can trust, not an excuse." },
+        { "text": "Because a null always means the paper was wrong", "isCorrect": false, "rationale": "The project explicitly does not claim that — the effect likely needs a stronger model or the iterative regime." },
+        { "text": "Because the project spent very little money", "isCorrect": false, "rationale": "Low cost ($1.42) is a scope fact, not what makes the null credible." },
+        { "text": "Because an LLM judge confirmed the null", "isCorrect": false, "rationale": "Grading is judge-free; no LLM judge is involved." }
+      ],
+      "hint": "What two properties turn a null into a finding?"
+    },
+    {
+      "question": "What does ghost-patch's phrase 'blindness, not blind obedience' capture?",
+      "answerOptions": [
+        { "text": "The cheap models never register the bad instruction as wrong (awareness 0/6), so they cannot be knowingly obeying it", "isCorrect": true, "rationale": "The failure is a perception gap, not a willingness to obey a rule the model sees is wrong." },
+        { "text": "The models see the bad instruction and deliberately follow it anyway", "isCorrect": false, "rationale": "That would be blind *obedience* — the opposite of what the 0/6 awareness null shows." },
+        { "text": "The models are blind to all instructions, good or bad", "isCorrect": false, "rationale": "They follow ordinary instructions fine; the null is specifically about detecting the wrong-location one." },
+        { "text": "The verifier is blind to ghost errors", "isCorrect": false, "rationale": "That is a separate limitation; 'blindness' here refers to the models' awareness, not the verifier." }
+      ],
+      "hint": "Awareness came in at 0/6 — what does that say about obedience?"
+    },
+    {
+      "question": "deepseek's single-pass obedience drop is d = +0.04 with a 95% CI of about [−0.022, +0.103], against a pre-committed 10-point bar. Verdict?",
+      "answerOptions": [
+        { "text": "A null — the CI straddles zero and never reaches the 0.10 bar, so the drop is indistinguishable from no effect", "isCorrect": true, "rationale": "Containing zero means you cannot distinguish it from no drop; the pre-registered bar is not met." },
+        { "text": "A reproduction — the point estimate is positive", "isCorrect": false, "rationale": "A positive point estimate whose interval covers zero is a null, not a reproduction." },
+        { "text": "Invalid — you cannot measure a drop on matched pairs", "isCorrect": false, "rationale": "Matched pairs are exactly the right design; the result is a valid null." },
+        { "text": "A strong effect, since 0.04 is close to 0.10", "isCorrect": false, "rationale": "0.04 is below 0.10 and the interval includes zero — not a strong effect." }
+      ],
+      "hint": "Apply Module 1's CI-crosses-zero rule."
+    },
+    {
+      "question": "Why does blind-cite fabricate a corpus (Quill/Quipp) instead of using an LLM judge?",
+      "answerOptions": [
+        { "text": "Invented entities give exact, contamination-free ownership ground truth (no model has a prior), so attribution is deterministic — replacing the judge", "isCorrect": true, "rationale": "Fabrication makes 'whose evidence is this' mechanically checkable, extending the judge-free principle to attribution." },
+        { "text": "Fabricated corpora are cheaper to license than real ones", "isCorrect": false, "rationale": "The motive is exact ground truth and no training-prior contamination, not licensing cost." },
+        { "text": "Because an LLM judge would be more accurate here", "isCorrect": false, "rationale": "The whole point is to avoid the self-graded-homework trap an LLM judge introduces." },
+        { "text": "To make the task easier for the models to pass", "isCorrect": false, "rationale": "It is about measurement fidelity; if anything the name-forward surface being easy is a disclosed caveat, not the goal." }
+      ],
+      "hint": "What makes 'who owns this token' deterministic?"
+    },
+    {
+      "question": "blind-cite's adversarial cell is 0/36. Why is that a 'right-reason' null?",
+      "answerOptions": [
+        { "text": "The detectors are validated (16/16) and every one of the 36 trials is a correct behavior — a refusal or explicit discrimination — so deception is genuinely absent, not missed", "isCorrect": true, "rationale": "Sound detectors plus correct model behavior mean the null reflects real absence of the phenomenon." },
+        { "text": "The detector failed to fire, so nothing was counted", "isCorrect": false, "rationale": "The detectors are validated 16/16; the null is not a detection failure." },
+        { "text": "The models deceived but the harness scored it as safe", "isCorrect": false, "rationale": "They did not deceive — they refused or named the true owner." },
+        { "text": "The sample was too small to detect anything", "isCorrect": false, "rationale": "M0 is a pilot, but the outcomes are fully accounted for as right-reason behavior, not undetectable noise." }
+      ],
+      "hint": "What did the models actually do in all 36 trials?"
+    },
+    {
+      "question": "How should blind-cite's status be stated honestly?",
+      "answerOptions": [
+        { "text": "As in-progress: M0 fit-pilot validated the detectors and corpus and produced an early null; M1 (the powered, possibly multi-doc run) is unrun", "isCorrect": true, "rationale": "M0 is a pilot; the honest framing keeps it from inflating into a finished result, and notes the README is stale." },
+        { "text": "As complete, with a well-powered null result", "isCorrect": false, "rationale": "M1 is not yet run; calling it complete overstates a pilot." },
+        { "text": "As a confirmed reproduction of deceptive grounding", "isCorrect": false, "rationale": "The pilot found the opposite — an early null on this surface." },
+        { "text": "As whatever the README says", "isCorrect": false, "rationale": "The README is stale; the M0-BRIEF and verdict JSON are the source of truth." }
+      ],
+      "hint": "Which milestone is done, and which is not?"
+    }
+  ]
+}

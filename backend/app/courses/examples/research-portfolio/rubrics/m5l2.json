@@ -1,0 +1,36 @@
+{
+  "criteria": [
+    {
+      "name": "60-second pitch (clarity)",
+      "levels": [
+        { "label": "Developing", "description": "Runs long or leans on untranslated jargon; a non-expert could not restate what the project shows or why it matters." },
+        { "label": "Meets", "description": "Under a minute, jargon translated on first use; a non-expert can restate the claim and why it matters." },
+        { "label": "Exceeds", "description": "Crisp and memorable, anchored to a concrete image (the 67.5-to-100 chart, 'worse than empty'), and naturally sets up the caveat." }
+      ]
+    },
+    {
+      "name": "Caveat, stated first",
+      "levels": [
+        { "label": "Developing", "description": "The honesty caveat is missing, or appears only after an imagined skeptic raises it." },
+        { "label": "Meets", "description": "The caveat (injected gap / pre-registered null / matched budget / M0 pilot) is stated unprompted and framed as a design choice." },
+        { "label": "Exceeds", "description": "Caveat stated first and defended — why it strengthens rather than weakens the result, with the specific mitigation named." }
+      ]
+    },
+    {
+      "name": "Re-derived headline number",
+      "levels": [
+        { "label": "Developing", "description": "The statistic, its N, or the meaning of its interval is wrong, vague, or absent; cannot say what a null would look like." },
+        { "label": "Meets", "description": "Reproduces the key number (to rounding) with its N and correctly reads its Wilson/Newcombe interval, including what a null would look like." },
+        { "label": "Exceeds", "description": "Derives it from the raw counts unaided and connects it to the verdict rule (interval includes zero means null) without prompting." }
+      ]
+    },
+    {
+      "name": "Top skeptic probe",
+      "levels": [
+        { "label": "Developing", "description": "Dodges the strongest objection, gets defensive, or concedes the project is weak." },
+        { "label": "Meets", "description": "Names the single strongest objection and gives an honest, specific answer grounded in the design." },
+        { "label": "Exceeds", "description": "Pre-empts multiple probes, distinguishes what the evidence does and does not show, and never substitutes 'Claude Code did that' for understanding." }
+      ]
+    }
+  ]
+}
