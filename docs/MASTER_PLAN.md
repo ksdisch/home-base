@@ -84,12 +84,12 @@ kanban
     m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>green gate · PR 136 ·<br/>slice CLOSED"]
     hbss["HB Study Scheduler v0→v1<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#137/#138 · v1 flexible<br/>prefs: days_of_week knob<br/>+ panel controls +<br/>applied-echo + schema<br/>v12 persistence · v1.3<br/>correctness wave — 8<br/>bugs, honest token<br/>degrade + per-event<br/>ledger + ordered<br/>placement (v13) · PR<br/>#152 · live write<br/>pending Kyle OAuth"]
   doing["🔄 In progress"]
+    freeinf["Free-Inference bake-off<br/>— D8 GO + plan APPROVED<br/>07-27 (approach A) ·<br/>local_reader_bench.py<br/>BUILT: ids-only decoder,<br/>grader, reporter, 35<br/>tests, --show-day<br/>authoring aid · zero<br/>product surface ·<br/>REMAINING (Kyle, Mac<br/>only): author ~20-30<br/>gold-set fixtures, then<br/>run the 7-day graded<br/>week · assumption 2<br/>uncrossed until it passes"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
     rep0726["Replenish 2026-07-26 —<br/>remainder: 16 ideas<br/>(4 Moonshot — ALL FOUR<br/>dispositioned 07-27:<br/>Free-Inference GO, the<br/>other three parked ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· BUG COUNT + PRIORITY<br/>CLAIMS ARE STALE: the<br/>former top two were<br/>fixed 07-27 (#154, #156)<br/>and the remaining tally<br/>is unverified · awaiting<br/>wave sequencing +<br/>re-count via<br/>/backlog-hygiene"]
   decide["⏸️ Awaiting decision"]
-    freeinf["Free-Inference Rebuild —<br/>GO at its 07-27 gate<br/>(D8), scope recorded:<br/>ids-only never prose ·<br/>Ollama + small instruct<br/>· lens beside the fixed<br/>brief, default earned ·<br/>AWAITING Kyle's approval<br/>of LOCAL_READER_BAKEOFF_PLAN<br/>before any code"]
   later["🧊 Later / parked"]
     agentgate["Agent Gate — PARKED at<br/>its 07-27 gate<br/>conversation (D7):<br/>revisit after the<br/>~08-03 v1 check ·<br/>demand finding: Claude<br/>Code crons = a<br/>sufficient first tenant<br/>· open questions stay<br/>open for the revisit"]
     sessionnote["The Session Note —<br/>PARKED at its 07-27<br/>gate (D9): the 'months<br/>deep' premise was FALSE<br/>(corpus = 13 days) ·<br/>revisit at ~6 months of<br/>brief_notes, ~2027-01 ·<br/>needs a MIN_SIGNAL-style<br/>floor + an answer for<br/>the interpretive half"]
@@ -368,7 +368,7 @@ over-counts rather than under-counts._
 | [`bug-hunt/2026-07-19-post-m7.md`](bug-hunt/2026-07-19-post-m7.md) | Post-M7 verified bug audit — 23 findings, ranked, triage-only |
 | [`bug-hunt/2026-07-26-post-studycal-m8.md`](bug-hunt/2026-07-26-post-studycal-m8.md) | Post-studycal/M8 verified bug audit — 24 findings, ranked; the 8 studycal ones fixed in PR #152 |
 | [`ideas/`](ideas/) | Vision docs for captured brainstorm ideas (replenish 2026-07-19) |
-| [`LOCAL_READER_BAKEOFF_PLAN.md`](LOCAL_READER_BAKEOFF_PLAN.md) | **Free-Inference Rebuild** bake-off plan (2026-07-27, D8) — `/explore-plan` output: 3 ranked approaches, ids-only decoder, grading rubric + hard-gate pass bar. **Plan only, awaiting Kyle's approval; no code written** |
+| [`LOCAL_READER_BAKEOFF_PLAN.md`](LOCAL_READER_BAKEOFF_PLAN.md) | **Free-Inference Rebuild** bake-off (2026-07-27, D8) — `/explore-plan` output: 3 ranked approaches, ids-only decoder, grading rubric + hard-gate pass bar. **Approved on approach A; bench built (`sweeps/local_reader_bench.py`); gold sets + graded week remain (Kyle, Mac-only).** Ends with the corrections implementation forced on the plan |
 | [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
 | [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0→v1** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook); v1 = flexible preferences (day-of-week + time-of-day controls, `applied` echo, schema v12 persistence); v1.3 = the correctness wave (honest token degrade + the 7-day consent leash, per-event ledgering, curriculum-ordered placement, schema v13) |
 | [`ideas/study-scheduler.md`](ideas/study-scheduler.md) | Study Scheduler idea/write-up (captured 2026-07-22) — premise, settled decisions, open questions |
@@ -377,6 +377,37 @@ over-counts rather than under-counts._
 ---
 
 ## Changelog (newest first)
+
+### 2026-07-27 — Free-Inference bake-off: plan approved (approach A), bench built, zero product surface
+
+- Kyle approved [`LOCAL_READER_BAKEOFF_PLAN.md`](LOCAL_READER_BAKEOFF_PLAN.md) on approach A
+  (hand-authored fixture suite over real sweep days). `sweeps/local_reader_bench.py` now
+  implements it: corpus loader → indexed prompt → injectable Ollama runner → **deterministic
+  ids-only decoder** → grader → verdict table in the `M0-sweep-grades.md` house style.
+- The decoder is the whole guarantee. The model is shown **ordinals 1..N and never an id**
+  (a test asserts ids don't reach the prompt), emits a bare JSON array, and Python maps back
+  to stored items. Out-of-range, duplicate, non-integer, and `bool` entries are dropped
+  mechanically — so no claim the model invented can reach a render path, by construction
+  rather than by policing.
+- 35 tests, `backend/tests/test_local_reader_bench.py`, importlib-loaded from `sweeps/` per
+  the `test_render_brief.py` precedent. Adversarial coverage the suite favours: off-by-one at
+  both ends, duplicates, `true` masquerading as ordinal 1, prose-wrapped JSON, a dead runner,
+  a missing day, and relative-not-absolute ordering.
+- **Two plan corrections, recorded not silently applied.** `sweeps/` scripts are stdlib-only
+  and must not import the backend, so the bench re-derives the item id per the
+  `actions_queue.py` precedent — and the drift risk that creates is pinned by tests that call
+  the backend's `_structured_topic` and assert equality, including the `-2` duplicate-headline
+  suffix `actions_queue.py` never has to handle. And the `Runner` seam is `prompt → text`, not
+  `chat.py`'s subprocess-argv shape, which exists only because that lane shells out.
+- Added `--show-day DATE` (prints every item with its ordinal and id) — without it there was
+  no way to author a gold set short of computing sha1 by hand. Workflow documented in
+  `sweeps/fixtures/README.md`; gold sets are gitignored since they reference gitignored days.
+- **Nothing shipped to the read surface. Assumption 2 stays uncrossed** until a 7-day graded
+  week passes every hard gate and a *second* decision ships a lens. Remaining work is Kyle's
+  and Mac-only: author the fixtures, run the week.
+- Backend 927 passed / 2 failed / 7 skipped — the 2 are the documented root-`chmod(0o000)`
+  environment pair, reproduced identically on clean `main` with these changes stashed. Ruff
+  clean (`ruff check .` from `backend/`, as CI runs it).
 
 ### 2026-07-27 — Gate conversations for the last three 07-26 moonshots: 1 go, 2 parks (D8/D9/D10)
 

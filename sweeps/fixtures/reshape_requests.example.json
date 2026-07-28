@@ -1,0 +1,50 @@
+[
+  {
+    "id": "place-filter-chicago",
+    "date": "2026-07-20",
+    "request": "just the Chicago stuff",
+    "must_include": ["0f3a91c22b41", "77bd0e14aa09"],
+    "must_exclude": ["c41e88a0d372"],
+    "expect_order": []
+  },
+  {
+    "id": "topic-filter-ai",
+    "date": "2026-07-20",
+    "request": "only the AI and model-release news, nothing else",
+    "must_include": ["c41e88a0d372"],
+    "must_exclude": ["0f3a91c22b41"],
+    "expect_order": []
+  },
+  {
+    "id": "compress-90-seconds",
+    "date": "2026-07-21",
+    "request": "brief me in 90 seconds — only what actually matters today",
+    "must_include": ["a91b7c033de5"],
+    "must_exclude": [],
+    "expect_order": ["a91b7c033de5"]
+  },
+  {
+    "id": "drop-seen-yesterday",
+    "date": "2026-07-21",
+    "request": "hide anything that's just a continuation of what I read yesterday",
+    "must_include": [],
+    "must_exclude": ["3ce7f5108b22"],
+    "expect_order": []
+  },
+  {
+    "id": "combination-local-and-short",
+    "date": "2026-07-22",
+    "request": "the local news only, and keep it to the three biggest",
+    "must_include": ["b0d4419e7f31"],
+    "must_exclude": ["c41e88a0d372"],
+    "expect_order": []
+  },
+  {
+    "id": "impossible-refusal-crypto",
+    "date": "2026-07-22",
+    "request": "just the cryptocurrency regulation news",
+    "must_include": [],
+    "must_exclude": [],
+    "expect_empty": true
+  }
+]

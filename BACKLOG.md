@@ -610,7 +610,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Exploration] Free-Inference Rebuild — the brief becomes a reshapeable corpus behind a graded quote-only gate
-- **Status:** **GO** 2026-07-27 at its gate conversation, on the bake-off only (decision D8). Recorded scope: ids-only never prose · Ollama + small instruct model · lens beside the fixed brief, default earned. Plan at [`docs/LOCAL_READER_BAKEOFF_PLAN.md`](docs/LOCAL_READER_BAKEOFF_PLAN.md) — **awaiting Kyle's approval, no code written.**
+- **Status:** **GO** 2026-07-27 at its gate conversation, on the bake-off only (decision D8); plan APPROVED the same day on approach A and `sweeps/local_reader_bench.py` **built + tested** (35 tests, zero product surface). Recorded scope: ids-only never prose · Ollama + small instruct model · lens beside the fixed brief, default earned. **Remaining, Kyle + Mac only:** author the gold sets, run the 7-day graded week. See [`docs/LOCAL_READER_BAKEOFF_PLAN.md`](docs/LOCAL_READER_BAKEOFF_PLAN.md).
 - **Why:** The bet: assumption 2 ('zero/minimal LLM at read time') encoded 2025 economics — LLM meant remote, metered, trust-risky — and the assumption's real content was never 'no LLM' but 'no cost, no cloud, no fabrication at read time'. Local inference deletes the cost and privacy halves; the quote-only… See [`docs/ideas/free-inference-rebuild.md`](docs/ideas/free-inference-rebuild.md) for the full write-up.
 - **Acceptance:** Run the graded bake-off (sweeps/local_reader_bench.py over real brief-chat questions) and judge groundedness against the recorded claude -p answers; nothing ships to the read surface until a full graded week passes at the sweep's own bar.
 - **Size:** L (Moonshot)
