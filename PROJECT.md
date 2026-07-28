@@ -7,7 +7,7 @@ Kyle's daily home base: a self-updating morning brief across his topics (AI/LLMs
 **In scope (current phase):**
 - Arc 1 — Learning Hub: catalog, in-hub quiz player, progress/mastery, SM-2 study plan, custom topics, the full Courses pipeline (M1–M5), and Learning Paths (M8 vertical slice live).
 - Arc 2 — Home Base: morning brief (M0–M3 kickoff plan) plus encores M4 (audio brief), M5 (chat with the brief), M6 (mobile/one-port serve), M7 (news mode) — all shipped.
-- Ongoing: brief archive navigation (in flight on `feat/brief-archive-nav`), study scheduler refinements, bug-hunt waves.
+- Ongoing: study scheduler refinements, bug-hunt waves. (Brief archive navigation landed as PR #153; archive search as PR #167.)
 
 **Out / deferred / never:**
 - The hub never writes to NotebookLM sidecars (read-only invariant, enforced by the `guard-sidecars` hook and `backend/tests/test_no_sidecar_writes.py`). Generating new NotebookLM series stays in the `audio-series` skill.
@@ -15,12 +15,13 @@ Kyle's daily home base: a self-updating morning brief across his topics (AI/LLMs
 - Scaling the Learning Paths Designer beyond the bundled fixture to the rest of the library — future M8 work, not started.
 
 ## Current status
-Active. Both arcs' planned milestones are fully built and gated: Learning Hub Phases 1–7 + Courses M1–M5 + Learning Paths slice shipped; Home Base M0–M7 shipped with M0's sweep-quality week closed 2026-07-19 (verdict PASS, zero fabrications). Open: Kyle's phone-side M6 eyes-on trio, the ~2026-08-03 v1 success-criteria check, and the ~2026-08-19 re-grade (brief-archive-nav landed as PR #153). The 07-26 moonshot lane is quiet until the ~08-03 verdict: Agent Gate PARKED at its 2026-07-27 gate conversation (decision D7), the other three undecided. (Fact — `docs/MASTER_PLAN.md`, `CLAUDE.md`, `Decisions.md`.)
+Active. Both arcs' planned milestones are fully built and gated: Learning Hub Phases 1–7 + Courses M1–M5 + Learning Paths slice shipped; Home Base M0–M7 shipped with M0's sweep-quality week closed 2026-07-19 (verdict PASS, zero fabrications). Open: Kyle's phone-side M6 eyes-on trio, the ~2026-08-03 v1 success-criteria check, and the ~2026-08-19 re-grade (brief-archive-nav landed as PR #153). **All four 07-26 moonshots are now dispositioned at their gate conversations (2026-07-27):** Agent Gate PARKED (D7, revisit after the ~08-03 verdict), The Session Note PARKED (D9, revisit at ~6 months of `brief_notes`, ~2027-01), The Correspondence PARKED (D10, no peer will run a node), and **Free-Inference Rebuild GO (D8)** on its graded bake-off only — plan written to `docs/LOCAL_READER_BAKEOFF_PLAN.md` and awaiting Kyle's approval, no code written. (Fact — `docs/MASTER_PLAN.md`, `CLAUDE.md`, `Decisions.md`.)
 
 ## Next actions
-1. Sequence the remaining replenish backlog (10 bugs + 16 ideas) into waves via `/backlog-hygiene`.
-2. M6 phone eyes-on trio (Kyle): standalone install, airplane banner, iOS scrub.
-3. ~2026-08-03 v1 success-criteria check: ≥5 mornings/week, events reach Kyle first, ≥3 notes/week — its verdict also gates the Agent Gate revisit (D7).
+1. **Kyle: approve or redirect `docs/LOCAL_READER_BAKEOFF_PLAN.md`** (D8). Two parts are his alone — authoring ~20–30 reshape fixtures with gold id sets, and running the graded week (the corpus is gitignored and lives only on his Mac).
+2. Sequence the remaining replenish backlog into waves via `/backlog-hygiene` — and have it **re-derive the bug count**, which is stale everywhere in these docs (the former top two, #1 and #3, landed 2026-07-27 as PRs #154 and #156).
+3. M6 phone eyes-on trio (Kyle): standalone install, airplane banner, iOS scrub.
+4. ~2026-08-03 v1 success-criteria check: ≥5 mornings/week, events reach Kyle first, ≥3 notes/week — its verdict also gates the Agent Gate revisit (D7).
 
 ## Boundaries
 - Local-first: Vite + React + TS + Tailwind frontend, FastAPI backend, SQLite store; served on one port by the `com.homebase.server` LaunchAgent; phone reach via Tailscale.
