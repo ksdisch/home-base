@@ -5,9 +5,9 @@ sw.js v2 offline + responsive morning loop) · **Mac-side live verify clean 2026
 `install-server.sh` → `com.homebase.server` running headless (survives `launchctl
 kickstart -k`), `/` + `/notes` + `/sw.js` 200, `/api/health` ok, unknown `/api/*` still
 JSON-404s; **audio Range confirmed — `bytes=0-1023` → 206** (iOS scrub has server-side
-support); Tailscale up (`kyles-macbook-pro`, kstan.disch@). **Tailnet HTTPS live-verified
+support); Tailscale up (`<your-machine>`, `<your-account>`). **Tailnet HTTPS live-verified
 2026-07-18** (Kyle enabled serve in the admin console; `tailscale serve --bg
-http://127.0.0.1:8000` persists across reboots): **`https://kyles-macbook-pro.tail01200d.ts.net`**
+http://127.0.0.1:8000` persists across reboots): **`https://<your-machine>.<your-tailnet>.ts.net`**
 serves `/` 200 · `/api/health` ok · `/sw.js` 200 (secure context → the phone can register
 the SW) · audio `Range` → 206 over HTTPS. **Offline story e2e-verified in a real browser
 2026-07-18** (Playwright, iPhone-size viewport 390×844, against the live ts.net URL): SW
@@ -16,7 +16,7 @@ the first-ever visit races SW control and doesn't cache — every later visit do
 with the network emulated fully off: shell served from SW cache, cached brief rendered,
 **"Offline copy" banner shown, both composers disabled**; back online: banner gone,
 composers re-enabled. **Real-iPhone reach verified 2026-07-18** (server log, from the
-phone's tailnet IP `100.96.118.39` — Kyle installed + signed into the Tailscale iOS app
+phone's tailnet IP `<phone-tailnet-ip>` — Kyle installed + signed into the Tailscale iOS app
 away from home, on a different network, which is the whole point): full page load over the
 ts.net HTTPS URL, **`sw.js` fetched → SW registered on the phone** (+ its shell pre-cache
 requests), **first real phone `POST /api/brief/visit`** (the kickoff's habit metric now
