@@ -1,9 +1,12 @@
 # Local Reader Bake-Off — plan (awaiting approval)
 
-_Status: **PLAN ONLY — no code written.** Produced by the `/explore-plan` step following the
-2026-07-27 gate conversation that gave Free-Inference Rebuild a go (decision D8). Vision doc:
-[`ideas/free-inference-rebuild.md`](ideas/free-inference-rebuild.md). Nothing in this plan is
-implemented until Kyle approves an approach below._
+_Status: **APPROVED 2026-07-27 (approach A) — bench BUILT, graded week not yet run.** Produced
+by the `/explore-plan` step following the gate conversation that gave Free-Inference Rebuild a
+go (decision D8). Vision doc: [`ideas/free-inference-rebuild.md`](ideas/free-inference-rebuild.md).
+Implementation: `sweeps/local_reader_bench.py` + `backend/tests/test_local_reader_bench.py` (35
+tests) + `sweeps/fixtures/`. **Remaining and Kyle's alone:** author the gold sets, then run the
+graded week. See "Corrections found during implementation" below — the house pattern overruled
+two details of this plan._
 
 ## What this is
 
@@ -170,6 +173,60 @@ Authorable here: the bench, the decoder, the grader, the reporter, the tests, th
 *schema*. **Not runnable here:** anything producing a verdict — `backend/data/` and
 `/data/sweeps/` are gitignored (`.gitignore:40,43`), so the real corpus exists only on
 Kyle's Mac. The graded week is his to run, and the gold sets are his to author.
+
+---
+
+---
+
+## Corrections found during implementation (2026-07-27)
+
+Two details above were wrong about this repo's conventions. Recorded rather than silently
+changed, since the plan is the artifact people read later.
+
+### The bench must NOT import the backend
+
+The design section said to obtain items via `load_brief_topics()` "or its ids won't match."
+But `sweeps/` scripts are **stdlib-only and standalone by house rule** — `audio_brief.py`'s
+docstring states it outright ("Stdlib only; runs with the system python3, no venv"), because
+the sweep runner must never need the venv. `actions_queue.py` already faces this exact problem
+and solves it by **re-deriving** the id, with a comment naming `app.sweeps._structured_topic`
+as the source of truth.
+
+The bench follows that precedent. The drift risk this creates is real, so it is pinned by a
+test rather than a comment: `test_item_id_matches_the_backend_formula_exactly` and
+`test_duplicate_headlines_take_the_suffix_like_the_backend` call the backend's
+`_structured_topic` and assert the bench's ids equal it. One extra wrinkle `actions_queue.py`
+gets to skip — it only ever reads a brief's *first* item, so it can never meet a `-2` duplicate
+suffix. The bench reads every item, so the suffix is load-bearing and is tested.
+
+### The Runner seam is prompt→text, not the subprocess shape
+
+The plan said to conform to `Callable[[Sequence[str]], ChatResult]`. That signature exists
+because `chat.py` shells out to `claude` and needs argv; Ollama is an HTTP call, so carrying
+argv would be cargo-culting the shape and losing the point. The bench uses
+`Runner = Callable[[str], str]` — same *property* that matters (injectable, so no test ever
+contacts a model), fitted to the transport.
+
+### One tool the plan missed
+
+Gold sets are written in item ids, which are derived — so there was no way to author a fixture
+without computing sha1 by hand. Added `--show-day DATE`, which prints every item in a day with
+its ordinal and id. The authoring workflow is documented in
+[`../sweeps/fixtures/README.md`](../sweeps/fixtures/README.md).
+
+### Decisions the plan left implicit, now settled in code
+
+- **`prose_wrapped` is a hard gate, but a distinguishable one.** The decoder recovers the first
+  bracketed array from surrounding chatter, so nothing fabricated can reach the caller either
+  way — but a model that can't hold the output contract has failed it, so it counts against the
+  gate. The report names it separately from `unparseable` because the two have different fixes.
+- **`bool` is rejected explicitly.** `bool` subclasses `int` in Python, so `true` would
+  otherwise pass as ordinal 1 — a fabricated selection in a valid costume. Tested.
+- **A dead runner grades as a FAIL row, not a traceback**, so one Ollama hiccup can't lose a
+  whole run (the `audio_brief.py` best-effort lesson).
+- **Gold sets are gitignored** (`/sweeps/fixtures/reshape_requests.json`): they reference ids
+  from gitignored sweep days, so they only mean anything on the Mac that has them. The
+  `.example.json` and the README are committed, and a test asserts the example still loads.
 
 ---
 

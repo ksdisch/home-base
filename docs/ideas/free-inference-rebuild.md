@@ -1,7 +1,11 @@
 # Free-Inference Rebuild — the brief becomes a reshapeable corpus behind a graded quote-only gate
 
-**Status:** GO at the 2026-07-27 gate conversation (decision D8) — scope recorded below, build
-gated on Kyle's approval of [`../LOCAL_READER_BAKEOFF_PLAN.md`](../LOCAL_READER_BAKEOFF_PLAN.md).
+**Status:** GO at the 2026-07-27 gate conversation (decision D8); plan APPROVED the same day
+(approach A) and the bake-off bench is **built** — `sweeps/local_reader_bench.py`, 35 tests,
+zero product surface. Remaining and Kyle's alone: author the gold-set fixtures, then run the
+7-day graded week. Assumption 2 stays uncrossed until it passes and a second decision ships a
+lens. Plan + implementation corrections:
+[`../LOCAL_READER_BAKEOFF_PLAN.md`](../LOCAL_READER_BAKEOFF_PLAN.md).
 Added by `/replenish` (Moonshot lane) on 2026-07-26.
 
 _Rebuild the read surface knowing what wasn't true at M0: on-device inference on the M-series Mac (Ollama/MLX) is now effectively free, private, and offline. So the brief stops being one fixed linear artifact and becomes a corpus plus a local retrieval-only reader that recomposes it live at read time — 'just the Chicago stuff', 'hide what I saw yesterday', 'brief me in 90 seconds' — under a hard quote-only contract: the model may select, reorder, and quote items from that day's sweep artifact with provenance intact, and is forbidden to generate any new claim. The deterministic sweep artifact stays as the sole source of facts and the audit trail underneath. Distinct from M5 chat (one remote grounded Q&A per question) and from the audio-lane interruption idea: this is the READ surface becoming malleable._
