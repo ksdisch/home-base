@@ -70,12 +70,9 @@ TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + N
 | ✅ `/claudify-repo` | Vendor global commands/skills into this repo and/or brainstorm repo-specific automations. |
 | ✅ `/prompt-optimize` | One-shot prompt rewrite: workflow archetype + model + effort + ready-to-paste prompt. Advisory only. |
 | ✅ `/reframe-orchestrator` | Reframe `.claude/orchestrator.md` into a mode-independent invariants & gates doc. |
-| ✅ `/mock-sql-demo` | Text self-play mock SQL interview (interviewer + ideal candidate), then a debrief. |
 | 💻 `/boot_server` | Detect how the project is served, start the dev server, open it in Chrome. |
 | 💻 `/catchup` | Mid-session audio catch-up as an MP3 (local TTS); keeps working after. |
 | 💻 `/envsetup` | Open `.env` in the editor + the credential's generation page in Chrome, key stub pre-added. |
-| 💻 `/mock-sql-audio` | Full simulated SQL mock interview as an MP3 (local two-voice TTS). |
-| 💻 `/mock-sql-interview` | Live voice mock SQL interview (local voice mode). |
 | 💻 `/screenshot-iterate` | Visual loop: implement against a mock, screenshot the running app, compare, iterate. |
 | 💻 `/smoke-test` | Manual smoke test setup: opens pages in Chrome, checklist saved under `docs/smoke/`. |
 
