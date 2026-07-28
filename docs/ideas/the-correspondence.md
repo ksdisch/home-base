@@ -1,6 +1,8 @@
 # The Correspondence — a second node on the wire, the anti-social-network
 
-**Status:** Idea — not committed. Added by `/replenish` (Moonshot lane) on 2026-07-26.
+**Status:** Idea — PARKED at the 2026-07-27 gate conversation (decision D10) on a demand-side
+finding: the curation behavior is real and already happening, but no peer will run a node.
+Added by `/replenish` (Moonshot lane) on 2026-07-26.
 
 _IDENTITY-SHIFT. Home Base grows a peer: one trusted human — partner, sibling, close friend — runs their own node, and each morning the two nodes exchange a tiny signed 'dispatch': up to 3 items the sender explicitly flagged 'send to peer' with their own note attached, rendered as a Dispatches strip on Today. It is the only content in Home Base chosen neither by an algorithm nor by Kyle, but by a trusted human's hand. Peer-to-peer over the same private tailnet — no cloud deploy, no auth beyond the wire, consent-based (dispatches are explicit sends, never a synced feed). The five-year shape is a quiet protocol where personal news nodes exchange human-curated items with provenance and the sender's voice attached, replacing the follower feed with a private editorial wire between people who actually trust each other._
 
@@ -17,6 +19,39 @@ THE ONE THING THAT MUST BE TRUE: the durable answer to algorithmic feeds is not 
 ## Decisions / open questions
 
 (1) Who is the real first peer, and do they run a full Home Base node or a thin dispatch-only client? (2) Signing/identity scheme on the tailnet (tailscale identity headers vs a shared key)? (3) Do dispatches wear untrusted-item framing permanently, or earn trust like agents in the Agent Gate?
+
+**PARKED at the 2026-07-27 gate conversation (Kyle's call, recorded outcome):**
+
+The gate opened on question 1, because "who is the real first peer" *is* the demand test —
+and the doc's loopback proof is explicitly designed to defer it. The finding is that
+deferring it was the problem.
+
+1. **Parked: the bet is right about the behavior and wrong about the shape.** Pressed on
+   who would actually send dispatches, the recorded answer is that **nobody in Kyle's life
+   is going to run a Home Base node on his tailnet.** v1 would therefore be a protocol for
+   a network of one — the loopback proof would verify the plumbing while leaving the actual
+   bet (*will a trusted human send, every morning, in their voice*) untested. Naming a
+   thin-client peer, re-scoping to a no-protocol inbox strip, and building the loopback
+   proof anyway were all offered and declined.
+2. **Demand-side finding (recorded so the revisit starts from it):** the human-curated wire
+   the idea describes **already exists and already runs** — Marlee sends Kyle links, and
+   his Cowork/vault toolkit has a `marlee-sent` skill whose entire job is capturing them.
+   So the thesis's premise is confirmed by observed behavior, not hypothesis. What the
+   evidence does *not* support is the delivery mechanism: the existing wire is a text
+   message, and its adoption cost is zero. Any future version competes with that, and
+   "would she install this" is the question the revisit must answer first.
+3. **Constraint on the tempting re-scope, recorded so it isn't rediscovered:** the smallest
+   version of this — a Dispatches strip fed by the capture path that already exists —
+   reads from the **vault**, and the Overnight v0 gate already ruled *in-repo data only*,
+   with the vault bridge parked behind its own gate conversation. That re-scope therefore
+   does not avoid a gate; it trades this one for the parked bridge. It is a real option,
+   but it is not the cheap one it appears to be.
+4. **Questions 2 and 3 remain deliberately unanswered** — the signing/identity scheme and
+   whether dispatches wear untrusted-item framing permanently are the revisit
+   conversation's agenda, per the pattern the Overnight v0 gate set. Question 1 keeps its
+   finding above rather than a chosen answer: full-node versus thin-client is still open,
+   because the prior question — whether any peer adopts anything at all — is the one that
+   failed.
 
 ## Credible first step
 
