@@ -560,7 +560,7 @@ export interface Flashcard {
 // confidence) are merged onto it at read time. `completed`/`confidence` come from the store.
 export interface PathStep {
   id: string;
-  kind: string; // intro | audio | read | flashcards | quiz | bridge | reflect | recap
+  kind: string; // intro | audio | read | flashcards | quiz | video | mindmap | bridge | reflect | recap
   title: string;
   focus?: string | null;
   body?: string | null;

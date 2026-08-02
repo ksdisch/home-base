@@ -26,6 +26,8 @@ const KIND: Record<string, { icon: string; label: string }> = {
   read: { icon: "📖", label: "Read" },
   flashcards: { icon: "🃏", label: "Flashcards" },
   quiz: { icon: "❓", label: "Quiz" },
+  video: { icon: "🎬", label: "Watch" },
+  mindmap: { icon: "🧠", label: "Mind map" },
   bridge: { icon: "✨", label: "Bridge check" },
   reflect: { icon: "✍️", label: "Reflect" },
   recap: { icon: "🔁", label: "Recap" },
@@ -33,7 +35,7 @@ const KIND: Record<string, { icon: string; label: string }> = {
 const kindOf = (k: string) => KIND[k] ?? { icon: "•", label: k };
 
 // Kinds that carry learnable content worth a self-rating — glue steps (intro/recap/reflect) don't.
-const RATEABLE = new Set(["audio", "read", "flashcards", "quiz", "bridge"]);
+const RATEABLE = new Set(["audio", "read", "flashcards", "quiz", "video", "mindmap", "bridge"]);
 
 export default function PathPlayer() {
   const { id = "" } = useParams();
@@ -376,6 +378,18 @@ function StepLaunch({
         Play in NotebookLM ↗
       </a>
     );
+  } else if (step.kind === "video" && nbUrl) {
+    launch = (
+      <a href={nbUrl} target="_blank" rel="noreferrer" className={primaryBtn}>
+        Watch in NotebookLM ↗
+      </a>
+    );
+  } else if (step.kind === "mindmap" && nbUrl) {
+    launch = (
+      <a href={nbUrl} target="_blank" rel="noreferrer" className={secondaryBtn}>
+        Open in NotebookLM ↗
+      </a>
+    );
   } else if (step.kind === "flashcards" && nbUrl) {
     launch = (
       <a href={nbUrl} target="_blank" rel="noreferrer" className={secondaryBtn}>
@@ -407,7 +421,13 @@ function StepLaunch({
           onChange={() => onComplete(step, !step.completed)}
           className="h-4 w-4 rounded border-line-strong text-accent focus:ring-accent disabled:opacity-50"
         />
-        {step.completed ? "Done ✓" : step.kind === "audio" ? "Mark listened" : "Mark this step done"}
+        {step.completed
+          ? "Done ✓"
+          : step.kind === "audio"
+            ? "Mark listened"
+            : step.kind === "video"
+              ? "Mark watched"
+              : "Mark this step done"}
       </label>
     </div>
   );
