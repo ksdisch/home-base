@@ -138,6 +138,36 @@ describe("PathPlayer — outline + detail (M8 #15)", () => {
     expect(screen.getByText(/not tested yet/)).toBeInTheDocument();
   });
 
+  it("launches video and mindmap steps out to NotebookLM", async () => {
+    path.mockResolvedValue(
+      makePath({
+        steps: [
+          { id: "v1", kind: "video", title: "V Ep 1 — The Engine as a Machine", focus: null, body: null, artifact_id: "vid1", artifact_type: "video", estimated_minutes: 6, completed: false, confidence: null },
+          { id: "mm", kind: "mindmap", title: "See the shape", focus: null, body: null, artifact_id: "mm1", artifact_type: "mind_map", estimated_minutes: 5, completed: false, confidence: null },
+        ],
+        step_count: 2,
+        completed_steps: 0,
+        progress_pct: 0,
+      }),
+    );
+    const user = userEvent.setup();
+    renderAt();
+
+    // v1 is the first incomplete step → active; a video launches the external NotebookLM link.
+    expect(await screen.findByRole("link", { name: /Watch in NotebookLM/ })).toHaveAttribute(
+      "href",
+      "https://notebooklm.google.com/nb-jac",
+    );
+    expect(screen.getByText("Mark watched")).toBeInTheDocument();
+
+    // Select the mind map from the rail → it opens NotebookLM too (secondary action).
+    await user.click(screen.getByRole("button", { name: /See the shape/ }));
+    expect(await screen.findByRole("link", { name: /Open in NotebookLM/ })).toHaveAttribute(
+      "href",
+      "https://notebooklm.google.com/nb-jac",
+    );
+  });
+
   it("marks a step done via api.completeStep and reflects the refreshed coverage", async () => {
     path.mockResolvedValue(makePath());
     completeStep.mockResolvedValue(makePath({ completed_steps: 2, progress_pct: 67 }));
