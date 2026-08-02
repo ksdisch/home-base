@@ -30,8 +30,11 @@ _TYPE_FOR_KIND = {"audio": "audio", "read": "study_guide", "quiz": "quiz", "flas
 # and the path-step kind they map to. Anything else in the catalog (video, mind_map, report…) is
 # omitted — the designer can only arrange these four kinds. Note this makes AUDIO the learning spine
 # and keeps VIDEO overviews out of a generated path by construction: video is supplementary material,
-# not the backbone (design decision 12, docs/ideas/learning-paths.md). Hand-authored fixtures must
-# honor the same convention — they bypass this, so backend/tests/test_paths_fixture.py guards it.
+# not the backbone (design decision 12, docs/ideas/learning-paths.md, as amended by D11: hand-authored
+# paths may interleave supplementary videos under the honest `video` step kind, never mislabeled as
+# audio). Hand-authored paths bypass this cross-check; backend/tests/test_paths_fixture.py guards the
+# bundled Jacobian fixture only — other hand-authored paths rely on type-aware validation at
+# authoring time.
 _PRESENT_ORDER = (
     ("audio", "🎧 audio", "audio"),
     ("study_guide", "📖 study guides", "read"),
