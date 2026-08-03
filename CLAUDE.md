@@ -31,8 +31,13 @@
 > Chicago/Lake Co.) → Google News RSS w/ 15-min cache · `news_events` signal log +
 > card feedback · For You decaying-profile ranker (default tab, per-term search-feed
 > reach, honest cold start) · topic scout → one-click adds to the Mode-A roster
-> (dismiss-remembered). Next: M6 phone eyes-on proof (Kyle) + the ~08-03 v1
-> success-criteria check (≥5 mornings/week · events reach Kyle first · ≥3 notes/week).
+> (dismiss-remembered). **The ~08-03 v1 check ruled NOT YET (D12, 2026-08-03):** the only
+> attributed week failed the bars (3 raw / 2 phone mornings vs ≥5 · 2 notes vs ≥3; the two
+> passing raw weeks were pre-attribution build exhaust) — extended two attributed weeks
+> (08-03 → 08-16), verdict at the ~08-19 re-grade, certifying on `mornings_phone` ≥5 +
+> ≥3 notes/week, testimony criteria (events-first · foraging) tallied live; moonshot-lane
+> freeze + Agent Gate park (D7) hold until then. Next: M6 phone eyes-on proof (Kyle) +
+> the extended v1 verdict ~08-19.
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.
 
 ## Master plan upkeep (required)
