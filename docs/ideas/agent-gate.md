@@ -1,7 +1,8 @@
 # The Agent Gate — Home Base as the accreditation chokepoint for every AI acting on Kyle's behalf
 
-**Status:** Idea — PARKED at the 2026-07-27 gate conversation; revisit after the ~08-03 v1
-check. Added by `/replenish` (Moonshot lane) on 2026-07-26.
+**Status:** Idea — PARKED at the 2026-07-27 gate conversation; revisit after the extended v1
+verdict at the ~08-19 re-grade (the ~08-03 check ruled NOT YET — decision D12). Added by
+`/replenish` (Moonshot lane) on 2026-07-26.
 
 _IDENTITY-SHIFT. Home Base stops being only the app Kyle reads and becomes the single gate every other agent in his life — Claude Code crons, future email/shopping/scheduling agents — must file through. Proposals land in the existing draft-only Overnight queue tagged by source agent; Kyle's approve/discard verdicts accrue into a per-agent calibration ledger; an agent's earned track record then governs how its future proposals are framed (the untrusted-item-framing idea generalized from news items to acting agents). The whole thing reuses machinery that already exists: the Overnight queue reduce, the approve/discard resolution rows, the trust-framing surface. Nothing new gets sent — this is the inverse of the parked vault bridge: agents reach IN through the queue; Home Base still reaches out to nothing._
 
@@ -21,7 +22,9 @@ THE ONE THING THAT MUST BE TRUE: in 2-5 years of agent proliferation, the scarce
 
 **PARKED at the 2026-07-27 gate conversation (Kyle's call, recorded outcome):**
 
-1. **Parked until after the ~08-03 v1 success-criteria check.** The check's verdict on the
+1. **Parked until after the v1 success-criteria verdict** — originally the ~08-03 check;
+   that check ruled NOT YET on 2026-08-03 (decision D12), so the trigger is now the
+   extended verdict at the ~08-19 re-grade. The verdict on the
    morning habit decides whether a second author belongs in the queue; Agent Gate gets the
    next gate-conversation slot after the verdict, if Kyle still wants it. The park is
    scoped to Agent Gate only — the other three 07-26 moonshots (Free-Inference Rebuild,
