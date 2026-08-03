@@ -35,7 +35,8 @@
 > attributed week failed the bars (3 raw / 2 phone mornings vs ≥5 · 2 notes vs ≥3; the two
 > passing raw weeks were pre-attribution build exhaust) — extended two attributed weeks
 > (08-03 → 08-16), verdict at the ~08-19 re-grade, certifying on `mornings_phone` ≥5 +
-> ≥3 notes/week, testimony criteria (events-first · foraging) tallied live; moonshot-lane
+> ≥3 notes/week (supply checked first — an outage week with <5 readable mornings and <5
+> phone-days extends the window, D12/F8), testimony criteria tallied live; moonshot-lane
 > freeze + Agent Gate park (D7) hold until then. Next: M6 phone eyes-on proof (Kyle) +
 > the extended v1 verdict ~08-19.
 > Riskiest assumption: sweeps stay accurate/trustworthy enough to sustain the morning habit.

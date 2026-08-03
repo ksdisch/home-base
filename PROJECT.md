@@ -21,7 +21,7 @@ Active. Both arcs' planned milestones are fully built and gated: Learning Hub Ph
 1. **Kyle: approve or redirect `docs/LOCAL_READER_BAKEOFF_PLAN.md`** (D8). Two parts are his alone — authoring ~20–30 reshape fixtures with gold id sets, and running the graded week (the corpus is gitignored and lives only on his Mac).
 2. Sequence the remaining replenish backlog into waves via `/backlog-hygiene` — and have it **re-derive the bug count**, which is stale everywhere in these docs (the former top two, #1 and #3, landed 2026-07-27 as PRs #154 and #156).
 3. M6 phone eyes-on trio (Kyle): standalone install, airplane banner, iOS scrub.
-4. Extended v1 verdict at the ~2026-08-19 re-grade (D12; the ~08-03 check ruled NOT YET): read the brief from the phone ≥5 mornings/week + ≥3 notes/week over 08-03 → 08-16, tallying the testimony criteria live — its verdict also gates the Agent Gate revisit (D7).
+4. Extended v1 verdict at the ~2026-08-19 re-grade (D12; the ~08-03 check ruled NOT YET): read the brief from the phone ≥5 mornings/week + ≥3 notes/week over 08-03 → 08-16, tallying the testimony criteria live. Supply is checked first (D12 amendment): a week with <5 readable mornings and <5 phone-days extends the window rather than failing the habit — its verdict also gates the Agent Gate revisit (D7).
 
 ## Boundaries
 - Local-first: Vite + React + TS + Tailwind frontend, FastAPI backend, SQLite store; served on one port by the `com.homebase.server` LaunchAgent; phone reach via Tailscale.
