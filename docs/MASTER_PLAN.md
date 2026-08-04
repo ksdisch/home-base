@@ -401,6 +401,17 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
+### 2026-08-04 — Course-refresh plan corrected: blind-cite reversal + paper-currency pre-flight
+
+- Docs-only. [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) gained a
+  "Corrections since this plan was written" section: blind-cite's "well-powered M1 null" is
+  WITHDRAWN (M1C at the pre-registered N=80 measured DG 3/80, lower bound above zero — the
+  null was a power artifact; repo `main` wins over the plan's framing), pre-flight now pulls
+  all source repos, gates on blind-cite PR #12 + card agreement, and verifies both papers'
+  *content* is current (not just present); the mock-defense capstone adds the
+  AI-collaboration framing and a cross-project skeptic bank. Handoff prompt updated to point
+  at the section; literal launch command added.
+
 ### 2026-08-04 — Research-portfolio course refresh planned (all 8 projects, regen in place)
 
 - Docs-only, planner session. [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md):
