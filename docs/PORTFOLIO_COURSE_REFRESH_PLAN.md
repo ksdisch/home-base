@@ -25,6 +25,31 @@ papers for blind-cite and hush-gauge that Kyle is generating today (2026-08-04)*
 | **Where it runs** | Locally on Kyle's Mac: session starts in `~/Projects/home-base`; portfolio repo at `~/Projects/portfolio`. |
 | **Timing** | Only after Kyle has wrapped blind-cite + hush-gauge **and generated their research papers**. Pre-flight (below) verifies this; if the papers aren't found, stop and ask. |
 
+## Corrections since this plan was written (2026-08-04, later the same day)
+
+- **blind-cite's story REVERSED.** The "well-powered M1 null (2026-08-03)" named in the Goal
+  above is WITHDRAWN: the M1C extension (blind-cite PR #12, D24/D25) measured DG 3/80 on the
+  stark surface at the pre-registered N=80, Wilson lower bound above zero — the M1 null was a
+  power artifact. Where this plan's framing and a repo's `main` disagree, **the repo's main
+  wins.** Teach the reversal as the project's centerpiece defense story ("my own
+  pre-registered escalation caught my null being underpowered"), not as a footnote. Pre-flight
+  item 3's "D11 does-v1-close-on-the-null call" framing is likewise superseded — read the
+  ledger as it stands.
+- **Pre-flight additions:** (a) `git pull` ALL source repos — the eight project repos and
+  portfolio-prep, not just home-base and portfolio; (b) verify blind-cite PR #12 is merged AND
+  the portfolio card for blind-cite agrees with blind-cite's `main` — if they disagree, STOP
+  and tell Kyle which of his outstanding repo-hygiene handoffs hasn't landed yet; (c) verify
+  each paper's *content* is current, not just present: the blind-cite paper must state the
+  M1C-corrected finding (if it says "well-powered null," STOP and ask), and the hush-gauge
+  paper must include M2's G3 FAIL ×3 and state M3/G4's actual status as of run time.
+- **Mock-defense capstone additions:** drill the one-sentence AI-collaboration framing (the
+  public `.claude/` tooling makes the agent-driven workflow visible — it must be Kyle's
+  opening move, e.g. "I run an agent-driven research loop; I make every design call and can
+  defend every gate"), and a cross-project skeptic bank: why Wilson vs Newcombe and when each
+  applies; why judge-free oracles; what would have falsified each headline; "so what at
+  0.5B–3B — does any of it transfer?"; forge-gap's injected-vs-natural gap; "mute-map and
+  hush-gauge have no external anchor — why trust them?"
+
 ## Pre-flight (implementer runs these checks before proposing a syllabus)
 
 1. **Repos present locally.** `~/Projects/home-base` and `~/Projects/portfolio` exist and are
@@ -108,11 +133,18 @@ papers for blind-cite and hush-gauge that Kyle is generating today (2026-08-04)*
 
 ---
 
-## Handoff prompt (paste into a fresh Opus 5 session started in `~/Projects/home-base`)
+## Handoff prompt
+
+Launch: `cd ~/Projects/home-base && claude --model claude-opus-5 --effort high` — a
+well-specified build with one approval gate; must run locally (the course sidecar is
+gitignored user data).
 
 ```text
 Read docs/PORTFOLIO_COURSE_REFRESH_PLAN.md in full and execute it. You are the implementer;
-the plan's decisions were confirmed with me on 2026-08-04 — don't relitigate them.
+the plan's decisions were confirmed with me on 2026-08-04 — don't relitigate them. Also read
+its "Corrections since this plan was written" section: where the plan's framing and a repo's
+main disagree, the repo wins, and the pre-flight includes the paper-currency and
+blind-cite-PR-#12 checks it adds.
 
 Summary of what it asks: fully regenerate the hub course "research-portfolio" (advanced,
 interview-defense) IN PLACE to cover all eight portfolio projects — the six it has plus
