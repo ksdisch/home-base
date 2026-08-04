@@ -90,6 +90,7 @@ kanban
   next["📋 Planned"]
     hbm8["HB M8 — scale beyond<br/>the slice (future):<br/>the Jacobian-Lens<br/>vertical slice shipped<br/>+ quality judged good<br/>07-22 · next = run the<br/>Designer across the<br/>rest of the library +<br/>batch-overnight paths"]
     rep0726["Replenish 2026-07-26 —<br/>remainder: 16 ideas<br/>(4 Moonshot — ALL FOUR<br/>dispositioned 07-27:<br/>Free-Inference GO, the<br/>other three parked ·<br/>5 QuickWin · 2 Premortem<br/>· 3 Harden · 2 Friction)<br/>· BUG COUNT + PRIORITY<br/>CLAIMS ARE STALE: the<br/>former top two were<br/>fixed 07-27 (#154, #156)<br/>and the remaining tally<br/>is unverified · awaiting<br/>wave sequencing +<br/>re-count via<br/>/backlog-hygiene"]
+    courserefresh["Research-portfolio<br/>course refresh — regen<br/>in place to all 8<br/>projects (+ mute-map +<br/>hush-gauge) + today's<br/>2 research papers ·<br/>plan approved 08-04 ·<br/>runs LOCALLY (Opus 5,<br/>~/Projects/home-base)<br/>after Kyle wraps<br/>blind-cite + hush-gauge<br/>· PORTFOLIO_COURSE_<br/>REFRESH_PLAN.md"]
   decide["⏸️ Awaiting decision"]
     freeinf["Free-Inference Rebuild —<br/>GO at its 07-27 gate<br/>(D8), scope recorded:<br/>ids-only never prose ·<br/>Ollama + small instruct<br/>· lens beside the fixed<br/>brief, default earned ·<br/>AWAITING Kyle's approval<br/>of LOCAL_READER_BAKEOFF_PLAN<br/>before any code"]
   later["🧊 Later / parked"]
@@ -393,11 +394,22 @@ park hold until the verdict._
 | [`ideas/learning-paths.md`](ideas/learning-paths.md) | **Learning Paths** design (approved 2026-07-21) — the AI study-designer arc (proposed M8) → `/explore-plan` |
 | [`STUDY_SCHEDULER.md`](STUDY_SCHEDULER.md) | **Study Scheduler v0→v1** — opt-in Google Calendar study blocks for a path (architecture + settled decisions + the one-time OAuth runbook); v1 = flexible preferences (day-of-week + time-of-day controls, `applied` echo, schema v12 persistence); v1.3 = the correctness wave (honest token degrade + the 7-day consent leash, per-event ledgering, curriculum-ordered placement, schema v13) |
 | [`ideas/study-scheduler.md`](ideas/study-scheduler.md) | Study Scheduler idea/write-up (captured 2026-07-22) — premise, settled decisions, open questions |
+| [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) | **Research-portfolio course refresh** plan (2026-08-04) — regenerate the `research-portfolio` course in place to cover all 8 projects + the two new research papers; decisions locked, handoff prompt included. **Plan only — implementation runs locally (Opus 5, `~/Projects/home-base`) after Kyle wraps blind-cite + hush-gauge** |
 | [`../BACKLOG.md`](../BACKLOG.md) | Parking lot for uncommitted ideas + the replenished `## Open` queue |
 
 ---
 
 ## Changelog (newest first)
+
+### 2026-08-04 — Research-portfolio course refresh planned (all 8 projects, regen in place)
+
+- Docs-only, planner session. [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md):
+  regenerate the `research-portfolio` course **in place** (same slug/URL) to cover all eight
+  portfolio projects — adding `mute-map` (complete, M0–M4) and `hush-gauge` (three pre-committed
+  nulls) — plus blind-cite's 08-03 park-resolution and the two research papers Kyle generates
+  today. Kyle locked four decisions: all-eight scope · full regeneration · syllabus gate kept ·
+  runs locally in `~/Projects/home-base`. Pre-flight verifies both papers exist (stop-and-ask
+  if not); paste-ready Opus 5 handoff prompt is in the plan doc.
 
 ### 2026-08-03 — v1 success-criteria check ruled NOT YET; extended to the ~08-19 re-grade (D12)
 
