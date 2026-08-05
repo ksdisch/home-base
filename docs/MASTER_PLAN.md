@@ -433,6 +433,20 @@ park hold until the verdict._
   self-checks clean; live at `/courses/research-portfolio` — 0/16 progress, what-to-do-next points
   at lesson 1, quizzes serve playable and **answer-key-free**, the NotebookLM cross-link resolves.
   Course content is gitignored user data, so only this docs change is committed.
+- **Two independent review passes ran, and both earned their keep.** A read-only teaching-quality
+  reviewer over the authored course returned **14 findings (2 critical)** — all fixed and
+  re-verified live. The critical pair: a quiz gave forge-gap's validator blind spot as "10% of the
+  *misses*" when the paper reads `10% (4/40)` of the arm's **trials** (an error this session's own
+  briefing propagated — and one that **also sits on the public `forge-gap` card**, reported to Kyle
+  and left for his call); and hush-gauge's ledger was written "four nulls **and** a NOT-RUN", which
+  enumerates five negatives on a five-gate ladder that also has a PASS. Separately, an adversarial
+  review of the portfolio re-carding PR returned **10 findings (1 critical)**, accepted with zero
+  disputes — the same tally defect in three places, plus a card citing a test count that lived only
+  on an *open* upstream PR (a breach of the portfolio's own merged-results bar, resolved by merging
+  ksdisch/hush-gauge#20 first rather than by softening the claim). What the reviewers verified
+  clean is on record too: no orphan objectives across all 48, both named tripwires hold everywhere,
+  blind-cite makes no point comparison with its target paper anywhere, and every hand derivation in
+  the exercises reproduces its published endpoint.
 
 ### 2026-08-05 (later) — hush-gauge paper committed; course-refresh pre-flight now fully satisfied
 
