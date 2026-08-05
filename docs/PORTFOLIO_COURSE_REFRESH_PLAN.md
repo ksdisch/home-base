@@ -25,30 +25,78 @@ papers for blind-cite and hush-gauge that Kyle is generating today (2026-08-04)*
 | **Where it runs** | Locally on Kyle's Mac: session starts in `~/Projects/home-base`; portfolio repo at `~/Projects/portfolio`. |
 | **Timing** | Only after Kyle has wrapped blind-cite + hush-gauge **and generated their research papers**. Pre-flight (below) verifies this; if the papers aren't found, stop and ask. |
 
-## Corrections since this plan was written (2026-08-04, later the same day)
+## Corrections since this plan was written (verified 2026-08-05)
 
-- **blind-cite's story REVERSED.** The "well-powered M1 null (2026-08-03)" named in the Goal
-  above is WITHDRAWN: the M1C extension (blind-cite PR #12, D24/D25) measured DG 3/80 on the
-  stark surface at the pre-registered N=80, Wilson lower bound above zero — the M1 null was a
-  power artifact. Where this plan's framing and a repo's `main` disagree, **the repo's main
-  wins.** Teach the reversal as the project's centerpiece defense story ("my own
-  pre-registered escalation caught my null being underpowered"), not as a footnote. Pre-flight
-  item 3's "D11 does-v1-close-on-the-null call" framing is likewise superseded — read the
-  ledger as it stands.
-- **Pre-flight additions:** (a) `git pull` ALL source repos — the eight project repos and
-  portfolio-prep, not just home-base and portfolio; (b) verify blind-cite PR #12 is merged AND
-  the portfolio card for blind-cite agrees with blind-cite's `main` — if they disagree, STOP
-  and tell Kyle which of his outstanding repo-hygiene handoffs hasn't landed yet; (c) verify
-  each paper's *content* is current, not just present: the blind-cite paper must state the
-  M1C-corrected finding (if it says "well-powered null," STOP and ask), and the hush-gauge
-  paper must include M2's G3 FAIL ×3 and state M3/G4's actual status as of run time.
-- **Mock-defense capstone additions:** drill the one-sentence AI-collaboration framing (the
-  public `.claude/` tooling makes the agent-driven workflow visible — it must be Kyle's
-  opening move, e.g. "I run an agent-driven research loop; I make every design call and can
-  defend every gate"), and a cross-project skeptic bank: why Wilson vs Newcombe and when each
-  applies; why judge-free oracles; what would have falsified each headline; "so what at
-  0.5B–3B — does any of it transfer?"; forge-gap's injected-vs-natural gap; "mute-map and
-  hush-gauge have no external anchor — why trust them?"
+**Standing rule: where this plan's framing and a repo's `main` disagree, the repo's `main`
+wins.** Both flagship projects moved after the plan was written; the Goal section above is
+stale on both, and the portfolio *cards* are stale on both too (see the card-drift gate).
+
+### blind-cite — the story REVERSED, and the paper is current
+
+The "well-powered M1 null (2026-08-03)" named in the Goal is **WITHDRAWN**. The M1C extension
+(PR #12, D24/D25 — **merged**) ran a pre-registered, power-sized extension to N=80 and found
+DG at **both** surfaces: stark **3/80, Wilson 95% [1.3%, 10.5%]**; camouflaged **7/80,
+[4.3%, 17.0%]**. The stark surface, measured 0/20 at M1, now has a lower bound above zero —
+the measurement stands, the inference "DG ≈ 0" does not. On all ten DG answers the mechanical
+faithfulness and citation proxies **both PASS (10/10, 10/10)**. Pre-flight item 3's "D11
+does-v1-close-on-the-null" framing is superseded.
+
+- **Paper: found, committed, and current** — `docs/paper/blind-cite-paper.md` on `main`
+  (titled "…a null at N=20 did not survive a pre-registered extension to N=80"; it withdraws
+  the "well-powered" claim explicitly). A plain-English rewrite and an interactive glossed
+  HTML page also shipped (PR #19) and are usable as additional reading.
+- **Teach the reversal as this project's centerpiece defense story** — "my own pre-registered
+  escalation caught my null being underpowered" — not as a footnote.
+
+### hush-gauge — v1 is COMPLETE; the gate ledger is final
+
+M4 landed **2026-08-05** (PR #18) and is **the project's last measurement**: gateless by
+design (D48), reports no verdict, and re-decides nothing. The Goal's "G1/G2/G3 FAIL at all
+three scales" is true but no longer the whole ledger. Final state, all three scales:
+
+| Gate | Outcome |
+|---|---|
+| G0 (battery dynamic range) | **PASS** ×3 |
+| G1, G2 (detection, silent leak) | **FAIL** ×3 — pre-committed nulls; the probe reads the model *speaking* the secret, not holding it |
+| G3 (causal ablation) | **FAIL** ×3 — and *not the same FAIL* at each scale; that difference is the finding |
+| G4 (off-switch unification) | **NOT-RUN** ×3 — M3's Arm B was dropped by D38.4's own validation ladder, which is K5's pre-committed fallback and a passing outcome |
+
+M4's own contribution: M2's non-nesting flag is answered — the edited layer set does **not**
+behave like independently-acting parts, and what orders the effect is the late third's
+presence, not the layer count. `docs/M0-RESULTS.md` … `docs/M4-RESULTS.md` are normative.
+
+- **Paper: written but may be UNCOMMITTED.** As of 2026-08-05 `docs/paper/hush-gauge-paper.md`
+  (plus five figures and a presenter pack) exists in the working tree as **untracked** files —
+  not committed, not pushed, and with **no open PR**. `git ls-files`, GitHub, and `gh pr list`
+  will all report it missing. **Before invoking pre-flight item 4's STOP, look at the working
+  tree on disk.** If it is there, use it and tell Kyle it is uncommitted; only stop if the file
+  is genuinely absent.
+
+### Pre-flight additions (all three still apply)
+
+- **(a) Pull ALL source repos** — the eight project repos and portfolio-prep, not just
+  home-base and portfolio.
+- **(b) Card-drift gate.** The portfolio cards for **blind-cite and hush-gauge are both known
+  stale** as of 2026-08-05: blind-cite's card still says "well-powered null" (contradicting its
+  own repo), and hush-gauge's card still carries M2 as a stats IOU with G4 "undecided" and no
+  M3/M4 at all. Kyle has an outstanding re-carding task for exactly this. **If the cards still
+  disagree with the repos when you run, do NOT propagate the cards** — pre-flight item 5's
+  "cards are the source of truth" yields to the standing rule above. Note the drift, teach from
+  the repos, and tell Kyle the re-carding hasn't landed.
+- **(c) Verify each paper's *content*, not just its presence.** The blind-cite paper must state
+  the M1C-corrected finding (if it says "well-powered null," STOP and ask). The hush-gauge paper
+  must cover M0–M4 including G4 `NOT-RUN` — if it stops at M2 or M3, it predates M4 and Kyle
+  should be asked whether to wait for the regenerated version.
+
+### Mock-defense capstone additions
+
+Drill the one-sentence AI-collaboration framing — the public `.claude/` tooling makes the
+agent-driven workflow visible, so it must be Kyle's opening move ("I run an agent-driven
+research loop; I make every design call and can defend every gate"). Add a cross-project
+skeptic bank: why Wilson vs Newcombe and when each applies; why judge-free oracles; what would
+have falsified each headline; "so what at 0.5B–3B — does any of it transfer?"; forge-gap's
+injected-vs-natural gap; "mute-map and hush-gauge have no external anchor — why trust them?";
+and for blind-cite specifically, "your null flipped — why should I trust the new number?"
 
 ## Pre-flight (implementer runs these checks before proposing a syllabus)
 

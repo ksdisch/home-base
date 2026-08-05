@@ -401,6 +401,17 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
+### 2026-08-05 — Course-refresh corrections refreshed: hush-gauge v1 closed, blind-cite paper current
+
+- Docs-only. Verified both flagship repos and rewrote the corrections section of
+  [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md): blind-cite PR #12 is
+  merged and its paper is committed and current (3/80 · 7/80, "well-powered" withdrawn; eli5 +
+  glossed HTML also shipped, PR #19); hush-gauge **v1 is complete** — M4 landed 08-05 (PR #18)
+  as its last measurement, gateless, and the final gate ledger is now stated in full (G0 PASS,
+  G1/G2/G3 FAIL, G4 `NOT-RUN` ×3). Flags that hush-gauge's paper exists **untracked** in the
+  working tree so pre-flight item 4 checks disk before stopping, and adds a card-drift gate —
+  both projects' portfolio cards are known stale, and the repos win.
+
 ### 2026-08-04 — Course-refresh plan corrected: blind-cite reversal + paper-currency pre-flight
 
 - Docs-only. [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) gained a
