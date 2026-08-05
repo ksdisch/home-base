@@ -65,12 +65,12 @@ M4's own contribution: M2's non-nesting flag is answered — the edited layer se
 behave like independently-acting parts, and what orders the effect is the late third's
 presence, not the layer count. `docs/M0-RESULTS.md` … `docs/M4-RESULTS.md` are normative.
 
-- **Paper: written but may be UNCOMMITTED.** As of 2026-08-05 `docs/paper/hush-gauge-paper.md`
-  (plus five figures and a presenter pack) exists in the working tree as **untracked** files —
-  not committed, not pushed, and with **no open PR**. `git ls-files`, GitHub, and `gh pr list`
-  will all report it missing. **Before invoking pre-flight item 4's STOP, look at the working
-  tree on disk.** If it is there, use it and tell Kyle it is uncommitted; only stop if the file
-  is genuinely absent.
+- **Paper: found, committed, and current** (verified 2026-08-05 after hush-gauge PR #19) —
+  `docs/paper/hush-gauge-paper.md` plus `hush-gauge-presenter-pack.md` and five figures are
+  tracked on `main`. The paper is written from the repo at M0–M4 complete and covers the full
+  ledger including `G4 NOT-RUN`, so pre-flight item 4 is satisfied and item (c)'s currency
+  check passes. The presenter pack is prime capstone material — it exists to make Kyle
+  defensible claim-by-claim, which is this course's whole purpose.
 
 ### Pre-flight additions (all three still apply)
 
