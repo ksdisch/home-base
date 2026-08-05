@@ -401,6 +401,14 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
+### 2026-08-05 (later) — hush-gauge paper committed; course-refresh pre-flight now fully satisfied
+
+- Docs-only. hush-gauge PR #19 landed the research paper, presenter pack and five figures on
+  `main`, so [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md)'s
+  untracked-paper warning is replaced with a found-and-current note (the presenter pack is
+  flagged as capstone material). Both papers now pass pre-flight items 4 and (c); the only
+  open pre-flight risk left is the known card drift.
+
 ### 2026-08-05 — Course-refresh corrections refreshed: hush-gauge v1 closed, blind-cite paper current
 
 - Docs-only. Verified both flagship repos and rewrote the corrections section of
