@@ -303,7 +303,14 @@ def main() -> int:
     topics = audio_brief.load_topics(day_dir, audio_brief.load_roster(Path(args.roster)))
     ear_script, _ = audio_brief.build_script(topics, args.date) if topics else ("", [])
     base_url = cfg.get("base_url") if isinstance(cfg.get("base_url"), str) else ""
-    caption = build_caption(topics, args.date, audio_link(cfg, args.date))
+    link = audio_link(cfg, args.date)
+    caption = build_caption(topics, args.date, link)
+    if "imessage" in pending and not link:
+        print(
+            "!! deliver: imessage has no base_url configured — the text goes out with no "
+            "way to reach the audio (set base_url in delivery.json)",
+            file=sys.stderr,
+        )
 
     failures = 0
     for name, channel in pending.items():
@@ -320,7 +327,10 @@ def main() -> int:
                 {"ts": _utc_now(), "date": args.date, "channel": name, "ok": False, "detail": str(e)[:300]},
             )
             continue
-        sent_what = f"{mp3.name}, {mp3.stat().st_size} bytes" if name == "email" else "text + audio link"
+        if name == "email":
+            sent_what = f"{mp3.name}, {mp3.stat().st_size} bytes"
+        else:
+            sent_what = "text + audio link" if link else "text only (no base_url)"
         print(f"deliver: {name} sent to {channel['to']} ({sent_what})")
         _append_row(
             ledger,

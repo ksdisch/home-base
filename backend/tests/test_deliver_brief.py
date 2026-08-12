@@ -175,8 +175,10 @@ def test_imessage_sends_handle_and_caption_text_only(tmp_path):
     assert "Home Base brief" in argv[2] and "AI / LLMs" in argv[2]
     assert len(argv) == 3  # handle + caption only — no mp3 path
     assert "Listen:" not in argv[2]  # no base_url configured → no link line
+    assert "no base_url" in r.stderr  # the link-less send is loud, never silent
     rows = _ledger_rows(ledger)
     assert [(row["channel"], row["ok"], row["date"]) for row in rows] == [("imessage", True, DATE)]
+    assert rows[0]["detail"] == "text only (no base_url)"  # the ledger never claims a link
 
 
 def test_imessage_caption_carries_audio_link_when_base_url_set(tmp_path):
@@ -188,6 +190,8 @@ def test_imessage_caption_carries_audio_link_when_base_url_set(tmp_path):
     argv = osa_log.read_text(encoding="utf-8").splitlines()
     # trailing slash normalized, date pinned, on its own line
     assert argv[3] == f"Listen: https://mac.tail.ts.net/api/brief/audio?date={DATE}"
+    assert "no base_url" not in r.stderr
+    assert _ledger_rows(ledger)[0]["detail"] == "text + audio link"
 
 
 def test_build_html_today_link_honest_about_base_url():
