@@ -214,6 +214,14 @@ if ! python3 "$ROOT/sweeps/actions_queue.py" --date "$DATE" --sweeps-dir "$ROOT/
   echo "!! overnight proposals did not draft (see above) — the briefs are unaffected" >&2
 fi
 
+# Brief delivery: email + iMessage the rendered MP3 to Kyle (self-addressed only, per
+# sweeps/delivery.json). Best-effort like the audio brief, and idempotent per day and
+# channel via backend/data/brief-delivery.jsonl, so on-wake re-fires stay no-ops.
+if ! python3 "$ROOT/sweeps/deliver_brief.py" --date "$DATE" --sweeps-dir "$ROOT/data/sweeps" \
+      --roster "$ROSTER"; then
+  echo "!! brief delivery failed (see above) — the sweep and briefs are unaffected" >&2
+fi
+
 echo
 echo "Briefs written to ${OUT_DIR}"
 echo "Grade each A–F in docs/M0-sweep-grades.md (~2 min)."

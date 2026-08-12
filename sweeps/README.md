@@ -81,6 +81,35 @@ python3 sweeps/audio_brief.py --force          # re-render even if the mp3 is fr
 KOKORO_URL=… NARRATE_VOICE=af_bella NARRATE_SPEED=1.1   # env overrides (default am_adam)
 ```
 
+## Brief delivery (email + iMessage)
+
+After the audio brief, `sweep.sh` makes one more **best-effort** call to
+[`deliver_brief.py`](deliver_brief.py): when `brief.mp3` exists, it emails the MP3 + an
+HTML headline summary via Gmail SMTP and texts it via this Mac's own Messages.app
+(AppleScript — no Twilio, no third-party service). **Self-addressed only**: recipients come
+from [`delivery.json`](delivery.json), which holds your own addresses; there is no LLM in
+the path. Channels are independent, and a per-day/per-channel ledger
+(`backend/data/brief-delivery.jsonl`) keeps on-wake re-fires from double-sending; a failed
+channel retries on the next fire.
+
+One-time setup:
+
+```bash
+# 1. Gmail → Security → 2-Step Verification → App passwords → create one for "Home Base"
+# 2. Put it in the macOS Keychain (never in the repo):
+security add-generic-password -s homebase-brief-smtp -a kstan.disch@gmail.com -w '<app-password>'
+# 3. Add your iMessage handle (phone or Apple ID) to sweeps/delivery.json ("" = channel off)
+# 4. Prime the macOS Automation permission — run once interactively and approve the prompt:
+python3 sweeps/deliver_brief.py --force
+```
+
+```bash
+python3 sweeps/deliver_brief.py                # deliver today (skips if already sent)
+python3 sweeps/deliver_brief.py --force        # re-send deliberately
+DELIVERY_SMTP_HOST/PORT · DELIVERY_SMTP_PASSWORD · DELIVERY_KEYCHAIN_SERVICE ·
+DELIVERY_OSASCRIPT · DELIVERY_CONFIG_FILE      # env overrides (tests use these)
+```
+
 ## Billing & auth
 
 Sweeps run on **your Claude subscription** via `claude -p` (the lane chosen at kickoff) — no

@@ -41,6 +41,16 @@ runs the missed job **once on wake** — so an overnight-closed laptop still swe
 it. The wrapper exports `SWEEP_SKIP_DONE=1`, so a re-fire after a completed morning is a no-op,
 and a half-finished morning just finishes the remaining topics.
 
+## Brief delivery under launchd
+
+The sweep's last best-effort step ([`../deliver_brief.py`](../deliver_brief.py)) emails +
+iMessages the rendered MP3 (see [`../README.md`](../README.md) for setup). Two launchd
+notes: the agent runs in your **GUI login session**, so the AppleScript→Messages send works
+— but macOS must grant the Automation permission once, so run
+`python3 sweeps/deliver_brief.py --force` interactively after setup and approve the prompt.
+And if the Mac is asleep at 06:00, delivery simply rides the same on-wake catch-up as the
+sweep; the delivery ledger makes the re-fire a no-op once both channels have succeeded.
+
 ## Cost / lane
 
 The wrapper hard-`unset ANTHROPIC_API_KEY` → always your Claude **subscription**, never metered
