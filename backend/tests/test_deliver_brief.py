@@ -162,7 +162,9 @@ def test_missing_mp3_is_a_clean_noop(tmp_path):
 # -- iMessage channel (osascript stub) ---------------------------------------------
 
 
-def test_imessage_sends_handle_caption_and_mp3_via_osascript(tmp_path):
+def test_imessage_sends_handle_and_caption_text_only(tmp_path):
+    """Text only, no file argv — macOS silently drops AppleScript file sends, so the
+    script must never pretend to attach the mp3."""
     sweeps, roster, cfg, ledger = _setup(tmp_path, config=IMESSAGE_ONLY)
     stub, osa_log = _osa_stub(tmp_path)
     r = _run(sweeps, roster, cfg, ledger, env={"DELIVERY_OSASCRIPT": stub, "OSA_LOG": str(osa_log)})
@@ -171,9 +173,39 @@ def test_imessage_sends_handle_caption_and_mp3_via_osascript(tmp_path):
     assert argv[0] == "-"  # script arrives on stdin, never interpolated
     assert argv[1] == "+13125550100"
     assert "Home Base brief" in argv[2] and "AI / LLMs" in argv[2]
-    assert argv[3].endswith(f"{DATE}/brief.mp3")
+    assert len(argv) == 3  # handle + caption only — no mp3 path
+    assert "Listen:" not in argv[2]  # no base_url configured → no link line
+    assert "no base_url" in r.stderr  # the link-less send is loud, never silent
     rows = _ledger_rows(ledger)
     assert [(row["channel"], row["ok"], row["date"]) for row in rows] == [("imessage", True, DATE)]
+    assert rows[0]["detail"] == "text only (no base_url)"  # the ledger never claims a link
+
+
+def test_imessage_caption_carries_audio_link_when_base_url_set(tmp_path):
+    config = {**IMESSAGE_ONLY, "base_url": "https://mac.tail.ts.net/"}
+    sweeps, roster, cfg, ledger = _setup(tmp_path, config=config)
+    stub, osa_log = _osa_stub(tmp_path)
+    r = _run(sweeps, roster, cfg, ledger, env={"DELIVERY_OSASCRIPT": stub, "OSA_LOG": str(osa_log)})
+    assert r.returncode == 0, r.stderr
+    argv = osa_log.read_text(encoding="utf-8").splitlines()
+    # trailing slash normalized, date pinned, on its own line
+    assert argv[3] == f"Listen: https://mac.tail.ts.net/api/brief/audio?date={DATE}"
+    assert "no base_url" not in r.stderr
+    assert _ledger_rows(ledger)[0]["detail"] == "text + audio link"
+
+
+def test_build_html_today_link_honest_about_base_url():
+    """Direct unit check: base_url present → tailnet href; absent → no localhost lie."""
+    import sys as _sys
+
+    _sys.path.insert(0, str(SCRIPT.parent))
+    import deliver_brief
+
+    topics = [{"slug": "a", "title": "A", "top_line": "Line.", "items": []}]
+    with_url = deliver_brief.build_html(topics, DATE, "https://mac.tail.ts.net")
+    assert 'href="https://mac.tail.ts.net"' in with_url
+    without = deliver_brief.build_html(topics, DATE)
+    assert "localhost" not in without and "href" not in without.split("</ul>")[-1]
 
 
 def test_imessage_failure_exits_nonzero_with_error_row(tmp_path):

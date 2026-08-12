@@ -4,7 +4,11 @@
 Runs after the sweep (sweep.sh chains it best-effort, like the audio brief): when
 data/sweeps/<date>/brief.mp3 exists, sends it as an email attachment with an HTML
 headline summary, and as an iMessage from this Mac's own Messages account (no Twilio,
-no third party — both channels are self-addressed per sweeps/delivery.json). Channels
+no third party — both channels are self-addressed per sweeps/delivery.json). The
+iMessage is TEXT ONLY — the caption plus a tap-to-play tailnet link to the audio
+(config key ``base_url``): modern macOS silently drops file attachments sent through
+Messages' AppleScript (the send succeeds, the file never appears), so the MP3 itself
+travels by email and the text carries the link. Channels
 are independent: one failing never blocks the other. Idempotent per day and channel:
 a successful ledger row in backend/data/brief-delivery.jsonl at or after the mp3's
 mtime makes launchd's on-wake re-fire a no-op — but a REGENERATED mp3 (a late-finishing
@@ -50,18 +54,18 @@ ROOT = Path(__file__).resolve().parent.parent
 _SMTP_TIMEOUT = 60
 _OSASCRIPT_TIMEOUT = 120
 
-# osascript reads this from stdin ("-") with the handle/body/file as argv — no string
+# osascript reads this from stdin ("-") with the handle/body as argv — no string
 # interpolation into the script, so a weird headline can never break out of a quote.
+# Text only, deliberately: `send <file>` silently no-ops on modern macOS (exit 0, no
+# bubble), so an attachment here would just lie about having been delivered.
 _IMESSAGE_APPLESCRIPT = """\
 on run argv
     set theHandle to item 1 of argv
     set theBody to item 2 of argv
-    set theFile to POSIX file (item 3 of argv)
     tell application "Messages"
         set theService to 1st account whose service type = iMessage
         set theBuddy to participant theHandle of theService
         send theBody to theBuddy
-        send theFile to theBuddy
     end tell
 end run
 """
@@ -139,7 +143,15 @@ def _append_row(ledger: Path, row: dict) -> None:
         print(f"!! deliver: couldn't append to {ledger} ({e}) — delivery itself succeeded", file=sys.stderr)
 
 
-def build_html(topics: list[dict], date_iso: str) -> str:
+def audio_link(cfg: dict, day: str) -> str:
+    """The tap-to-play tailnet URL for the day's audio, or "" when base_url is unset."""
+    base = cfg.get("base_url")
+    if not isinstance(base, str) or not base.strip():
+        return ""
+    return f"{base.strip().rstrip('/')}/api/brief/audio?date={day}"
+
+
+def build_html(topics: list[dict], date_iso: str, base_url: str = "") -> str:
     """A minimal HTML digest: per topic, the top line plus source-linked headlines."""
     parts = [f"<p>Your Home Base brief for <strong>{html.escape(audio_brief.human_date(date_iso))}</strong>. The MP3 is attached.</p>"]
     for topic in topics:
@@ -162,7 +174,12 @@ def build_html(topics: list[dict], date_iso: str) -> str:
                     lis.append(f"<li>{head}</li>")
             if lis:
                 parts.append("<ul>" + "".join(lis) + "</ul>")
-    parts.append('<p>Full stories, sources, and notes are on the <a href="http://localhost:8000/">Today page</a>.</p>')
+    if base_url:
+        parts.append(
+            f'<p>Full stories, sources, and notes are on the <a href="{html.escape(base_url, quote=True)}">Today page</a>.</p>'
+        )
+    else:
+        parts.append("<p>Full stories, sources, and notes are on the Today page.</p>")
     return "<html><body>" + "".join(parts) + "</body></html>"
 
 
@@ -187,7 +204,7 @@ def _smtp_password(from_addr: str) -> str | None:
     return password or None
 
 
-def send_email(channel: dict, mp3: Path, topics: list[dict], ear_script: str, day: str) -> None:
+def send_email(channel: dict, mp3: Path, topics: list[dict], ear_script: str, day: str, base_url: str = "") -> None:
     """Build and send the brief email; raises RuntimeError/OSError on any failure."""
     from_addr = str(channel.get("from") or channel["to"])
     password = _smtp_password(from_addr)
@@ -202,7 +219,7 @@ def send_email(channel: dict, mp3: Path, topics: list[dict], ear_script: str, da
     msg["From"] = from_addr
     msg["To"] = channel["to"]
     msg.set_content(ear_script or f"Your Home Base brief for {day} is attached.")
-    msg.add_alternative(build_html(topics, day), subtype="html")
+    msg.add_alternative(build_html(topics, day, base_url), subtype="html")
     msg.add_attachment(
         mp3.read_bytes(),
         maintype="audio",
@@ -217,12 +234,12 @@ def send_email(channel: dict, mp3: Path, topics: list[dict], ear_script: str, da
         smtp.send_message(msg)
 
 
-def send_imessage(channel: dict, mp3: Path, caption: str) -> None:
-    """Send the caption + MP3 via Messages.app; raises RuntimeError on any failure."""
+def send_imessage(channel: dict, caption: str) -> None:
+    """Send the caption text via Messages.app; raises RuntimeError on any failure."""
     osascript = os.environ.get("DELIVERY_OSASCRIPT", "osascript")
     try:
         proc = subprocess.run(
-            [osascript, "-", channel["to"], caption, str(mp3)],
+            [osascript, "-", channel["to"], caption],
             input=_IMESSAGE_APPLESCRIPT,
             capture_output=True,
             text=True,
@@ -237,10 +254,11 @@ def send_imessage(channel: dict, mp3: Path, caption: str) -> None:
         raise RuntimeError(f"Messages send failed — {detail or 'no error output'}")
 
 
-def build_caption(topics: list[dict], day: str) -> str:
+def build_caption(topics: list[dict], day: str, link: str = "") -> str:
     titles = " · ".join(t["title"] for t in topics)
     base = f"🎧 Home Base brief for {audio_brief.human_date(day)}"
-    return f"{base} — {len(topics)} topics: {titles}" if titles else base
+    caption = f"{base} — {len(topics)} topics: {titles}" if titles else base
+    return f"{caption}\nListen: {link}" if link else caption
 
 
 def main() -> int:
@@ -284,15 +302,23 @@ def main() -> int:
 
     topics = audio_brief.load_topics(day_dir, audio_brief.load_roster(Path(args.roster)))
     ear_script, _ = audio_brief.build_script(topics, args.date) if topics else ("", [])
-    caption = build_caption(topics, args.date)
+    base_url = cfg.get("base_url") if isinstance(cfg.get("base_url"), str) else ""
+    link = audio_link(cfg, args.date)
+    caption = build_caption(topics, args.date, link)
+    if "imessage" in pending and not link:
+        print(
+            "!! deliver: imessage has no base_url configured — the text goes out with no "
+            "way to reach the audio (set base_url in delivery.json)",
+            file=sys.stderr,
+        )
 
     failures = 0
     for name, channel in pending.items():
         try:
             if name == "email":
-                send_email(channel, mp3, topics, ear_script, args.date)
+                send_email(channel, mp3, topics, ear_script, args.date, base_url.strip())
             else:
-                send_imessage(channel, mp3, caption)
+                send_imessage(channel, caption)
         except (OSError, RuntimeError, smtplib.SMTPException) as e:
             failures += 1
             print(f"!! deliver: {name} failed ({e})", file=sys.stderr)
@@ -301,10 +327,14 @@ def main() -> int:
                 {"ts": _utc_now(), "date": args.date, "channel": name, "ok": False, "detail": str(e)[:300]},
             )
             continue
-        print(f"deliver: {name} sent to {channel['to']} ({mp3.name}, {mp3.stat().st_size} bytes)")
+        if name == "email":
+            sent_what = f"{mp3.name}, {mp3.stat().st_size} bytes"
+        else:
+            sent_what = "text + audio link" if link else "text only (no base_url)"
+        print(f"deliver: {name} sent to {channel['to']} ({sent_what})")
         _append_row(
             ledger,
-            {"ts": _utc_now(), "date": args.date, "channel": name, "ok": True, "detail": mp3.name},
+            {"ts": _utc_now(), "date": args.date, "channel": name, "ok": True, "detail": sent_what},
         )
 
     return 1 if failures else 0

@@ -612,6 +612,10 @@ def test_brief_audio_serves_the_latest_days_mp3(tmp_path, monkeypatch):
         assert r.status_code == 200
         assert r.headers["content-type"].startswith("audio/mpeg")
         assert r.content == b"NEW-DAY-AUDIO"
+        # Inline, not attachment: the delivery text's link opens this URL top-level, and
+        # mobile Safari must play it, not download it (PR #183 F1).
+        assert r.headers["content-disposition"].startswith("inline")
+        assert 'filename="brief-2026-07-14.mp3"' in r.headers["content-disposition"]
     finally:
         get_settings.cache_clear()
 

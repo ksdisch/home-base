@@ -237,6 +237,9 @@ def get_brief_audio(
 
     404 when the day has no audio (Kokoro was down, or a pre-M4 day) — the page hides the
     player. Accepts an optional ?date=YYYY-MM-DD so archive views can stream historical audio.
+    Served inline (not attachment): the delivery text links here as a top-level navigation,
+    and mobile Safari must render its audio player instead of downloading the file. The
+    SPA's <audio src> ignores the disposition either way; the filename survives save-as.
     """
     if date is not None:
         dates = sweep_dates(settings.sweeps_dir)
@@ -248,7 +251,12 @@ def get_brief_audio(
     path = (settings.sweeps_dir / d / "brief.mp3") if d else None
     if path is None or not path.is_file():
         raise HTTPException(status_code=404, detail="no audio brief for that sweep")
-    return FileResponse(path, media_type="audio/mpeg", filename=f"brief-{d}.mp3")
+    return FileResponse(
+        path,
+        media_type="audio/mpeg",
+        filename=f"brief-{d}.mp3",
+        content_disposition_type="inline",
+    )
 
 
 # FR2: one sweep at a time, guarded in-process — the always-on single server is the choke
