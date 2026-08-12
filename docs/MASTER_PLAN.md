@@ -90,7 +90,7 @@ kanban
     hbss["HB Study Scheduler v0→v1<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#137/#138 · v1 flexible<br/>prefs: days_of_week knob<br/>+ panel controls +<br/>applied-echo + schema<br/>v12 persistence · v1.3<br/>correctness wave — 8<br/>bugs, honest token<br/>degrade + per-event<br/>ledger + ordered<br/>placement (v13) · PR<br/>#152 · live write<br/>pending Kyle OAuth"]
     arcC["Arc C ✅ SHIPPED<br/>08-12 (PR #182) — the<br/>two surfaces that stated<br/>a guarantee they didn't<br/>keep: #16 Overnight<br/>resolve+note+append now<br/>under _overnight_lock,<br/>both verbs, + per-card<br/>in-flight disable · #11<br/>Progress body gates on<br/>hasAnything not data,<br/>banner tracks progress's<br/>OWN rejection · RED 5/5<br/>deterministic · backend<br/>914 · frontend 264"]
     courserefresh["Research-portfolio<br/>course refresh ✅ SHIPPED<br/>08-05 — regenerated in<br/>place to all 8 projects<br/>(5 modules / 16 lessons<br/>/ ~8h, was 5/10/~5h) ·<br/>two-lane arc + the<br/>anchor ladder · all 8<br/>papers + presenter packs<br/>wired as reading ·<br/>blind-cite REVERSAL as<br/>the centerpiece · S2 Ep 4<br/>hush-gauge audio<br/>generated · validate ok<br/>zero warnings"]
-    hbdeliver["HB brief delivery —<br/>email + iMessage the<br/>MP3 after every sweep:<br/>Gmail SMTP w/ Keychain<br/>app password · Messages<br/>.app AppleScript, no<br/>Twilio · self-addressed<br/>only, zero LLM ·<br/>per-channel ledger ·<br/>PR 181 · Kyle's<br/>one-time setup pending"]
+    hbdeliver["HB brief delivery —<br/>email the MP3 + text a<br/>tap-to-play tailnet<br/>link after every sweep:<br/>Gmail SMTP w/ Keychain<br/>app password · Messages<br/>.app AppleScript text<br/>(macOS drops file<br/>sends), no Twilio ·<br/>self-addressed only,<br/>zero LLM · per-channel<br/>ledger · PRs 181+183 ·<br/>LIVE — first real<br/>delivery 08-12"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
@@ -310,8 +310,8 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] **Research-portfolio path — the second real path, hand-authored (PR #173, 2026-08-02):** the 442368c1… hub path superseded — 14-step S1-only fixture (broken: 3 deleted study-aid ids) → **37 steps over all 32 artifacts** of the 2026-08-01 notebook refresh, phased Orient → S1 lap (soft-gated quiz per episode, 6/8 honor-system) → Grilling I → S2 lap → Debate/Critique/Grilling II → drill; seven projects, not six. Player gains **`video`/`mindmap` kinds** (D6-honest supplementary steps). Path data is gitignored — type-aware validation against the hub catalog (32/32: ids resolve + types match step kinds) rather than reviewed as diff. Decision D11; frontend tests 258→259.
   - [x] **Research-portfolio COURSE refreshed — all eight projects, regenerated in place (2026-08-05):** the `research-portfolio` course (`/courses/research-portfolio`) had been authored over **six** projects and had gone stale on two of them; regenerated in place per [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) at the plan's single syllabus gate. **5 modules / 16 lessons / ~8h** (was 5 / 10 / ~5h): the shared spine now teaches the **two-lane** structure and the **anchor ladder** (published paper → technique → own recorded result → original question) plus *why a null needs its own power argument*; Lane 1 runs the J-lens lineage as one arc (dim-stage → mute-map → hush-gauge, the last over two lessons); Lane 2 splits reproductions-that-landed from the nulls, with **blind-cite's reversal as the course's centerpiece defense story** — its N=20 null did not survive a pre-registered extension to N=80, and the measurement stands while the inference does not. All eight repos' **papers + presenter packs** are wired in as `reading` (35 readings, every URL verified 200). Authored by a per-module fan-out over the repos and papers — **not** the portfolio cards, two of which were stale (fixed separately: ksdisch/portfolio#11, ksdisch/hush-gauge#20). `cli write` → **ok:true, zero errors, zero warnings**; 8 stale material files deleted; live-verified at `/courses/research-portfolio` (0/16 progress, what-to-do-next → lesson 1, quizzes playable answer-key-free). Course content is gitignored user data, so only this docs change is committed.
 
-- [x] **Brief delivery — email + iMessage** — ✅ shipped 2026-08-11, PR #181
-      _`sweeps/deliver_brief.py`: best-effort post-sweep step (same `if !` guard as the audio brief) — emails `brief.mp3` + an HTML headline summary via Gmail SMTP (app password in the macOS Keychain) and texts it via this Mac's own Messages.app over AppleScript (no Twilio) · **self-addressed only** per `sweeps/delivery.json`, zero LLM — the repo's first outbound send, below the Overnight send bar · per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed vs mp3 mtime (on-wake re-fires no-op, regenerated brief re-sends once, failed channels retry) · `delivery.json` gitignored (PII), `delivery.example.json` tracked · 11 subprocess tests · remaining: Kyle's one-time setup (config copy · app password → Keychain · iMessage handle · Automation grant verified on the launchd lane)_
+- [x] **Brief delivery — email + iMessage** — ✅ shipped 2026-08-11 (PR #181), **LIVE 2026-08-12** after the link fix (PR #183)
+      _`sweeps/deliver_brief.py`: best-effort post-sweep step (same `if !` guard as the audio brief) — emails `brief.mp3` + an HTML headline summary via Gmail SMTP (app password in the macOS Keychain) and texts a caption + **tap-to-play tailnet audio link** via this Mac's own Messages.app over AppleScript (no Twilio; text-only because macOS silently drops AppleScript file sends — proven on the first live run, PR #183; `base_url` config key builds the link and the email's Today footer) · **self-addressed only** per `sweeps/delivery.json`, zero LLM — the repo's first outbound send, below the Overnight send bar · per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed vs mp3 mtime (on-wake re-fires no-op, regenerated brief re-sends once, failed channels retry) · `delivery.json` gitignored (PII), `delivery.example.json` tracked · 13 subprocess tests · setup done + first real email/text delivered 2026-08-12_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -411,7 +411,22 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
-### 2026-08-12 (latest) — Arc C: the two surfaces that promised what they didn't deliver
+### 2026-08-12 (latest) — iMessage brief becomes text + tap-to-play tailnet link (PR #183)
+
+- The first live delivery proved the known macOS breakage: Messages' AppleScript `send <file>`
+  exits 0 and delivers nothing — Kyle's screenshot showed the caption arrive with no MP3, while
+  the ledger honestly-wrongly logged `ok`. The channel is now deliberately **text-only**: the
+  caption gains a `Listen:` line linking `GET /api/brief/audio?date=<D>` via the new `base_url`
+  config key (the tailnet URL); one tap streams the brief. The MP3 still travels by email.
+- Same key closes review follow-up **F6** from PR #181: the email's Today-page footer link uses
+  `base_url` instead of dead `localhost:8000`, and with the key unset both surfaces degrade
+  honestly (caption-only text, linkless footer) rather than shipping a dead URL.
+- The osascript test assertion is inverted (`[-, handle, caption]`, no file argv), so a
+  regression back to the silent file-send fails loudly; 13 delivery tests total. Kyle's local
+  `delivery.json` gains his `https://….ts.net` base_url as part of the rollout (value stays
+  untracked — the config is gitignored PII).
+
+### 2026-08-12 — Arc C: the two surfaces that promised what they didn't deliver
 
 - **Bug #16 — Overnight approve/discard was check-then-act (PR #182, RED→green).** The docstring
   at `api/brief.py` claimed "a double tap (or a stale tab) can never double a note or flip a
