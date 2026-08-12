@@ -45,10 +45,13 @@ breaking-news alerts · public writing. _(Mobile was promoted to M6 on 2026-07-1
 
 ## Episode review + quiz workflow (`/episode-review` skill)
 
-The conversational "finish an episode → reflect → quiz → log" flow. **In progress** on
-branch `claude/episode-review-quiz-workflow`. The skill (the interactive tutor) lives in the
-main Claude Code session; durable memory lives in the SQLite store (`attempts`,
-`question_mastery`, `topic_mastery`, `reflections`) — not in any agent's internal state.
+The conversational "finish an episode → reflect → quiz → log" flow. **✅ Shipped 2026-06-05**
+(`c0a030b` — `/episode-review` skill + the backing quiz-session CLI); the once-named branch
+`claude/episode-review-quiz-workflow` was merged and deleted. The skill (the interactive tutor)
+lives in the main Claude Code session; durable memory lives in the SQLite store (`attempts`,
+`question_mastery`, `topic_mastery`, `reflections`, `episode_progress`) — not in any agent's
+internal state. _Status corrected 2026-08-11 by `/backlog-hygiene`: this section had claimed
+"In progress" for ~2 months after the work landed._
 
 ### ✅ Shipped (Phase 6): the study planner — as deterministic backend code, not a subagent
 
@@ -147,21 +150,65 @@ flashcards, diagrams, lesson-complete progress), the `course-builder` skill + `/
 command, and a bundled example course. See `docs/PHASE7_PLAN.md` + `docs/COURSE_PIPELINE_SPEC.md`.
 (Renumbered from "Phase 6" on the course branch — the SR work shipped as Phase 6 first.)
 
-**Next on the course epic (M2+):** take a course quiz *in the existing quiz player* + flashcard
-review UI (the quiz JSON is already hub-shaped); live Mermaid rendering; exercises/projects/
-capstone with rubrics; NotebookLM enrichment folded into the automated pipeline; in-hub
-regenerate/edit. The full roadmap is in `docs/COURSE_PIPELINE_SPEC.md`.
+**Next on the course epic (M2+):** ~~take a course quiz *in the existing quiz player* + flashcard
+review UI (the quiz JSON is already hub-shaped)~~; **live Mermaid rendering**; ~~exercises/projects/
+capstone with rubrics~~; NotebookLM enrichment folded into the automated pipeline; ~~in-hub
+regenerate/edit~~. The full roadmap is in `docs/COURSE_PIPELINE_SPEC.md`.
+
+_Corrected 2026-08-11 by `/backlog-hygiene` — **4 of the 5 named items shipped** in the M2–M5
+course epic (closed 2026-07-19) and this list was never updated: course quizzes reuse the same
+`<QuizPlayer>` (`api/courses.py:537`), the flashcard review UI is `FlashcardReview.tsx`,
+rubric-bearing projects/capstones validate + assess (`manifest.py:401`, `courses.py:795`), and
+in-hub regenerate/objectives/reorder/export all live (`courses.py:452,371,393,569`). **Only live
+Mermaid rendering genuinely remains** — `CourseDetail.tsx:910-926` still renders `.mmd` as
+`<pre><code>`, with the in-code note that graph rendering is a later enhancement. (The NotebookLM
+in-pipeline-enrichment item was not verified in that pass and is left standing.)_
 
 ---
 
 ## Open
+
+> ### 📍 What is actually still open — re-counted 2026-08-11 (`/backlog-hygiene`)
+>
+> This section is **append-only with inline `✅ shipped/fixed` markers**, so most of what
+> follows is a record of completed work, not a queue. Every item below was verified against the
+> code at `5a72ea5` — not against its own text. Full evidence:
+> [`docs/backlog-hygiene/2026-08-11.md`](docs/backlog-hygiene/2026-08-11.md).
+>
+> **Bugs: 40 of 47 fixed. 7 open** — all from the 07-26 hunt, all S-sized, none test-covered:
+> **#6** path regen never clears `path_step_progress`/`path_confidence` ·
+> **#11** Progress dashboard blanks when only `/progress` fails ·
+> **#15** no cross-process sweep guard ·
+> **#16** Overnight approve/discard is check-then-act ·
+> **#17** unrecognized step kinds escape the no-fabrication bar (*shape enlarged* — PR #173 added
+> `video`/`mindmap` frontend-only, so both render as first-class steps while unvalidated
+> server-side) · **#18** Designer prompt lacks untrusted-data framing ·
+> **#19** bridge-check UI claims grading "against the real sources".
+> The 07-19 hunt is **23 of 23 fixed** — closed.
+>
+> **Ideas: 2 open of the 51 written.** `roster-entropy` (detector absent; its actuator, one-tap
+> pause, shipped in PR #164) and `feed-the-vault-ritual` (gated in `MASTER_PLAN` as *"only if the
+> habit check wobbles"* — **that gate condition has now fired**; see the brief's §3b).
+> Everything else is either shipped inline or parked at a recorded gate.
+>
+> **Moonshot lane — immobilized, not empty:** Agent Gate (D7), The Session Note (D9), The
+> Correspondence (D10) parked; Free-Inference Rebuild **GO** at D8 but awaiting approval of
+> [`LOCAL_READER_BAKEOFF_PLAN.md`](docs/LOCAL_READER_BAKEOFF_PLAN.md). The freeze holds to the
+> extended v1 verdict (~08-19).
+>
+> **Picked at the 2026-08-11 hygiene gate: Arc C — bugs #16 and #11**, the two shipped surfaces
+> that state a guarantee they don't keep.
+>
+> **Coverage finding:** the unblocked pipeline is now *entirely* solidification — 7 correctness
+> bugs and nothing build-shaped. If that isn't deliberate, the generator is `/replenish`
+> (Moonshot / QuickWin lanes). No items were invented here to fill the gap.
 
 _Backlog replenish 2026-07-19 (multi-lane `/brainstorm` + `bug-hunt` session; see
 [`docs/bug-hunt/2026-07-19-post-m7.md`](docs/bug-hunt/2026-07-19-post-m7.md) and `docs/ideas/`).
 Append-only. Bug stubs tagged **[P1]** are the five medium-severity findings Kyle flagged fix-first;
 untagged bugs are the verified lows, in report rank order._
 
-### Ideas (34 — one vision doc each)
+### Ideas (34 — one vision doc each · **33 shipped · 1 open** as of 2026-08-11: `feed-the-vault-ritual`)
 
 #### 🎯 [Design approved 2026-07-21] Learning Paths — an AI study-designer over your library
 - **Why:** Learning is a multi-format library with a quiz-only scorer — only a graded quiz feeds mastery/Plan/Progress, so the loop is cold (attempts=0). Learning Paths makes Claude a *learning designer* that composes an ordered, grounded path over a topic's real artifacts (arrange + labeled glue) scored on three axes (coverage · SR recall · self-rated confidence), rebuilding Plan (two lanes) and Progress (three trends) around it. See [`docs/ideas/learning-paths.md`](docs/ideas/learning-paths.md) for the full write-up.
@@ -408,7 +455,7 @@ _Friction pass 2026-07-20 (`/brainstorm` Friction mode — ease-of-use across th
 - **Size:** L
 - **Added:** 2026-07-22 (direct capture — not a `/brainstorm` idea)
 
-### Bugs (23 verified — full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
+### Bugs — 2026-07-19 hunt (23 verified · **ALL 23 FIXED — closed**; full detail in the [report](docs/bug-hunt/2026-07-19-post-m7.md))
 
 #### [Bug] [P1] #1: Empty or all-failed newest sweep dir blanks the entire brief while yesterday's complete brief sits one fold...
 - **Where:** `backend/app/sweeps.py:62-67` · severity medium · confidence high
@@ -600,7 +647,7 @@ _Backlog replenish 2026-07-26 (combined `/replenish` run — bug-hunt + Moonshot
 Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 [`docs/bug-hunt/2026-07-26-post-studycal-m8.md`](docs/bug-hunt/2026-07-26-post-studycal-m8.md) and `docs/ideas/`). Append-only. Bugs in report rank order._
 
-### Ideas — replenish 2026-07-26 (17 — one vision doc each)
+### Ideas — replenish 2026-07-26 (17 — one vision doc each · **12 shipped · 4 parked/gated at D7–D10 · 1 open** as of 2026-08-11: `roster-entropy`)
 
 #### [Exploration] The Agent Gate — Home Base as the accreditation chokepoint for every AI acting on Kyle's behalf
 - **Status:** PARKED 2026-07-27 at its gate conversation — revisit after the extended v1 verdict at the ~08-19 re-grade (the ~08-03 check ruled NOT YET, D12; park recorded as decision D7 — see the vision doc's Decisions section).
@@ -720,7 +767,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 - _✅ shipped 2026-07-27 (RED→green — replenish small-wins item 7/9): `recently_clicked_ids()` in `app/foryou.py` (48h window) → `NewsItem.clicked` stamped on the category route and both For-You paths → News.tsx renders the headline `text-muted` with a titled ✓. Zero new storage; one set-membership pass over ids that are already stable `sha1(link)[:12]`. **Finding worth recording: the WARM For-You feed can't carry a clicked item at all** — `rank_candidates` already drops everything in `seen_item_ids`, a stronger form of the same idea — so the real surface is the category tabs plus the COLD-START For-You path, which serves Top stories unranked. Warm is stamped anyway and pinned by a test, so a future ranker change surfaces dimmed rather than silently undimmed. The client also dims on tap (`opened` set) rather than waiting for the next fetch — the return visit two seconds later is exactly the case this exists for. Idea-doc open questions decided: (1) **48 hours** — covers the 06:45/lunch/evening/next-morning pattern without muting a genuinely re-newsworthy story that resurfaces under the same link a week later; (2) **mute only, no ranker change** — For You already excludes clicked items, so sinking them too would be double-counting a signal that's already fully spent. 13 tests (9 backend + 4 frontend). Backend 871→880 · frontend 236→240._
 
-### Bugs — 2026-07-26 hunt (24 verified — full detail in the [report](docs/bug-hunt/2026-07-26-post-studycal-m8.md))
+### Bugs — 2026-07-26 hunt (24 verified · **17 fixed · 7 open** as of 2026-08-11 — #6 · #11 · #15 · #16 · #17 · #18 · #19; full detail in the [report](docs/bug-hunt/2026-07-26-post-studycal-m8.md))
 
 #### [Bug] #1: Phantom "Brief.chapters" error topic card served on every day that has audio chapters
 - _✅ fixed 2026-07-27 (PR #154, RED→green): one `_is_topic_stem` rule — a roster slug never contains a dot — now gates all four places a day folder was read as a list of topics (`load_brief_topics`, `build_calibration`'s per-day listing, `_has_renderable_content`, `audio_brief.load_topics`), mirroring the guard `sweeps/actions_queue.py` already had. Two of the four were only saved by `brief.chapters.json` happening to be a JSON *list*; those tests write a dict-shaped one so the guard can't rest on the artifact's shape again._
@@ -906,3 +953,38 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Acceptance:** Via the api-types-sync skill: add `export interface StudyConfirmRequest { blocks: ProposedBlock[] }` and `export interface StudyRemoveRequest { block_ids?: number[] | null }` beside StudyProposeRequest in types.ts, and type the confirmSchedule/removeSchedule… Regression test first.
 - **Size:** S
 - **Added:** 2026-07-26
+
+---
+
+## Parked / Retired
+
+_Items removed from the active queue with a dated reason. Nothing is deleted — the record above
+stays intact; this section only says what is no longer waiting on anyone. Opened 2026-08-11 by
+`/backlog-hygiene`._
+
+- **PR #145 — `feat(brief): archive entry point + index page`** — _retired 2026-08-11: superseded._
+  Its content shipped via **PR #153** off a different branch (`claude/land-brief-archive-nav-wqik15`);
+  `/brief/archive` is live at `api/brief.py:515` and both `BriefIndex.tsx` and `BriefArchive.tsx`
+  are in main **with test files the PR branch never had**. The branch is 45 commits behind and its
+  diff against main is **−9434 lines** — merging it would delete the Wiki, the LICENSE,
+  `visit_source.py`, the studycal correctness wave and ~50 test files. Closed, not merged.
+- **PR #125 — `feat(courses): bundle Research Portfolio example course`** — _retired 2026-08-11:
+  premise reversed._ The project since decided course content is **gitignored user data**
+  (`MASTER_PLAN`: "Course content is gitignored user data, so only this docs change is
+  committed"), which is the opposite of this PR's bundle-it-as-a-committed-example rationale. It
+  is also content-stale — 5 modules / 11 lessons / 6 projects against the live 5 / 16 / 8 after
+  PR #179. Landing it would require re-deciding the storage question *and* re-authoring against
+  the current course.
+- **Episode review + quiz workflow** — _retired 2026-08-11: shipped 2026-06-05_ (`c0a030b`). Its
+  section above is kept and corrected in place; it had claimed "In progress" on a branch deleted
+  ~2 months earlier.
+
+### Still blocked on Kyle (not retired — waiting, not dead)
+
+- **PR #70 — M6 phone eyes-on checklist.** `docs/smoke/` lives nowhere else in the repo and the
+  `hbm6proof` card is still on the board. One `MASTER_PLAN.md` conflict to rebase; the real
+  blocker is the physical iPhone.
+- **PR #169 — Free-Inference bake-off bench (draft).** The only open PR with real unshipped code
+  (`sweeps/local_reader_bench.py` + 35 tests), 10 commits behind. Needs Kyle's Mac to author the
+  gold-set fixtures and a 7-day graded week — and the moonshot freeze holds to the extended v1
+  verdict (~08-19).
