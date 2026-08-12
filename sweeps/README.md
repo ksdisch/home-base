@@ -104,14 +104,20 @@ cp sweeps/delivery.example.json sweeps/delivery.json
 # 2. Gmail → Security → 2-Step Verification → App passwords → create one for "Home Base"
 # 3. Put it in the macOS Keychain (never in the repo, matching the "from" address):
 security add-generic-password -s homebase-brief-smtp -a '<your-gmail-address>' -w '<app-password>'
-# 4. Run once interactively — proves both channels end-to-end and raises the macOS
-#    Automation prompt for Messages (approve it):
+# 4. Verify through the REAL launchd lane, BEFORE any interactive send (see
+#    schedule/README.md): kickstart the sweep agent and read the day's log. Doing an
+#    interactive send first writes today's delivered rows, which turns the kickstart
+#    check into a skip that proves nothing.
+launchctl kickstart -k gui/$(id -u)/com.homebase.sweep
+# 5. Optional manual re-test afterwards (terminal lane only; needs a rendered
+#    brief.mp3 for the day — "no brief.mp3 … nothing to send" means nothing ran):
 python3 sweeps/deliver_brief.py --force
 ```
 
-⚠️ macOS records that Automation approval against the **requesting app** (your terminal),
-so it does **not necessarily** cover the 06:00 launchd job — verify that separately (see
-[`schedule/README.md`](schedule/README.md)).
+⚠️ macOS records each Automation approval against the **requesting app**, so a grant
+approved in your terminal does **not necessarily** cover the 06:00 launchd job — step 4's
+kickstart-and-read-the-log is the check that counts; what each log line means is in
+[`schedule/README.md`](schedule/README.md).
 
 ```bash
 python3 sweeps/deliver_brief.py                # deliver today (skips if already sent)

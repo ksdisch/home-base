@@ -47,16 +47,24 @@ The sweep's last best-effort step ([`../deliver_brief.py`](../deliver_brief.py))
 iMessages the rendered MP3 (see [`../README.md`](../README.md) for setup). launchd notes:
 
 - **Automation (TCC) is per-requesting-app, and the launchd lane needs its own grant.**
-  Approving the prompt during an interactive `--force` run authorizes *your terminal* to
+  Approving a prompt during an interactive `--force` run authorizes *your terminal* to
   script Messages; the scheduled job is a different responsible process, so that grant may
-  not transfer. After setup, verify the real lane:
+  not transfer. Verify the real lane — and do it **before** any interactive send, because
+  an interactive send writes the day's `ok:true` ledger rows and the kickstart re-fire
+  then skips delivery entirely:
   `launchctl kickstart -k gui/$(id -u)/com.homebase.sweep`, then read
-  `data/sweeps/logs/<date>.log` for the delivery lines. An AppleScript error **`-1743`**
-  (not authorized to send Apple events) means the launchd lane lacks the grant — open
-  **System Settings → Privacy & Security → Automation** and allow **Messages** for the
-  entry the job runs under; if no entry appeared, the kickstart run should have prompted.
-  Until that's verified, treat the iMessage channel as terminal-runs-only; the failed
-  channel writes an `ok:false` ledger row and retries on the next fire either way.
+  `data/sweeps/logs/<date>.log` for the delivery lines. What they mean:
+  - `deliver: imessage sent …` / `deliver: email sent …` — the launchd lane works; done.
+  - AppleScript error **`-1743`** (not authorized to send Apple events) — the launchd lane
+    lacks the grant: open **System Settings → Privacy & Security → Automation** and allow
+    **Messages** for the entry the job runs under (if none appeared, the kickstart should
+    have prompted).
+  - `deliver: brief already delivered … skipping` — **the check did not run**; nothing was
+    attempted, so a prompt-free log proves nothing. Remove today's rows from
+    `backend/data/brief-delivery.jsonl` and kickstart again, or read the next 06:00 fire's
+    log instead.
+  Until it's verified, treat the iMessage channel as terminal-runs-only; a failed channel
+  writes an `ok:false` ledger row and retries on the next fire either way.
 - If the Mac is asleep at 06:00, delivery rides the same on-wake catch-up as the sweep;
   the delivery ledger makes the re-fire a no-op once both channels have succeeded (a
   regenerated mp3 — late-finishing topic — re-sends once by design).
