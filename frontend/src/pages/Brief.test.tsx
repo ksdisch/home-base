@@ -1328,6 +1328,34 @@ describe("Overnight v0 — the draft-only approve/discard queue", () => {
     expect(within(strip).getByRole("button", { name: "Discard" })).not.toBeDisabled();
   });
 
+  // Review F1: the pending flag closes the same-tab double tap, but the other half the backend
+  // docstring names — "a double tap (or a STALE TAB)" — still ended in a red "Couldn't save" on a
+  // draft that had saved, with live verbs still on a resolved card. Multi-device is shipped (M6),
+  // so this is an ordinary morning: Mac tab open since 07:00, phone approves at 08:00.
+  it("reports a 409 as already-resolved-elsewhere, not as a failure to save", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    // What api/client.ts throws on a non-ok response: an Error carrying the status.
+    approveOvernight.mockRejectedValue(
+      Object.assign(new Error("proposal already approved"), { status: 409 }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Approve" }));
+
+    expect(await within(strip).findByText(/Already resolved on another device/)).toBeInTheDocument();
+    // The note DID save — saying "Couldn't save" is the surface reporting the opposite of the truth.
+    expect(within(strip).queryByText(/Couldn't save/)).not.toBeInTheDocument();
+    // ...and a resolved proposal must not keep offering verbs that can only 409 again.
+    expect(within(strip).queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(within(strip).queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
   it("renders no strip for a payload without the field or with an empty queue", async () => {
     briefWithMeta.mockResolvedValue(online(STRUCTURED));
     renderBrief();
