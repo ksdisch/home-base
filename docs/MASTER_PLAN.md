@@ -425,8 +425,10 @@ park hold until the verdict._
 - 11 subprocess-style tests (unroutable SMTP, `DELIVERY_OSASCRIPT` stubs — the
   `HEARTBEAT_NOTIFIER` pattern); adversarially reviewed (PR comment carries the disposition
   table). Remaining: Kyle's one-time setup — copy `delivery.example.json` → `delivery.json` +
-  fill addresses, app password → Keychain, interactive `--force` run, then **verify the launchd
-  lane's own Automation grant** (steps in `sweeps/README.md` + `sweeps/schedule/README.md`).
+  fill addresses, app password → Keychain, then **verify the launchd lane's own Automation
+  grant via a kickstart BEFORE any interactive send** (an interactive send first writes the
+  day's delivered rows and turns the kickstart check into a skip); optional interactive
+  `--force` re-test afterwards (steps in `sweeps/README.md` + `sweeps/schedule/README.md`).
 
 ### 2026-08-05 — Research-portfolio course REGENERATED over all eight projects
 
