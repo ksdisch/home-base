@@ -43,8 +43,9 @@ and a half-finished morning just finishes the remaining topics.
 
 ## Brief delivery under launchd
 
-The sweep's last best-effort step ([`../deliver_brief.py`](../deliver_brief.py)) emails +
-iMessages the rendered MP3 (see [`../README.md`](../README.md) for setup). launchd notes:
+The sweep's last best-effort step ([`../deliver_brief.py`](../deliver_brief.py)) emails the
+rendered MP3 and texts a tap-to-play audio link (see [`../README.md`](../README.md) for
+setup). launchd notes:
 
 - **Automation (TCC) is per-requesting-app, and the launchd lane needs its own grant.**
   Approving a prompt during an interactive `--force` run authorizes *your terminal* to

@@ -85,8 +85,14 @@ KOKORO_URL=… NARRATE_VOICE=af_bella NARRATE_SPEED=1.1   # env overrides (defau
 
 After the audio brief, `sweep.sh` makes one more **best-effort** call to
 [`deliver_brief.py`](deliver_brief.py): when `brief.mp3` exists, it emails the MP3 + an
-HTML headline summary via Gmail SMTP and texts it via this Mac's own Messages.app
-(AppleScript — no Twilio, no third-party service). **Self-addressed only**: recipients come
+HTML headline summary via Gmail SMTP, and texts a headline caption + **tap-to-play
+tailnet audio link** via this Mac's own Messages.app (AppleScript — no Twilio, no
+third-party service). The text is deliberately link-only: modern macOS **silently
+drops file attachments** sent through Messages' AppleScript (exit 0, no bubble), so
+the MP3 travels by email while the text carries a link built from the `base_url` config
+key (your `https://….ts.net`). With `base_url` left `""`, the text sends just the
+caption and the email drops its Today-page footer link — no dead localhost URLs.
+**Self-addressed only**: recipients come
 from `sweeps/delivery.json`, which holds your own addresses; there is no LLM in the path.
 `delivery.json` is **gitignored** (your email + phone number are PII in a public repo) —
 [`delivery.example.json`](delivery.example.json) is the tracked template, and with no real

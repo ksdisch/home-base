@@ -1,4 +1,5 @@
 {
+  "base_url": "",
   "email": { "enabled": true, "to": "you@example.com", "from": "you@example.com" },
   "imessage": { "enabled": true, "to": "" }
 }
