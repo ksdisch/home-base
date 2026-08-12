@@ -495,7 +495,15 @@ export default function Brief() {
   >({});
   const overnightStatus = (p: { id: string; status: string }) =>
     overnightTaps[p.id]?.status ?? p.status;
+  // Bug #16: resolution is single-shot on the server (a lock, then a 409), but the verbs
+  // were live between tap and response — so a double tap on a slow phone fired twice and
+  // showed a failure on a draft that had actually saved. Per-proposal, not page-wide: a
+  // second draft stays actionable while this one is in flight. Cleared in .finally() so a
+  // failed tap re-arms instead of stranding the draft.
+  const [overnightPending, setOvernightPending] = useState<Record<string, boolean>>({});
   const resolveOvernight = (id: string, verb: "approve" | "discard") => {
+    if (overnightPending[id]) return;
+    setOvernightPending((m) => ({ ...m, [id]: true }));
     (verb === "approve" ? api.approveOvernight(id) : api.discardOvernight(id))
       .then((p) => setOvernightTaps((m) => ({ ...m, [id]: { status: p.status } })))
       .catch((e) =>
@@ -503,7 +511,8 @@ export default function Brief() {
           ...m,
           [id]: { status: "proposed", error: e.message ?? "unknown error" },
         })),
-      );
+      )
+      .finally(() => setOvernightPending((m) => ({ ...m, [id]: false })));
   };
   const overnightVisible = (overnight?.proposals ?? []).filter(
     (p) => overnightStatus(p) !== "discarded",
@@ -653,6 +662,7 @@ export default function Brief() {
             {overnightVisible.map((p) => {
               const status = overnightStatus(p);
               const error = overnightTaps[p.id]?.error;
+              const pending = overnightPending[p.id] ?? false;
               return (
                 <li key={p.id}>
                   <div className="text-xs text-muted">{`${p.title} · ${p.item_headline}`}</div>
@@ -665,7 +675,7 @@ export default function Brief() {
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        disabled={fromCache}
+                        disabled={fromCache || pending}
                         onClick={() => resolveOvernight(p.id, "approve")}
                         className="rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
                       >
@@ -673,7 +683,7 @@ export default function Brief() {
                       </button>
                       <button
                         type="button"
-                        disabled={fromCache}
+                        disabled={fromCache || pending}
                         onClick={() => resolveOvernight(p.id, "discard")}
                         className="rounded-lg border border-line-strong px-3 py-1 text-xs font-semibold text-ink hover:bg-line-soft disabled:opacity-50"
                       >

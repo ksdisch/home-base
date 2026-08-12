@@ -1254,6 +1254,80 @@ describe("Overnight v0 — the draft-only approve/discard queue", () => {
     expect(within(strip).getByRole("button", { name: "Approve" })).toBeInTheDocument();
   });
 
+  // Bug #16, the client half: the server lock makes the second tap a 409, but the button
+  // itself was live between tap and response — so an impatient double tap on a slow phone
+  // still fired two requests and surfaced a "Couldn't save" error on a draft that saved fine.
+  it("kills both verbs on the tapped card while its request is in flight", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    let settle: (p: unknown) => void = () => {};
+    approveOvernight.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    const approve = within(strip).getByRole("button", { name: "Approve" });
+    const discard = within(strip).getByRole("button", { name: "Discard" });
+
+    fireEvent.click(approve);
+
+    // Both verbs go dead — the mind-change is as dangerous as the double tap.
+    await waitFor(() => expect(approve).toBeDisabled());
+    expect(discard).toBeDisabled();
+
+    fireEvent.click(approve);
+    fireEvent.click(discard);
+    expect(approveOvernight).toHaveBeenCalledTimes(1);
+    expect(discardOvernight).not.toHaveBeenCalled();
+
+    await act(async () => {
+      settle({ ...OVERNIGHT.proposals[0], status: "approved", note_id: 7 });
+    });
+    expect(await within(strip).findByText("✓ Saved to notes")).toBeInTheDocument();
+  });
+
+  it("leaves a sibling proposal's verbs live while another card is in flight", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, overnight: OVERNIGHT }));
+    approveOvernight.mockReturnValue(new Promise(() => {}));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getAllByRole("button", { name: "Approve" })[0]);
+
+    // In-flight is per-proposal, not a page-wide freeze: the second draft stays actionable.
+    await waitFor(() =>
+      expect(within(strip).getAllByRole("button", { name: "Approve" })[0]).toBeDisabled(),
+    );
+    expect(within(strip).getAllByRole("button", { name: "Approve" })[1]).not.toBeDisabled();
+    expect(within(strip).getAllByRole("button", { name: "Discard" })[1]).not.toBeDisabled();
+  });
+
+  it("re-arms both verbs after a failure so the draft can be retried", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    approveOvernight.mockRejectedValue(new Error("network died"));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Approve" }));
+
+    expect(await within(strip).findByText(/Couldn't save/)).toBeInTheDocument();
+    // A stuck in-flight flag would strand the draft forever — the failure must re-arm it.
+    expect(within(strip).getByRole("button", { name: "Approve" })).not.toBeDisabled();
+    expect(within(strip).getByRole("button", { name: "Discard" })).not.toBeDisabled();
+  });
+
   it("renders no strip for a payload without the field or with an empty queue", async () => {
     briefWithMeta.mockResolvedValue(online(STRUCTURED));
     renderBrief();

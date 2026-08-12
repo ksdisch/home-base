@@ -447,10 +447,22 @@ def remove_brief_note(note_id: int) -> BriefNoteDeleteResponse:
     return BriefNoteDeleteResponse(ok=True)
 
 
+# Resolution is check-then-act: read the ledger, write the note, append the status row.
+# Those three steps run on FastAPI's threadpool, so two taps could both clear the read
+# before either appended and BOTH write a real note — the ledger self-heals on read
+# (``load_queue`` honours the first status row only), a duplicate note does not. Same
+# module-lock shape as ``_sweep_lock`` above: the always-on single server is the choke
+# point, so the guard is a lock, not a lockfile. Held across all three steps, never
+# across the HTTP boundary — the critical section is a sqlite insert and a line append.
+_overnight_lock = threading.Lock()
+
+
 def _resolve_overnight(settings, proposal_id: str) -> dict:
     """The still-``proposed`` proposal, or the honest refusal: 404 for an id the ledger
-    has never seen, 409 for one already resolved — resolution is single-shot, so a
-    double tap (or a stale tab) can never double a note or flip a decision."""
+    has never seen, 409 for one already resolved.
+
+    Callers MUST hold ``_overnight_lock`` from this read through their status append —
+    the single-shot promise is the lock's, not this function's."""
     proposal = load_queue(settings.brief_overnight_ledger).get(proposal_id)
     if proposal is None:
         raise HTTPException(status_code=404, detail=f"no overnight proposal {proposal_id}")
@@ -472,18 +484,21 @@ def approve_overnight_proposal(
     any other note; the ledger gets the single-shot resolution row. Nothing external
     is touched — that boundary moves only through a future graded send gate.
     """
-    proposal = _resolve_overnight(settings, proposal_id)
-    try:
-        note = add_brief_note(
-            item_id=proposal["item_id"],
-            topic_slug=proposal["slug"],
-            brief_date=proposal["date"],
-            item_headline=proposal["item_headline"],
-            body=proposal["body"],
+    with _overnight_lock:
+        proposal = _resolve_overnight(settings, proposal_id)
+        try:
+            note = add_brief_note(
+                item_id=proposal["item_id"],
+                topic_slug=proposal["slug"],
+                brief_date=proposal["date"],
+                item_headline=proposal["item_headline"],
+                body=proposal["body"],
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        append_status(
+            settings.brief_overnight_ledger, proposal_id, "approved", note_id=note["id"]
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    append_status(settings.brief_overnight_ledger, proposal_id, "approved", note_id=note["id"])
     return BriefOvernightProposal(
         **{
             **proposal,
@@ -501,8 +516,9 @@ def discard_overnight_proposal(
     """Discard — the undo (v0 scope: nothing external happened, so undo = the draft
     goes away). The proposal keeps its row in the payload wearing ``discarded``; the
     page hides it."""
-    proposal = _resolve_overnight(settings, proposal_id)
-    append_status(settings.brief_overnight_ledger, proposal_id, "discarded")
+    with _overnight_lock:
+        proposal = _resolve_overnight(settings, proposal_id)
+        append_status(settings.brief_overnight_ledger, proposal_id, "discarded")
     return BriefOvernightProposal(
         **{
             **proposal,
