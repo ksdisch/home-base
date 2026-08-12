@@ -82,6 +82,7 @@ def _sandbox(tmp_path: Path, renderer: str | None) -> Path:
     else:
         (box / "sweeps" / "render_brief.py").write_text(renderer, encoding="utf-8")
     (box / "sweeps" / "audio_brief.py").write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
+    (box / "sweeps" / "deliver_brief.py").write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
     (box / "sweeps" / "prompts" / "ai-llms.md").write_text("Sweep ai/llms.", encoding="utf-8")
     (box / "envelope.json").write_text(
         json.dumps({"result": json.dumps(GOOD_BRIEF), "is_error": False}), encoding="utf-8"

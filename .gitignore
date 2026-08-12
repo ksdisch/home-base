@@ -11,6 +11,9 @@
 .env
 .env.*
 !.env.example
+# Delivery recipients (email + iMessage handle) are PII in a public repo — the real
+# config stays local; sweeps/delivery.example.json is the tracked template.
+sweeps/delivery.json
 
 # --- Node / frontend ---
 node_modules/

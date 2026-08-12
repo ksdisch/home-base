@@ -81,6 +81,51 @@ python3 sweeps/audio_brief.py --force          # re-render even if the mp3 is fr
 KOKORO_URL=… NARRATE_VOICE=af_bella NARRATE_SPEED=1.1   # env overrides (default am_adam)
 ```
 
+## Brief delivery (email + iMessage)
+
+After the audio brief, `sweep.sh` makes one more **best-effort** call to
+[`deliver_brief.py`](deliver_brief.py): when `brief.mp3` exists, it emails the MP3 + an
+HTML headline summary via Gmail SMTP and texts it via this Mac's own Messages.app
+(AppleScript — no Twilio, no third-party service). **Self-addressed only**: recipients come
+from `sweeps/delivery.json`, which holds your own addresses; there is no LLM in the path.
+`delivery.json` is **gitignored** (your email + phone number are PII in a public repo) —
+[`delivery.example.json`](delivery.example.json) is the tracked template, and with no real
+config present all channels stay off. Channels are independent, and a per-day/per-channel
+ledger (`backend/data/brief-delivery.jsonl`) keeps on-wake re-fires from double-sending —
+keyed against the mp3's mtime, so a brief *regenerated* by a late-finishing topic re-sends
+once; a failed channel retries on the next fire.
+
+One-time setup:
+
+```bash
+# 1. Create your local (gitignored) config and fill in your own email + iMessage handle
+#    (phone or Apple ID; "" = channel off):
+cp sweeps/delivery.example.json sweeps/delivery.json
+# 2. Gmail → Security → 2-Step Verification → App passwords → create one for "Home Base"
+# 3. Put it in the macOS Keychain (never in the repo, matching the "from" address):
+security add-generic-password -s homebase-brief-smtp -a '<your-gmail-address>' -w '<app-password>'
+# 4. Verify through the REAL launchd lane, BEFORE any interactive send (see
+#    schedule/README.md): kickstart the sweep agent and read the day's log. Doing an
+#    interactive send first writes today's delivered rows, which turns the kickstart
+#    check into a skip that proves nothing.
+launchctl kickstart -k gui/$(id -u)/com.homebase.sweep
+# 5. Optional manual re-test afterwards (terminal lane only; needs a rendered
+#    brief.mp3 for the day — "no brief.mp3 … nothing to send" means nothing ran):
+python3 sweeps/deliver_brief.py --force
+```
+
+⚠️ macOS records each Automation approval against the **requesting app**, so a grant
+approved in your terminal does **not necessarily** cover the 06:00 launchd job — step 4's
+kickstart-and-read-the-log is the check that counts; what each log line means is in
+[`schedule/README.md`](schedule/README.md).
+
+```bash
+python3 sweeps/deliver_brief.py                # deliver today (skips if already sent)
+python3 sweeps/deliver_brief.py --force        # re-send deliberately
+DELIVERY_SMTP_HOST/PORT · DELIVERY_SMTP_PASSWORD · DELIVERY_KEYCHAIN_SERVICE ·
+DELIVERY_OSASCRIPT · DELIVERY_CONFIG_FILE      # env overrides (tests use these)
+```
+
 ## Billing & auth
 
 Sweeps run on **your Claude subscription** via `claude -p` (the lane chosen at kickoff) — no

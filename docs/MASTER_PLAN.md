@@ -89,6 +89,7 @@ kanban
     m8["HB M8 — learning paths<br/>(AI study-designer over<br/>NotebookLM topics):<br/>Ph1-2 loader + coverage/<br/>confidence stores (v10) +<br/>Jacobian fixture · PR 127<br/>· Ph3 Paths API (3 axes +<br/>bridge grader) · PR 128 ·<br/>Ph4 frontend — PathPlayer<br/>+ 3-axis card · PR 129 ·<br/>Designer — on-demand<br/>Generate, M0-validated<br/>claude -p · PR 130 ·<br/>Plan Continue lane · PR<br/>132 · Progress 3 axes<br/>(Option B) · PR 135 ·<br/>green gate · PR 136 ·<br/>slice CLOSED"]
     hbss["HB Study Scheduler v0→v1<br/>— opt-in Calendar study<br/>blocks for a path:<br/>schema v11 opt-in +<br/>removable ledger ·<br/>per-kind durations ·<br/>deterministic CT/DST<br/>planner · CalendarPort<br/>+ Fake/Google · claude<br/>-p negotiation lane ·<br/>PathPlayer panel · PR<br/>#137/#138 · v1 flexible<br/>prefs: days_of_week knob<br/>+ panel controls +<br/>applied-echo + schema<br/>v12 persistence · v1.3<br/>correctness wave — 8<br/>bugs, honest token<br/>degrade + per-event<br/>ledger + ordered<br/>placement (v13) · PR<br/>#152 · live write<br/>pending Kyle OAuth"]
     courserefresh["Research-portfolio<br/>course refresh ✅ SHIPPED<br/>08-05 — regenerated in<br/>place to all 8 projects<br/>(5 modules / 16 lessons<br/>/ ~8h, was 5/10/~5h) ·<br/>two-lane arc + the<br/>anchor ladder · all 8<br/>papers + presenter packs<br/>wired as reading ·<br/>blind-cite REVERSAL as<br/>the centerpiece · S2 Ep 4<br/>hush-gauge audio<br/>generated · validate ok<br/>zero warnings"]
+    hbdeliver["HB brief delivery —<br/>email + iMessage the<br/>MP3 after every sweep:<br/>Gmail SMTP w/ Keychain<br/>app password · Messages<br/>.app AppleScript, no<br/>Twilio · self-addressed<br/>only, zero LLM ·<br/>per-channel ledger ·<br/>PR 181 · Kyle's<br/>one-time setup pending"]
   doing["🔄 In progress"]
     hbm6proof["HB M6 remainder —<br/>phone eyes-on<br/>evidence: home-screen<br/>standalone ·<br/>airplane-mode banner ·<br/>iOS audio scrub ·<br/>reboot survival · Kyle"]
   next["📋 Planned"]
@@ -309,6 +310,9 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] **Research-portfolio path — the second real path, hand-authored (PR #173, 2026-08-02):** the 442368c1… hub path superseded — 14-step S1-only fixture (broken: 3 deleted study-aid ids) → **37 steps over all 32 artifacts** of the 2026-08-01 notebook refresh, phased Orient → S1 lap (soft-gated quiz per episode, 6/8 honor-system) → Grilling I → S2 lap → Debate/Critique/Grilling II → drill; seven projects, not six. Player gains **`video`/`mindmap` kinds** (D6-honest supplementary steps). Path data is gitignored — type-aware validation against the hub catalog (32/32: ids resolve + types match step kinds) rather than reviewed as diff. Decision D11; frontend tests 258→259.
   - [x] **Research-portfolio COURSE refreshed — all eight projects, regenerated in place (2026-08-05):** the `research-portfolio` course (`/courses/research-portfolio`) had been authored over **six** projects and had gone stale on two of them; regenerated in place per [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) at the plan's single syllabus gate. **5 modules / 16 lessons / ~8h** (was 5 / 10 / ~5h): the shared spine now teaches the **two-lane** structure and the **anchor ladder** (published paper → technique → own recorded result → original question) plus *why a null needs its own power argument*; Lane 1 runs the J-lens lineage as one arc (dim-stage → mute-map → hush-gauge, the last over two lessons); Lane 2 splits reproductions-that-landed from the nulls, with **blind-cite's reversal as the course's centerpiece defense story** — its N=20 null did not survive a pre-registered extension to N=80, and the measurement stands while the inference does not. All eight repos' **papers + presenter packs** are wired in as `reading` (35 readings, every URL verified 200). Authored by a per-module fan-out over the repos and papers — **not** the portfolio cards, two of which were stale (fixed separately: ksdisch/portfolio#11, ksdisch/hush-gauge#20). `cli write` → **ok:true, zero errors, zero warnings**; 8 stale material files deleted; live-verified at `/courses/research-portfolio` (0/16 progress, what-to-do-next → lesson 1, quizzes playable answer-key-free). Course content is gitignored user data, so only this docs change is committed.
 
+- [x] **Brief delivery — email + iMessage** — ✅ shipped 2026-08-11, PR #181
+      _`sweeps/deliver_brief.py`: best-effort post-sweep step (same `if !` guard as the audio brief) — emails `brief.mp3` + an HTML headline summary via Gmail SMTP (app password in the macOS Keychain) and texts it via this Mac's own Messages.app over AppleScript (no Twilio) · **self-addressed only** per `sweeps/delivery.json`, zero LLM — the repo's first outbound send, below the Overnight send bar · per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed vs mp3 mtime (on-wake re-fires no-op, regenerated brief re-sends once, failed channels retry) · `delivery.json` gitignored (PII), `delivery.example.json` tracked · 11 subprocess tests · remaining: Kyle's one-time setup (config copy · app password → Keychain · iMessage handle · Automation grant verified on the launchd lane)_
+
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
 _Instrumented 2026-07-17 (PR #52): `GET /api/brief/habit` + a self-hiding "Habit check" strip on
@@ -407,7 +411,30 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
-### 2026-08-11 (latest) — Backlog re-counted against the code; two live findings outrank it
+### 2026-08-11 (latest) — The brief gets delivered: email + iMessage after every sweep (PR #181)
+
+- New best-effort post-sweep step `sweeps/deliver_brief.py`: when `brief.mp3` exists, it's
+  **emailed** (Gmail SMTP, app password read from the macOS Keychain — never the repo) with an
+  HTML source-linked headline summary + the ear script as the plain-text part, and **texted via
+  this Mac's own Messages.app** (AppleScript over `osascript -`, script on stdin, argv-passed —
+  no Twilio or third-party SMS, per Kyle's explicit requirement).
+- **The repo's first outbound send, said out loud:** self-addressed only (`sweeps/delivery.json`
+  holds Kyle's own addresses — **gitignored**, since email + phone are PII in a public repo;
+  `delivery.example.json` is the tracked template and no config = all channels off), zero LLM in
+  the path — below the Overnight email-send bar, which governs sends to other people.
+- Contract matches the audio brief: `sweep.sh` chains it behind the same `if !` guard (can never
+  fail a sweep); per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed against the
+  mp3's mtime makes launchd's on-wake re-fire a no-op **while a regenerated brief (late-finishing
+  topic) re-sends once**, an `ok:false` row does not count as delivered (failed channels retry
+  next fire), channels are independent, `--force` re-sends.
+- 11 subprocess-style tests (unroutable SMTP, `DELIVERY_OSASCRIPT` stubs — the
+  `HEARTBEAT_NOTIFIER` pattern); adversarially reviewed (PR comment carries the disposition
+  table). Remaining: Kyle's one-time setup — copy `delivery.example.json` → `delivery.json` +
+  fill addresses, app password → Keychain, then **verify the launchd lane's own Automation
+  grant via a kickstart BEFORE any interactive send** (an interactive send first writes the
+  day's delivered rows and turns the kickstart check into a skip); optional interactive
+  `--force` re-test afterwards (steps in `sweeps/README.md` + `sweeps/schedule/README.md`).
+### 2026-08-11 — Backlog re-counted against the code; two live findings outrank it
 
 - **`/backlog-hygiene` full run** — brief at [`backlog-hygiene/2026-08-11.md`](backlog-hygiene/2026-08-11.md).
   Closes the `rep0726` board card that had explicitly deferred its re-count to this skill. Every
