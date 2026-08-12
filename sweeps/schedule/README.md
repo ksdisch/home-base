@@ -44,12 +44,22 @@ and a half-finished morning just finishes the remaining topics.
 ## Brief delivery under launchd
 
 The sweep's last best-effort step ([`../deliver_brief.py`](../deliver_brief.py)) emails +
-iMessages the rendered MP3 (see [`../README.md`](../README.md) for setup). Two launchd
-notes: the agent runs in your **GUI login session**, so the AppleScript→Messages send works
-— but macOS must grant the Automation permission once, so run
-`python3 sweeps/deliver_brief.py --force` interactively after setup and approve the prompt.
-And if the Mac is asleep at 06:00, delivery simply rides the same on-wake catch-up as the
-sweep; the delivery ledger makes the re-fire a no-op once both channels have succeeded.
+iMessages the rendered MP3 (see [`../README.md`](../README.md) for setup). launchd notes:
+
+- **Automation (TCC) is per-requesting-app, and the launchd lane needs its own grant.**
+  Approving the prompt during an interactive `--force` run authorizes *your terminal* to
+  script Messages; the scheduled job is a different responsible process, so that grant may
+  not transfer. After setup, verify the real lane:
+  `launchctl kickstart -k gui/$(id -u)/com.homebase.sweep`, then read
+  `data/sweeps/logs/<date>.log` for the delivery lines. An AppleScript error **`-1743`**
+  (not authorized to send Apple events) means the launchd lane lacks the grant — open
+  **System Settings → Privacy & Security → Automation** and allow **Messages** for the
+  entry the job runs under; if no entry appeared, the kickstart run should have prompted.
+  Until that's verified, treat the iMessage channel as terminal-runs-only; the failed
+  channel writes an `ok:false` ledger row and retries on the next fire either way.
+- If the Mac is asleep at 06:00, delivery rides the same on-wake catch-up as the sweep;
+  the delivery ledger makes the re-fire a no-op once both channels have succeeded (a
+  regenerated mp3 — late-finishing topic — re-sends once by design).
 
 ## Cost / lane
 

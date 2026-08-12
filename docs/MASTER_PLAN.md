@@ -307,7 +307,7 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] **Research-portfolio COURSE refreshed — all eight projects, regenerated in place (2026-08-05):** the `research-portfolio` course (`/courses/research-portfolio`) had been authored over **six** projects and had gone stale on two of them; regenerated in place per [`PORTFOLIO_COURSE_REFRESH_PLAN.md`](PORTFOLIO_COURSE_REFRESH_PLAN.md) at the plan's single syllabus gate. **5 modules / 16 lessons / ~8h** (was 5 / 10 / ~5h): the shared spine now teaches the **two-lane** structure and the **anchor ladder** (published paper → technique → own recorded result → original question) plus *why a null needs its own power argument*; Lane 1 runs the J-lens lineage as one arc (dim-stage → mute-map → hush-gauge, the last over two lessons); Lane 2 splits reproductions-that-landed from the nulls, with **blind-cite's reversal as the course's centerpiece defense story** — its N=20 null did not survive a pre-registered extension to N=80, and the measurement stands while the inference does not. All eight repos' **papers + presenter packs** are wired in as `reading` (35 readings, every URL verified 200). Authored by a per-module fan-out over the repos and papers — **not** the portfolio cards, two of which were stale (fixed separately: ksdisch/portfolio#11, ksdisch/hush-gauge#20). `cli write` → **ok:true, zero errors, zero warnings**; 8 stale material files deleted; live-verified at `/courses/research-portfolio` (0/16 progress, what-to-do-next → lesson 1, quizzes playable answer-key-free). Course content is gitignored user data, so only this docs change is committed.
 
 - [x] **Brief delivery — email + iMessage** — ✅ shipped 2026-08-11, PR #181
-      _`sweeps/deliver_brief.py`: best-effort post-sweep step (same `if !` guard as the audio brief) — emails `brief.mp3` + an HTML headline summary via Gmail SMTP (app password in the macOS Keychain) and texts it via this Mac's own Messages.app over AppleScript (no Twilio) · **self-addressed only** per `sweeps/delivery.json`, zero LLM — the repo's first outbound send, below the Overnight send bar · per-day/per-channel ledger `backend/data/brief-delivery.jsonl` (on-wake re-fires no-op, failed channels retry) · 10 subprocess tests · remaining: Kyle's one-time setup (app password → Keychain · iMessage handle · Automation prompt)_
+      _`sweeps/deliver_brief.py`: best-effort post-sweep step (same `if !` guard as the audio brief) — emails `brief.mp3` + an HTML headline summary via Gmail SMTP (app password in the macOS Keychain) and texts it via this Mac's own Messages.app over AppleScript (no Twilio) · **self-addressed only** per `sweeps/delivery.json`, zero LLM — the repo's first outbound send, below the Overnight send bar · per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed vs mp3 mtime (on-wake re-fires no-op, regenerated brief re-sends once, failed channels retry) · `delivery.json` gitignored (PII), `delivery.example.json` tracked · 11 subprocess tests · remaining: Kyle's one-time setup (config copy · app password → Keychain · iMessage handle · Automation grant verified on the launchd lane)_
 
 **v1 success criteria to check ~3 weeks in** (from the kickoff): ≥5 mornings/week habit (visit
 log) · significant events reach Kyle here first · foraging → ~zero · ≥3 notes/week attach.
@@ -414,17 +414,19 @@ park hold until the verdict._
   this Mac's own Messages.app** (AppleScript over `osascript -`, script on stdin, argv-passed —
   no Twilio or third-party SMS, per Kyle's explicit requirement).
 - **The repo's first outbound send, said out loud:** self-addressed only (`sweeps/delivery.json`
-  holds Kyle's own addresses), zero LLM in the path — below the Overnight email-send bar, which
-  governs sends to other people.
+  holds Kyle's own addresses — **gitignored**, since email + phone are PII in a public repo;
+  `delivery.example.json` is the tracked template and no config = all channels off), zero LLM in
+  the path — below the Overnight email-send bar, which governs sends to other people.
 - Contract matches the audio brief: `sweep.sh` chains it behind the same `if !` guard (can never
-  fail a sweep); per-day/per-channel ledger `backend/data/brief-delivery.jsonl` makes launchd's
-  on-wake re-fire a no-op, an `ok:false` row does not count as delivered (failed channels retry
-  next fire), channels are independent, `--force` re-sends. Ships with `imessage.to` empty →
-  self-disabled until filled.
-- 10 subprocess-style tests (unroutable SMTP, `DELIVERY_OSASCRIPT` stubs — the
-  `HEARTBEAT_NOTIFIER` pattern); backend suite 911 green. Remaining: Kyle's one-time setup —
-  app password → Keychain, iMessage handle into `delivery.json`, one interactive `--force` run
-  to approve the macOS Automation prompt (steps in `sweeps/README.md`).
+  fail a sweep); per-day/per-channel ledger `backend/data/brief-delivery.jsonl` keyed against the
+  mp3's mtime makes launchd's on-wake re-fire a no-op **while a regenerated brief (late-finishing
+  topic) re-sends once**, an `ok:false` row does not count as delivered (failed channels retry
+  next fire), channels are independent, `--force` re-sends.
+- 11 subprocess-style tests (unroutable SMTP, `DELIVERY_OSASCRIPT` stubs — the
+  `HEARTBEAT_NOTIFIER` pattern); adversarially reviewed (PR comment carries the disposition
+  table). Remaining: Kyle's one-time setup — copy `delivery.example.json` → `delivery.json` +
+  fill addresses, app password → Keychain, interactive `--force` run, then **verify the launchd
+  lane's own Automation grant** (steps in `sweeps/README.md` + `sweeps/schedule/README.md`).
 
 ### 2026-08-05 — Research-portfolio course REGENERATED over all eight projects
 

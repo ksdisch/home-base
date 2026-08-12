@@ -6,8 +6,9 @@ data/sweeps/<date>/brief.mp3 exists, sends it as an email attachment with an HTM
 headline summary, and as an iMessage from this Mac's own Messages account (no Twilio,
 no third party — both channels are self-addressed per sweeps/delivery.json). Channels
 are independent: one failing never blocks the other. Idempotent per day and channel:
-a successful ledger row in backend/data/brief-delivery.jsonl makes launchd's on-wake
-re-fire a no-op; --force re-sends deliberately.
+a successful ledger row in backend/data/brief-delivery.jsonl at or after the mp3's
+mtime makes launchd's on-wake re-fire a no-op — but a REGENERATED mp3 (a late-finishing
+topic completing the brief) re-sends once; --force re-sends deliberately.
 
 Design note: this is Home Base's first outbound send. It stays below the "Overnight
 email-send bar" (docs/ideas/overnight-chief-of-staff.md) because nothing here can ever
@@ -90,8 +91,16 @@ def _channel(cfg: dict, name: str) -> dict | None:
     return {**entry, "to": to.strip()}
 
 
-def _delivered_channels(ledger: Path, day: str) -> set[str]:
-    """Channels with a successful row for the date — the actions_queue idempotency shape."""
+def _delivered_channels(ledger: Path, day: str, mp3_mtime: float) -> set[str]:
+    """Channels whose newest successful row is no older than the mp3 itself.
+
+    The bare (date, channel) key isn't enough: a half-finished 06:00 sweep delivers a
+    partial brief, then the on-wake re-fire finishes the missing topics and audio_brief
+    regenerates the mp3 — that completed brief must re-send once. So a channel only
+    counts as delivered when an ok:true row's ts is at or after the mp3's mtime
+    (ledger ts is second-resolution, hence the int() floor); same-mp3 re-fires stay
+    no-ops. Rows with a missing/mangled ts count as not delivered — retry over skip.
+    """
     try:
         text = ledger.read_text(encoding="utf-8")
     except OSError:
@@ -102,10 +111,21 @@ def _delivered_channels(ledger: Path, day: str) -> set[str]:
             row = json.loads(line)
         except ValueError:
             continue
-        if isinstance(row, dict) and row.get("date") == day and row.get("ok") is True:
-            channel = row.get("channel")
-            if isinstance(channel, str):
-                done.add(channel)
+        if not (isinstance(row, dict) and row.get("date") == day and row.get("ok") is True):
+            continue
+        channel = row.get("channel")
+        if not isinstance(channel, str):
+            continue
+        try:
+            ts = (
+                datetime.strptime(row["ts"], "%Y-%m-%dT%H:%M:%SZ")
+                .replace(tzinfo=timezone.utc)
+                .timestamp()
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+        if ts >= int(mp3_mtime):
+            done.add(channel)
     return done
 
 
@@ -256,7 +276,7 @@ def main() -> int:
         return 0
 
     ledger = Path(args.ledger)
-    done = set() if args.force else _delivered_channels(ledger, args.date)
+    done = set() if args.force else _delivered_channels(ledger, args.date, mp3.stat().st_mtime)
     pending = {name: ch for name, ch in enabled.items() if name not in done}
     if not pending:
         print(f"deliver: brief already delivered for {args.date} — skipping (use --force to re-send)")

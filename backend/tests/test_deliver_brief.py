@@ -237,6 +237,27 @@ def test_second_run_skips_and_force_resends(tmp_path):
     assert len(_ledger_rows(ledger)) == 2
 
 
+def test_regenerated_mp3_resends_without_force(tmp_path):
+    """F1: a late-finishing topic regenerates brief.mp3 on the on-wake re-fire — the
+    completed brief must re-send once; the bare (date, channel) key would skip it forever."""
+    import os
+    import time
+
+    sweeps, roster, cfg, ledger = _setup(tmp_path, config=IMESSAGE_ONLY)
+    stub, osa_log = _osa_stub(tmp_path)
+    env = {"DELIVERY_OSASCRIPT": stub, "OSA_LOG": str(osa_log)}
+    assert _run(sweeps, roster, cfg, ledger, env=env).returncode == 0
+    assert len(_ledger_rows(ledger)) == 1
+    # Regenerate the mp3 well after the delivery row's second-resolution ts.
+    mp3 = sweeps / DATE / "brief.mp3"
+    newer = time.time() + 120
+    os.utime(mp3, (newer, newer))
+    again = _run(sweeps, roster, cfg, ledger, env=env)
+    assert again.returncode == 0, again.stderr
+    assert "already delivered" not in again.stdout
+    assert len(_ledger_rows(ledger)) == 2
+
+
 def test_failed_channel_retries_on_the_next_run(tmp_path):
     """An ok:false row must NOT count as delivered — the on-wake re-fire is the retry."""
     sweeps, roster, cfg, ledger = _setup(tmp_path, config=IMESSAGE_ONLY)

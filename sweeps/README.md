@@ -87,21 +87,31 @@ After the audio brief, `sweep.sh` makes one more **best-effort** call to
 [`deliver_brief.py`](deliver_brief.py): when `brief.mp3` exists, it emails the MP3 + an
 HTML headline summary via Gmail SMTP and texts it via this Mac's own Messages.app
 (AppleScript — no Twilio, no third-party service). **Self-addressed only**: recipients come
-from [`delivery.json`](delivery.json), which holds your own addresses; there is no LLM in
-the path. Channels are independent, and a per-day/per-channel ledger
-(`backend/data/brief-delivery.jsonl`) keeps on-wake re-fires from double-sending; a failed
-channel retries on the next fire.
+from `sweeps/delivery.json`, which holds your own addresses; there is no LLM in the path.
+`delivery.json` is **gitignored** (your email + phone number are PII in a public repo) —
+[`delivery.example.json`](delivery.example.json) is the tracked template, and with no real
+config present all channels stay off. Channels are independent, and a per-day/per-channel
+ledger (`backend/data/brief-delivery.jsonl`) keeps on-wake re-fires from double-sending —
+keyed against the mp3's mtime, so a brief *regenerated* by a late-finishing topic re-sends
+once; a failed channel retries on the next fire.
 
 One-time setup:
 
 ```bash
-# 1. Gmail → Security → 2-Step Verification → App passwords → create one for "Home Base"
-# 2. Put it in the macOS Keychain (never in the repo):
-security add-generic-password -s homebase-brief-smtp -a kstan.disch@gmail.com -w '<app-password>'
-# 3. Add your iMessage handle (phone or Apple ID) to sweeps/delivery.json ("" = channel off)
-# 4. Prime the macOS Automation permission — run once interactively and approve the prompt:
+# 1. Create your local (gitignored) config and fill in your own email + iMessage handle
+#    (phone or Apple ID; "" = channel off):
+cp sweeps/delivery.example.json sweeps/delivery.json
+# 2. Gmail → Security → 2-Step Verification → App passwords → create one for "Home Base"
+# 3. Put it in the macOS Keychain (never in the repo, matching the "from" address):
+security add-generic-password -s homebase-brief-smtp -a '<your-gmail-address>' -w '<app-password>'
+# 4. Run once interactively — proves both channels end-to-end and raises the macOS
+#    Automation prompt for Messages (approve it):
 python3 sweeps/deliver_brief.py --force
 ```
+
+⚠️ macOS records that Automation approval against the **requesting app** (your terminal),
+so it does **not necessarily** cover the 06:00 launchd job — verify that separately (see
+[`schedule/README.md`](schedule/README.md)).
 
 ```bash
 python3 sweeps/deliver_brief.py                # deliver today (skips if already sent)
