@@ -1254,6 +1254,108 @@ describe("Overnight v0 — the draft-only approve/discard queue", () => {
     expect(within(strip).getByRole("button", { name: "Approve" })).toBeInTheDocument();
   });
 
+  // Bug #16, the client half: the server lock makes the second tap a 409, but the button
+  // itself was live between tap and response — so an impatient double tap on a slow phone
+  // still fired two requests and surfaced a "Couldn't save" error on a draft that saved fine.
+  it("kills both verbs on the tapped card while its request is in flight", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    let settle: (p: unknown) => void = () => {};
+    approveOvernight.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    const approve = within(strip).getByRole("button", { name: "Approve" });
+    const discard = within(strip).getByRole("button", { name: "Discard" });
+
+    fireEvent.click(approve);
+
+    // Both verbs go dead — the mind-change is as dangerous as the double tap.
+    await waitFor(() => expect(approve).toBeDisabled());
+    expect(discard).toBeDisabled();
+
+    fireEvent.click(approve);
+    fireEvent.click(discard);
+    expect(approveOvernight).toHaveBeenCalledTimes(1);
+    expect(discardOvernight).not.toHaveBeenCalled();
+
+    await act(async () => {
+      settle({ ...OVERNIGHT.proposals[0], status: "approved", note_id: 7 });
+    });
+    expect(await within(strip).findByText("✓ Saved to notes")).toBeInTheDocument();
+  });
+
+  it("leaves a sibling proposal's verbs live while another card is in flight", async () => {
+    briefWithMeta.mockResolvedValue(online({ ...STRUCTURED, overnight: OVERNIGHT }));
+    approveOvernight.mockReturnValue(new Promise(() => {}));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getAllByRole("button", { name: "Approve" })[0]);
+
+    // In-flight is per-proposal, not a page-wide freeze: the second draft stays actionable.
+    await waitFor(() =>
+      expect(within(strip).getAllByRole("button", { name: "Approve" })[0]).toBeDisabled(),
+    );
+    expect(within(strip).getAllByRole("button", { name: "Approve" })[1]).not.toBeDisabled();
+    expect(within(strip).getAllByRole("button", { name: "Discard" })[1]).not.toBeDisabled();
+  });
+
+  it("re-arms both verbs after a failure so the draft can be retried", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    approveOvernight.mockRejectedValue(new Error("network died"));
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Approve" }));
+
+    expect(await within(strip).findByText(/Couldn't save/)).toBeInTheDocument();
+    // A stuck in-flight flag would strand the draft forever — the failure must re-arm it.
+    expect(within(strip).getByRole("button", { name: "Approve" })).not.toBeDisabled();
+    expect(within(strip).getByRole("button", { name: "Discard" })).not.toBeDisabled();
+  });
+
+  // Review F1: the pending flag closes the same-tab double tap, but the other half the backend
+  // docstring names — "a double tap (or a STALE TAB)" — still ended in a red "Couldn't save" on a
+  // draft that had saved, with live verbs still on a resolved card. Multi-device is shipped (M6),
+  // so this is an ordinary morning: Mac tab open since 07:00, phone approves at 08:00.
+  it("reports a 409 as already-resolved-elsewhere, not as a failure to save", async () => {
+    briefWithMeta.mockResolvedValue(
+      online({
+        ...STRUCTURED,
+        overnight: { ...OVERNIGHT, proposals: [OVERNIGHT.proposals[0]] },
+      }),
+    );
+    // What api/client.ts throws on a non-ok response: an Error carrying the status.
+    approveOvernight.mockRejectedValue(
+      Object.assign(new Error("proposal already approved"), { status: 409 }),
+    );
+    renderBrief();
+
+    const strip = await screen.findByRole("region", { name: "Overnight" });
+    fireEvent.click(within(strip).getByRole("button", { name: "Approve" }));
+
+    expect(await within(strip).findByText(/Already resolved on another device/)).toBeInTheDocument();
+    // The note DID save — saying "Couldn't save" is the surface reporting the opposite of the truth.
+    expect(within(strip).queryByText(/Couldn't save/)).not.toBeInTheDocument();
+    // ...and a resolved proposal must not keep offering verbs that can only 409 again.
+    expect(within(strip).queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(within(strip).queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
   it("renders no strip for a payload without the field or with an empty queue", async () => {
     briefWithMeta.mockResolvedValue(online(STRUCTURED));
     renderBrief();

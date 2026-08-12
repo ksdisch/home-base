@@ -491,19 +491,40 @@ export default function Brief() {
   // (keyed by proposal id) so a resolution shows without refetching the brief.
   const overnight = brief?.overnight;
   const [overnightTaps, setOvernightTaps] = useState<
-    Record<string, { status: "proposed" | "approved" | "discarded"; error?: string }>
+    Record<
+      string,
+      { status: "proposed" | "approved" | "discarded"; error?: string; resolvedElsewhere?: boolean }
+    >
   >({});
   const overnightStatus = (p: { id: string; status: string }) =>
     overnightTaps[p.id]?.status ?? p.status;
+  // Bug #16: resolution is single-shot on the server (a lock, then a 409), but the verbs
+  // were live between tap and response — so a double tap on a slow phone fired twice and
+  // showed a failure on a draft that had actually saved. Per-proposal, not page-wide: a
+  // second draft stays actionable while this one is in flight. Cleared in .finally() so a
+  // failed tap re-arms instead of stranding the draft.
+  const [overnightPending, setOvernightPending] = useState<Record<string, boolean>>({});
   const resolveOvernight = (id: string, verb: "approve" | "discard") => {
+    if (overnightPending[id]) return;
+    setOvernightPending((m) => ({ ...m, [id]: true }));
     (verb === "approve" ? api.approveOvernight(id) : api.discardOvernight(id))
       .then((p) => setOvernightTaps((m) => ({ ...m, [id]: { status: p.status } })))
       .catch((e) =>
         setOvernightTaps((m) => ({
           ...m,
-          [id]: { status: "proposed", error: e.message ?? "unknown error" },
+          // A 409 is the server saying this proposal was already resolved — the stale-tab half of
+          // "a double tap (or a stale tab)". Calling that "Couldn't save" reports the opposite of
+          // what happened, on a note that exists. Say what did happen and retire the verbs; the
+          // resolution itself needs a reload, so don't guess approved-vs-discarded from the text.
+          // Duck-typed on .status rather than `instanceof ApiError`: the class is in none of the
+          // vi.mock("../api/client") factories, so an instanceof would be a latent undefined here.
+          [id]:
+            (e as { status?: number })?.status === 409
+              ? { status: "proposed", resolvedElsewhere: true }
+              : { status: "proposed", error: e.message ?? "unknown error" },
         })),
-      );
+      )
+      .finally(() => setOvernightPending((m) => ({ ...m, [id]: false })));
   };
   const overnightVisible = (overnight?.proposals ?? []).filter(
     (p) => overnightStatus(p) !== "discarded",
@@ -653,6 +674,8 @@ export default function Brief() {
             {overnightVisible.map((p) => {
               const status = overnightStatus(p);
               const error = overnightTaps[p.id]?.error;
+              const pending = overnightPending[p.id] ?? false;
+              const resolvedElsewhere = overnightTaps[p.id]?.resolvedElsewhere ?? false;
               return (
                 <li key={p.id}>
                   <div className="text-xs text-muted">{`${p.title} · ${p.item_headline}`}</div>
@@ -661,11 +684,15 @@ export default function Brief() {
                     <div className="mt-1 text-xs font-semibold text-emerald-700">
                       ✓ Saved to notes
                     </div>
+                  ) : resolvedElsewhere ? (
+                    <div className="mt-1 text-xs text-muted">
+                      Already resolved on another device — reload to see it.
+                    </div>
                   ) : (
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        disabled={fromCache}
+                        disabled={fromCache || pending}
                         onClick={() => resolveOvernight(p.id, "approve")}
                         className="rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
                       >
@@ -673,7 +700,7 @@ export default function Brief() {
                       </button>
                       <button
                         type="button"
-                        disabled={fromCache}
+                        disabled={fromCache || pending}
                         onClick={() => resolveOvernight(p.id, "discard")}
                         className="rounded-lg border border-line-strong px-3 py-1 text-xs font-semibold text-ink hover:bg-line-soft disabled:opacity-50"
                       >

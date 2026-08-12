@@ -173,6 +173,82 @@ describe("Progress — one flaky endpoint must not blank the whole dashboard", (
     // ...and a single flaky call does NOT replace the whole page with the error banner.
     expect(screen.queryByText(/Couldn't load your progress/)).not.toBeInTheDocument();
   });
+
+  // Bug #11: the allSettled degrade was real, but BOTH body branches gated on `data` — set
+  // only when api.progress() fulfils. So the one rejection the page couldn't survive was the
+  // progress endpoint's own: header over a blank page, no banner, while review, reflections
+  // and paths had all loaded fine and sat unreachable behind the gate.
+  it("keeps review, reflections and paths reachable when only the progress endpoint fails", async () => {
+    progress.mockRejectedValue(new Error("progress endpoint flaked"));
+    review.mockResolvedValue({
+      generated_at: "now",
+      has_data: true,
+      due_count: 1,
+      items: [
+        {
+          notebook_id: "nb1",
+          title: "Spaced Repetition 101",
+          topic_url: "/topics/nb1",
+          mastery: 0.6,
+          decayed: 0.4,
+          due: true,
+          priority: 1,
+          days_since_review: 12,
+          total_misses: 3,
+          shaky_questions: 2,
+          last_review_at: "2026-06-26",
+          reason: "3 shaky questions",
+        },
+      ],
+    } satisfies ReviewResponse);
+    reflections.mockResolvedValue({
+      generated_at: "now",
+      has_data: true,
+      count: 1,
+      avg_grasp: 4,
+      items: [
+        {
+          id: 1,
+          notebook_id: "nb1",
+          title: "Spaced Repetition 101",
+          episode_artifact_id: null,
+          body: "This one finally clicked.",
+          grasp_rating: 4,
+          created_at: "2026-06-26",
+          topic_url: null,
+        },
+      ],
+    } satisfies ReflectionsResponse);
+    paths.mockResolvedValue({
+      generated_at: "now",
+      items: [
+        {
+          notebook_id: "nb-jac",
+          title: "Jacobian Lens Path",
+          topic: "interpretability",
+          step_count: 10,
+          completed_steps: 6,
+          progress_pct: 60,
+          next_step: null,
+          confidence: 3.2,
+        },
+      ],
+    } satisfies PathsResponse);
+
+    renderPage();
+
+    // Everything that loaded still renders — the page degrades, it does not blank.
+    expect(await screen.findByRole("heading", { name: "Reflections" })).toBeInTheDocument();
+    expect(screen.getByText("This one finally clicked.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Learning paths" })).toBeInTheDocument();
+    expect(screen.getByText("Jacobian Lens Path")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Review next" })).toBeInTheDocument();
+
+    // And the failure is admitted rather than rendered as an empty page.
+    expect(screen.getByText(/Couldn't load your progress/)).toBeInTheDocument();
+    // The empty state would be a lie here — there IS data, one endpoint just didn't answer.
+    expect(screen.queryByText(/Take a quiz from any topic/)).not.toBeInTheDocument();
+  });
 });
 
 describe("Progress — the three honest axes (M8 #13)", () => {

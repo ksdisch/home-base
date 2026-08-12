@@ -175,11 +175,10 @@ in-pipeline-enrichment item was not verified in that pass and is left standing.)
 > code at `5a72ea5` — not against its own text. Full evidence:
 > [`docs/backlog-hygiene/2026-08-11.md`](docs/backlog-hygiene/2026-08-11.md).
 >
-> **Bugs: 40 of 47 fixed. 7 open** — all from the 07-26 hunt, all S-sized, none test-covered:
+> **Bugs: 42 of 47 fixed. 5 open** (was 40/7 at the 08-11 re-count — **#11** and **#16** fixed
+> 2026-08-12, Arc C) — all remaining are from the 07-26 hunt, all S-sized, none test-covered:
 > **#6** path regen never clears `path_step_progress`/`path_confidence` ·
-> **#11** Progress dashboard blanks when only `/progress` fails ·
 > **#15** no cross-process sweep guard ·
-> **#16** Overnight approve/discard is check-then-act ·
 > **#17** unrecognized step kinds escape the no-fabrication bar (*shape enlarged* — PR #173 added
 > `video`/`mindmap` frontend-only, so both render as first-class steps while unvalidated
 > server-side) · **#18** Designer prompt lacks untrusted-data framing ·
@@ -197,7 +196,8 @@ in-pipeline-enrichment item was not verified in that pass and is left standing.)
 > extended v1 verdict (~08-19).
 >
 > **Picked at the 2026-08-11 hygiene gate: Arc C — bugs #16 and #11**, the two shipped surfaces
-> that state a guarantee they don't keep.
+> that state a guarantee they don't keep. **✅ Both shipped 2026-08-12** (test-first, RED shown
+> and deterministic) — see their entries below.
 >
 > **Coverage finding:** the unblocked pipeline is now *entirely* solidification — 7 correctness
 > bugs and nothing build-shaped. If that isn't deliberate, the generator is `/replenish`
@@ -767,7 +767,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 - _✅ shipped 2026-07-27 (RED→green — replenish small-wins item 7/9): `recently_clicked_ids()` in `app/foryou.py` (48h window) → `NewsItem.clicked` stamped on the category route and both For-You paths → News.tsx renders the headline `text-muted` with a titled ✓. Zero new storage; one set-membership pass over ids that are already stable `sha1(link)[:12]`. **Finding worth recording: the WARM For-You feed can't carry a clicked item at all** — `rank_candidates` already drops everything in `seen_item_ids`, a stronger form of the same idea — so the real surface is the category tabs plus the COLD-START For-You path, which serves Top stories unranked. Warm is stamped anyway and pinned by a test, so a future ranker change surfaces dimmed rather than silently undimmed. The client also dims on tap (`opened` set) rather than waiting for the next fetch — the return visit two seconds later is exactly the case this exists for. Idea-doc open questions decided: (1) **48 hours** — covers the 06:45/lunch/evening/next-morning pattern without muting a genuinely re-newsworthy story that resurfaces under the same link a week later; (2) **mute only, no ranker change** — For You already excludes clicked items, so sinking them too would be double-counting a signal that's already fully spent. 13 tests (9 backend + 4 frontend). Backend 871→880 · frontend 236→240._
 
-### Bugs — 2026-07-26 hunt (24 verified · **17 fixed · 7 open** as of 2026-08-11 — #6 · #11 · #15 · #16 · #17 · #18 · #19; full detail in the [report](docs/bug-hunt/2026-07-26-post-studycal-m8.md))
+### Bugs — 2026-07-26 hunt (24 verified · **19 fixed · 5 open** as of 2026-08-12 — #6 · #15 · #17 · #18 · #19; full detail in the [report](docs/bug-hunt/2026-07-26-post-studycal-m8.md))
 
 #### [Bug] #1: Phantom "Brief.chapters" error topic card served on every day that has audio chapters
 - _✅ fixed 2026-07-27 (PR #154, RED→green): one `_is_topic_stem` rule — a roster slug never contains a dot — now gates all four places a day folder was read as a list of topics (`load_brief_topics`, `build_calibration`'s per-day listing, `_has_renderable_content`, `audio_brief.load_topics`), mirroring the guard `sweeps/actions_queue.py` already had. Two of the four were only saved by `brief.chapters.json` happening to be a JSON *list*; those tests write a dict-shaped one so the guard can't rest on the artifact's shape again._
@@ -849,6 +849,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Bug] #11: Progress dashboard blanks silently when the progress endpoint alone fails — despite the documented single-endpoint-degradation intent
+- _✅ fixed 2026-08-12 (PR #182, RED→green): the body now gates on `hasAnything`, not on `data`, and the four blocks that actually read `/progress` (summary band, activity strip, by-topic, shaky) null-guard themselves; `ThreeAxisBand` is the only one that genuinely needs it, so it alone hides. The banner tracks **progress's own rejection** rather than requiring all three core calls to fail, and says "the other sections below still loaded" when review/reflections/paths carry real data — the "No attempts yet" empty state is suppressed while a banner is up, because with a failed endpoint it's a claim the page can't make. RED was a header over nothing: `Unable to find role="heading" and name "Reflections"` with all three other calls fulfilled._
 - **Where:** `frontend/src/pages/Progress.tsx:413-426, 484-493` · severity medium · confidence high
 - **Why:** The effect uses Promise.allSettled precisely so one flaky call degrades only its section, but every body branch gates on `data` (set only when api.progress() fulfills) and the error banner needs all three core calls to reject. A progress-only rejection yields a header over a completely blank page —…
 - **Acceptance:** Gate the body on hasAnything (or !loading) instead of data, null-guard the data-dependent sections individually (e.g. gate just ThreeAxisBand on data), and show the error banner when progress rejects while noting the other sections still loaded. Regression test first.
@@ -887,6 +888,7 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 - **Added:** 2026-07-26
 
 #### [Bug] #16: Overnight approve/discard is check-then-act — a concurrent double-tap can double the real note
+- _✅ fixed 2026-08-12 (PR #182, RED→green): a module-level `_overnight_lock` (same shape as `_sweep_lock` in the same file) wraps resolve + note write + append_status on **both** verbs, and `_resolve_overnight`'s docstring now says the single-shot promise is the lock's, not its own. Client half: `overnightPending` per proposal disables both verbs between tap and response, cleared in `.finally()` so a failure re-arms rather than stranding the draft — per-proposal, so a sibling card stays actionable. Two barrier-raced backend tests, deterministic by construction rather than by timing (a shared `_park_after_resolve` helper holds every tap that clears the read until a second one does; under the lock the second never arrives and the barrier breaks on its own timeout). RED was **5/5 runs**, "a double tap wrote 2 real notes" — the ledger self-heals on read, a duplicate note does not. A crossed-verb race (approve vs. discard) is pinned too. Adversarial review added the stale-tab half: a 409 now reads *"Already resolved on another device — reload to see it"* and retires the verbs, instead of the old red "Couldn't save" on a note that had saved. **Deliberately skipped from this item's acceptance:** its optional second half ("append the status row before creating the note and reconcile on note failure") — the lock closes the concurrency window but not the failure window, so if `add_brief_note` commits and `append_status` then raises, a retry can still double the note. Graded nice-to-have at review (it needs an FS failure inside a held lock on a single-user Mac) and carried as a follow-up rather than silently implied fixed._
 - **Where:** `backend/app/api/brief.py:421-465` · severity low · confidence high
 - **Why:** The docstring promises 'a double tap can never double a note', but only the sequential case is covered: _resolve_overnight's lockless load, sync-def threadpool concurrency, an Approve button not disabled in flight, and a notes table with no uniqueness mean two near-simultaneous taps both see…
 - **Acceptance:** Wrap _resolve_overnight + the note write + append_status in a module-level threading.Lock (same pattern as _sweep_lock); optionally append the status row before creating the note and reconcile on note failure. Regression test first.

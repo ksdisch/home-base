@@ -23,6 +23,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 TODAY = "2026-07-16"
@@ -284,6 +285,115 @@ def test_discard_is_the_undo_and_resolution_is_single_shot(tmp_path, monkeypatch
         assert client.post(f"/api/brief/overnight/{row['id']}/discard").status_code == 409
         assert client.post("/api/brief/overnight/feedfacecafe/approve").status_code == 404
         assert client.post("/api/brief/overnight/feedfacecafe/discard").status_code == 404
+    finally:
+        _teardown()
+
+
+def _park_after_resolve(monkeypatch, timeout: float = 2.0) -> None:
+    """Hold every tap that clears the resolve read until a SECOND one clears it too.
+
+    This is what makes the two races below deterministic rather than hopeful. Unguarded,
+    both taps reach the read, both park, both are released — the check-then-act window is
+    provably open and each test's invariant is violated on every run. Guarded, the second
+    tap is still blocked on the lock and never reaches the read, so the barrier breaks on
+    its own timeout and the first tap proceeds alone. The invariant asserted is the same
+    either way; only the guard decides whether it holds.
+
+    A 404/409 raises inside the real resolve and never parks, so a refused tap can't
+    deadlock the barrier.
+    """
+    import app.api.brief as brief_mod
+
+    real_resolve = brief_mod._resolve_overnight
+    barrier = threading.Barrier(2, timeout=timeout)
+
+    def parked_resolve(*a, **kw):
+        proposal = real_resolve(*a, **kw)
+        try:
+            barrier.wait()
+        except threading.BrokenBarrierError:
+            pass
+        return proposal
+
+    monkeypatch.setattr(brief_mod, "_resolve_overnight", parked_resolve)
+
+
+def test_two_concurrent_approvals_write_exactly_one_note(tmp_path, monkeypatch):
+    """Single-shot has to hold under a genuine double tap, not just a sequential retry.
+
+    The 409s above only cover the tap that arrives AFTER the first one finished — the case
+    the race never hits. Resolve → ``add_brief_note`` → ``append_status`` are three steps on
+    FastAPI's threadpool, so two taps can both clear the resolve read before either writes.
+    The note is the durable damage: the ledger self-heals on read (``load_queue`` honours the
+    first status row only), a duplicate note does not — it joins the served brief and /notes
+    as a real, separately-deletable row.
+
+    Deterministic by construction, not by timing luck — see ``_park_after_resolve``.
+    """
+    sweeps, _, ledger = _env(tmp_path, monkeypatch, "race")
+    try:
+        _write_day(sweeps, TODAY, "ai-llms", [_item("OpenAI lifts caps", "https://x.com/a")])
+        row = _proposal_row(TODAY, "ai-llms", "OpenAI lifts caps", "Draft: cap math changed.")
+        _write_ledger(ledger, row)
+        client = _client()
+        _park_after_resolve(monkeypatch)
+
+        start = threading.Barrier(2)
+        codes: list[int] = []
+
+        def tap():
+            start.wait()
+            codes.append(client.post(f"/api/brief/overnight/{row['id']}/approve").status_code)
+
+        threads = [threading.Thread(target=tap) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        notes = client.get("/api/brief/notes").json()["notes"]
+        assert len(notes) == 1, f"a double tap wrote {len(notes)} real notes"
+        assert sorted(codes) == [200, 409], f"one tap wins, one is refused; got {sorted(codes)}"
+    finally:
+        _teardown()
+
+
+def test_concurrent_approve_and_discard_cannot_both_win(tmp_path, monkeypatch):
+    """The same window, crossed verbs: a stale tab discarding while the phone approves.
+
+    Without the guard the approve writes its note and the discard appends a ``discarded``
+    row — a note whose own proposal reads as thrown away. One verb has to win outright.
+    """
+    sweeps, _, ledger = _env(tmp_path, monkeypatch, "race-cross")
+    try:
+        _write_day(sweeps, TODAY, "ai-llms", [_item("OpenAI lifts caps", "https://x.com/a")])
+        row = _proposal_row(TODAY, "ai-llms", "OpenAI lifts caps", "Draft: cap math changed.")
+        _write_ledger(ledger, row)
+        client = _client()
+        _park_after_resolve(monkeypatch)
+
+        start = threading.Barrier(2)
+        results: dict[str, int] = {}
+
+        def tap(verb: str):
+            start.wait()
+            results[verb] = client.post(
+                f"/api/brief/overnight/{row['id']}/{verb}"
+            ).status_code
+
+        threads = [threading.Thread(target=tap, args=(v,)) for v in ("approve", "discard")]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert sorted(results.values()) == [200, 409], f"got {results}"
+        served = client.get("/api/brief").json()["overnight"]["proposals"][0]
+        notes = client.get("/api/brief/notes").json()["notes"]
+        if served["status"] == "approved":
+            assert len(notes) == 1, "an approved proposal must have exactly its own note"
+        else:
+            assert notes == [], "a discarded proposal must leave no note behind"
     finally:
         _teardown()
 

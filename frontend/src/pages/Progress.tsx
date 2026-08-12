@@ -408,8 +408,7 @@ export default function Progress() {
   useEffect(() => {
     let alive = true;
     // Each section renders off its OWN endpoint (see below), so fetch them independently: a single
-    // flaky call must degrade only its own section, not blank the whole dashboard. The error banner
-    // shows only if EVERY endpoint failed.
+    // flaky call must degrade only its own section, not blank the whole dashboard.
     Promise.allSettled([api.progress(), api.review(), api.reflections(), api.paths()])
       .then(([p, r, refl, pa]) => {
         if (!alive) return;
@@ -419,8 +418,20 @@ export default function Progress() {
         // Paths is supplementary (the coverage + confidence axes) — a failure degrades to an empty
         // list so the band/rows just hide; it never blanks the page or trips the error banner.
         setPaths(pa.status === "fulfilled" ? pa.value.items : []);
-        if (p.status === "rejected" && r.status === "rejected" && refl.status === "rejected") {
-          setError((p.reason instanceof Error && p.reason.message) || "Failed to load progress");
+        // Bug #11: the banner used to need all three core calls to reject, but /progress rejecting
+        // ALONE was the one failure the body couldn't render around — so its own rejection is what
+        // the banner tracks. When the other sections did load, say so, or the banner overstates a
+        // partial outage as a total one.
+        if (p.status === "rejected") {
+          const detail =
+            (p.reason instanceof Error && p.reason.message) || "Failed to load progress";
+          const survived =
+            (r.status === "fulfilled" && r.value.has_data) ||
+            (refl.status === "fulfilled" && refl.value.has_data) ||
+            (pa.status === "fulfilled" && pa.value.items.length > 0);
+          setError(
+            survived ? `${detail} — the other sections below still loaded.` : detail,
+          );
         }
       })
       .finally(() => alive && setLoading(false));
@@ -481,7 +492,9 @@ export default function Progress() {
         </div>
       )}
 
-      {data && !hasAnything && (
+      {/* Only once the fetch has settled, and never on top of the error banner — with a failed
+          endpoint "no attempts yet" is a claim the page can't actually make. */}
+      {!loading && !hasAnything && !error && (
         <Banner tone="info" title="No attempts yet">
           Take a quiz from any topic to start building your score history.{" "}
           <Link to="/learning" className="font-medium underline">
@@ -490,10 +503,14 @@ export default function Progress() {
         </Banner>
       )}
 
-      {data && hasAnything && (
+      {/* Bug #11: gated on hasAnything, NOT on `data` — /progress is one of four calls, and its
+          rejection must cost only the sections that read from it. Each data-dependent block
+          null-guards itself below. */}
+      {hasAnything && (
         <div className="space-y-8">
-          {/* The three-axis headline (M8 #13): recall trend + honest coverage/confidence readouts */}
-          {showAxes && (
+          {/* The three-axis headline (M8 #13): recall trend + honest coverage/confidence readouts.
+              The only block that genuinely needs /progress — recall IS the attempt trend. */}
+          {showAxes && data && (
             <ThreeAxisBand
               data={data}
               coveragePct={coveragePct}
@@ -510,7 +527,7 @@ export default function Progress() {
           <ReviewNext review={review} />
 
           {/* Summary band — quiz-attempt stats; only meaningful once a quiz has been graded */}
-          {data.has_data && (
+          {data && data.has_data && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <Stat label="Attempts" value={String(data.summary.attempts_total)} />
               <Stat label="Avg score" value={`${Math.round(data.summary.avg_pct)}%`} />
@@ -526,7 +543,7 @@ export default function Progress() {
 
           {/* Activity strip — driven by activity rows (reflections/listens too), so show it
               whenever there's any activity, not only after a quiz is graded */}
-          {hasActivity && (
+          {data && hasActivity && (
             <section>
               <h2 className="mb-2 text-sm font-semibold text-ink">Recent activity</h2>
               <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
@@ -537,7 +554,7 @@ export default function Progress() {
           )}
 
           {/* Per-topic trends — quiz-attempt data */}
-          {data.has_data && (
+          {data && data.has_data && (
             <section>
               <h2 className="mb-2 text-sm font-semibold text-ink">By topic</h2>
               <div className="space-y-3">
@@ -549,7 +566,7 @@ export default function Progress() {
           )}
 
           {/* Shaky spots */}
-          {data.shaky.length > 0 && (
+          {data && data.shaky.length > 0 && (
             <section>
               <h2 className="mb-2 text-sm font-semibold text-ink">Shaky spots</h2>
               <p className="mb-3 text-xs text-muted">
