@@ -1065,7 +1065,7 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Acceptance:** Make `_local_window` hour-24-safe (`day.replace(hour=0,minute=0,second=0,microsecond=0) + timedelta(hours=hour)`), mirroring `_events_in_window`; add a regression test at hour=24 and a repair path for already-persisted 23/24 prefs. Regression test first.
 - **Size:** S
 - **Added:** 2026-08-12
-- _✅ fixed 2026-08-12 (PR #185, RED→green): `_local_window` now offsets from local midnight (`+ timedelta(hours=hour)`), honouring the exclusive 1..24 domain its callers already clamp to; identical to `replace(hour=…)` for 0..23 across both 2026 DST transitions (168/168 combos). No separate repair path: once 24 plans, a persisted 23/24 is a legitimate 11pm–midnight window, not poison — pinned by a router test that re-proposes with an empty body against the stored prefs._
+- _✅ fixed 2026-08-12 (PR #185, RED→green): `_local_window` now offsets from local midnight (`+ timedelta(hours=hour)`), honouring the exclusive 1..24 domain its callers already clamp to; equivalent to `replace(hour=…)` for 0..23 on `fold=0` anchors across both 2026 DST transitions — not unconditionally (`+ timedelta` resets `fold`, `replace` preserves it, so ambiguous-hour anchors land 3600s apart), but inert here: every `d >= 1` is already `fold`-reset and the one `d == 0` divergence is dominated by `eff_start`. No separate repair path: once 24 plans, a persisted 23/24 is a legitimate 11pm–midnight window, not poison — pinned by a router test that re-proposes with an empty body against the stored prefs._
 
 #### [Bug] #2: ✨ Generate silently overwrites an existing hand-authored path sidecar — no guard, no backup
 - **Where:** `backend/app/api/paths.py:198-241` · severity medium · confidence high
