@@ -1220,6 +1220,42 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Size:** S
 - **Added:** 2026-08-12
 
+### Review follow-ups — 2026-08-13 (PR #186 adversarial review · 4 open)
+
+_Nice-to-have findings from the pre-merge loop on PR #186 (08-12 hunt bug #2). Graded not-blocking by
+the reviewer and deliberately not fixed in that PR — the loop forbids auto-fixing nice-to-haves.
+Numbered by **PR + finding** (`#186-F3`), not by a bare integer, so these never collide with the three
+hunts' `#2`/`#3`/… the way those already collide with each other. Full text in the review mailbox:
+`~/.claude/reviews/home-base/2026-08-13-fix-paths-generate-overwrite.md`._
+
+#### [Review] #186-F6: The 422 path-error copy prints the server's absolute filesystem path, and its test asserts a string the server never emits
+- **Where:** `frontend/src/components/NotebookCard.tsx:62` · `frontend/src/components/NotebookCard.test.tsx:109-111` (with `backend/app/paths/manifest.py:151`, `backend/app/api/paths.py:52`) · severity nice-to-have · confidence high
+- **Why:** The card interpolates the server's `detail` verbatim, and that detail is built from `source=str(file)` — an **absolute** path. The string that actually ships is ~190 chars, says "malformed" twice, and pastes `/Users/kyledisch/…/backend/data/paths/<uuid>.json` into a tailnet-reachable card. Low stakes for a single-user tailnet deployment (the path is arguably the useful part — it's the file to open), but the sharper half is that the test fixture invents a **shorter** message with no path prefix, so the rendered string was verified by nobody. Same class as the F2 finding in that same review: a test that passes without pinning the real thing.
+- **Acceptance:** Decide the copy deliberately — render the basename (strip in the card, or have `_load_or_404` report `file.name`) **or** keep the full path — and either way make the test fixture one of the two real `detail` strings, copied verbatim from the server. Drop the redundant `malformed path: ` prefix from the interpolation while there.
+- **Size:** S
+- **Added:** 2026-08-13
+
+#### [Review] #186-F3: The path `.bak` is a single slot — a second confirmed replace destroys the file the backup exists to save
+- **Where:** `backend/app/paths/manifest.py:187-188` · severity nice-to-have · confidence high
+- **Why:** `shutil.copy2(dest, base / f"{notebook_id}.json.bak")` overwrites the previous backup unconditionally. Two `replace=true` generations in a row and the `.bak` holds *the first generated path*, while the 37-step hand-authored sidecar it was meant to preserve is gone with no copy anywhere (`backend/data/paths/` is gitignored). Narrow today — nothing sends `replace=true` at all — but the escape hatch is exactly one keystroke deep, and `write_path_file`'s docstring ("the mechanism keeps the escape hatch") reads stronger than what the code guarantees.
+- **Acceptance:** Don't clobber an existing `.bak` — timestamp the backup, or skip the copy when one already exists — or soften the docstring to promise only the most recent replacement. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-13
+
+#### [Review] #186-F4: A failed `.bak` copy loses a finished, paid generation as a 500 the endpoint's docstring says can't happen
+- **Where:** `backend/app/paths/manifest.py:187-188`, reached from `backend/app/api/paths.py:259` · severity nice-to-have · confidence high
+- **Why:** The copy sits *after* a successful `compose_path` (~1–3 min and real spend) and *before* `os.replace`, inside the try that re-raises. Any failure writing the `.bak` — an unwritable existing `.bak`, a permissions/ENOSPC hiccup — aborts a composition that was already validated and paid for, surfacing as an uncaught 500 against the endpoint's advertised "never a 500 … calm `ok=False`" posture. The success ledger row is already written, so `paths-generate.jsonl` reads as a clean run while the caller got a 500 and nothing landed on disk. The trade itself (abort rather than destroy) is deliberate and stands; the honesty gap is the finding.
+- **Acceptance:** Return `ok=False` with a specific error on a failed backup (the composition is still in `result["raw"]`) instead of letting it 500 — or, at minimum, make the endpoint docstring acknowledge the write path. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-13
+
+#### [Review] #186-F5: The 409's message tells the caller to pass a param no client can send
+- **Where:** `backend/app/api/paths.py:222-229` · severity nice-to-have · confidence high
+- **Why:** The detail reads "… retry with replace=true to confirm", and `onGenerate`'s catch renders `(e as Error).message` straight into the card — but `client.ts`'s `generatePath` posts no query string, so a human who ever sees this is told to do something the UI cannot do. Worth pairing with the reviewer's other observation, recorded so nobody over-credits the guard: the 409 is **unreachable from the UI by construction** — `NoPathState` renders only when `api.path()` resolved null, which is only a 404, which is exactly when the guard cannot fire. All UI-side protection comes from the card's `pathFailed` branch; the 409 is API-only defense-in-depth.
+- **Acceptance:** Phrase the detail for whoever can act on it ("This topic already has a learning path; regenerating replaces it.") and leave the `replace=true` mechanics to the docstring/API docs. If a UI-reachable confirmed replace is ever wanted, that is its own item, not this one.
+- **Size:** S
+- **Added:** 2026-08-13
+
 ## Parked / Retired
 
 _Items removed from the active queue with a dated reason. Nothing is deleted — the record above
