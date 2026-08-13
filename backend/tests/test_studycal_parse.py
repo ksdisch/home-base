@@ -77,7 +77,9 @@ def test_exclusion_trigger_words_do_not_misfire_on_time_phrases() -> None:
     assert parse_preference("no earlier than 2:00 p.m.", None) == {"day_start_hour": 14}
     assert parse_preference("no later than 5 p.m.", None) == {"day_end_hour": 17}
     assert parse_preference("no more than 2 blocks", None) == {"max_blocks": 2}
-    assert "days_of_week" not in parse_preference("not before 2pm", None)
+    # Tightened: this asserted only that no DAY override leaked out, which left the spurious
+    # `day_end_hour` the end pass used to read back out of this very phrase unguarded.
+    assert parse_preference("not before 2pm", None) == {"day_start_hour": 14}
 
 
 # -- time-of-day window --------------------------------------------------------
@@ -87,6 +89,45 @@ def test_before_and_after() -> None:
     assert parse_preference("after 9am", None) == {"day_start_hour": 9}
     assert parse_preference("no later than 5 p.m.", None) == {"day_end_hour": 17}
     assert parse_preference("no earlier than 2:00 p.m.", None) == {"day_start_hour": 14}
+
+
+def test_a_negated_after_bounds_the_end_instead_of_starting_there() -> None:
+    # A negated "after" names the hours to AVOID. The start trigger guarded it with two literal
+    # lookbehinds — ``(?<!not )(?<!no )`` — which can only see the word immediately before it, so
+    # every other negation read as a START and scheduled precisely the band the note ruled out.
+    assert parse_preference("nothing after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("never after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("none after 3pm", None) == {"day_end_hour": 15}
+    # …including the form with a noun between the negation and the trigger.
+    assert parse_preference("no sessions after 3pm", None) == {"day_end_hour": 15}
+    # The one spelling the old lookbehinds did catch keeps its meaning.
+    assert parse_preference("not after 3pm", None) == {"day_end_hour": 15}
+    # And an unnegated "after" is still a start bound — the guard must not swallow the plain form.
+    assert parse_preference("after 3pm", None) == {"day_start_hour": 15}
+
+
+def test_a_negated_start_phrase_is_not_re_read_as_an_end() -> None:
+    # The end trigger carries a bare ``before``/``until`` and its search ran over the untouched
+    # text, so it fired INSIDE the start phrase it had already been matched by — collapsing the
+    # whole day to a single hour ("not before 2pm" -> 14:00–14:00).
+    assert parse_preference("not before 2pm", None) == {"day_start_hour": 14}
+    assert parse_preference("not until 3pm", None) == {"day_start_hour": 15}
+    assert parse_preference("nothing before 2pm", None) == {"day_start_hour": 14}
+    assert parse_preference("no blocks until 10am", None) == {"day_start_hour": 10}
+    # A named window supplies the end; the negated start must refine it, not destroy it.
+    assert parse_preference("evenings but not before 7pm", None) == {
+        "day_start_hour": 19,
+        "day_end_hour": 21,
+    }
+
+
+def test_both_bounds_can_be_stated_negatively_in_one_note() -> None:
+    # The realistic phrasing: both edges named by what they exclude, in one sentence.
+    assert parse_preference("weekdays, nothing before 9am and nothing after 3pm", None) == {
+        "days_of_week": [0, 1, 2, 3, 4],
+        "day_start_hour": 9,
+        "day_end_hour": 15,
+    }
 
 
 def test_ranges() -> None:

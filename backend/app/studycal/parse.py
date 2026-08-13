@@ -59,8 +59,29 @@ _DAY_SPLIT_RE = re.compile(_DAY_CONN, re.I)
 _MER = r"[ap]\.?\s*m\.?"
 _TIME = r"(\d{1,2})(?::(\d{2}))?\s*(" + _MER + r")"  # meridiem required (avoids ambiguous bare hours)
 
-_START_TRIG = r"(?:no earlier than|not before|not until|starting at|start at|beginning at|begin at|(?<!not )(?<!no )after|from)"
-_END_TRIG = r"(?:no later than|not after|ending at|end at|before|by|until|til|till)"
+_START_TRIG = r"(?:no earlier than|starting at|start at|beginning at|begin at|after|from)"
+_END_TRIG = r"(?:no later than|ending at|end at|before|by|until|til|till)"
+
+# A negated bound names the hours to AVOID, so it sets the OPPOSITE edge: "nothing after 3pm"
+# closes the day at 3, "not before 2pm" opens it at 2. The negation and the trigger it flips are
+# often separated by a noun ("no sessions after 3pm"), which a lookbehind can't express — Python's
+# `re` requires them fixed-width, and the two literal ones this replaces ((?<!not )(?<!no )) saw
+# only the word immediately before `after`, so every other negation read as a start.
+_NEG = r"\b(?:nothing|never|none|not|no)\b"
+_NEG_GAP = r"(?:\s+\w+){0,2}\s+"
+_NEG_END_TRIG = _NEG + _NEG_GAP + r"after"
+_NEG_START_TRIG = _NEG + _NEG_GAP + r"(?:before|until|till|til)"
+
+# Scan order. The negated forms go first because each one's own trigger word belongs to the OTHER
+# direction — "nothing after 3pm" carries the start pattern's `after`, "not before 2pm" carries the
+# end pattern's `before` — so whichever runs second would otherwise fire a second time inside the
+# phrase the first already consumed.
+_WINDOW_SCANS = (
+    ("day_end_hour", _NEG_END_TRIG),
+    ("day_start_hour", _NEG_START_TRIG),
+    ("day_start_hour", _START_TRIG),
+    ("day_end_hour", _END_TRIG),
+)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -177,12 +198,20 @@ def _parse_window(t: str) -> Dict[str, int]:
                 start = alt
         out["day_start_hour"], out["day_end_hour"] = start, end
 
-    ms = re.search(_START_TRIG + r"\s+" + _TIME, t, re.I)
-    if ms:
-        out["day_start_hour"] = _hour(ms.group(1), ms.group(3))
-    me = re.search(_END_TRIG + r"\s+" + _TIME, t, re.I)
-    if me:
-        out["day_end_hour"] = _hour(me.group(1), me.group(3))
+    # Each accepted match is blanked out of the working copy before the next search — the same
+    # trick `_parse_days` uses for exclusion spans — so one phrase can never satisfy two triggers.
+    # Blanking keeps the string length, so offsets stay comparable across scans: for a given edge,
+    # the leftmost match in the note wins, which is what the single searches this replaces did.
+    work = t
+    seen: Dict[str, int] = {}
+    for key, trig in _WINDOW_SCANS:
+        m = re.search(trig + r"\s+" + _TIME, work, re.I)
+        if m is None:
+            continue
+        if key not in seen or m.start() < seen[key]:
+            seen[key] = m.start()
+            out[key] = _hour(m.group(1), m.group(3))
+        work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
     return out
 
 

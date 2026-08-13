@@ -529,6 +529,26 @@ def test_note_refines_the_sent_controls(env):
         _teardown(app)
 
 
+def test_a_negated_time_note_does_not_schedule_the_hours_it_rules_out(env):
+    # "nothing after 3pm" used to parse as a 3pm START, so the proposal — and the prefs persisted
+    # ahead of it — landed on precisely the band the note ruled out, and every later visit
+    # hydrated to that inverted reading.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing after 3pm", "day_start_hour": 9, "day_end_hour": 17},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9  # the control holds — the note names only the end
+        assert applied["day_end_hour"] == 15
+        assert _starts(body)  # the window is real, not an empty plan that trivially passes
+        for s in _starts(body):
+            assert s.hour < 15
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
