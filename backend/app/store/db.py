@@ -303,13 +303,28 @@ def brief_habit_weeks(
     replacing it. Changing which one certifies v1 is Kyle's call, not this function's
     (docs/ideas/builder-vs-reader-metric.md); pre-v14 rows have no source and so count
     toward ``mornings`` only.
+
+    ``attributed`` says whether that zero means anything, per week — True once ANY of the
+    week's rows carries a non-NULL source. Without it a week of pre-v14 rows is
+    indistinguishable from a measured zero, and the strip renders '5m / 0p' for a week
+    phone reads were never observable. Same gate, same reason as
+    :func:`app.mirror.build_mirror`'s window-level flag (see
+    :func:`list_brief_visit_day_sources`); the distinction is live, not hypothetical —
+    July's weeks are all-NULL while 08-03 is attributed with genuinely no phone reads. A
+    week with no rows at all is unattributed: nothing measured it either.
     """
     weeks = max(1, min(12, int(weeks)))
     now_dt = now or datetime.now().astimezone()
     this_monday = now_dt.date() - timedelta(days=now_dt.date().weekday())
     starts = [this_monday - timedelta(weeks=w) for w in range(weeks - 1, -1, -1)]
     slots: Dict[date, Dict[str, Any]] = {
-        s: {"week_start": s.isoformat(), "mornings": 0, "mornings_phone": 0, "notes": 0}
+        s: {
+            "week_start": s.isoformat(),
+            "mornings": 0,
+            "mornings_phone": 0,
+            "attributed": False,
+            "notes": 0,
+        }
         for s in starts
     }
 
@@ -324,6 +339,9 @@ def brief_habit_weeks(
     # arrives twice — the day sets keep both counts "distinct DAYS", never distinct rows.
     week_days: Dict[date, set] = {s: set() for s in starts}
     phone_days: Dict[date, set] = {s: set() for s in starts}
+    # Whether the week has any attribution at all — tracked off the SAME rows as the two
+    # day sets, so a week can never report a phone count the sources don't back.
+    attributed_weeks: set = set()
     for r in visit_rows:
         try:
             d = date.fromisoformat(r["day"])
@@ -332,11 +350,14 @@ def brief_habit_weeks(
         monday = d - timedelta(days=d.weekday())
         if monday in slots:
             week_days[monday].add(d)
+            if r["source"] is not None:
+                attributed_weeks.add(monday)
             if r["source"] == PHONE:
                 phone_days[monday].add(d)
     for monday in starts:
         slots[monday]["mornings"] = len(week_days[monday])
         slots[monday]["mornings_phone"] = len(phone_days[monday])
+        slots[monday]["attributed"] = monday in attributed_weeks
     for r in note_rows:
         try:
             created = datetime.strptime(r["created_at"], "%Y-%m-%d %H:%M:%S")

@@ -1025,8 +1025,13 @@ export interface BriefHabitWeek {
   // v14 (docs/ideas/builder-vs-reader-metric.md): the same distinct-day count restricted to
   // tailnet-sourced visits, reported beside the raw one — never instead of it. Whether the
   // v1 criterion moves to this number is Kyle's call. Optional: pre-v14 cached payloads
-  // lack it, and July's rows have no source so they read 0 (unattributed, not zero-habit).
+  // lack it.
   mornings_phone?: number;
+  // Whether that count is a measurement: true once any of the week's visits carries a
+  // source. July's rows predate the source column, so they read 0 above — unattributed,
+  // not zero-habit. Optional for the same reason as mornings_phone, and its absence on an
+  // older cached payload reads as "unknown", which correctly hides the count.
+  attributed?: boolean;
   notes: number;
 }
 

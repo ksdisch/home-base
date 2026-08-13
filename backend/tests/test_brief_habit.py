@@ -65,19 +65,26 @@ def test_week_bucketing_distinct_days_and_window(tmp_path):
         "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13"
     ]  # oldest first, current week last
     # ``mornings_phone`` (v14) is 0 throughout: _seed writes no source, exactly like every
-    # row logged before attribution shipped. Unattributed, not "never read on the phone".
+    # row logged before attribution shipped. ``attributed`` is what makes that 0 legible as
+    # "unattributed" rather than "never read on the phone" — the two are the same integer,
+    # so the flag is the only thing that can tell a reader which one this is.
     assert weeks[3] == {
-        "week_start": "2026-07-13", "mornings": 3, "mornings_phone": 0, "notes": 2
+        "week_start": "2026-07-13", "mornings": 3, "mornings_phone": 0,
+        "attributed": False, "notes": 2
     }
     assert weeks[2] == {
-        "week_start": "2026-07-06", "mornings": 2, "mornings_phone": 0, "notes": 1
+        "week_start": "2026-07-06", "mornings": 2, "mornings_phone": 0,
+        "attributed": False, "notes": 1
     }
     # Empty weeks are zero-filled, present, and untouched by the out-of-window 06-01 visit.
+    # They are unattributed too: no rows measured them either way.
     assert weeks[0] == {
-        "week_start": "2026-06-22", "mornings": 0, "mornings_phone": 0, "notes": 0
+        "week_start": "2026-06-22", "mornings": 0, "mornings_phone": 0,
+        "attributed": False, "notes": 0
     }
     assert weeks[1] == {
-        "week_start": "2026-06-29", "mornings": 0, "mornings_phone": 0, "notes": 0
+        "week_start": "2026-06-29", "mornings": 0, "mornings_phone": 0,
+        "attributed": False, "notes": 0
     }
 
 
