@@ -1221,6 +1221,29 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Size:** S
 - **Added:** 2026-08-12
 
+### Review follow-ups — 2026-08-13 (PR #188 adversarial review · 2 open)
+
+_Nice-to-have findings from the pre-merge loop on PR #188 (08-12 hunt bug #3). Same numbering scheme
+as the #186 block below (`#188-F1` = PR + finding). That PR's third finding (`F3`, the "69-row ledger"
+misstatement) was **upgraded to should-fix by the judge and fixed before merge**, so it is not carried
+here. Full text in the review mailbox:
+`~/.claude/reviews/home-base/2026-08-13-fix-runs-summary-inflight-thin.md`._
+
+#### [Review] #188-F1: `thin` measures dollars as a proxy for completeness — and the proxy misses the day two-thirds of the roster never ran
+- **Where:** `backend/app/sweeps.py:845-856` · contract at `backend/app/models.py:1045-1047` · consumer at `frontend/src/components/SweepLedgerStrip.tsx:57` · severity nice-to-have · confidence high
+- **Why:** Two related gaps the reviewer raised as one finding. (a) Excluding `end` from judgment applies **all day**, not just while the sweep is in flight, so a sweep that half-fails at 06:10 is still unjudged at 22:00 — and `BriefRunDay` carries no `judged`/`pending` marker, so a client cannot distinguish *"today was measured and is fine"* from *"today was never measured"*; `thin: false` reads as the former. (b) The reviewer's corroboration: `2026-08-09` is 3 topics / $3.69 against a ~$9.87 norm and **neither the old nor the new code flags it**, because `$3.69 > 0.25 × $9.87`.
+  **Post-merge addendum (2026-08-13, from Kyle's roster-pause challenge — this supersedes the finding's own framing):** Kyle asked whether 08-09's low cost was just the off-season pause (`celtics` · `st-louis-blues` · `kansas-basketball`). Checked against the ledger: **the pause is real but lands between 08-11 and 08-12** (08-11 ran all 9 at $19.48; 08-12/08-13 ran exactly 6 at $9.73/$9.09), so it explains those days, **not** 08-09 — which ran `st-louis-blues` while it was still active, at catch-up hours (22:38Z, then 05:43Z next day, vs 11:03–11:46Z on every healthy day), after 08-07 and 08-08 left no rows at all. **But the challenge exposed that "thin" is the wrong word for it:** 08-09's cost *per topic* is **$1.23**, against a $1.51 median and statistically identical to 08-06's **$1.24** on a complete 9-topic day. The three topics that ran on 08-09 ran **normally**; the pathology is that **six of nine never ran**. Cost is a lossy proxy for completeness in both directions — it misses a two-thirds outage, and it would misread a deliberate roster cut as degradation. `topics` is **already in the payload**, so this needs no roster coupling at all (which also dissolves the pause-flag objection raised during triage — per-topic cost is immune to roster size by construction). Not currently mis-firing: post-pause 6-topic days cost ~$9–10 against a $3.97 threshold at `days=14`. One concrete win already banked from #188's median change — 08-09 **is** now flagged at `days=14` ($3.69 < $3.97) where the old code missed it ($3.38); it still escapes at the strip's default `days=7`.
+- **Acceptance:** Judge completeness on `topics` rather than (or alongside) raw cost — e.g. flag a day whose distinct-topic count falls far under the window's modal count, and/or normalize the cost comparison to **cost per topic** so a roster change can never read as degradation. Add an explicit `judged`/`pending` field to `BriefRunDay` so the strip can say "today not judged yet" instead of implying "measured and fine". Regression test first; pin the 08-09 shape (3 topics at a normal per-topic cost) as the case the current flag misses.
+- **Size:** M
+- **Added:** 2026-08-13
+
+#### [Review] #188-F2: `missing_days` has the exact defect PR #188 fixed — the strip cries "no sweep: <today>" every morning before ~06:04
+- **Where:** `backend/app/sweeps.py:865` (`"missing_days": sum(1 for d in entries if not d["ran"])`) · rendered at `frontend/src/components/SweepLedgerStrip.tsx:59` · severity nice-to-have · confidence high
+- **Why:** `entries` includes `end`, and `ran` is `False` for any day with zero ledger rows — so between local midnight and the first topic's row (`sweep.sh` fires 06:00 CT; the live first row lands ~06:03) Today renders an amber `no sweep: <today>`. That is the same "judge a day that hasn't finished — here, hasn't started — against a finished day's standard" defect PR #188 fixed for `thin`, left in place on the sibling signal. **Pre-existing**, not introduced by #188, and deliberately out of that PR's acceptance (which named `thin` and the median only). Raised because #188's new `models.py` docstring now asserts the current day is "reported but not judged", which `missing_days`/`ran: false` contradicts — and `models.py:1042-1043` still says *"`ran: False` is how a missing morning stays visible"*, which for `end` means "hasn't happened yet", not "was missed".
+- **Acceptance:** Exclude `end` from `missing_days` the same way it is now excluded from `judged`, or give the strip a way to render today's absence as "hasn't run yet" rather than amber "no sweep". Reconcile the `models.py` wording either way. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-13
+
 ### Review follow-ups — 2026-08-13 (PR #186 adversarial review · 4 open)
 
 _Nice-to-have findings from the pre-merge loop on PR #186 (08-12 hunt bug #2). Graded not-blocking by
