@@ -322,6 +322,46 @@ def test_habit_weeks_reports_phone_days_beside_the_raw_count(tmp_path):
     assert [w["mornings"] for w in weeks] == [0, 0, 2, 4]
     # …and the honest number rides beside it.
     assert [w["mornings_phone"] for w in weeks] == [0, 0, 0, 2]
+    # Both populated weeks carry a non-NULL source somewhere (DEV counts), so both zeros
+    # above are measurements. The two empty weeks measured nothing and say so.
+    assert [w["attributed"] for w in weeks] == [False, False, True, True]
+
+
+def test_habit_weeks_gates_the_phone_count_on_per_week_attribution(tmp_path):
+    """A week of pre-v14 rows must not be reported as a measured zero (the live shape).
+
+    ``brief_visits.source`` arrived in v14, so July's rows are all NULL. Reporting
+    ``mornings_phone: 0`` for such a week beside ``mornings: 5`` renders '5m / 0p' — the
+    same fabricated accusation ``mirror.py`` refuses to make in its sentence. The
+    distinction is per-week and real: on the live store the 07-20 week is all-NULL (a
+    false zero) while the 08-03 week is attributed with genuinely no phone reads (a true
+    zero), and only the first must lose the phone clause.
+    """
+    db = tmp_path / "habit.sqlite"
+    init_db(db)
+    _seed(
+        db,
+        [
+            # Last week (Mon 07-06): pre-v14 rows, every source NULL — unattributed.
+            ("2026-07-06", None),
+            ("2026-07-07", None),
+            ("2026-07-08", None),
+            # This week (Mon 07-13): attribution running, and it really was all Mac.
+            ("2026-07-13", MAC_LOCALHOST),
+            ("2026-07-14", MAC_LOCALHOST),
+        ],
+    )
+    weeks = brief_habit_weeks(4, now=NOW, db_path=db)
+    unattributed, measured = weeks[2], weeks[3]
+    assert unattributed["week_start"] == "2026-07-06"
+    assert measured["week_start"] == "2026-07-13"
+    # The raw count is untouched in both — attribution never moves the v1 criterion.
+    assert (unattributed["mornings"], measured["mornings"]) == (3, 2)
+    # Same 0, opposite epistemics: one is "not measured", the other is "measured, zero".
+    assert unattributed["mornings_phone"] == 0
+    assert unattributed["attributed"] is False
+    assert measured["mornings_phone"] == 0
+    assert measured["attributed"] is True
 
 
 def test_habit_weeks_tolerates_malformed_rows(tmp_path):

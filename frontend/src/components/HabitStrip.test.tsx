@@ -111,7 +111,13 @@ describe("HabitStrip phone attribution — reported beside the raw count, never 
     mornings_phone: number,
     notes: number,
   ): BriefHabitWeek {
-    return { week_start, mornings, mornings_phone, notes };
+    // Attributed by default — these cases are all about a week whose rows carry a source.
+    // The unattributed shape gets its own factory below.
+    return { week_start, mornings, mornings_phone, notes, attributed: true };
+  }
+  // A week of pre-v14 rows: the count is still 0, but nothing measured it.
+  function wku(week_start: string, mornings: number, notes: number): BriefHabitWeek {
+    return { week_start, mornings, mornings_phone: 0, notes, attributed: false };
   }
 
   it("renders the phone-sourced count beside the raw one", async () => {
@@ -140,6 +146,30 @@ describe("HabitStrip phone attribution — reported beside the raw count, never 
     expect(container.textContent).toContain("(1 on phone)");
     // the accent (target hit) is bound to the raw fraction, not the phone count
     expect(container.querySelector(".text-accent")?.textContent).toContain("mornings");
+  });
+
+  it("omits the phone count on an UNATTRIBUTED week — a 0 nothing measured is not a 0", async () => {
+    // The live July shape: 5 raw mornings, every brief_visits row predating the v14 source
+    // column. Rendering "(0 on phone)" here accuses Kyle of never reading on his phone
+    // during a week phone reads were not measurable — mirror.py refuses the same claim.
+    briefHabit.mockResolvedValue(resp([wkp("2026-06-29", 4, 2, 1), wku("2026-07-06", 5, 1)]));
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("5 of 5 mornings ✓");
+    expect(container.textContent).not.toContain("on phone");
+    // …while the attributed prior week keeps its p, so the fade signal stays visible.
+    expect(container.textContent).toContain("4m / 2p / 1n");
+  });
+
+  it("drops only the unattributed week's p from the history, never the measured zeros", async () => {
+    briefHabit.mockResolvedValue(
+      resp([wku("2026-06-29", 5, 1), wkp("2026-07-06", 2, 0, 1), wkp("2026-07-13", 3, 1, 1)]),
+    );
+    const { container } = render(<HabitStrip />);
+    await screen.findByText(/Habit check/);
+    expect(container.textContent).toContain("5m / 1n"); // unattributed: no p at all
+    expect(container.textContent).not.toContain("5m / 0p");
+    expect(container.textContent).toContain("2m / 0p / 1n"); // measured zero survives
   });
 
   it("omits the phone count entirely on a pre-v14 payload", async () => {
