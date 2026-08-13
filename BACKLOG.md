@@ -1153,8 +1153,8 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Size:** S
 - **Added:** 2026-08-12
 
-#### [Bug] #14: Archive audio hidden by one transient load error has no in-place retry — the #22 retryKey fix was never wired
-- **Refers to:** the 2026-07-26 hunt's fixed #22 (audioBroken latching), not this hunt's #22. to the archive surface
+#### [Bug] #14: Archive audio hidden by one transient load error has no in-place retry — the #22 retryKey fix was never wired to the archive surface
+- **Refers to:** the 2026-07-26 hunt's fixed #22 (audioBroken latching), not this hunt's #22.
 - **Where:** `frontend/src/pages/BriefArchive.tsx:97-107` · severity low · confidence high
 - **Why:** Confirmed by reading both call sites: BriefShell passes `retryKey={netLoads}`, BriefArchive passes none — so on an archived day a single `onError` sets `broken`, the card returns null, and player/speed/chapter chips all vanish with no message while the index's `has_audio` marker still advertises audio. The verifier DISPROVED the finder's headline ('can never come back'): a…
 - **Acceptance:** Bump a local `retry` state on a successful `briefByDate` resolve (or behind a manual 'try again' affordance) and pass it through as `retryKey`. Regression test first.
