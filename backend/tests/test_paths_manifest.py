@@ -140,4 +140,9 @@ def test_a_backup_is_not_discovered_as_a_path(tmp_path: Path, monkeypatch) -> No
     _write(tmp_path, "nb-9", _good())
     manifest.write_path_file("nb-9", _good())
     assert (tmp_path / "nb-9.json.bak").is_file()
-    assert [i for i in manifest.list_path_ids() if "bak" in i] == []
+    # Assert the exact leaked id, not a substring: a backup enters the union as ``nb-9.json`` (the
+    # stem of ``nb-9.json.bak``), which contains neither "bak" nor anything else worth grepping for.
+    # (``list_path_ids`` also carries the bundled example, so this can't assert the whole set.)
+    ids = manifest.list_path_ids()
+    assert "nb-9" in ids and "nb-9.json" not in ids
+    assert manifest.path_file("nb-9.json") is None

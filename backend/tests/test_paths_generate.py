@@ -389,15 +389,19 @@ def test_generate_with_replace_true_overwrites_but_leaves_a_backup(env):
         app.dependency_overrides.clear()
 
 
-def test_a_backup_is_never_served_as_a_path(env):
-    """The .bak must be inert — a GET after a confirmed replace returns the NEW path, never the
-    backup (``_path_files`` globs ``*.json``, so this pins that the .bak stays out of the union)."""
+def test_a_backup_never_becomes_a_path_of_its_own(env):
+    """The .bak lands in PATHS_DIR, so the LIST route is where it could surface as a bogus topic —
+    ``GET /api/paths/{id}`` cannot see it either way (``<id>.json.bak``'s stem is ``<id>.json``, a
+    different key), so asserting there would prove nothing. Assert on the listing instead: after a
+    confirmed replace, exactly one entry for this topic and no id carrying a file extension."""
     _seed_existing(env)
     client, app = _client(_fake_runner())
     try:
         client.post(f"/api/paths/{NB_ID}/generate?replace=true")
-        body = client.get(f"/api/paths/{NB_ID}").json()
-        assert [s["id"] for s in body["steps"]] != ["h1", "h2"]
-        assert body["notebook_id"] == NB_ID
+        assert (_paths_file(env).with_name(f"{NB_ID}.json.bak")).is_file()  # the .bak really is there
+
+        ids = [p["notebook_id"] for p in client.get("/api/paths").json()["items"]]
+        assert ids.count(NB_ID) == 1
+        assert [i for i in ids if ".json" in i or i.endswith(".bak")] == []
     finally:
         app.dependency_overrides.clear()

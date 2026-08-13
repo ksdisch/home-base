@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
+import type { ApiError } from "../api/client";
 import type { NotebookCard as Card, PathResponse } from "../api/types";
 import { clampPct, confidenceDots, countSummary } from "../lib/format";
 import { Badge } from "./Badge";
@@ -34,7 +35,7 @@ export function NotebookCard({ card }: { card: Card }) {
   const [pathLoading, setPathLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
-  const [pathFailed, setPathFailed] = useState(false);
+  const [pathFailed, setPathFailed] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -44,15 +45,23 @@ export function NotebookCard({ card }: { card: Card }) {
       .then((p) => {
         if (!alive) return;
         setPath(p);
-        setPathFailed(false);
+        setPathFailed(null);
       })
       // api.path() resolves null ONLY for a 404 and rethrows everything else, so "no path yet" and
       // "couldn't tell" stay distinct here: a hiccup must NOT render NoPathState, whose one control
-      // is a Generate that REPLACES an existing path (08-12 hunt #2).
-      .catch(() => {
+      // is a Generate that REPLACES an existing path (08-12 hunt #2). Keep the error rather than
+      // discarding it — a 422 (the file is on disk but unparseable) is PERMANENT and fixable by
+      // hand, so it must not be described as a blip that will clear itself. The type-only import
+      // means this reads `status` off the thrown value without a runtime dependency on the class.
+      .catch((e: unknown) => {
         if (!alive) return;
         setPath(null);
-        setPathFailed(true);
+        const status = (e as ApiError | undefined)?.status;
+        setPathFailed(
+          status === 422
+            ? `This topic's path file is malformed and needs a fix — ${(e as Error).message}`
+            : "Couldn't load this topic's path just now.",
+        );
       })
       .finally(() => alive && setPathLoading(false));
     return () => {
@@ -114,9 +123,7 @@ export function NotebookCard({ card }: { card: Card }) {
         ) : path ? (
           <PathState card={card} path={path} />
         ) : pathFailed ? (
-          <p className="mt-2 text-sm text-muted">
-            Couldn't load this topic's path just now.
-          </p>
+          <p className="mt-2 text-sm text-muted">{pathFailed}</p>
         ) : (
           <NoPathState onGenerate={onGenerate} generating={generating} error={genError} />
         )}

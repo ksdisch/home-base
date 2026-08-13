@@ -101,6 +101,22 @@ describe("NotebookCard — path entry + on-demand Generate (M8 #15)", () => {
     expect(generatePath).not.toHaveBeenCalled();
   });
 
+  // A 422 means the file IS on disk and unparseable — permanent and hand-fixable, not a blip. Saying
+  // "just now" about it would be the same class of surface PR #182 fixed (a stated guarantee the
+  // surface doesn't keep), so the copy has to distinguish it and carry the server's own detail.
+  it("names a malformed path file instead of calling it a passing hiccup", async () => {
+    const err = Object.assign(new Error("malformed path: step id 'x y' must be URL-safe"), {
+      status: 422,
+    });
+    path.mockRejectedValue(err);
+    renderCard();
+
+    expect(await screen.findByText(/malformed and needs a fix/)).toBeInTheDocument();
+    expect(screen.getByText(/must be URL-safe/)).toBeInTheDocument();
+    expect(screen.queryByText(/just now/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Generate path/ })).not.toBeInTheDocument();
+  });
+
   it("surfaces a calm error (no crash) when Generate comes back ok:false", async () => {
     path.mockResolvedValue(null);
     generatePath.mockResolvedValue({
