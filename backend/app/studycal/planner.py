@@ -71,8 +71,16 @@ def _pack(steps: Sequence[Mapping[str, Any]], session_minutes: int) -> List[List
 
 
 def _local_window(day: datetime, hour: int) -> datetime:
-    """The wall-clock ``hour`` on ``day`` (already tz-aware) — DST offset resolved by zoneinfo."""
-    return day.replace(hour=hour, minute=0, second=0, microsecond=0)
+    """The wall-clock ``hour`` on ``day`` (already tz-aware) — DST offset resolved by zoneinfo.
+
+    Offset from local midnight rather than ``replace(hour=...)`` because ``day_end_hour`` is an
+    **exclusive** end over 1..24: every caller clamps it to that range and the inverted-window repair
+    (``min(24, day_start_hour + 1)``) manufactures 24 outright, but ``replace`` only accepts 0..23 and
+    raised on the boundary. Hour 24 is "closes at local midnight" — the next day's 00:00. Same form
+    ``_events_in_window`` already uses, and identical to ``replace`` for 0..23 (wall-clock arithmetic,
+    DST transitions included).
+    """
+    return day.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=hour)
 
 
 def _earliest_slot(

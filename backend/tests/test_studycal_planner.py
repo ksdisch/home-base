@@ -289,3 +289,21 @@ def test_a_busy_boundary_block_still_serializes_in_ct_not_utc() -> None:
     )
     assert plan["blocks"][0]["start"] == "2026-07-22T18:15:00-05:00"
     assert plan["blocks"][0]["end"] == "2026-07-22T19:00:00-05:00"
+
+
+def test_a_window_that_closes_at_midnight_is_planned_not_crashed() -> None:
+    # ``day_end_hour`` is an exclusive end clamped to 1..24 by every caller (api/study.py's controls
+    # and _apply_overrides, negotiate.py's knobs), and the inverted-window repair
+    # ``min(24, day_start_hour + 1)`` manufactures 24 outright — so "closes at midnight" is a value
+    # the planner has to be able to represent, not raise on.
+    now = datetime(2026, 7, 22, 22, 0, tzinfo=CT)
+    plan = plan_sessions(
+        [_audio("ep1", 50)],
+        busy=[],
+        now=now,
+        config=PlanConfig(session_minutes=60, day_start_hour=23, day_end_hour=24),
+    )
+    # The 60-min block fills the one-hour window exactly, ending on the day boundary.
+    assert plan["blocks"][0]["start"] == "2026-07-22T23:00:00-05:00"
+    assert plan["blocks"][0]["end"] == "2026-07-23T00:00:00-05:00"
+    assert plan["unscheduled_step_ids"] == []
