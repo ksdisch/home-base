@@ -958,6 +958,266 @@ Premortem/Harden/Friction lanes, workflow `wf_fa5ba667-333`; see
 
 ---
 
+---
+
+_Backlog replenish 2026-08-12 (combined `/replenish` run — bug-hunt over the post-07-26 delta +
+Moonshot(tethered)/QuickWin/Harden lanes, workflows `wf_3d828030-c3a` / `wf_59086043-79c` /
+`wf_f7692307-766`; see [`docs/bug-hunt/2026-08-12-post-0726-delta.md`](docs/bug-hunt/2026-08-12-post-0726-delta.md)
+and `docs/ideas/`). Append-only. Bugs in report rank order._
+
+### Ideas — replenish 2026-08-12 (13 — one vision doc each · all open; the 4 Moonshots are captured under the lane freeze, build after the ~08-19 verdict)
+
+#### [Exploration] Talk Back — the morning brief becomes an interruptible conversation you have out loud
+- **Note:** Convergence: FOUR blind lenses (futurist · constraint-killer · first-principles · emotional-core) independently proposed this move — the strongest convergence of the run. Captured under the moonshot-lane freeze; build only after the ~08-19 verdict.
+- **Why:** **The bet:** Kyle already reacts out loud during the walk, and the reason those reactions never become notes or questions is *modality*, not absence of thought — so a microphone converts an existing behavior into the system's scarcest input. If that's true, the notes leg (3 lifetime vs ≥3/week — a ~15x gap no amount of UI polish closes)… See [`docs/ideas/talk-back.md`](docs/ideas/talk-back.md) for the full write-up.
+- **Acceptance:** Held behind the D7 moonshot freeze until the ~08-19 verdict; then prototype the wedge only as far as ONE real walk works end to end — `brief.segments.json` carrying measured (not estimated) offsets with item ids a backend test proves match `app.sweeps`, push-to-talk on the shell player, one question answered aloud that speaks its source,…
+- **Size:** L (Moonshot)
+- **Added:** 2026-08-12
+
+#### [Exploration] The Docket — retire topics, sweep open questions that can actually close
+- **Note:** Convergence: two blind lenses (contrarian's "terminal topics" · constraint-killer). Complementary to the open `roster-entropy` idea — that one detects a cold roster, this restructures its unit. Captured under the moonshot-lane freeze.
+- **Why:** The one thing that must be true: Kyle comes back to a morning brief more reliably when it shows visible motion toward closing questions he asked than when it reports accurate news about permanent subjects — that narrative motion, not coverage or even accuracy, is what sustains the habit. This is a direct challenge to the project's named… See [`docs/ideas/the-docket.md`](docs/ideas/the-docket.md) for the full write-up.
+- **Acceptance:** Prototype the wedge and judge the bet. Done means: the docket ran as a ninth roster slug through the unmodified `sweep.sh` loop for a fortnight of real 06:00 fires, writing `data/sweeps/<date>/docket.json` with a `resolution` on every item and at least one question actually closed with its evidence into the closed-questions archive; the…
+- **Size:** L (Moonshot)
+- **Added:** 2026-08-12
+
+#### [Exploration] The Retraction Ledger — the brief that grades what it got wrong, and lets that change tomorrow's sweep
+- **Note:** Captured under the moonshot-lane freeze; build only after the ~08-19 verdict.
+- **Why:** The one thing that must be true: a web-searching resolver can rule held / revised / wrong / unresolvable on Home Base's own archived claims accurately enough that Kyle believes the corrections — because a single false retraction costs more trust than the error it claims to fix, and the abstention rule that protects the sweeps… See [`docs/ideas/the-retraction-ledger.md`](docs/ideas/the-retraction-ledger.md) for the full write-up.
+- **Acceptance:** Prototype the wedge and judge the bet, not ship the feature. Build `sweeps/resolve_claims.py` and run it read-only over a hand-picked slice of the existing archive — including a control set of items already verified correct — writing to a scratch `claim-resolutions.jsonl` with no page surface, no `sweep.sh` chaining, and the…
+- **Size:** L (Moonshot)
+- **Added:** 2026-08-12
+
+#### [Exploration] The Belief Ledger — the brief becomes a diff against what Kyle already thinks is true
+- **Note:** The run's wildcard — the boldest gate-clearing survivor. Captured under the moonshot-lane freeze.
+- **Why:** The ONE thing that must be true: an LLM pass over an already-validated brief can produce a faithful, non-fabricating change-set against yesterday's standing claims — and reading three diffs at 06:00 leaves Kyle feeling more current than reading six items. If the diff is noisy, or every morning asserts fifteen brand-new claims because the… See [`docs/ideas/belief-ledger.md`](docs/ideas/belief-ledger.md) for the full write-up.
+- **Acceptance:** Prototype the wedge and judge the bet — do not commit to the full inversion up front. Shipped means: SCHEMA_VERSION 15 with `belief_events`, `sweeps/beliefs_pass.py` chained best-effort in `sweep.sh` for `ai-llms` only, `backend/app/beliefs.py` reducing live-only onto `BriefResponse` behind a flag, the accept/dispute verb wired on Today,…
+- **Size:** L (Moonshot)
+- **Added:** 2026-08-12
+
+#### [Improvement] Delivery receipt: prove the brief left the Mac
+- **Note:** Convergence: THREE blind lenses (almost-done · free-lunch · cheap-delight) proposed this move independently.
+- **Why:** The bet is that the amber clause stays rare enough to be believed. An honesty signal that cries wolf is worse than no signal — it launders the silence it was built to break — so three things must hold at once, and each is a real design call, not a default: (1) **last-row-wins per `(date, channel)`**, because the live ledger right now has… See [`docs/ideas/delivery-receipt-strip.md`](docs/ideas/delivery-receipt-strip.md) for the full write-up.
+- **Acceptance:** `GET /api/brief/runs/summary` returns a `delivery` block and `SweepLedgerStrip` renders a `data-testid="sweep-delivery-line"` clause. Confirm it landed with four backend tests in `backend/tests/test_brief_runs.py`: (a) two `email` rows on one day where an `ok:false` is followed by an `ok:true` reads as delivered — last-row-wins, no false…
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Improvement] Item-level anchors — every pointer that already carries an item_id can finally land on it
+- **Note:** Convergence: two blind lenses (force-multiplier · almost-done's email deep-link, folded in as the first consumer).
+- **Why:** The ONE thing that must be true: item ids are already carried end-to-end to every surface that would deep-link, so the whole feature is an `id=` attribute plus a scroll hook — no new state, no schema, no API change, no LLM. Verified true at HEAD d447174: `BriefNote.item_id` (models.py:752) reaches `Notes.tsx:133`, archive-search hits… See [`docs/ideas/item-level-anchors.md`](docs/ideas/item-level-anchors.md) for the full write-up.
+- **Acceptance:** Sitting 1 landed when: (a) the item `<article>` at `frontend/src/pages/Brief.tsx:334` renders `id="item-<item.id>"` with `scroll-mt-24`; (b) a shared `useHashTarget` hook runs post-load on both `Brief.tsx` and `BriefArchive.tsx`; (c) `Notes.tsx:133` and `BriefIndex.tsx:113` emit `/brief/<date>#item-<id>` (falling back to the bare day URL…
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Improvement] Listening counts as a morning
+- **Note:** Pairs with `uncounted-morning-visit-replay` (Harden): same certifying metric, different hole — audio-link mornings vs offline app reads.
+- **Why:** The bet: the tap-to-play link is a real morning path Kyle actually uses, and counting it is a measurement fix rather than metric-gaming six days before the verdict. A veteran of this project reacts to the second half — "you are widening the number that certifies v1, mid-certification-window, in the week it gets graded." The answer that… See [`docs/ideas/listening-counts-as-a-morning.md`](docs/ideas/listening-counts-as-a-morning.md) for the full write-up.
+- **Acceptance:** Concrete: (a) a `GET /api/brief/audio` from a tailnet peer carrying `Sec-Fetch-Dest: document` or the `&from=msg` marker writes exactly one `brief_visits` row with source `phone-audio`, while the same URL fetched as the in-app player (`Sec-Fetch-Dest: audio`, no marker) and any non-tailnet peer write none — pinned in…
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Improvement] The habit strip counts mornings that never happened
+- **Why:** The one thing that must be true: `sweep_dates()`'s renderability bar is a faithful proxy for "a brief was servable that morning" — and it is, because it is the identical `_has_renderable_content` gate `latest_sweep_date` uses to decide what Today serves, so a day it counts is a day the page could render. Everything else follows… See [`docs/ideas/habit-supply-denominator.md`](docs/ideas/habit-supply-denominator.md) for the full write-up.
+- **Acceptance:** `GET /api/brief/habit` returns `briefs_available` on every week, counted from `sweep_dates(settings.sweeps_dir)` bucketed by the same local-Monday rule as `brief_habit_weeks`. Confirm it landed three ways: (1) one live `curl /api/brief/habit?weeks=4` on the prod hub reads 6 / 5 / 5 for the weeks of 07-20 / 07-27 / 08-03 — the counts…
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Improvement] The thin day says so in the channel that reaches the phone first
+- **Note:** Cross-lane overlap flagged at review: `dont-send-half-a-brief` (Harden) includes the same partial-day labeling — if both are built, they merge into one implementation (gate + label).
+- **Why:** The one thing that must be true: per-topic sweep failure is a recurring partial event, not an all-or-nothing outage — verified in the data (2026-08-09: 6 of 8 topics `.raw.txt`; 2026-08-10: 3 of 8), and the delivered message now outranks the page as first contact, so a thin message that can't admit it's thin is what actually teaches Kyle… See [`docs/ideas/delivery-admits-the-thin-day.md`](docs/ideas/delivery-admits-the-thin-day.md) for the full write-up.
+- **Acceptance:** On a synthetic day where 2 of 4 active roster topics produced files and 1 roster topic is paused, `sweeps/deliver_brief.py` (osascript stub, unroutable SMTP) emits a caption and HTML digest naming exactly the 2 failed titles and never the paused one, `python3 sweeps/audio_brief.py --print-script` contains the same sentence, and a parity…
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Improvement] Don't send a brief that isn't a brief yet
+- **Note:** Merges two Harden survivors (Missing-Guardrail's send gate + Silent-Wrongness's truncated-MP3 check). Overlaps `delivery-admits-the-thin-day` (QuickWin) on the labeling half — build as one implementation if both are picked.
+- **Why:** Three things must be true together. (1) Partial mornings are frequent and normal here — the 08-11 hygiene brief recorded 4 of 12 mornings failing, one with 6 of 8 topics dead while the heartbeat logged "ok" — so the gate fires on real days, not hypothetical ones. (2) A truncated-but-valid MP3 is a real failure mode, not paranoia:… See [`docs/ideas/dont-send-half-a-brief.md`](docs/ideas/dont-send-half-a-brief.md) for the full write-up.
+- **Acceptance:** Both suites go red-then-green with named tests: (a) a synthetic MPEG blob shorter than 75% of the script's implied length leaves the previous file untouched, writes no `.tmp`, and exits 1 while `sweep.sh` still completes; (b) a full-length blob installs and writes `brief.coverage.json` with narrated/expected counts and both durations;…
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Improvement] Canonical-root pin: the hub proves which store it is serving — or says it can't
+- **Note:** Convergence: two blind lenses (Source-of-Truth-Drift · Silent-Wrongness's store self-identity, folded in).
+- **Why:** The bet: that a wrong-store server is a live exposure during the certification window — that the deploy routine (`launchctl kickstart` after a build), an `install-server.sh` run from a worktree (which bakes `$WRAPPER` = that worktree's `serve/run-server.sh` into `~/Library/LaunchAgents/com.homebase.server.plist` permanently), or a… See [`docs/ideas/canonical-root-pin.md`](docs/ideas/canonical-root-pin.md) for the full write-up.
+- **Acceptance:** `GET /api/health` returns `db_path`, `sweeps_dir`, `canonical_root`, and tri-state `canonical`. Confirm it landed: (a) new `backend/tests/test_health_canonical.py` — with `HOMEBASE_CANONICAL_ROOT` set to the repo root, `canonical is True`; set to a tmp dir, `canonical is False` and both resolved paths are present in the payload; unset…
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Improvement] The Uncounted Morning — the habit metric counts POSTs that succeeded, not mornings that happened
+- **Note:** Pairs with `listening-counts-as-a-morning` (QuickWin) — same certifying metric, different hole.
+- **Why:** The one thing that must be true: at least some of Kyle's phone mornings are genuinely failing the `POST /brief/visit` while the cached brief renders — the hole is live, not theoretical. If every phone morning has working tailnet, this changes no number and the 0 is real. What would make a veteran of this project react: "you are changing… See [`docs/ideas/uncounted-morning-visit-replay.md`](docs/ideas/uncounted-morning-visit-replay.md) for the full write-up.
+- **Acceptance:** Sized **M**, not S, for a stated reason: the fix crosses a schema version (v15) and the full backend→types→component contract, and the strip readout is non-severable — shipping the replay without `mornings_phone_replayed` would inflate the exact number certifying v1 with no way to subtract it, converting a harden into a metric-inflator…
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Improvement] The untrusted fence is a habit, not an object — make it forgery-proof and un-forgettable
+- **Note:** This card IS open bug #18's fix — that is the 2026-07-26 hunt's #18 — "Designer prompt embeds sidecar artifact titles without the untrusted-data framing" (`backend/app/paths/designer.py`), under §"Bugs — 2026-07-26 hunt", NOT this hunt's #18 — do not fix that bug separately first, or the refactor lands on a seventh hand-typed fence.
+- **Why:** The bet: lane seven gets written, and a test that fails on an unregistered lane is cheaper than remembering — the parked study-planner subagent, the YouTube-breakdown writer, the Free-Inference rebuild, and #173's two new step kinds are all lane-seven candidates already in flight, and designer.py is the proof the habit already failed… See [`docs/ideas/untrusted-lane-invariant.md`](docs/ideas/untrusted-lane-invariant.md) for the full write-up.
+- **Acceptance:** `backend/tests/test_untrusted_lanes.py` lands RED and goes green: (a) `build_designer_prompt` fences its artifact block with the standard framing sentence; (b) a payload containing the literal `</untrusted-item>` (and each lane's own closing tag) is neutralized so the fence cannot be forged, asserted through the real `build_*_prompt` in…
+- **Size:** M
+- **Added:** 2026-08-12
+
+### Bugs — 2026-08-12 hunt (22 verified · all open; full detail in the [report](docs/bug-hunt/2026-08-12-post-0726-delta.md))
+
+#### [Bug] #1: day_end_hour=24 crashes the planner — propose 500s, and the bad window is persisted first so it keeps 500ing
+- **Where:** `backend/app/studycal/planner.py:75` · severity high · confidence high
+- **Why:** Spot-checked and confirmed: `_local_window` is literally `day.replace(hour=hour, minute=0, second=0, microsecond=0)`, which raises `ValueError: hour must be in 0..23` for 24, while three independent callers clamp `day_end_hour` to (1, 24) and repair inverted windows with `min(24, day_start+1)`. The finder reproduced a hard 500 through the real router on three routes (explicit…
+- **Acceptance:** Make `_local_window` hour-24-safe (`day.replace(hour=0,minute=0,second=0,microsecond=0) + timedelta(hours=hour)`), mirroring `_events_in_window`; add a regression test at hour=24 and a repair path for already-persisted 23/24 prefs. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #2: ✨ Generate silently overwrites an existing hand-authored path sidecar — no guard, no backup
+- **Where:** `backend/app/api/paths.py:198-241` · severity medium · confidence high
+- **Why:** Read `generate_path` directly: it calls `write_path_file(notebook_id, result["raw"])` with no existence check, and `write_path_file` is tempfile + `os.replace` with no backup. Ranked second despite medium severity because it is the only finding whose worst case is irrecoverable: the victim is a real 37-step hand-authored path in `backend/data/paths/` (gitignored, no copy…
+- **Acceptance:** Refuse in `generate_path` when `path_file(notebook_id)` exists unless `replace=true` is passed, and copy the old file to `<id>.json.bak` before `os.replace`; in `NotebookCard`, fall through to NoPathState only on a 404, not on any error. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #3: `runs_summary` flags the in-flight morning as a `thin`/half-failed sweep while the 06:00 sweep is still running
+- **Where:** `backend/app/sweeps.py:826-845` · severity medium · confidence high
+- **Why:** Verified in source: `entry["thin"] = entry["ran"] and entry["cost_usd"] < norm * _THIN_COST_FRACTION` with no completeness gate, and the window includes `end` (today) in both the median and the flag. The ledger accrues one row per topic as each `claude -p` finishes (today's live rows span 06:04–06:20 CT), so against a ~$16 median the $4 threshold isn't cleared for several…
+- **Acceptance:** Exclude the current day from both the `thin` evaluation and the median (judge only days strictly older than `end`), or gate `thin` on the day being complete. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #4: `brief_habit_weeks` reports `mornings_phone: 0` for pre-v14 weeks with no attribution flag — the Habit strip accuses Kyle of never reading on his phone in July
+- **Where:** `backend/app/store/db.py:312` · severity medium · confidence high
+- **Why:** Confirmed by reading the function: every week slot is seeded `mornings_phone: 0` and unconditionally overwritten with `len(phone_days[monday])`, with no `attributed` equivalent of `mirror.py`'s gate — whose own comment says an unattributed '(0 on your phone)' 'would be a fabricated accusation, not a measurement'. The model field is non-optional and HabitStrip renders `/…
+- **Acceptance:** Return an `attributed` flag (or `mornings_phone: Optional[int] = None`) per week, set only when that week has at least one non-NULL `source`, and have HabitStrip omit the phone clause when it is false — mirroring `mirror.py`'s gate. Regression test first.
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Bug] #5: Negated time preferences are parsed backwards — "nothing after 3pm" becomes a 3pm START, "not before 2pm" collapses the day to one hour
+- **Where:** `backend/app/studycal/parse.py:62-63` · severity medium · confidence high
+- **Merged from:** "Parser inverts "nothing after 3pm" into a 3pm START — schedules precisely the hours the learner ruled out" · ""not before 2pm" / "not until 3pm" set day_end == day_start, silently collapsing the day to one hour"
+- **Why:** MERGED: two confirmed findings, one underlying defect in `_parse_window` — the trigger regexes are blind to the negation context around them, and one pass fixes both. (a) `_START_TRIG` guards `after` with only `(?<!not )(?<!no )`, so 'nothing after 3pm' / 'never after 3pm' / 'no sessions after 3pm' all yield `day_start_hour: 15` — scheduling precisely the hours ruled out;…
+- **Acceptance:** Blank the START match out of the text before running the END search (the trick `_parse_days` already uses for exclusions), and replace the two literal lookbehinds with a real negation guard (`not|no|never|nothing|none` within a small window) applied to `after`, `before`, `until` and `by` alike. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #6: Bridge-check copy asserts "Generated" and "this topic has no study guide" on every bridge step, including hand-authored paths that show a Read step on the same screen
+- **Where:** `frontend/src/pages/PathPlayer.tsx:476-479` · severity medium · confidence high
+- **Why:** Two hardcoded assertions on any `kind === 'bridge'` step: the '✨ Generated bridge-check — this topic has no study guide, so recall is checked here instead' line, plus a `title='Generated bridge-check'` stamp on incomplete bridge steps. The live research-portfolio path has `generator: 'hand-authored — …'` and renders both bridge steps AND a `read` step whose artifact_type is…
+- **Acceptance:** Derive the copy from the data — say 'generated' only when `path.generator` is non-empty, and drop the 'no study guide' clause when the path contains a `read` step. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #7: One feed's non-NewsFeedError exception 500s the entire news path, bypassing every stale-cache/502 fallback
+- **Where:** `backend/app/news.py:59-65` · severity medium · confidence high
+- **Why:** `NewsFetcher.fetch` catches only `(URLError, OSError, ValueError)`, and the finder checked the MRO in this repo's interpreter: `http.client.IncompleteRead` and `BadStatusLine` are none of the three, and `resp.read()` runs after `urlopen` returns so urllib never wraps them. Every downstream net is equally narrow — `_fetch_one`, BOTH `fetch_feeds` drains, and all three…
+- **Acceptance:** Catch `Exception` in `NewsFetcher.fetch` and re-raise as `NewsFeedError`, and widen both future-drain handlers (news.py:300, api/news.py:132) to `except Exception` with a logged warning. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #8: For You reports a total feed outage as "this section came back empty" — the default tab is the one surface with no stale/failure signal
+- **Where:** `backend/app/api/news.py:96-113` · severity medium · confidence high
+- **Why:** `get_category_items` returns `{fetched_at, stale, items}` but both For You paths take `["items"]` and discard `stale`; `NewsForYouResponse` has no `stale` and no failure count; and News.tsx hardcodes `stale: false` for the For You view while passing the real value through for category tabs — so the existing staleness banner is unreachable on the DEFAULT tab and a wholesale…
+- **Acceptance:** Add `stale: bool` + `sources_failed: int` to `NewsForYouResponse`, populate them from the drained futures, and drive News.tsx's existing banner off them instead of the hardcoded `stale: false`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #9: NotebookLM study guides are cataloged as `report`, so two topics — including the flagship path — can never carry a Read step
+- **Where:** `backend/app/catalog/markdown_tables.py:351-357` · severity medium · confidence high
+- **Why:** The resolution-order defect is confirmed: `classify_type(type_text)` runs ahead of section/title inference and `_TYPE_KEYWORDS` maps 'report' → report, so a README row typed `report` with title 'Study Guide' resolves to report. Downstream, `_TYPE_FOR_KIND` maps read → study_guide, the designer prompt prints '(none available)' and sets `has_guide` false so the bridge_rule…
+- **Acceptance:** When `classify_type(type_text)` returns the generic `report`, prefer a more specific `classify_type(fmt_text) or _type_from_title(title_text)` before falling back to `report`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #10: Two live BriefAudioCards each assume they are the only one — an archive visit permanently breaks Today's lock-screen controls and silently resets its speed
+- **Where:** `frontend/src/components/BriefAudioCard.tsx:106-162` · severity medium · confidence high
+- **Merged from:** "Two live BriefAudioCards fight over the global mediaSession — an archive visit permanently breaks Today's lock-screen controls" · "Playback speed is per-card state read once at mount, so a speed chosen on the archive silently forces Today's player back to 1x"
+- **Why:** MERGED: two confirmed findings sharing one root cause — the card was written as a singleton and now has two simultaneous mounts, so both its per-document global (mediaSession) and its per-instance shared state (rate) break. I verified the double mount directly: BriefShell portals a card unconditionally on `brief?.audio_available` into a host div that merely DETACHES off the…
+- **Acceptance:** Give the pair one owner: hoist mediaSession wiring into BriefShell and let the archive card claim it only while it is the sounding element (restoring, not nulling, on cleanup), and lift `rate` into BriefShell context (or read `storedRate()` at loadedMetadata time) so both mounts see one value. Regression test first.
+- **Size:** M
+- **Added:** 2026-08-12
+
+#### [Bug] #11: The block ledger is never reconciled with the calendar — a deleted event stays 'written', blocking its steps and pinning the time as busy
+- **Where:** `backend/app/api/study.py:554-567` · severity low · confidence high
+- **Why:** Two real mechanisms. (a) Nothing re-reads Google against the ledger: `list_study_blocks(status='written')` feeds both `_scheduled_step_ids` (which excludes those steps from every propose and drives the 'Every remaining step is already on your calendar' message) and `_ledger_intervals` (honoured as `always_busy` even under `ignore_busy`), so a manually-deleted event keeps…
+- **Acceptance:** Flip each row to 'removed' as its own delete succeeds (mirroring confirm's create-one/ledger-one), and add a reconcile-on-read that drops or flags ledger rows whose event id no longer exists on the Study calendar. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #12: Study blocks written for one path are invisible to another path's planner — cross-path blocks double-book with no ⚠ and no conflict flag
+- **Where:** `backend/app/api/study.py:163-180` · severity low · confidence high
+- **Why:** Mechanism verified and reproduced with the real second-path sidecar: `always_busy` is built from `list_study_blocks(TRACK_KIND, notebook_id)`, which filters on track_id, and the freebusy query only asks for `primary` — so the dedicated Study calendar is invisible on both channels and a second path proposes the identical slots with `overlaps: []`, `conflicts: []`. Ranked low…
+- **Acceptance:** Build `always_busy` from live ledger intervals across ALL tracks (drop the track filter in that query only), keeping the per-track filter for `already` / `already_scheduled_step_ids`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #13: Archive search shows the previous query's hits under a new query — no state reset on submit, no request-sequence guard
+- **Where:** `frontend/src/pages/BriefIndex.tsx:31-44` · severity low · confidence high
+- **Merged from:** "A failed archive search leaves the previous query's hits on screen, labelled as if they matched the new query" · "Concurrent archive searches have no request-sequence guard, so a slow query can overwrite a newer one's results"
+- **Why:** MERGED: two confirmed findings, one defect — `runSearch` never invalidates prior state for the new submission, so stale hits render under the current query text via two routes. (a) There is no `setError(null)` anywhere in the file and no `setResults(null)` on the non-blank path or in the catch, while the results gate is `results !== null && !searching` (independent of `error`)…
+- **Acceptance:** At the top of `runSearch` call `setError(null)` and `setResults(null)`; track a monotonically increasing request id (or an AbortController) in a ref and ignore any response that isn't the latest before calling `setResults`/`setSearching`; also clear results in the `.catch`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #14: Archive audio hidden by one transient load error has no in-place retry — the #22 retryKey fix was never wired to the archive surface
+- **Refers to:** the 2026-07-26 hunt's fixed #22 (audioBroken latching), not this hunt's #22.
+- **Where:** `frontend/src/pages/BriefArchive.tsx:97-107` · severity low · confidence high
+- **Why:** Confirmed by reading both call sites: BriefShell passes `retryKey={netLoads}`, BriefArchive passes none — so on an archived day a single `onError` sets `broken`, the card returns null, and player/speed/chapter chips all vanish with no message while the index's `has_audio` marker still advertises audio. The verifier DISPROVED the finder's headline ('can never come back'): a…
+- **Acceptance:** Bump a local `retry` state on a successful `briefByDate` resolve (or behind a manual 'try again' affordance) and pass it through as `retryKey`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #15: pendingSeek is a ref cleared only by a loadedmetadata event, so a seek that never loads silently discards the saved resume point
+- **Where:** `frontend/src/components/BriefAudioCard.tsx:121` · severity low · confidence high
+- **Why:** `pendingSeek.current = true` is set by the lock-screen `jump` and by `seekChapter`, and the ONLY clear is the early-return inside `onLoadedMetadata`; `onError`, the `trackKey` effect, and the `retryKey` effect all leave it set. Because `broken` unmounts the `<audio>` while the component stays mounted, the ref outlives its element — so chip-tap → failed load → retryKey bump →…
+- **Acceptance:** Clear `pendingSeek.current` wherever it can no longer apply — in `onError` and in the `trackKey` effect alongside `loadedTrack.current = null` — or pair it with the loaded-track key instead of using a bare boolean. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #16: "at most 2 blocks a day" is parsed as a 2-block cap for the whole 14-day window
+- **Where:** `backend/app/studycal/parse.py:82-84` · severity low · confidence high
+- **Why:** Reproduced against the real parser: 'at most 2 blocks a day' → `{'max_blocks': 2}`, and `_BLOCKS_RE` has no per-day tail. `max_per_day` is never a parser output — it exists only in the planner, negotiate, the router and models — so the phrase is mapped onto the planner's TOTAL cap. Worse, `study.py` falls back to the claude lane only on an EMPTY parser return, so the one lane…
+- **Acceptance:** When the blocks phrase is followed by `a|per|each|every day`, emit `max_per_day` instead of `max_blocks`, and exclude that phrasing from the `each day`/`every day` day-of-week matcher. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #17: `approve_overnight_proposal` commits the note before the ledger row, so a failed `append_status` doubles the note on retry
+- **Where:** `backend/app/api/brief.py:495-509` · severity low · confidence high
+- **Why:** Traced end to end: `add_brief_note` commits, and only then does `append_status` run with no try/except around its mkdir + append. `load_queue` derives status ONLY from a status row and `brief_notes` has no uniqueness constraint, so a failure in that gap leaves the proposal reading `proposed` and a retry writes a second identical note — precisely the case `_overnight_lock`'s…
+- **Acceptance:** Wrap `append_status` in try/except and on failure `delete_brief_note(note["id"])` before re-raising, so approve is all-or-nothing. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #18: The pre-migration snapshot can silently be worthless — an unlocked copy of a live SQLite file, written straight to its final name, that then claims the day's only slot
+- **Where:** `backend/app/store/db.py:73-89` · severity low · confidence high
+- **Merged from:** "A failed or interrupted `shutil.copy2` leaves a truncated `.bak-` that permanently claims the day's only snapshot slot" · "Pre-migration snapshot copies a live SQLite file with no lock and without its rollback journal, and day-bucketing removed the redundancy that used to mask it"
+- **Why:** MERGED at the second verifier's own suggestion — both findings are 'the day's backup can be silently unusable' in the same six lines, with one combined fix. Confirmed by reading the block: the today-bucket decision comes purely from sibling FILENAMES, the copy goes straight to the final `.bak-<stamp>` name via `shutil.copy2`, and `except OSError: pass` swallows failures with…
+- **Acceptance:** Write via sqlite's online backup API into `<name>.bak-<stamp>.partial` (`src.backup(dst)` takes a read lock and yields a consistent file), `os.replace` into the final name on success, and `unlink(missing_ok=True)` the partial in the `except OSError` branch so a failed attempt never claims the day. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #19: For You fan-out has no per-future timeout and only 6 workers for 14 sources, so a network stall hangs the default tab for ~30s
+- **Where:** `backend/app/api/news.py:125-133` · severity low · confidence high
+- **Why:** The arithmetic is checkable and the in-code comments are provably wrong: 11 categories + MAX_SEARCH_TERMS=3 gives 14 sources against a pool capped at 6, so news.py's 'the whole For You roster in one wave' and api/news.py's 'concurrent it's the slowest one' are both false — three waves, plus nested pools where a multi-feed category spawns its own inside an outer worker.…
+- **Acceptance:** Size the pool to `len(sources)` (these are I/O-bound), drain with `future.result(timeout=remaining)` against one wall-clock deadline treating a timeout as a failed source, and correct the two comments. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #20: The `video` and `mindmap` kinds were added only to PathPlayer's icon map — the Learning card and Plan Continue lane render them as a generic bullet
+- **Where:** `frontend/src/lib/plan.ts:45-54` · severity low · confidence high
+- **Why:** PathPlayer has `video: 🎬` and `mindmap: 🧠` (and both are RATEABLE), but `STEP_KIND_ICON` in lib/plan.ts and `KIND_ICON` in NotebookCard.tsx still list only the eight original kinds and fall back to `•` — and both fallbacks are live on the next-step line rendered by NotebookCard and StudyPlan. The real 37-step research-portfolio path contains 4 `video` steps and 1 `mindmap`, so…
+- **Acceptance:** Add `video: "🎬"` and `mindmap: "🧠"` to `STEP_KIND_ICON` and `NotebookCard.KIND_ICON`, or better, export one shared map so the next kind can't be added to only one of three. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #21: PathPlayer's empty state still tells the user the Generate designer hasn't shipped
+- **Where:** `frontend/src/pages/PathPlayer.tsx:140-143` · severity low · confidence high
+- **Why:** Both stale strings are present verbatim — the 'the on-demand ✨ Generate designer arrives in a later phase' banner and a header comment claiming the bundled Jacobian fixture 'is the only path that exists (Generate is Phase 7)'. Both are false at HEAD: the generate endpoint is live and NotebookCard renders a working button wired to it, and there are two real paths on disk. The…
+- **Acceptance:** Replace the banner with a link back to the topic's card and its ✨ Generate action, and delete the stale Phase-7 comment. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
+#### [Bug] #22: Artifact-id matching in the no-fabrication check is case-sensitive while the rest of the catalog canonicalizes ids
+- **Where:** `backend/app/paths/designer.py:135` · severity low · confidence high
+- **Why:** `by_id = {a["id"]: a for a in artifacts …}` and `by_id.get(aid)` both use raw strings, with no normalization upstream in `validate_path_obj` either — while every other id path in the repo canonicalizes: the catalog lowercases on parse, `reconcile._canon` strips+lowers with an explicit comment that case must never split one artifact into two, and `api/topics.py` lowercases its…
+- **Acceptance:** Key `by_id` on `str(a["id"]).strip().lower()` and look up `aid.strip().lower()`. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-12
+
 ## Parked / Retired
 
 _Items removed from the active queue with a dated reason. Nothing is deleted — the record above
