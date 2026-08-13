@@ -1,7 +1,7 @@
 # The untrusted fence is a habit, not an object — make it forgery-proof and un-forgettable
 
 **Status:** Idea — not committed. Added by `/replenish` (Harden lane) on 2026-08-12.
-**Note:** This card IS open bug #18's fix — do not fix #18 separately first, or the refactor lands on a seventh hand-typed fence.
+**Note:** This card IS open bug #18's fix — that is the 2026-07-26 hunt's #18 — "Designer prompt embeds sidecar artifact titles without the untrusted-data framing" (`backend/app/paths/designer.py`), under §"Bugs — 2026-07-26 hunt", NOT the 2026-08-12 hunt's #18 — do not fix that bug separately first, or the refactor lands on a seventh hand-typed fence.
 
 _One shared `untrusted_block()` that builds every data-not-instructions fence — and neutralizes any closing delimiter hiding inside the payload — plus a repo-invariant test that fails when a new `claude -p` lane appears without it._
 

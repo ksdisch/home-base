@@ -1051,7 +1051,7 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Added:** 2026-08-12
 
 #### [Improvement] The untrusted fence is a habit, not an object — make it forgery-proof and un-forgettable
-- **Note:** This card IS open bug #18's fix — do not fix #18 separately first, or the refactor lands on a seventh hand-typed fence.
+- **Note:** This card IS open bug #18's fix — that is the 2026-07-26 hunt's #18 — "Designer prompt embeds sidecar artifact titles without the untrusted-data framing" (`backend/app/paths/designer.py`), under §"Bugs — 2026-07-26 hunt", NOT this hunt's #18 — do not fix that bug separately first, or the refactor lands on a seventh hand-typed fence.
 - **Why:** The bet: lane seven gets written, and a test that fails on an unregistered lane is cheaper than remembering — the parked study-planner subagent, the YouTube-breakdown writer, the Free-Inference rebuild, and #173's two new step kinds are all lane-seven candidates already in flight, and designer.py is the proof the habit already failed… See [`docs/ideas/untrusted-lane-invariant.md`](docs/ideas/untrusted-lane-invariant.md) for the full write-up.
 - **Acceptance:** `backend/tests/test_untrusted_lanes.py` lands RED and goes green: (a) `build_designer_prompt` fences its artifact block with the standard framing sentence; (b) a payload containing the literal `</untrusted-item>` (and each lane's own closing tag) is neutralized so the fence cannot be forged, asserted through the real `build_*_prompt` in…
 - **Size:** M
@@ -1153,7 +1153,8 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Size:** S
 - **Added:** 2026-08-12
 
-#### [Bug] #14: Archive audio hidden by one transient load error has no in-place retry — the #22 retryKey fix was never wired to the archive surface
+#### [Bug] #14: Archive audio hidden by one transient load error has no in-place retry — the #22 retryKey fix was never wired
+- **Refers to:** the 2026-07-26 hunt's fixed #22 (audioBroken latching), not this hunt's #22. to the archive surface
 - **Where:** `frontend/src/pages/BriefArchive.tsx:97-107` · severity low · confidence high
 - **Why:** Confirmed by reading both call sites: BriefShell passes `retryKey={netLoads}`, BriefArchive passes none — so on an archived day a single `onError` sets `broken`, the card returns null, and player/speed/chapter chips all vanish with no message while the index's `has_audio` marker still advertises audio. The verifier DISPROVED the finder's headline ('can never come back'): a…
 - **Acceptance:** Bump a local `retry` state on a successful `briefByDate` resolve (or behind a manual 'try again' affordance) and pass it through as `retryKey`. Regression test first.
