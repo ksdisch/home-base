@@ -178,6 +178,24 @@ def test_an_unspendable_negation_reads_any_noun() -> None:
     assert parse_preference("not Mondays after 3pm", None)["day_start_hour"] == 15
 
 
+def test_a_negation_in_front_of_a_range_does_not_swallow_its_opener() -> None:
+    # Review F8. The wide gap read ANY word, so it ate "from 9am" and took the range's own "until
+    # 5pm" as the START — colliding with the range's 9→17 into a ZERO-WIDTH window, which the API
+    # then "repaired" into a one-hour 17:00–18:00 day (and with that hour busy, a silent empty
+    # plan). The gap now refuses any word that opens a bound of its own, or a time.
+    for note in (
+        "nothing from 9am until 5pm",
+        "never from 9am until 5pm",
+        "nothing 9am until 5pm",
+        "nothing at 9am until 5pm",
+        "nothing from 9am till 5pm",  # `till` isn't a range connector — it must still agree
+    ):
+        assert parse_preference(note, None) == {"day_start_hour": 9, "day_end_hour": 17}, note
+    # A trigger word inside the gap never gets blanked away with it, so a stated bound survives.
+    assert parse_preference("nothing before 9am after 5pm", None) == {"day_start_hour": 9}
+    assert parse_preference("nothing until 10am after 6pm", None) == {"day_start_hour": 10}
+
+
 def test_both_bounds_can_be_stated_negatively_in_one_note() -> None:
     # The realistic phrasing: both edges named by what they exclude, in one sentence.
     assert parse_preference("weekdays, nothing before 9am and nothing after 3pm", None) == {

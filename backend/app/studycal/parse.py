@@ -76,8 +76,12 @@ _END_TRIG = r"(?:no later than|ending at|end at|before|by|until|til|till)"
 # parse short-circuits it (`api/study.py`), so the ambiguous pair fails closed.
 # `nothing`/`never`/`none` are neither — they are not exclusion triggers and have no availability
 # reading ("nothing scheduled after 3pm" cannot mean "I'm free then") — so they read any noun.
+# The wide gap reads any noun EXCEPT one that opens a bound of its own (or a time). Without that
+# guard it swallows a range's opener — "nothing from 9am until 5pm" would eat `from 9am` and read
+# `until 5pm` as the start, colliding with the range's own 9→17 into a zero-width window.
+_GAP_WORD = r"(?!(?:from|between|after|before|until|till|til|by)\b|\d)\w+"
 _NEG_SPENDABLE = r"\b(?:not|no)\b" + r"(?:\s+(?:more|sessions?|blocks?|study(?:ing)?)){0,2}\s+"
-_NEG_PLAIN = r"\b(?:nothing|never|none)\b" + r"(?:\s+\w+){0,2}\s+"
+_NEG_PLAIN = r"\b(?:nothing|never|none)\b" + r"(?:\s+" + _GAP_WORD + r"){0,2}\s+"
 _NEG = r"(?:" + _NEG_PLAIN + r"|" + _NEG_SPENDABLE + r")"
 _NEG_END_TRIG = _NEG + r"after"
 _NEG_START_TRIG = _NEG + r"(?:before|until|till|til)"

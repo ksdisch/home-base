@@ -595,6 +595,27 @@ def test_a_plainly_worded_negated_start_never_plans_inside_the_excluded_band(env
         _teardown(app)
 
 
+def test_a_negated_range_note_does_not_collapse_the_day_to_one_hour(env):
+    # Review F8, end to end. The zero-width parse landed as a 17:00–18:00 day, persisted over the
+    # learner's standing 21:00 end — and with that hour busy the proposal came back empty and
+    # silent. A note that names a range must apply the range.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing from 9am until 5pm", "day_start_hour": 9, "day_end_hour": 21},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 17
+        assert _starts(body)
+        for s in _starts(body):
+            assert 9 <= s.hour < 17
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 17
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
