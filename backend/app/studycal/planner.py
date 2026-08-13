@@ -71,8 +71,24 @@ def _pack(steps: Sequence[Mapping[str, Any]], session_minutes: int) -> List[List
 
 
 def _local_window(day: datetime, hour: int) -> datetime:
-    """The wall-clock ``hour`` on ``day`` (already tz-aware) — DST offset resolved by zoneinfo."""
-    return day.replace(hour=hour, minute=0, second=0, microsecond=0)
+    """The wall-clock ``hour`` on ``day`` (already tz-aware) — DST offset resolved by zoneinfo.
+
+    Offset from local midnight rather than ``replace(hour=...)`` because ``day_end_hour`` is an
+    **exclusive** end over 1..24: every caller clamps it to that range and the inverted-window repair
+    (``min(24, day_start_hour + 1)``) manufactures 24 outright, but ``replace`` only accepts 0..23 and
+    raised on the boundary. Hour 24 is "closes at local midnight" — the next day's 00:00. Same form
+    ``_events_in_window`` already uses.
+
+    Equivalent to ``replace(hour=…)`` for 0..23 on a ``fold=0`` anchor — but *not* unconditionally,
+    and ``fold=1`` anchors do reach here (``_now()`` is ``datetime.now(tz)``, which sets ``fold=1``
+    during CT's repeated hour): ``aware + timedelta`` resets ``fold`` while ``replace``
+    preserves it, so the two pick different sides of an ambiguous hour (2026-03-08 h2, 2026-11-01 h1
+    in CT) and land 3600s apart. Inert in ``plan_sessions``: the only ``fold``-bearing anchor is
+    ``now`` in ``base_date``, every ``d >= 1`` is already ``fold``-reset by ``+ timedelta(days=d)``,
+    and at ``d == 0`` the one divergent case is dominated by ``eff_start = max(win_start, now, …)``.
+    Worth re-checking if that domination ever stops holding.
+    """
+    return day.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=hour)
 
 
 def _earliest_slot(

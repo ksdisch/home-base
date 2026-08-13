@@ -593,3 +593,46 @@ def test_double_book_places_over_busy_and_labels_overlaps(env, monkeypatch):
         assert body["can_double_book"] is False and body["conflicts"] == []
     finally:
         _teardown(app)
+
+
+def test_propose_with_a_midnight_window_does_not_500(env):
+    # ``day_end_hour`` is clamped to 1..24, so 24 ("study until midnight") is reachable straight from
+    # the request body — the planner has to honour the domain its own callers clamp to.
+    client, app = _client(_fake())
+    try:
+        r = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"day_start_hour": 20, "day_end_hour": 24, "session_minutes": 30},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["ok"] is True and len(body["blocks"]) >= 1
+        assert body["applied"]["day_start_hour"] == 20 and body["applied"]["day_end_hour"] == 24
+        for s in _starts(body):  # real clock → assert shape, not absolute dates
+            assert s.hour >= 20
+    finally:
+        _teardown(app)
+
+
+def test_a_repaired_23_hour_start_does_not_poison_every_later_propose(env):
+    # The inverted-window repair is ``day_end_hour = min(24, day_start_hour + 1)``, so a 23:00 start
+    # manufactures 24 — and prefs are persisted BEFORE the plan runs. A planner that can't represent
+    # 24 would therefore make the stored window durable poison: every later propose, even with an
+    # empty body, would fail on prefs the panel's 6–20 / 7–22 selects can't dial back out of.
+    client, app = _client(_fake())
+    try:
+        first = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"day_start_hour": 23, "day_end_hour": 23},
+        )
+        assert first.status_code == 200
+        assert first.json()["applied"]["day_end_hour"] == 24  # repaired upward, not rejected
+
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 23 and state["day_end_hour"] == 24  # persisted as-is
+
+        again = client.post(f"/api/paths/{JACOBIAN}/schedule/propose", json={})
+        assert again.status_code == 200
+        assert again.json()["applied"] == first.json()["applied"]
+    finally:
+        _teardown(app)
