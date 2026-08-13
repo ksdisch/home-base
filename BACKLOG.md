@@ -1222,6 +1222,34 @@ and `docs/ideas/`). Append-only. Bugs in report rank order._
 - **Size:** S
 - **Added:** 2026-08-12
 
+### Review follow-ups — 2026-08-13 (PR #190 adversarial review · 3 open)
+
+_Nice-to-have findings from the pre-merge loop on PR #190 (08-12 hunt bug #4). Same numbering scheme
+as the blocks below (`#190-F1` = PR + finding). Nothing was disputed and no judge ran; the review
+came back **CLEAR** with 0 critical / 0 should-fix. Full text in the review mailbox:
+`~/.claude/reviews/home-base/2026-08-13-fix-habit-weeks-attributed.md`._
+
+#### [Review] #190-F1: `BriefMirror` ships `mornings_phone` over the wire without its `attributed` sibling
+- **Where:** `backend/app/models.py:862` (with `backend/app/mirror.py:107,153,163-175` · `frontend/src/api/types.ts:880`) · severity nice-to-have · confidence high
+- **Why:** PR #190's stated reason for choosing a per-week `attributed: bool` over `Optional[int]` was that `mirror.py` "already carries this as a separate boolean, so one concept keeps one shape and the two surfaces can't drift". That is now true of the habit weeks and of the two *rendering* surfaces, but **not of the wire payload**: `mirror.py:107` computes `attributed = any(s is not None for …)` and spends it only on the server-rendered `sentence` (`mirror.py:153`), then returns a model carrying the raw `mornings_phone` with no flag beside it. Nothing renders `BriefMirror.mornings_phone` today (verified: no frontend reference), so this bites the **next** consumer — which would reintroduce exactly the "0 on phone for a window nothing measured" fabrication #190 exists to delete, on the one payload whose type advertises the number as safe to render. `types.ts:880` even comments that the flag should be "carried BESIDE the raw count".
+- **Acceptance:** Add `attributed: bool = False` to `BriefMirror` (+ the TS type) and pass the already-computed value through, so the flag travels with the number on both surfaces. Regression test first.
+- **Size:** S
+- **Added:** 2026-08-13
+
+#### [Review] #190-F2: The "pre-v14 SW-cached payload" rationale is false — `/api/brief/habit` is never cached by the service worker
+- **Where:** `frontend/src/api/types.ts:1032-1033` · `frontend/src/components/HabitStrip.tsx:161` · `frontend/src/components/HabitStrip.test.tsx:176` · severity nice-to-have · confidence high
+- **Why:** The optional `attributed?: boolean` is justified in-comment by "its absence on an older cached payload reads as 'unknown'", and a test name says it is exercising one. The SW cannot serve that payload: `frontend/public/sw.js:16` is `const OFFLINE_API = ["/api/brief", "/api/brief/audio"]` and `sw.js:89` is `if (!OFFLINE_API.includes(url.pathname)) return;` — **exact pathname match, not a prefix test** — so `/api/brief/habit` falls through to the never-cached pass-through path. Harmless at runtime (optional typing costs nothing, and the actual contract argument rests on `null !== undefined`, which is unaffected); the cost is that a wire-contract decision's *stated* safety argument names a mechanism that isn't there. **Pre-existing, not introduced by #190** — the wrong rationale came with the original `mornings_phone` comment and the test name — so the fix is repo-wide wording, not a #190 regression.
+- **Acceptance:** Keep the optional types; re-word the three comments to the real reason (an older *client build* or a hand-built payload) and rename the `HabitStrip.test.tsx` case to match. Docs/comment-level; no behavior change.
+- **Size:** S
+- **Added:** 2026-08-13
+
+#### [Review] #190-F3: The new docstring claims a day-level guarantee for a week-level gate
+- **Where:** `backend/app/store/db.py:343-344` (docstring at `db.py:307-314`) · severity nice-to-have · confidence high
+- **Why:** The comment says the flag is "tracked off the SAME rows as the two day sets, so a week can never report a phone count the sources don't back". The gate is week-level (`any` non-NULL source) while the count is day-level, so a week with one attributed day and four unattributed ones reports a phone count over days nothing measured — the same fabrication, one granularity down. The reviewer constructed it against HEAD (`2026-07-27..30` source NULL + `07-31` source `phone` → `{'mornings': 5, 'mornings_phone': 1, 'attributed': True}`, which the strip renders as `5m / 1p`). **Not reachable from the live write path** — confirmed independently, not on report: the sole production writer is `backend/app/api/brief.py:381`, always passing `source_from_request(request)`, which returns a bucket string on every path and never `None`. A mixed week is reachable only across the v14 migration boundary itself — week 07-27, which is fully attributed on the live store and now historical. The defect is the overclaim, not a live wrong number.
+- **Acceptance:** Soften the docstring to the guarantee it actually makes (week-level: "no week reports a phone count unless *some* row in it is attributed"). Gating per-day is the disproportionate option and is explicitly **not** what this item asks for.
+- **Size:** S
+- **Added:** 2026-08-13
+
 ### Review follow-ups — 2026-08-13 (PR #188 adversarial review · 2 open)
 
 _Nice-to-have findings from the pre-merge loop on PR #188 (08-12 hunt bug #3). Same numbering scheme
@@ -1278,6 +1306,22 @@ hunts' `#2`/`#3`/… the way those already collide with each other. Full text in
 - **Where:** `backend/app/api/paths.py:222-229` · severity nice-to-have · confidence high
 - **Why:** The detail reads "… retry with replace=true to confirm", and `onGenerate`'s catch renders `(e as Error).message` straight into the card — but `client.ts`'s `generatePath` posts no query string, so a human who ever sees this is told to do something the UI cannot do. Worth pairing with the reviewer's other observation, recorded so nobody over-credits the guard: the 409 is **unreachable from the UI by construction** — `NoPathState` renders only when `api.path()` resolved null, which is only a 404, which is exactly when the guard cannot fire. All UI-side protection comes from the card's `pathFailed` branch; the 409 is API-only defense-in-depth.
 - **Acceptance:** Phrase the detail for whoever can act on it ("This topic already has a learning path; regenerating replaces it.") and leave the `replace=true` mechanics to the docstring/API docs. If a UI-reachable confirmed replace is ever wanted, that is its own item, not this one.
+- **Size:** S
+- **Added:** 2026-08-13
+
+### Review follow-ups — 2026-08-13 (PR #185 adversarial review · 1 open, carded late)
+
+_The one still-open finding from the pre-merge loop on PR #185 (08-12 hunt bug #1). **Carded late:**
+#185 merged before this block-per-PR convention existed, so the finding lived only in that PR's
+review comment until now — recorded here so it stops depending on a comment nobody re-reads. That
+review's other finding (`F2`, the `replace(hour=…)` / `fold` overstatement) was fixed twice inside
+the PR — `e55f23d`, reopened, then `8a9f9bf` — and closed VERIFIED, so it is not carried. Full text
+in the review mailbox: `~/.claude/reviews/home-base/2026-08-12-fix-studycal-hour-24.md`._
+
+#### [Review] #185-F1: A persisted 23/24 window is now reachable, and the panel's hour selects can't render it
+- **Where:** `frontend/src/pages/PathPlayer.tsx:636-637` (option ranges) vs `:696-697` (hydration), reachable via `backend/app/api/study.py:290-291,342-350` · severity nice-to-have · confidence high
+- **Why:** PR #185 deliberately declined a repair path for already-persisted `23/24` prefs (`BACKLOG.md` above: *"once 24 plans, a persisted 23/24 is a legitimate 11pm–midnight window, not poison"*), which is true for the **planner** — but the **panel** has no such option. "after 11pm" now returns 200 (good) and persists `23/24`; `applyControls` then runs `setStartHour(23)` / `setEndHour(24)` against `<select>`s whose options stop at **20** and **22** (`START_HOURS = [6..20]`, `END_HOURS = [7..22]`). Neither value matches an option, so **both dropdowns hydrate blank**. Before #185 that user got a 500 and never reached the state, so the fix makes this cosmetic dead-end reachable for the first time. Secondary edge: from the blank state, picking only a new **To** (say 9 PM = 21) while **From** stays 23 re-trips the inverted-window repair and silently snaps the end back to 24, overriding an explicit choice. Bounded to nice-to-have because `describeApplied` still prints "11 PM–12 AM" honestly and one extra tap on **From** fully recovers. The branch's own test comment concedes the gap (`test_study_api.py:621-622`: *"prefs the panel's 6–20 / 7–22 selects can't dial back out of"*).
+- **Acceptance:** Extend `START_HOURS`/`END_HOURS` to the clamped domain (`0..23` / `1..24`) — `fmtHour` already renders 24 correctly as "12 AM" — **or**, if the narrower range is intentional, clamp the *persisted* prefs to what the panel can express. Frontend-only either way. Regression test first.
 - **Size:** S
 - **Added:** 2026-08-13
 
