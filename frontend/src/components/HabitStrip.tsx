@@ -11,13 +11,13 @@ const NOTES_TARGET = 3;
 const REGRADE_DUE_DAYS = 30;
 
 // v14 visit-source attribution: the raw morning count can't tell a Tuesday read from a
-// localhost dev load, so the phone-sourced count rides beside it. The tooltip carries the
-// one caveat a reader needs — visits logged before attribution shipped have no source and
-// so read 0 here, which is "unattributed", not "never read on the phone".
+// localhost dev load, so the phone-sourced count rides beside it. A week whose visits all
+// predate attribution has nothing to report, so the number is withheld rather than shown
+// as 0 — the caveat this tooltip used to carry is now enforced instead of explained.
 const PHONE_TITLE =
   "Distinct days a tailnet (phone) client opened Today — the reading-habit number, " +
-  "reported beside the raw count. Visits logged before 2026-07-27 carry no source and " +
-  "count as 0 here.";
+  "reported beside the raw count. Weeks whose visits predate attribution (before " +
+  "2026-07-27) show no phone number at all rather than a 0 nothing measured.";
 
 // ④ Milestones the strip finally notices — round lifetime-mornings thresholds worth a nod,
 // acknowledged once per crossing via localStorage so the ledger never nags.
@@ -153,11 +153,13 @@ export function HabitStrip() {
           {current.mornings} of {MORNINGS_TARGET} mornings{targetHit ? " ✓" : ""}
         </span>
         {/* v14 (docs/ideas/builder-vs-reader-metric.md): the phone-sourced number rides
-            BESIDE the raw one — the criterion above is unchanged. Rendered whenever the
-            field is present, including at 0: hiding a zero would hide exactly the signal
-            this exists to catch (the reading habit fading while dev traffic props up the
-            raw count). Absent only on pre-v14 SW-cached payloads. */}
-        {current.mornings_phone !== undefined && (
+            BESIDE the raw one — the criterion above is unchanged. Rendered at 0 when the
+            week IS attributed: hiding a measured zero would hide exactly the signal this
+            exists to catch (the reading habit fading while dev traffic props up the raw
+            count). Gated on `attributed` so an unmeasurable zero is withheld instead —
+            "(0 on phone)" for a week of pre-v14 rows is an accusation, not a reading.
+            Absent on those payloads too, which is the same answer for the same reason. */}
+        {current.attributed && current.mornings_phone !== undefined && (
           <span
             className="text-muted"
             title={PHONE_TITLE}
@@ -179,7 +181,8 @@ export function HabitStrip() {
             <span key={w.week_start} title={PHONE_TITLE}>
               {i > 0 && " · "}
               week of {humanWeek(w.week_start)}: {w.mornings}m
-              {w.mornings_phone !== undefined && ` / ${w.mornings_phone}p`} / {w.notes}n
+              {w.attributed && w.mornings_phone !== undefined && ` / ${w.mornings_phone}p`} /{" "}
+              {w.notes}n
             </span>
           ))}
         </p>

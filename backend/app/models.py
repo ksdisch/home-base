@@ -1109,8 +1109,14 @@ class BriefHabitWeek(BaseModel):
     # honest reader-Kyle number, reported BESIDE the raw one, never instead of it. Whether
     # the v1 criterion moves to this number is Kyle's call
     # (docs/ideas/builder-vs-reader-metric.md). Pre-v14 rows have no source, so July reads
-    # 0 here — unattributed, not zero-habit.
+    # 0 here — unattributed, not zero-habit, which is exactly what ``attributed`` carries.
     mornings_phone: int = 0
+    # True once any of the week's visits carries a non-NULL source. The count above is
+    # only a measurement when this is True; on a pre-v14 (or empty) week it is a
+    # placeholder, and rendering it there would claim Kyle never read on his phone during
+    # a week that could not observe it. Mirrors BriefMirror's window-level gate — the
+    # count and its warrant travel together rather than collapsing into one 0.
+    attributed: bool = False
     notes: int = 0
 
 
