@@ -79,8 +79,9 @@ def _local_window(day: datetime, hour: int) -> datetime:
     raised on the boundary. Hour 24 is "closes at local midnight" — the next day's 00:00. Same form
     ``_events_in_window`` already uses.
 
-    Equivalent to ``replace(hour=…)`` for 0..23 on a ``fold=0`` anchor, which is the whole reachable
-    space here — but *not* unconditionally: ``aware + timedelta`` resets ``fold`` while ``replace``
+    Equivalent to ``replace(hour=…)`` for 0..23 on a ``fold=0`` anchor — but *not* unconditionally,
+    and ``fold=1`` anchors do reach here (``_now()`` is ``datetime.now(tz)``, which sets ``fold=1``
+    during CT's repeated hour): ``aware + timedelta`` resets ``fold`` while ``replace``
     preserves it, so the two pick different sides of an ambiguous hour (2026-03-08 h2, 2026-11-01 h1
     in CT) and land 3600s apart. Inert in ``plan_sessions``: the only ``fold``-bearing anchor is
     ``now`` in ``base_date``, every ``d >= 1`` is already ``fold``-reset by ``+ timedelta(days=d)``,
