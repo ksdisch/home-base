@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -167,7 +168,14 @@ def write_path_file(notebook_id: str, raw: Dict[str, Any]) -> Path:
     ``os.replace``, so a crash mid-write can't leave a truncated file the always-on server would
     read). The caller MUST validate ``raw`` first — an invalid path must never land. ``notebook_id``
     is the identity (the filename stem); it wins the ``_path_files`` union, so a generated path
-    shadows a bundled example. Returns the written file path."""
+    shadows a bundled example. Returns the written file path.
+
+    ``os.replace`` is irrecoverable, and a path sidecar can be hand-authored (the user's own file,
+    outside git), so whatever is already at the destination is copied to ``<notebook_id>.json.bak``
+    first — the mechanism keeps the escape hatch, no matter which caller asks for the write. The
+    copy is inside the try, so a failure to preserve the old file aborts the write instead of
+    destroying it. ``.bak`` is invisible to ``_path_files`` (it globs ``*.json``), so a backup can
+    never surface as a topic of its own."""
     base = get_settings().paths_dir
     base.mkdir(parents=True, exist_ok=True)
     dest = base / f"{notebook_id}.json"
@@ -176,6 +184,8 @@ def write_path_file(notebook_id: str, raw: Dict[str, Any]) -> Path:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             json.dump(raw, fh, ensure_ascii=False, indent=2)
             fh.write("\n")
+        if dest.exists():
+            shutil.copy2(dest, base / f"{notebook_id}.json.bak")
         os.replace(tmp_name, dest)
     except BaseException:
         # Never leave a stray tempfile behind on any failure (ENOSPC, EACCES, an interrupt).

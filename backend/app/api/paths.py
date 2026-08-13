@@ -29,7 +29,7 @@ from ..models import (
     StepComplete,
     StepConfidence,
 )
-from ..paths import PathError, get_path, list_path_ids, write_path_file
+from ..paths import PathError, get_path, list_path_ids, path_file, write_path_file
 from ..paths.designer import compose_path
 from ..paths.grader import grade_bridge, max_answer_chars
 from ..store import db
@@ -198,6 +198,7 @@ def grade_bridge_step(
 @router.post("/paths/{notebook_id}/generate", response_model=PathGenerateResponse)
 def generate_path(
     notebook_id: str,
+    replace: bool = False,
     client: BriefChatClient = Depends(get_path_designer_client),
     settings=Depends(get_app_settings),
 ) -> PathGenerateResponse:
@@ -205,10 +206,27 @@ def generate_path(
     artifact-backed step is validated against the catalog (the M0 no-fabrication bar); the sidecar
     is written ONLY when the whole path is clean — a fabricated id, unparseable output, or a claude
     hiccup all return a calm ``ok=False`` (never a 500). On success returns the fresh three-axis path
-    so the card lights up without a refetch. Every run (success or failure) appends a usage row."""
+    so the card lights up without a refetch. Every run (success or failure) appends a usage row.
+
+    Generating is a REPLACE, so it refuses (409) when this topic already has a path unless
+    ``replace=true`` says so out loud. A path can be hand-authored — richer than anything the
+    Designer emits — and the refusal is what makes an accidental Generate survivable: the card's
+    Generate button is the only control on a state a transient GET failure can reach. The check
+    runs before the designer call, so refusing costs neither a minute nor a cent. It keys on
+    ``path_file`` (the examples ∪ user union), so shadowing a bundled example is a deliberate act
+    too; ``write_path_file`` still keeps a ``.bak`` when a confirmed replace lands."""
     sidecar = find_sidecar(settings.notebooklm_root, notebook_id)
     if sidecar is None:
         raise HTTPException(status_code=404, detail="Notebook not found in sidecars.")
+
+    if not replace and path_file(notebook_id) is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This topic already has a learning path. Generating replaces it — "
+                "retry with replace=true to confirm."
+            ),
+        )
 
     artifacts = [{"id": a.artifact_id, "type": a.type, "title": a.title} for a in sidecar.artifacts]
     result = compose_path(

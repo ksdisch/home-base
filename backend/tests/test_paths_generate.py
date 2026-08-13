@@ -304,3 +304,104 @@ def test_failure_run_lands_an_error_ledger_row(env):
         assert row["is_error"] is True
     finally:
         app.dependency_overrides.clear()
+
+
+# -- cases: the overwrite guard (08-12 hunt #2) --------------------------------
+# The victim is a real hand-authored 37-step sidecar in the user's PATHS_DIR that the Designer
+# cannot reproduce (it emits neither video nor mindmap and caps at 8 audio / 3 quiz), so ANY
+# regeneration over it is strictly lossy and irrecoverable. The trigger is reachable without user
+# error: a transient non-404 on the GET renders the card's NoPathState, whose only control is an
+# unconfirmed Generate button. So the write must refuse by default, and never land without a backup.
+
+def _existing_path_doc() -> dict:
+    """A hand-authored sidecar the Designer could never compose — the thing the guard protects."""
+    return {
+        "title": "Hand-authored — do not clobber",
+        "topic": "irreplaceable",
+        "generator": "hand-authored",
+        "steps": [
+            {"id": "h1", "kind": "intro", "title": "Written by hand", "body": "not reproducible"},
+            {"id": "h2", "kind": "reflect", "title": "Second hand-written step", "body": "keep me"},
+        ],
+    }
+
+
+def _seed_existing(env) -> str:
+    """Put a path on disk for NB_ID exactly where the Designer would write, and return its bytes."""
+    f = _paths_file(env)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(json.dumps(_existing_path_doc()), encoding="utf-8")
+    return f.read_text(encoding="utf-8")
+
+
+def test_generate_refuses_to_overwrite_an_existing_path(env):
+    """The default POST must REFUSE (409) when a path already exists — with the file byte-identical
+    and the designer never even invoked, so the refusal costs nothing and destroys nothing."""
+    before = _seed_existing(env)
+    ran = []
+
+    def spy(args):
+        ran.append(args)
+        return ChatResult(list(args), _envelope(_path_json()), "", 0)
+
+    client, app = _client(spy)
+    try:
+        r = _generate(client)
+        assert r.status_code == 409
+        assert _paths_file(env).read_text(encoding="utf-8") == before
+        assert ran == []  # guarded BEFORE the expensive designer call, not after
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_generate_refuses_even_when_the_existing_path_is_malformed(env):
+    """The sharpest case: a malformed file is the state MOST likely to render the Generate button
+    (the GET 422s → the card falls through), and it is still a file only a human can repair."""
+    f = _paths_file(env)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text('{"title": "half-written', encoding="utf-8")
+
+    client, app = _client(_fake_runner())
+    try:
+        assert _generate(client).status_code == 409
+        assert f.read_text(encoding="utf-8") == '{"title": "half-written'
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_generate_with_replace_true_overwrites_but_leaves_a_backup(env):
+    """Explicit ``?replace=true`` is the deliberate confirmation — it writes the new path AND keeps
+    the replaced one at ``<id>.json.bak``, so even a confirmed regeneration is recoverable."""
+    before = _seed_existing(env)
+    client, app = _client(_fake_runner())
+    try:
+        r = client.post(f"/api/paths/{NB_ID}/generate?replace=true")
+        assert r.status_code == 200
+        assert r.json()["ok"] is True
+
+        fresh = json.loads(_paths_file(env).read_text(encoding="utf-8"))
+        assert fresh["title"] != "Hand-authored — do not clobber"
+
+        backup = _paths_file(env).with_name(f"{NB_ID}.json.bak")
+        assert backup.is_file(), "the replaced path must survive as a .bak"
+        assert backup.read_text(encoding="utf-8") == before
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_a_backup_never_becomes_a_path_of_its_own(env):
+    """The .bak lands in PATHS_DIR, so the LIST route is where it could surface as a bogus topic —
+    ``GET /api/paths/{id}`` cannot see it either way (``<id>.json.bak``'s stem is ``<id>.json``, a
+    different key), so asserting there would prove nothing. Assert on the listing instead: after a
+    confirmed replace, exactly one entry for this topic and no id carrying a file extension."""
+    _seed_existing(env)
+    client, app = _client(_fake_runner())
+    try:
+        client.post(f"/api/paths/{NB_ID}/generate?replace=true")
+        assert (_paths_file(env).with_name(f"{NB_ID}.json.bak")).is_file()  # the .bak really is there
+
+        ids = [p["notebook_id"] for p in client.get("/api/paths").json()["items"]]
+        assert ids.count(NB_ID) == 1
+        assert [i for i in ids if ".json" in i or i.endswith(".bak")] == []
+    finally:
+        app.dependency_overrides.clear()

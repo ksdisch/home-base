@@ -107,3 +107,42 @@ def test_get_path_discovers_from_paths_dir(tmp_path: Path, monkeypatch) -> None:
     assert manifest.get_path("nb-42")["title"].startswith("Global Workspace")
     assert manifest.get_path("does-not-exist") is None
     assert "nb-42" in manifest.list_path_ids()
+
+
+# -- writing: the replaced file always survives (08-12 hunt #2) ----------------
+
+def test_write_path_file_backs_up_the_file_it_replaces(tmp_path: Path, monkeypatch) -> None:
+    """``os.replace`` is irrecoverable, so the mechanism itself keeps a copy: whatever was at the
+    destination lands at ``<id>.json.bak`` before the swap. Pinned at the store layer so EVERY
+    future caller inherits it, not just today's generate endpoint."""
+    monkeypatch.setattr(get_settings(), "paths_dir", tmp_path)
+    original = _write(tmp_path, "nb-7", _good()).read_text(encoding="utf-8")
+
+    manifest.write_path_file("nb-7", {"title": "Replacement", "steps": [
+        {"id": "s1", "kind": "intro", "title": "New", "body": "x"}]})
+
+    assert json.loads((tmp_path / "nb-7.json").read_text(encoding="utf-8"))["title"] == "Replacement"
+    assert (tmp_path / "nb-7.json.bak").read_text(encoding="utf-8") == original
+
+
+def test_write_path_file_first_write_leaves_no_backup(tmp_path: Path, monkeypatch) -> None:
+    """A first write has nothing to preserve — it must not fail, and must not invent an empty .bak."""
+    monkeypatch.setattr(get_settings(), "paths_dir", tmp_path)
+    dest = manifest.write_path_file("nb-new", _good())
+    assert dest.is_file()
+    assert not (tmp_path / "nb-new.json.bak").exists()
+
+
+def test_a_backup_is_not_discovered_as_a_path(tmp_path: Path, monkeypatch) -> None:
+    """The .bak sits in PATHS_DIR, so it must stay out of the discovery union — otherwise a backup
+    would surface as its own topic."""
+    monkeypatch.setattr(get_settings(), "paths_dir", tmp_path)
+    _write(tmp_path, "nb-9", _good())
+    manifest.write_path_file("nb-9", _good())
+    assert (tmp_path / "nb-9.json.bak").is_file()
+    # Assert the exact leaked id, not a substring: a backup enters the union as ``nb-9.json`` (the
+    # stem of ``nb-9.json.bak``), which contains neither "bak" nor anything else worth grepping for.
+    # (``list_path_ids`` also carries the bundled example, so this can't assert the whole set.)
+    ids = manifest.list_path_ids()
+    assert "nb-9" in ids and "nb-9.json" not in ids
+    assert manifest.path_file("nb-9.json") is None
