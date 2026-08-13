@@ -67,16 +67,20 @@ _END_TRIG = r"(?:no later than|ending at|end at|before|by|until|til|till)"
 # often separated by a noun ("no sessions after 3pm"), which a lookbehind can't express — Python's
 # `re` requires them fixed-width, and the two literal ones this replaces ((?<!not )(?<!no )) saw
 # only the word immediately before `after`, so every other negation read as a start.
-# The gap words are an allow-list, not any `\w+`: only the nouns that name the thing being
-# SCHEDULED. Anything else keeps the plain reading, which is what makes "no weekends after 3pm"
-# (a day exclusion plus a start bound) and "I have no meetings after 3pm" (an availability
-# statement, the opposite of an exclusion) survive unflipped. No lexical rule can tell
-# "don't schedule after 3pm" from "I'm free after 3pm", and the `claude -p` lane can't rescue a
-# misread because a non-empty parse short-circuits it (`api/study.py`), so the guard fails closed.
-_NEG = r"\b(?:nothing|never|none|not|no)\b"
-_NEG_GAP = r"(?:\s+(?:more|sessions?|blocks?|study(?:ing)?|work)){0,2}\s+"
-_NEG_END_TRIG = _NEG + _NEG_GAP + r"after"
-_NEG_START_TRIG = _NEG + _NEG_GAP + r"(?:before|until|till|til)"
+# Two negator classes, split on whether the SAME word can also be spent elsewhere in the note.
+# `no` and `not` open a day exclusion in `_EXCLUDE_RE` above ("no weekends", "not Mondays") and
+# also open an availability statement ("I have no meetings after 3pm" says those hours are FREE) —
+# so they only flip a bound across an allow-list of nouns that name the thing being SCHEDULED.
+# Any other noun keeps the plain reading: no lexical rule separates "don't schedule after 3pm"
+# from "I'm free after 3pm", and the `claude -p` lane can't rescue a misread because a non-empty
+# parse short-circuits it (`api/study.py`), so the ambiguous pair fails closed.
+# `nothing`/`never`/`none` are neither — they are not exclusion triggers and have no availability
+# reading ("nothing scheduled after 3pm" cannot mean "I'm free then") — so they read any noun.
+_NEG_SPENDABLE = r"\b(?:not|no)\b" + r"(?:\s+(?:more|sessions?|blocks?|study(?:ing)?)){0,2}\s+"
+_NEG_PLAIN = r"\b(?:nothing|never|none)\b" + r"(?:\s+\w+){0,2}\s+"
+_NEG = r"(?:" + _NEG_PLAIN + r"|" + _NEG_SPENDABLE + r")"
+_NEG_END_TRIG = _NEG + r"after"
+_NEG_START_TRIG = _NEG + r"(?:before|until|till|til)"
 
 # Scan order. The negated forms go first because each one's own trigger word belongs to the OTHER
 # direction — "nothing after 3pm" carries the start pattern's `after`, "not before 2pm" carries the

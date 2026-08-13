@@ -155,9 +155,27 @@ def test_an_availability_statement_is_not_read_as_an_exclusion() -> None:
     assert parse_preference("I have no meetings after 3pm so schedule then", None) == {"day_start_hour": 15}
     assert parse_preference("no classes after 3pm", None) == {"day_start_hour": 15}
     assert parse_preference("no lunch break until 1pm", None) == {"day_end_hour": 13}
+    # "work" is ambiguous the same way and is deliberately NOT on the list (review F6's residual).
+    assert parse_preference("I have no work after 3pm so schedule then", None) == {"day_start_hour": 15}
     # The scheduling nouns still flip it — that is the whole point of the negated form.
     assert parse_preference("no more sessions after 3pm", None) == {"day_end_hour": 15}
     assert parse_preference("no study after 3pm", None) == {"day_end_hour": 15}
+
+
+def test_an_unspendable_negation_reads_any_noun() -> None:
+    # Review F6. `nothing`/`never`/`none` are neither exclusion triggers nor availability phrasings,
+    # so restricting THEM to the scheduling-noun allow-list (added for F2) re-opened the headline
+    # bug for ordinary wording — and for the `before` form it was worse than either side of this
+    # branch, because the end-only misread was then faithfully honored by F3's repair.
+    assert parse_preference("nothing scheduled after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("nothing planned after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("nothing at all after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("nothing scheduled before 9am", None) == {"day_start_hour": 9}
+    assert parse_preference("never any homework after 6pm", None) == {"day_end_hour": 18}
+    # The split is on which negators `_EXCLUDE_RE` can ALSO spend as a day exclusion — `no`/`not`
+    # can, so they keep the allow-list and F2/F5 stay closed on the very same nouns.
+    assert parse_preference("no meetings after 3pm", None) == {"day_start_hour": 15}
+    assert parse_preference("not Mondays after 3pm", None)["day_start_hour"] == 15
 
 
 def test_both_bounds_can_be_stated_negatively_in_one_note() -> None:

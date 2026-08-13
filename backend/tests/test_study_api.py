@@ -573,6 +573,28 @@ def test_a_negated_end_note_repairs_against_a_late_standing_start(env):
         _teardown(app)
 
 
+def test_a_plainly_worded_negated_start_never_plans_inside_the_excluded_band(env):
+    # Review F6, end to end — the sharpest case in the whole loop. "nothing scheduled before 9am"
+    # mis-parsed as an END bound, which the F3 repair then honored by pulling the start below it:
+    # every block landed before 9am, the one band the note excluded, and that inverted window was
+    # persisted, so the panel hydrated to 08:00–09:00 on the next visit.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing scheduled before 9am", "day_start_hour": 9, "day_end_hour": 17},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 17
+        assert _starts(body)
+        for s in _starts(body):
+            assert s.hour >= 9
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 17
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
