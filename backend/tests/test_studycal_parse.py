@@ -121,6 +121,45 @@ def test_a_negated_start_phrase_is_not_re_read_as_an_end() -> None:
     }
 
 
+def test_a_repeated_negated_bound_does_not_leak_into_the_opposite_direction() -> None:
+    # Review F1. Each scan consumed only its FIRST match, so a note stating the same edge twice
+    # left the second phrase for the plain pass whose trigger word it happens to contain — and it
+    # was read backwards. "no sessions after 5pm, nothing after 3pm" planned 15:00–17:00: inside
+    # the band BOTH clauses rule out. Repeated bounds keep the first (the leftmost-per-edge rule).
+    assert parse_preference("no sessions after 5pm, nothing after 3pm on fridays", None) == {
+        "days_of_week": [4],
+        "day_end_hour": 17,
+    }
+    assert parse_preference("nothing before 9am, nothing before 11am", None) == {"day_start_hour": 9}
+    assert parse_preference("nothing after 3pm, nothing after 1pm", None) == {"day_end_hour": 15}
+
+
+def test_a_negation_spent_on_a_day_exclusion_does_not_also_flip_a_time_bound() -> None:
+    # Review F2. The gap between the negation and the trigger was any word, so a DAY exclusion's
+    # "no"/"not" reached across the day token and flipped the following start bound into an end —
+    # a regression the merge-base did not have. The gap words are an allow-list now.
+    assert parse_preference("no weekends after 3pm", None) == {
+        "days_of_week": [0, 1, 2, 3, 4],
+        "day_start_hour": 15,
+    }
+    assert parse_preference("not Mondays after 3pm", None)["day_start_hour"] == 15
+    assert parse_preference("no weekend sessions after 3pm", None)["day_start_hour"] == 15
+    # …and the reading no longer depends on punctuation or on how many words the day list spends.
+    assert parse_preference("no weekends, after 3pm", None)["day_start_hour"] == 15
+    assert parse_preference("not Tuesdays or Thursdays after 3pm", None)["day_start_hour"] == 15
+
+
+def test_an_availability_statement_is_not_read_as_an_exclusion() -> None:
+    # Review F5, the same allow-list from the other side: "I have no meetings after 3pm" says the
+    # hours are FREE. Only the nouns naming the thing being scheduled flip the bound.
+    assert parse_preference("I have no meetings after 3pm so schedule then", None) == {"day_start_hour": 15}
+    assert parse_preference("no classes after 3pm", None) == {"day_start_hour": 15}
+    assert parse_preference("no lunch break until 1pm", None) == {"day_end_hour": 13}
+    # The scheduling nouns still flip it — that is the whole point of the negated form.
+    assert parse_preference("no more sessions after 3pm", None) == {"day_end_hour": 15}
+    assert parse_preference("no study after 3pm", None) == {"day_end_hour": 15}
+
+
 def test_both_bounds_can_be_stated_negatively_in_one_note() -> None:
     # The realistic phrasing: both edges named by what they exclude, in one sentence.
     assert parse_preference("weekdays, nothing before 9am and nothing after 3pm", None) == {

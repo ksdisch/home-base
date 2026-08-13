@@ -67,8 +67,14 @@ _END_TRIG = r"(?:no later than|ending at|end at|before|by|until|til|till)"
 # often separated by a noun ("no sessions after 3pm"), which a lookbehind can't express — Python's
 # `re` requires them fixed-width, and the two literal ones this replaces ((?<!not )(?<!no )) saw
 # only the word immediately before `after`, so every other negation read as a start.
+# The gap words are an allow-list, not any `\w+`: only the nouns that name the thing being
+# SCHEDULED. Anything else keeps the plain reading, which is what makes "no weekends after 3pm"
+# (a day exclusion plus a start bound) and "I have no meetings after 3pm" (an availability
+# statement, the opposite of an exclusion) survive unflipped. No lexical rule can tell
+# "don't schedule after 3pm" from "I'm free after 3pm", and the `claude -p` lane can't rescue a
+# misread because a non-empty parse short-circuits it (`api/study.py`), so the guard fails closed.
 _NEG = r"\b(?:nothing|never|none|not|no)\b"
-_NEG_GAP = r"(?:\s+\w+){0,2}\s+"
+_NEG_GAP = r"(?:\s+(?:more|sessions?|blocks?|study(?:ing)?|work)){0,2}\s+"
 _NEG_END_TRIG = _NEG + _NEG_GAP + r"after"
 _NEG_START_TRIG = _NEG + _NEG_GAP + r"(?:before|until|till|til)"
 
@@ -198,20 +204,25 @@ def _parse_window(t: str) -> Dict[str, int]:
                 start = alt
         out["day_start_hour"], out["day_end_hour"] = start, end
 
-    # Each accepted match is blanked out of the working copy before the next search — the same
-    # trick `_parse_days` uses for exclusion spans — so one phrase can never satisfy two triggers.
+    # Every match is blanked out of the working copy — the same trick `_parse_days` uses for
+    # exclusion spans — and each scan repeats until its pattern is exhausted, so no occurrence of a
+    # trigger survives into a later, opposite-direction scan. Exhausting matters: a note stating the
+    # same edge twice ("no sessions after 5pm, nothing after 3pm") would otherwise leave the second
+    # phrase for the plain pass whose trigger word it contains, and be read backwards.
     # Blanking keeps the string length, so offsets stay comparable across scans: for a given edge,
     # the leftmost match in the note wins, which is what the single searches this replaces did.
     work = t
     seen: Dict[str, int] = {}
     for key, trig in _WINDOW_SCANS:
-        m = re.search(trig + r"\s+" + _TIME, work, re.I)
-        if m is None:
-            continue
-        if key not in seen or m.start() < seen[key]:
-            seen[key] = m.start()
-            out[key] = _hour(m.group(1), m.group(3))
-        work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
+        pat = re.compile(trig + r"\s+" + _TIME, re.I)
+        while True:
+            m = pat.search(work)
+            if m is None:
+                break
+            if key not in seen or m.start() < seen[key]:
+                seen[key] = m.start()
+                out[key] = _hour(m.group(1), m.group(3))
+            work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
     return out
 
 

@@ -549,6 +549,30 @@ def test_a_negated_time_note_does_not_schedule_the_hours_it_rules_out(env):
         _teardown(app)
 
 
+def test_a_negated_end_note_repairs_against_a_late_standing_start(env):
+    # Review F3, the configuration the test above deliberately doesn't reach. A negated-end note
+    # names only `day_end_hour`, so against a standing evening window it collided with the start
+    # and `_apply_overrides` "repaired" it by pushing the END up — a 17:00–18:00 plan from a note
+    # that said "nothing after 3pm", persisted for the next visit. The repair now moves the edge
+    # the note did NOT name.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing after 3pm", "day_start_hour": 17, "day_end_hour": 21},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_end_hour"] == 15  # the note is honored, not repaired away
+        assert applied["day_start_hour"] < applied["day_end_hour"]
+        for s in _starts(body):
+            assert s.hour < 15
+        # …and the persisted prefs carry the honored window, not the inverted repair.
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_end_hour"] == 15 and state["day_start_hour"] < 15
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
