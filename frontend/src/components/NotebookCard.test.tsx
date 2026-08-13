@@ -89,6 +89,18 @@ describe("NotebookCard — path entry + on-demand Generate (M8 #15)", () => {
     expect(screen.queryByRole("button", { name: /Generate path/ })).not.toBeInTheDocument();
   });
 
+  // 08-12 hunt #2 — the client resolves null ONLY for a 404 ("no path yet") and rethrows every
+  // other failure, precisely so the card can tell "absent" from "broken". Collapsing both into
+  // NoPathState puts an unconfirmed Generate button — a REPLACE — in front of a path that exists.
+  it("does NOT offer Generate when the path fetch fails for a reason other than 404", async () => {
+    path.mockRejectedValue(new Error("Network request failed"));
+    renderCard();
+
+    expect(await screen.findByText(/Couldn't load this topic's path/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Generate path/ })).not.toBeInTheDocument();
+    expect(generatePath).not.toHaveBeenCalled();
+  });
+
   it("surfaces a calm error (no crash) when Generate comes back ok:false", async () => {
     path.mockResolvedValue(null);
     generatePath.mockResolvedValue({

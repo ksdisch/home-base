@@ -34,14 +34,26 @@ export function NotebookCard({ card }: { card: Card }) {
   const [pathLoading, setPathLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [pathFailed, setPathFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setPathLoading(true);
     api
       .path(card.notebook_id)
-      .then((p) => alive && setPath(p))
-      .catch(() => alive && setPath(null)) // a hiccup reads as "no path yet" — the card is a nicety
+      .then((p) => {
+        if (!alive) return;
+        setPath(p);
+        setPathFailed(false);
+      })
+      // api.path() resolves null ONLY for a 404 and rethrows everything else, so "no path yet" and
+      // "couldn't tell" stay distinct here: a hiccup must NOT render NoPathState, whose one control
+      // is a Generate that REPLACES an existing path (08-12 hunt #2).
+      .catch(() => {
+        if (!alive) return;
+        setPath(null);
+        setPathFailed(true);
+      })
       .finally(() => alive && setPathLoading(false));
     return () => {
       alive = false;
@@ -101,6 +113,10 @@ export function NotebookCard({ card }: { card: Card }) {
           <div className="h-16 animate-pulse rounded-lg bg-line-soft/60" />
         ) : path ? (
           <PathState card={card} path={path} />
+        ) : pathFailed ? (
+          <p className="mt-2 text-sm text-muted">
+            Couldn't load this topic's path just now.
+          </p>
         ) : (
           <NoPathState onGenerate={onGenerate} generating={generating} error={genError} />
         )}
