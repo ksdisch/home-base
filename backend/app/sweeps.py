@@ -796,7 +796,9 @@ def runs_summary(
     ``topics`` counts distinct topics, not rows, so a same-day re-sweep doesn't inflate it —
     while both runs' cost still totals, because both were paid for. A day that ran but cost
     far under the window's median is flagged ``thin``: the 07-23/07-25 shape ($1-2 against a
-    ~$10 norm), which no "did it run?" check can see.
+    ~$10 norm), which no "did it run?" check can see. That comparison runs over COMPLETED days
+    only — ``end`` is neither judged nor counted toward the median, because a sweep still
+    accruing rows is a fragment, not a cheap day.
     """
     days = max(1, min(_RUNS_MAX_DAYS, int(days)))
     end = date.fromisoformat(today) if today else datetime.now().astimezone().date()
@@ -837,11 +839,20 @@ def runs_summary(
 
     entries = [_day(iso) for iso in window]
 
+    # Only days strictly older than `end` are judged. envelope.py appends one row per topic as
+    # each run finishes and the ledger carries no completion sentinel, so `end` is a partial sum
+    # while its sweep is still going: measuring it against a full day's norm labels the 06:04
+    # morning "thin or half-failed" during the exact window it's being read, and letting it into
+    # the median biases the norm toward zero, which masks genuinely thin past days. `end` gets
+    # judged tomorrow, when it's a day rather than a fragment; until then the line still reports
+    # its topics, cost, duration and errors — it just isn't compared to a norm it can't meet yet.
+    end_iso = end.isoformat()
+    judged = [d for d in entries if d["date"] < end_iso]
+
     # Median over the days that ran, so a gap can't drag the norm down and mask a thin day.
-    ran_costs = [d["cost_usd"] for d in entries if d["ran"]]
-    norm = _median(ran_costs)
+    norm = _median([d["cost_usd"] for d in judged if d["ran"]])
     if norm > 0:
-        for entry in entries:
+        for entry in judged:
             entry["thin"] = entry["ran"] and entry["cost_usd"] < norm * _THIN_COST_FRACTION
 
     # The newest day that actually ran — may predate `today` when this morning hasn't swept

@@ -1042,8 +1042,10 @@ class BriefRunDay(BaseModel):
     ``ran: False`` is how a missing morning stays visible instead of vanishing from the
     list. ``thin`` marks a day that ran but cost far under the window's median: the
     mechanical shadow of a half-failed or content-starved sweep, which no "did it run?"
-    check can see. ``topics`` counts distinct topics, so a same-day re-sweep doesn't
-    inflate it — though both runs' cost still totals into ``cost_usd``."""
+    check can see. It is only ever set on a COMPLETED day — the current day's sweep is
+    still appending rows, so it is reported but not judged. ``topics`` counts distinct
+    topics, so a same-day re-sweep doesn't inflate it — though both runs' cost still
+    totals into ``cost_usd``."""
 
     date: str  # YYYY-MM-DD
     topics: int = 0

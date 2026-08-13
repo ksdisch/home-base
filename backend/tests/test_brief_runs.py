@@ -123,16 +123,55 @@ def test_a_missing_day_is_present_in_the_window_not_skipped(tmp_path):
 
 def test_a_day_far_under_the_norm_is_flagged_thin(tmp_path):
     """The 07-23/07-25 shape: it ran, so nothing is "missing" — but $1-2 against a ~$10
-    norm is the mechanical shadow of a thin or half-failed sweep."""
-    rows = [_row(f"2026-07-{d:02d}", f"t{n}", cost=2.5) for d in (18, 19, 20, 21) for n in range(4)]
-    rows += [_row("2026-07-22", "ai-llms", cost=1.20)]  # the tell
+    norm is the mechanical shadow of a thin or half-failed sweep.
+
+    The tell sits on a PAST day, not on ``today``: a day is only comparable to the norm
+    once it is over (see ``test_the_in_flight_morning_is_not_flagged_thin``)."""
+    rows = [_row(f"2026-07-{d:02d}", f"t{n}", cost=2.5) for d in (18, 19, 21, 22) for n in range(4)]
+    rows += [_row("2026-07-20", "ai-llms", cost=1.20)]  # the tell
     sweeps = _ledger(tmp_path, rows)
 
     days = {d["date"]: d for d in runs_summary(sweeps, days=5, today="2026-07-22")["days"]}
 
-    assert days["2026-07-22"]["thin"] is True
+    assert days["2026-07-20"]["thin"] is True
     assert days["2026-07-21"]["thin"] is False
-    assert days["2026-07-22"]["ran"] is True  # thin is not missing
+    assert days["2026-07-20"]["ran"] is True  # thin is not missing
+
+
+def test_the_in_flight_morning_is_not_flagged_thin(tmp_path):
+    """sweeps/envelope.py appends one row per topic AS EACH FINISHES, so between 06:04 and
+    06:20 CT today's ``cost_usd`` is a partial sum — and a partial sum measured against a
+    full day's norm reads as "thin or half-failed" on the one strip whose entire job is
+    honest trust reporting, during exactly the window Kyle is reading it.
+
+    ``end`` is the only day whose incompleteness is knowable (the ledger carries no
+    completion sentinel), so it is never judged. The day is still reported in full — it
+    just doesn't get compared to a norm it can't be compared to yet."""
+    rows = [_row(f"2026-07-{d:02d}", f"t{n}", cost=2.5) for d in (18, 19, 20, 21) for n in range(4)]
+    rows += [_row("2026-07-22", "ai-llms", cost=1.86)]  # first topic in; five still running
+
+    summary = runs_summary(_ledger(tmp_path, rows), days=5, today="2026-07-22")
+    days = {d["date"]: d for d in summary["days"]}
+
+    assert days["2026-07-22"]["thin"] is False
+    assert days["2026-07-22"]["ran"] is True  # it ran — the line still reports it
+    assert days["2026-07-22"]["cost_usd"] == pytest.approx(1.86)
+    assert summary["cost_usd"] == pytest.approx(41.86)  # and it still totals into the rollup
+
+
+def test_a_partial_today_cannot_drag_the_norm_down_and_mask_a_thin_day(tmp_path):
+    """The other half of the same defect: an in-flight day is not a sample of what a day
+    costs, so letting it into the median biases the norm toward zero — here a $0.50 today
+    pulls the norm from $9.00 to $2.00 and silently un-flags two genuinely thin days."""
+    rows = [_row(f"2026-07-{d:02d}", f"t{n}", cost=8.0) for d in (20, 21) for n in range(2)]
+    rows += [_row("2026-07-18", "ai-llms", cost=2.0), _row("2026-07-19", "ai-llms", cost=2.0)]
+    rows += [_row("2026-07-22", "ai-llms", cost=0.5)]  # today, one topic in
+
+    days = {d["date"]: d for d in runs_summary(_ledger(tmp_path, rows), days=5, today="2026-07-22")["days"]}
+
+    assert days["2026-07-18"]["thin"] is True
+    assert days["2026-07-19"]["thin"] is True
+    assert days["2026-07-20"]["thin"] is False
 
 
 def test_a_normal_week_flags_nothing(tmp_path):
