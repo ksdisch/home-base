@@ -595,23 +595,45 @@ def test_a_plainly_worded_negated_start_never_plans_inside_the_excluded_band(env
         _teardown(app)
 
 
-def test_a_negated_range_note_does_not_collapse_the_day_to_one_hour(env):
-    # Review F8, end to end. The zero-width parse landed as a 17:00–18:00 day, persisted over the
-    # learner's standing 21:00 end — and with that hour busy the proposal came back empty and
-    # silent. A note that names a range must apply the range.
-    client, app = _client(_fake())
+def test_an_unreadable_exclusion_leaves_the_window_alone_instead_of_inverting_it(env):
+    # Reviews F8/F11, end to end. "nothing from 9am until 5pm" is a workday exclusion. It has been
+    # wrong three different ways: a zero-width parse repaired into a 17:00–18:00 day (F8), and then
+    # the range applied verbatim, planning every block inside the very band it rules out (F11).
+    # The parser now withholds the window, so the note reaches the claude lane — here wired to
+    # fail — and the honest "couldn't read that" degrade holds the controls untouched.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
     try:
         body = client.post(
             f"/api/paths/{JACOBIAN}/schedule/propose",
             json={"preference": "nothing from 9am until 5pm", "day_start_hour": 9, "day_end_hour": 21},
         ).json()
+        assert body["ok"] is True
+        assert "couldn't read that" in body["message"].lower()
         applied = body["applied"]
-        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 17
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21  # controls held
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21  # nothing inverted
+    finally:
+        _teardown(app)
+
+
+def test_a_prepositional_exclusion_never_plans_inside_the_band_it_rules_out(env):
+    # Review F10, end to end — the failure this class keeps reproducing. "nothing from home before
+    # 9am" fell back to the plain scan, which read the 9am as an END, and the F3 repair honored it:
+    # every block landed at 08:00 and the learner's 21:00 end was overwritten with 09:00.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing from home before 9am", "day_start_hour": 9, "day_end_hour": 21},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21
         assert _starts(body)
         for s in _starts(body):
-            assert 9 <= s.hour < 17
+            assert s.hour >= 9
         state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
-        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 17
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21
     finally:
         _teardown(app)
 

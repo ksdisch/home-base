@@ -91,11 +91,20 @@ _NEG_START_TRIG = _NEG + r"(?:before|until|till|til)"
 # end pattern's `before` — so whichever runs second would otherwise fire a second time inside the
 # phrase the first already consumed.
 _WINDOW_SCANS = (
-    ("day_end_hour", _NEG_END_TRIG),
-    ("day_start_hour", _NEG_START_TRIG),
-    ("day_start_hour", _START_TRIG),
-    ("day_end_hour", _END_TRIG),
+    ("day_end_hour", _NEG_END_TRIG, True),
+    ("day_start_hour", _NEG_START_TRIG, True),
+    ("day_start_hour", _START_TRIG, False),
+    ("day_end_hour", _END_TRIG, False),
 )
+
+# `nothing`/`never`/`none` have exactly ONE sense — exclusion. So if one is present and no negated
+# scan matched it, the note states an exclusion this parser could not read, and the plain scan's
+# answer is the worst outcome available: it is the BACKWARDS one, delivered confidently, and a
+# non-empty parse short-circuits the ``claude -p`` lane that might have read it (`api/study.py`).
+# Withholding the window instead leaves the controls untouched and lets the fallback lane see the
+# note. `no`/`not` are excluded from this rule — they genuinely carry other senses (a day
+# exclusion, an availability statement), so a non-match there is meaningful, not a failure to read.
+_NEG_PLAIN_WORD = re.compile(r"\b(?:nothing|never|none)\b", re.I)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -221,16 +230,20 @@ def _parse_window(t: str) -> Dict[str, int]:
     # the leftmost match in the note wins, which is what the single searches this replaces did.
     work = t
     seen: Dict[str, int] = {}
-    for key, trig in _WINDOW_SCANS:
+    read_a_negation = False
+    for key, trig, negated in _WINDOW_SCANS:
         pat = re.compile(trig + r"\s+" + _TIME, re.I)
         while True:
             m = pat.search(work)
             if m is None:
                 break
+            read_a_negation = read_a_negation or negated
             if key not in seen or m.start() < seen[key]:
                 seen[key] = m.start()
                 out[key] = _hour(m.group(1), m.group(3))
             work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
+    if not read_a_negation and _NEG_PLAIN_WORD.search(t):
+        return {}  # an exclusion we couldn't read — say nothing rather than say the opposite
     return out
 
 
