@@ -117,9 +117,15 @@ _NEG_DAY_AFTER = re.compile(
 )
 # …but only when the day list is where that negator ENDS. "nothing on sat or sun after 3pm"
 # excludes hours *on* days and must still withhold; "nothing on Fridays and 9am to 5pm" is a day
-# exclusion followed by a separate statement. The tell is whether a clause separator follows the
-# day list — an `and`/`or` *inside* the list is already consumed by `_DAY_CONN` above.
-_DAY_CLAUSE_ENDS = re.compile(r"\s*(?:[,;]|and\b|but\b|$)", re.I)
+# exclusion followed by a separate statement. Punctuation cannot separate those: `and`/`but` joins
+# a second EXCLUDED thing ("nothing on Saturdays and after 3pm") exactly as readily as it joins a
+# new statement, and two rounds of evidence say enumerating separators can't tell them apart.
+# So ask what the rest of the clause CONTAINS instead. Only the bare triggers flip meaning under a
+# negation — an orphaned `after 3pm` after "nothing on Saturdays" inherits the negation, while a
+# self-contained bound ("no later than 5pm", "start at 9am") or a plain range carries its own
+# polarity and reads as a separate statement.
+_FLIPPABLE_TRIG = re.compile(r"\b(?:after|before|until|till|til|by)\b", re.I)
+_CONJ = re.compile(r"\b(?:and|but)\b", re.I)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -284,8 +290,17 @@ def _unread_time_exclusion(t: str, read: List[range]) -> bool:
         if any(m.start() in span for span in read):
             continue  # this one WAS read
         day = _NEG_DAY_AFTER.match(t, m.end())
-        if day and _DAY_CLAUSE_ENDS.match(t, day.end()):
-            continue  # excludes days, and the negator ends there — it says nothing about hours
+        if day:
+            after_days = t[day.end():]
+            stop_d = _CLAUSE_END.search(after_days)
+            rest = after_days[: stop_d.start()] if stop_d else after_days
+            # A named window counts only while it is still ATTACHED to the day list — "nothing
+            # Friday afternoons" excludes Friday afternoons, whereas in "nothing on weekends and
+            # mornings only from 9am" the `and` hands the mornings to a new statement. A bare
+            # trigger counts anywhere in the clause: it has no reading of its own to fall back on.
+            attached = _CONJ.split(rest, maxsplit=1)[0]
+            if not _FLIPPABLE_TRIG.search(rest) and not _NAMED_RE.search(attached):
+                continue  # excludes days and nothing else here — it says nothing about hours
         rest = t[m.start():]
         stop = _CLAUSE_END.search(rest)
         clause = rest[: stop.start()] if stop else rest

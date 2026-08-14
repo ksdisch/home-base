@@ -304,6 +304,34 @@ def test_an_exclusion_of_hours_on_named_days_is_not_mistaken_for_a_day_exclusion
     assert parse_preference("weekday evenings, nothing on Sundays", None)["day_start_hour"] == 17
 
 
+def test_a_conjunction_can_join_a_second_excluded_thing_not_just_a_new_statement() -> None:
+    # Review F22. Deciding "did the negator end at the day list?" by looking for a SEPARATOR made
+    # `and`/`but` mean "new statement" — but "nothing on Saturdays and after 3pm" joins a second
+    # thing being EXCLUDED, and the orphaned `after 3pm` was read forward: 15:00 blocks, persisted,
+    # no message. The rule now asks what the rest of the clause CONTAINS, because two rounds of
+    # evidence say no separator list can tell these apart.
+    for note in (
+        "nothing on Saturdays and after 3pm",
+        "nothing on weekends and after 5pm",
+        "nothing on Mondays but after 4pm",
+        "nothing on Fridays and before 9am",
+        "never on Fridays and after 2pm",
+        "nothing on Fridays and until 5pm",
+    ):
+        assert parse_preference(note, None) == {}, note
+    # A bare trigger counts anywhere in the clause; a self-contained bound or a plain range carries
+    # its own polarity, so those still read as a separate statement and the day skip applies.
+    assert parse_preference("nothing on Fridays and no later than 5pm", None)["day_end_hour"] == 17
+    assert parse_preference("evenings, never on Sundays and no earlier than 6pm", None)["day_start_hour"] == 18
+    # A named window counts only while still ATTACHED to the day list — after a conjunction it
+    # belongs to the new statement.
+    assert parse_preference("nothing Friday afternoons", None) == {}
+    assert parse_preference("nothing on tuesdays and thursdays at night", None) == {}
+    assert parse_preference("nothing on weekends and mornings only from 9am", None) == {
+        "days_of_week": [5, 6], "day_start_hour": 9, "day_end_hour": 12,
+    }
+
+
 def test_an_unreadable_window_drops_the_whole_note_so_the_fallback_lane_runs() -> None:
     # Review F21. Withholding only the window was not the honest floor it claimed to be: the days
     # and the session length still parsed, so the note was non-empty, the claude lane was

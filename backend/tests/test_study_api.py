@@ -756,6 +756,27 @@ def test_an_hours_on_days_exclusion_never_plans_the_band_it_rules_out(env):
         _teardown(app)
 
 
+def test_a_conjunction_joined_hours_exclusion_never_plans_the_band_it_rules_out(env):
+    # Review F22, end to end: "nothing on Saturdays and after 3pm" applied 15->21 and planned
+    # 15:00 blocks — the excluded band — persisting the inverted window with no message.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "preference": "nothing on Saturdays and after 3pm",
+                "day_start_hour": 9, "day_end_hour": 21,
+            },
+        ).json()
+        assert "couldn't read that" in body["message"].lower()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
