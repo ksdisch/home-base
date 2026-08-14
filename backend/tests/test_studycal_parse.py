@@ -270,66 +270,34 @@ def test_a_negated_named_window_is_never_read_as_the_window_to_schedule() -> Non
     assert parse_preference("mornings", None) == {"day_start_hour": 8, "day_end_hour": 12}
 
 
-def test_a_day_exclusion_never_vetoes_the_window_whatever_joins_the_clauses() -> None:
-    # Review F17. The clause rule ended only at `,` or `;`, so an `and`/`but` join let a day
-    # negator's clause swallow the window's own time and veto it — the same silent drop as F14,
-    # answering two notes that mean the same thing differently. A negator followed by a day phrase
-    # is now skipped structurally, with no punctuation involved.
-    assert parse_preference("nothing on Fridays and 9am to 5pm", None) == {
-        "days_of_week": [4], "day_start_hour": 9, "day_end_hour": 17,
-    }
-    assert parse_preference("nothing on Fridays and no later than 5pm", None)["day_end_hour"] == 17
-    assert parse_preference("nothing on Sundays but 9am to 5pm otherwise", None)["day_start_hour"] == 9
-
-
-def test_an_exclusion_of_hours_on_named_days_is_not_mistaken_for_a_day_exclusion() -> None:
-    # Review F20. The day-phrase skip ran BEFORE the time test and was unconditional, so a clause
-    # that excludes hours *on* days was skipped, its `after` handed to the forward scan, and the
-    # band it rules out planned and persisted. The single-day form was unaffected (it fits inside
-    # the two-word gap), so the answer depended on how many days the learner named.
+def test_a_day_negation_that_also_reaches_a_time_is_treated_as_unread() -> None:
+    # Reviews F17/F20/F22/F23/F24 — and the decision that ended them. Four rounds tried to tell
+    # "nothing on Fridays" (a DAY exclusion, silent about hours) from "nothing on sat or sun after
+    # 3pm" (hours ON days): a punctuation test, a separator list, then a clause-content test. Each
+    # closed one shape and re-opened another, because the distinction is semantic and every lexical
+    # proxy collides with a case meaning the opposite. So no proxy: a plain negator that mentions
+    # days AND reaches a time is unread like any other, and the note goes to the fallback lane.
     for note in (
+        # hours-on-days — must never be read forward (the inversion the proxies kept producing)
         "nothing on saturdays or sundays after 3pm",
-        "nothing on Mondays or Fridays until 5pm",
-        "nothing on the weekend after 3pm",
-        "never on the weekends after 8pm",
-        "nothing on tues/thurs after 4pm",
-        "60 minute blocks every weekday, nothing on mon or fri after 4pm",
-        # …and the same for a day-qualified NAMED window, which review F16 closed for the bare form.
-        "nothing on Mondays or Wednesdays in the afternoon",
-        "nothing Friday afternoons",
-    ):
-        assert parse_preference(note, None) == {}, note
-    # A day exclusion that really does end at the day list is still skipped, whatever joins it on.
-    assert parse_preference("nothing on Fridays and 9am to 5pm", None)["day_end_hour"] == 17
-    assert parse_preference("weekday evenings, nothing on Sundays", None)["day_start_hour"] == 17
-
-
-def test_a_conjunction_can_join_a_second_excluded_thing_not_just_a_new_statement() -> None:
-    # Review F22. Deciding "did the negator end at the day list?" by looking for a SEPARATOR made
-    # `and`/`but` mean "new statement" — but "nothing on Saturdays and after 3pm" joins a second
-    # thing being EXCLUDED, and the orphaned `after 3pm` was read forward: 15:00 blocks, persisted,
-    # no message. The rule now asks what the rest of the clause CONTAINS, because two rounds of
-    # evidence say no separator list can tell these apart.
-    for note in (
         "nothing on Saturdays and after 3pm",
-        "nothing on weekends and after 5pm",
-        "nothing on Mondays but after 4pm",
         "nothing on Fridays and before 9am",
-        "never on Fridays and after 2pm",
-        "nothing on Fridays and until 5pm",
+        "nothing on Fridays from 3pm",
+        "nothing on Saturdays starting at 3pm",
+        "nothing Friday afternoons",
+        "nothing on Mondays or Wednesdays in the afternoon",
+        # …and the shapes the proxies used to let through as a "separate statement". Over-cautious,
+        # never inverted: the fallback lane answers these, or the honest degrade fires.
+        "nothing on Fridays and 9am to 5pm",
+        "nothing on Fridays and no later than 5pm",
+        "nothing on Sundays and no sessions after 3pm",
     ):
         assert parse_preference(note, None) == {}, note
-    # A bare trigger counts anywhere in the clause; a self-contained bound or a plain range carries
-    # its own polarity, so those still read as a separate statement and the day skip applies.
-    assert parse_preference("nothing on Fridays and no later than 5pm", None)["day_end_hour"] == 17
-    assert parse_preference("evenings, never on Sundays and no earlier than 6pm", None)["day_start_hour"] == 18
-    # A named window counts only while still ATTACHED to the day list — after a conjunction it
-    # belongs to the new statement.
-    assert parse_preference("nothing Friday afternoons", None) == {}
-    assert parse_preference("nothing on tuesdays and thursdays at night", None) == {}
-    assert parse_preference("nothing on weekends and mornings only from 9am", None) == {
-        "days_of_week": [5, 6], "day_start_hour": 9, "day_end_hour": 12,
-    }
+    # A day exclusion in its OWN clause still leaves the window alone — that is the clause scoping,
+    # not a day heuristic, so it survives the revert.
+    out = parse_preference("weekday evenings, nothing on Sundays", None)
+    assert out["day_start_hour"] == 17 and out["day_end_hour"] == 21
+    assert parse_preference("mornings only, nothing on Fridays", None)["day_start_hour"] == 8
 
 
 def test_an_unreadable_window_drops_the_whole_note_so_the_fallback_lane_runs() -> None:

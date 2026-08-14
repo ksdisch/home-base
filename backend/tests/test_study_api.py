@@ -698,19 +698,21 @@ def test_a_negated_named_window_never_becomes_the_window_to_schedule(env):
         _teardown(app)
 
 
-def test_a_conjunction_joined_day_exclusion_still_applies_the_window(env):
-    # Review F17, end to end: the same note the comma form handles, joined with "and" instead.
-    client, app = _client(_fake())
+def test_a_conjunction_joined_day_exclusion_reaches_the_fallback_not_a_guess(env):
+    # Reviews F17/F20/F22/F23/F24. Four rounds tried to tell a day exclusion joined by "and" from
+    # an hours-on-days exclusion joined the same way; every lexical proxy closed one and re-opened
+    # the other. No proxy now: the note goes to the claude lane, and with the lane wired to fail it
+    # degrades honestly instead of guessing. This test previously asserted an applied 9->17 window
+    # and PASSED by calling the real `claude` CLI on this machine — a live LLM call in the suite.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
     try:
         body = client.post(
             f"/api/paths/{JACOBIAN}/schedule/propose",
             json={"preference": "nothing on Fridays and 9am to 5pm", "day_start_hour": 9, "day_end_hour": 21},
         ).json()
+        assert "couldn't read that" in body["message"].lower()
         applied = body["applied"]
-        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 17
-        assert _starts(body)
-        for s in _starts(body):
-            assert 9 <= s.hour < 17
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21  # controls held
     finally:
         _teardown(app)
 

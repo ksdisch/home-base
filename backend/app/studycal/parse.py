@@ -107,26 +107,14 @@ _WINDOW_SCANS = (
 _NEG_PLAIN_WORD = re.compile(r"\b(?:nothing|never|none)\b", re.I)
 _CLAUSE_END = re.compile(r"[,;]")  # not `.` — "2:00 p.m." would split inside the meridiem
 _TIME_RE = re.compile(_TIME, re.I)
-# A negator whose very next tokens are a day phrase is excluding DAYS, not hours — "nothing on
-# Fridays" says nothing about the window. Recognised structurally rather than by punctuation,
-# because English joins that clause to the next with `and`/`but` as readily as with a comma, and
-# a punctuation-only rule answers the same note two different ways.
-_NEG_DAY_AFTER = re.compile(
-    r"\s+(?:on\s+)?(?:the\s+)?(?:" + _DAY_TOKEN + r")(?:" + _DAY_CONN + r"(?:" + _DAY_TOKEN + r"))*\b",
-    re.I,
-)
-# …but only when the day list is where that negator ENDS. "nothing on sat or sun after 3pm"
-# excludes hours *on* days and must still withhold; "nothing on Fridays and 9am to 5pm" is a day
-# exclusion followed by a separate statement. Punctuation cannot separate those: `and`/`but` joins
-# a second EXCLUDED thing ("nothing on Saturdays and after 3pm") exactly as readily as it joins a
-# new statement, and two rounds of evidence say enumerating separators can't tell them apart.
-# So ask what the rest of the clause CONTAINS instead. Only the bare triggers flip meaning under a
-# negation — an orphaned `after 3pm` after "nothing on Saturdays" inherits the negation, while a
-# self-contained bound ("no later than 5pm", "start at 9am") or a plain range carries its own
-# polarity and reads as a separate statement.
-_FLIPPABLE_TRIG = re.compile(r"\b(?:after|before|until|till|til|by)\b", re.I)
-_CONJ = re.compile(r"\b(?:and|but)\b", re.I)
-
+# NOT attempted: a rule that tells "nothing on Fridays" (a DAY exclusion, which says nothing about
+# hours) from "nothing on sat or sun after 3pm" (hours ON days). Four review rounds tried — a
+# punctuation test, then a separator list, then a clause-content test — and each one closed one
+# shape while re-opening another, because the distinction is semantic and every lexical proxy for
+# it collides with a case that means the opposite. So a `nothing`/`never`/`none` that mentions days
+# AND reaches a time is treated like any other unread exclusion: the note goes to the `claude -p`
+# lane. Over-cautious for "weekday evenings, nothing on Sundays", which the fallback answers and
+# which degrades honestly if it can't — and never the inverted plan the proxies kept producing.
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
     (r"afternoons?", (12, 17)),
@@ -289,18 +277,6 @@ def _unread_time_exclusion(t: str, read: List[range]) -> bool:
     for m in _NEG_PLAIN_WORD.finditer(t):
         if any(m.start() in span for span in read):
             continue  # this one WAS read
-        day = _NEG_DAY_AFTER.match(t, m.end())
-        if day:
-            after_days = t[day.end():]
-            stop_d = _CLAUSE_END.search(after_days)
-            rest = after_days[: stop_d.start()] if stop_d else after_days
-            # A named window counts only while it is still ATTACHED to the day list — "nothing
-            # Friday afternoons" excludes Friday afternoons, whereas in "nothing on weekends and
-            # mornings only from 9am" the `and` hands the mornings to a new statement. A bare
-            # trigger counts anywhere in the clause: it has no reading of its own to fall back on.
-            attached = _CONJ.split(rest, maxsplit=1)[0]
-            if not _FLIPPABLE_TRIG.search(rest) and not _NAMED_RE.search(attached):
-                continue  # excludes days and nothing else here — it says nothing about hours
         rest = t[m.start():]
         stop = _CLAUSE_END.search(rest)
         clause = rest[: stop.start()] if stop else rest
