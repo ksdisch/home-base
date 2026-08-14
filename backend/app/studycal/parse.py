@@ -59,15 +59,71 @@ _DAY_SPLIT_RE = re.compile(_DAY_CONN, re.I)
 _MER = r"[ap]\.?\s*m\.?"
 _TIME = r"(\d{1,2})(?::(\d{2}))?\s*(" + _MER + r")"  # meridiem required (avoids ambiguous bare hours)
 
-_START_TRIG = r"(?:no earlier than|not before|not until|starting at|start at|beginning at|begin at|(?<!not )(?<!no )after|from)"
-_END_TRIG = r"(?:no later than|not after|ending at|end at|before|by|until|til|till)"
+_START_TRIG = r"(?:no earlier than|starting at|start at|beginning at|begin at|after|from)"
+_END_TRIG = r"(?:no later than|ending at|end at|before|by|until|til|till)"
 
+# A negated bound names the hours to AVOID, so it sets the OPPOSITE edge: "nothing after 3pm"
+# closes the day at 3, "not before 2pm" opens it at 2. The negation and the trigger it flips are
+# often separated by a noun ("no sessions after 3pm"), which a lookbehind can't express — Python's
+# `re` requires them fixed-width, and the two literal ones this replaces ((?<!not )(?<!no )) saw
+# only the word immediately before `after`, so every other negation read as a start.
+# Two negator classes, split on whether the SAME word can also be spent elsewhere in the note.
+# `no` and `not` open a day exclusion in `_EXCLUDE_RE` above ("no weekends", "not Mondays") and
+# also open an availability statement ("I have no meetings after 3pm" says those hours are FREE) —
+# so they only flip a bound across an allow-list of nouns that name the thing being SCHEDULED.
+# Any other noun keeps the plain reading: no lexical rule separates "don't schedule after 3pm"
+# from "I'm free after 3pm", and the `claude -p` lane can't rescue a misread because a non-empty
+# parse short-circuits it (`api/study.py`), so the ambiguous pair fails closed.
+# `nothing`/`never`/`none` are neither — they are not exclusion triggers and have no availability
+# reading ("nothing scheduled after 3pm" cannot mean "I'm free then") — so they read any noun.
+# The wide gap reads any noun EXCEPT one that opens a bound of its own (or a time). Without that
+# guard it swallows a range's opener — "nothing from 9am until 5pm" would eat `from 9am` and read
+# `until 5pm` as the start, colliding with the range's own 9→17 into a zero-width window.
+_GAP_WORD = r"(?!(?:from|between|after|before|until|till|til|by)\b|\d)\w+"
+_NEG_SPENDABLE = r"\b(?:not|no)\b" + r"(?:\s+(?:more|sessions?|blocks?|study(?:ing)?)){0,2}\s+"
+_NEG_PLAIN = r"\b(?:nothing|never|none)\b" + r"(?:\s+" + _GAP_WORD + r"){0,2}\s+"
+_NEG = r"(?:" + _NEG_PLAIN + r"|" + _NEG_SPENDABLE + r")"
+_NEG_END_TRIG = _NEG + r"after"
+_NEG_START_TRIG = _NEG + r"(?:before|until|till|til)"
+
+# Scan order. The negated forms go first because each one's own trigger word belongs to the OTHER
+# direction — "nothing after 3pm" carries the start pattern's `after`, "not before 2pm" carries the
+# end pattern's `before` — so whichever runs second would otherwise fire a second time inside the
+# phrase the first already consumed.
+_WINDOW_SCANS = (
+    ("day_end_hour", _NEG_END_TRIG, True),
+    ("day_start_hour", _NEG_START_TRIG, True),
+    ("day_start_hour", _START_TRIG, False),
+    ("day_end_hour", _END_TRIG, False),
+)
+
+# `nothing`/`never`/`none` have exactly ONE sense — exclusion. So one that no negated scan could
+# read means the note states an exclusion this parser did not understand, and the plain scan's
+# answer is the worst outcome available: it is the BACKWARDS one, delivered confidently, and a
+# non-empty parse short-circuits the ``claude -p`` lane that might have read it (`api/study.py`).
+# Withholding the window instead leaves the controls untouched and lets the fallback lane see the
+# note. `no`/`not` are excluded — they genuinely carry other senses (a day exclusion, an
+# availability statement), so a non-match there is meaningful, not a failure to read.
+_NEG_PLAIN_WORD = re.compile(r"\b(?:nothing|never|none)\b", re.I)
+_CLAUSE_END = re.compile(r"[,;]")  # not `.` — "2:00 p.m." would split inside the meridiem
+_TIME_RE = re.compile(_TIME, re.I)
+# NOT attempted: a rule that tells "nothing on Fridays" (a DAY exclusion, which says nothing about
+# hours) from "nothing on sat or sun after 3pm" (hours ON days). Four review rounds tried — a
+# punctuation test, then a separator list, then a clause-content test — and each one closed one
+# shape while re-opening another, because the distinction is semantic and every lexical proxy for
+# it collides with a case that means the opposite. So a `nothing`/`never`/`none` that mentions days
+# AND reaches a time is treated like any other unread exclusion: the note goes to the `claude -p`
+# lane. Over-cautious for "weekday evenings, nothing on Sundays", which the fallback answers and
+# which degrades honestly if it can't — and never the inverted plan the proxies kept producing.
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
     (r"afternoons?", (12, 17)),
     (r"evenings?", (17, 21)),
     (r"nights?", (18, 22)),
 ]
+# A named window IS a time for the guard's purposes — "nothing in the afternoon" states an
+# exclusion just as plainly as "nothing after 3pm", it simply carries no digits.
+_NAMED_RE = re.compile(r"\b(?:" + "|".join(pat for pat, _ in _NAMED_WINDOWS) + r")\b", re.I)
 
 # range forms: "between 2 and 5pm" · "2-5pm" · "9am to 11am" (second time must carry a meridiem)
 _RANGE_BETWEEN = re.compile(
@@ -157,7 +213,9 @@ def _parse_days(t: str, current_days: Optional[Iterable[int]]) -> Optional[List[
     return result or None  # never zero out the week; drop the override instead
 
 
-def _parse_window(t: str) -> Dict[str, int]:
+def _parse_window(t: str) -> "tuple[Dict[str, int], bool]":
+    """``(window overrides, unreadable)``. ``unreadable`` means the note states a window exclusion
+    this parser could not read — the caller must then drop the WHOLE note, not just the window."""
     out: Dict[str, int] = {}
     for pat, (s, e) in _NAMED_WINDOWS:
         if re.search(r"\b" + pat + r"\b", t, re.I):
@@ -177,13 +235,50 @@ def _parse_window(t: str) -> Dict[str, int]:
                 start = alt
         out["day_start_hour"], out["day_end_hour"] = start, end
 
-    ms = re.search(_START_TRIG + r"\s+" + _TIME, t, re.I)
-    if ms:
-        out["day_start_hour"] = _hour(ms.group(1), ms.group(3))
-    me = re.search(_END_TRIG + r"\s+" + _TIME, t, re.I)
-    if me:
-        out["day_end_hour"] = _hour(me.group(1), me.group(3))
-    return out
+    # Every match is blanked out of the working copy — the same trick `_parse_days` uses for
+    # exclusion spans — and each scan repeats until its pattern is exhausted, so no occurrence of a
+    # trigger survives into a later, opposite-direction scan. Exhausting matters: a note stating the
+    # same edge twice ("no sessions after 5pm, nothing after 3pm") would otherwise leave the second
+    # phrase for the plain pass whose trigger word it contains, and be read backwards.
+    # Blanking keeps the string length, so offsets stay comparable across scans: for a given edge,
+    # the leftmost match in the note wins, which is what the single searches this replaces did.
+    work = t
+    seen: Dict[str, int] = {}
+    read: List[range] = []  # spans a NEGATED scan consumed (offsets stay valid — blanking keeps length)
+    for key, trig, negated in _WINDOW_SCANS:
+        pat = re.compile(trig + r"\s+" + _TIME, re.I)
+        while True:
+            m = pat.search(work)
+            if m is None:
+                break
+            if negated:
+                read.append(range(m.start(), m.end()))
+            if key not in seen or m.start() < seen[key]:
+                seen[key] = m.start()
+                out[key] = _hour(m.group(1), m.group(3))
+            work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
+    return out, _unread_time_exclusion(t, read)
+
+
+def _unread_time_exclusion(t: str, read: List[range]) -> bool:
+    """True when a ``nothing``/``never``/``none`` that no negated scan consumed still governs a
+    TIME — i.e. the note states a window exclusion this parser could not read.
+
+    Checked **per occurrence**: a note-level flag would let one readable negation vouch for an
+    unreadable one ("nothing from work after 3pm, not before 2pm" reads the 2pm and then answers
+    the 3pm backwards). Otherwise the occurrence must govern a time —
+    a clock time or a named window — inside its own clause. Both halves of "a time" matter:
+    "nothing in the afternoon" carries no digits, and reading it as a *selection* is the same
+    inversion one more time."""
+    for m in _NEG_PLAIN_WORD.finditer(t):
+        if any(m.start() in span for span in read):
+            continue  # this one WAS read
+        rest = t[m.start():]
+        stop = _CLAUSE_END.search(rest)
+        clause = rest[: stop.start()] if stop else rest
+        if _TIME_RE.search(clause) or _NAMED_RE.search(clause):
+            return True
+    return False
 
 
 def _parse_max_blocks(t: str) -> Optional[int]:
@@ -201,6 +296,15 @@ def parse_preference(text: str, current_days: Optional[Iterable[int]]) -> Dict[s
     t = text.strip()
     out: Dict[str, Any] = {}
 
+    window, unreadable = _parse_window(t)
+    if unreadable:
+        # The note states a window exclusion we couldn't read. Returning the OTHER keys would be
+        # the quiet failure: a non-empty result short-circuits the ``claude -p`` lane in
+        # `api/study.py`, so the standing window — the one the note was trying to narrow — is what
+        # gets planned and persisted, with no message. Dropping the whole note is what actually
+        # reaches the fallback, and failing that, the honest "I couldn't read that one".
+        return {}
+
     session = _parse_session(t)
     if session is not None:
         out["session_minutes"] = max(10, min(180, session))
@@ -209,7 +313,7 @@ def parse_preference(text: str, current_days: Optional[Iterable[int]]) -> Dict[s
     if days is not None:
         out["days_of_week"] = days
 
-    out.update(_parse_window(t))
+    out.update(window)
 
     blocks = _parse_max_blocks(t)
     if blocks is not None:

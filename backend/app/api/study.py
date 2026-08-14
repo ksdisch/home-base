@@ -71,7 +71,14 @@ def _apply_overrides(config: PlanConfig, ov: Dict[str, Any]) -> PlanConfig:
             fields[key] = _clamp(fields[key], lo, hi)
     new = replace(config, **fields)
     if new.day_end_hour <= new.day_start_hour:
-        new = replace(new, day_end_hour=min(24, new.day_start_hour + 1))
+        # Repair by moving the edge the note did NOT name, so the repair can't undo the note: an
+        # end-only note ("nothing after 3pm") against a standing 17:00 start must not be pushed to
+        # 17:00–18:00, which is the very band it ruled out. A start-only note still gives way at the
+        # end (unchanged), and a note naming both edges — or neither — keeps the end-moves rule.
+        if "day_end_hour" in fields and "day_start_hour" not in fields:
+            new = replace(new, day_start_hour=max(0, new.day_end_hour - 1))
+        else:
+            new = replace(new, day_end_hour=min(24, new.day_start_hour + 1))
     return new
 
 
