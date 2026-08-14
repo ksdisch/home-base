@@ -262,8 +262,10 @@ def test_a_negated_named_window_is_never_read_as_the_window_to_schedule() -> Non
         "nothing during the morning",
     ):
         assert parse_preference(note, None) == {}, note
-    # The day override still parses; only the inverted window is withheld.
-    assert parse_preference("weekdays, nothing in the evening", None) == {"days_of_week": [0, 1, 2, 3, 4]}
+    # Updated for review F21: the WHOLE note is dropped, not just the window. Returning the days
+    # here would be the quiet failure — a non-empty result short-circuits the claude lane, so the
+    # standing window (the one this note was narrowing) gets planned and persisted with no message.
+    assert parse_preference("weekdays, nothing in the evening", None) == {}
     # An unnegated named window is untouched.
     assert parse_preference("mornings", None) == {"day_start_hour": 8, "day_end_hour": 12}
 
@@ -278,6 +280,55 @@ def test_a_day_exclusion_never_vetoes_the_window_whatever_joins_the_clauses() ->
     }
     assert parse_preference("nothing on Fridays and no later than 5pm", None)["day_end_hour"] == 17
     assert parse_preference("nothing on Sundays but 9am to 5pm otherwise", None)["day_start_hour"] == 9
+
+
+def test_an_exclusion_of_hours_on_named_days_is_not_mistaken_for_a_day_exclusion() -> None:
+    # Review F20. The day-phrase skip ran BEFORE the time test and was unconditional, so a clause
+    # that excludes hours *on* days was skipped, its `after` handed to the forward scan, and the
+    # band it rules out planned and persisted. The single-day form was unaffected (it fits inside
+    # the two-word gap), so the answer depended on how many days the learner named.
+    for note in (
+        "nothing on saturdays or sundays after 3pm",
+        "nothing on Mondays or Fridays until 5pm",
+        "nothing on the weekend after 3pm",
+        "never on the weekends after 8pm",
+        "nothing on tues/thurs after 4pm",
+        "60 minute blocks every weekday, nothing on mon or fri after 4pm",
+        # …and the same for a day-qualified NAMED window, which review F16 closed for the bare form.
+        "nothing on Mondays or Wednesdays in the afternoon",
+        "nothing Friday afternoons",
+    ):
+        assert parse_preference(note, None) == {}, note
+    # A day exclusion that really does end at the day list is still skipped, whatever joins it on.
+    assert parse_preference("nothing on Fridays and 9am to 5pm", None)["day_end_hour"] == 17
+    assert parse_preference("weekday evenings, nothing on Sundays", None)["day_start_hour"] == 17
+
+
+def test_an_unreadable_window_drops_the_whole_note_so_the_fallback_lane_runs() -> None:
+    # Review F21. Withholding only the window was not the honest floor it claimed to be: the days
+    # and the session length still parsed, so the note was non-empty, the claude lane was
+    # short-circuited, and the STANDING window — the one the note was narrowing — got planned with
+    # no message. Against a busy calendar that booked blocks inside the excluded band.
+    assert parse_preference("45 minute blocks, nothing in the evening, 9am to 5pm", None) == {}
+    assert parse_preference("nothing scheduled on Friday mornings, 9am to 5pm otherwise", None) == {}
+    # Readable notes are untouched — this drops the note only when a stated exclusion went unread.
+    assert parse_preference("45 minute blocks, nothing after 5pm, weekdays", None) == {
+        "session_minutes": 45,
+        "days_of_week": [0, 1, 2, 3, 4],
+        "day_end_hour": 17,
+    }
+    # …and a `nothing` that governs no time at all is not an unread exclusion, so it withholds
+    # nothing. Added because the mutation that drops the clause+time scoping killed ZERO tests:
+    # every case then in the suite was covered by the day-phrase skip, leaving this shape unpinned.
+    assert parse_preference("nothing fancy, 9am to 5pm", None) == {
+        "day_start_hour": 9,
+        "day_end_hour": 17,
+    }
+    # Without a comma the clause runs to the end of the note and does reach a time, so this one is
+    # withheld. Over-cautious rather than wrong — the fallback lane sees it — and deliberately NOT
+    # chased by adding `and`/`but` to `_CLAUSE_END`: enumerating one more separator is the move
+    # that produced four straight rounds of leaks in this guard.
+    assert parse_preference("nothing crazy and 45 minute blocks from 9am", None) == {}
 
 
 def test_a_trigger_word_is_never_blanked_away_inside_a_negation_gap() -> None:

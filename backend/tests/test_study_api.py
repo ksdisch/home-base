@@ -715,6 +715,47 @@ def test_a_conjunction_joined_day_exclusion_still_applies_the_window(env):
         _teardown(app)
 
 
+def test_an_unreadable_window_reaches_the_fallback_instead_of_planning_the_excluded_band(env):
+    # Review F21, end to end and the reason it mattered: withholding only the window left the note
+    # non-empty (days + session parsed), so the claude lane never ran, `message` stayed None, and
+    # the STANDING 9-21 window was planned — booking 18:00 blocks inside "the evening", the one
+    # band the note excludes. Dropping the whole note is what actually reaches the fallback.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "preference": "45 minute blocks, nothing in the evening, 9am to 5pm",
+                "day_start_hour": 9, "day_end_hour": 21,
+            },
+        ).json()
+        assert "couldn't read that" in body["message"].lower()
+        assert body["applied"]["day_end_hour"] == 21  # controls held; nothing invented
+    finally:
+        _teardown(app)
+
+
+def test_an_hours_on_days_exclusion_never_plans_the_band_it_rules_out(env):
+    # Review F20, end to end: "nothing on saturdays or sundays after 3pm" applied 15->21 and
+    # planned 15:00 blocks — the excluded band — and persisted the inverted window.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "preference": "nothing on saturdays or sundays after 3pm",
+                "day_start_hour": 9, "day_end_hour": 21,
+            },
+        ).json()
+        assert "couldn't read that" in body["message"].lower()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())

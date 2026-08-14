@@ -115,6 +115,11 @@ _NEG_DAY_AFTER = re.compile(
     r"\s+(?:on\s+)?(?:the\s+)?(?:" + _DAY_TOKEN + r")(?:" + _DAY_CONN + r"(?:" + _DAY_TOKEN + r"))*\b",
     re.I,
 )
+# …but only when the day list is where that negator ENDS. "nothing on sat or sun after 3pm"
+# excludes hours *on* days and must still withhold; "nothing on Fridays and 9am to 5pm" is a day
+# exclusion followed by a separate statement. The tell is whether a clause separator follows the
+# day list — an `and`/`or` *inside* the list is already consumed by `_DAY_CONN` above.
+_DAY_CLAUSE_ENDS = re.compile(r"\s*(?:[,;]|and\b|but\b|$)", re.I)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -214,7 +219,9 @@ def _parse_days(t: str, current_days: Optional[Iterable[int]]) -> Optional[List[
     return result or None  # never zero out the week; drop the override instead
 
 
-def _parse_window(t: str) -> Dict[str, int]:
+def _parse_window(t: str) -> "tuple[Dict[str, int], bool]":
+    """``(window overrides, unreadable)``. ``unreadable`` means the note states a window exclusion
+    this parser could not read — the caller must then drop the WHOLE note, not just the window."""
     out: Dict[str, int] = {}
     for pat, (s, e) in _NAMED_WINDOWS:
         if re.search(r"\b" + pat + r"\b", t, re.I):
@@ -256,9 +263,7 @@ def _parse_window(t: str) -> Dict[str, int]:
                 seen[key] = m.start()
                 out[key] = _hour(m.group(1), m.group(3))
             work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
-    if _unread_time_exclusion(t, read):
-        return {}
-    return out
+    return out, _unread_time_exclusion(t, read)
 
 
 def _unread_time_exclusion(t: str, read: List[range]) -> bool:
@@ -267,17 +272,20 @@ def _unread_time_exclusion(t: str, read: List[range]) -> bool:
 
     Checked **per occurrence**: a note-level flag would let one readable negation vouch for an
     unreadable one ("nothing from work after 3pm, not before 2pm" reads the 2pm and then answers
-    the 3pm backwards). A negator that excludes DAYS is skipped outright — "nothing on Fridays"
-    says nothing about the window, and vetoing on it would take a band the note states elsewhere
-    with it, while `_parse_days` kept the note non-empty so even the fallback lane never saw it.
-    Otherwise the occurrence must govern a time — a clock time or a named window — inside its own
-    clause. Both halves of "a time" matter: "nothing in the afternoon" carries no digits, and
-    reading it as a *selection* schedules exactly the band it rules out."""
+    the 3pm backwards). A negator that excludes DAYS **and ends there** is skipped — "nothing on
+    Fridays" says nothing about the window, and vetoing on it would take a band the note states
+    elsewhere with it. The "ends there" half is load-bearing: "nothing on sat or sun after 3pm"
+    excludes hours *on* days, and skipping it hands that `after` to the forward scan, which then
+    schedules exactly the band the note rules out. Otherwise the occurrence must govern a time —
+    a clock time or a named window — inside its own clause. Both halves of "a time" matter:
+    "nothing in the afternoon" carries no digits, and reading it as a *selection* is the same
+    inversion one more time."""
     for m in _NEG_PLAIN_WORD.finditer(t):
         if any(m.start() in span for span in read):
             continue  # this one WAS read
-        if _NEG_DAY_AFTER.match(t, m.end()):
-            continue  # excludes days, not hours
+        day = _NEG_DAY_AFTER.match(t, m.end())
+        if day and _DAY_CLAUSE_ENDS.match(t, day.end()):
+            continue  # excludes days, and the negator ends there — it says nothing about hours
         rest = t[m.start():]
         stop = _CLAUSE_END.search(rest)
         clause = rest[: stop.start()] if stop else rest
@@ -301,6 +309,15 @@ def parse_preference(text: str, current_days: Optional[Iterable[int]]) -> Dict[s
     t = text.strip()
     out: Dict[str, Any] = {}
 
+    window, unreadable = _parse_window(t)
+    if unreadable:
+        # The note states a window exclusion we couldn't read. Returning the OTHER keys would be
+        # the quiet failure: a non-empty result short-circuits the ``claude -p`` lane in
+        # `api/study.py`, so the standing window — the one the note was trying to narrow — is what
+        # gets planned and persisted, with no message. Dropping the whole note is what actually
+        # reaches the fallback, and failing that, the honest "I couldn't read that one".
+        return {}
+
     session = _parse_session(t)
     if session is not None:
         out["session_minutes"] = max(10, min(180, session))
@@ -309,7 +326,7 @@ def parse_preference(text: str, current_days: Optional[Iterable[int]]) -> Dict[s
     if days is not None:
         out["days_of_week"] = days
 
-    out.update(_parse_window(t))
+    out.update(window)
 
     blocks = _parse_max_blocks(t)
     if blocks is not None:
