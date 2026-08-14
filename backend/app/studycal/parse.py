@@ -107,6 +107,14 @@ _WINDOW_SCANS = (
 _NEG_PLAIN_WORD = re.compile(r"\b(?:nothing|never|none)\b", re.I)
 _CLAUSE_END = re.compile(r"[,;]")  # not `.` — "2:00 p.m." would split inside the meridiem
 _TIME_RE = re.compile(_TIME, re.I)
+# A negator whose very next tokens are a day phrase is excluding DAYS, not hours — "nothing on
+# Fridays" says nothing about the window. Recognised structurally rather than by punctuation,
+# because English joins that clause to the next with `and`/`but` as readily as with a comma, and
+# a punctuation-only rule answers the same note two different ways.
+_NEG_DAY_AFTER = re.compile(
+    r"\s+(?:on\s+)?(?:the\s+)?(?:" + _DAY_TOKEN + r")(?:" + _DAY_CONN + r"(?:" + _DAY_TOKEN + r"))*\b",
+    re.I,
+)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -114,6 +122,9 @@ _NAMED_WINDOWS = [
     (r"evenings?", (17, 21)),
     (r"nights?", (18, 22)),
 ]
+# A named window IS a time for the guard's purposes — "nothing in the afternoon" states an
+# exclusion just as plainly as "nothing after 3pm", it simply carries no digits.
+_NAMED_RE = re.compile(r"\b(?:" + "|".join(pat for pat, _ in _NAMED_WINDOWS) + r")\b", re.I)
 
 # range forms: "between 2 and 5pm" · "2-5pm" · "9am to 11am" (second time must carry a meridiem)
 _RANGE_BETWEEN = re.compile(
@@ -256,16 +267,21 @@ def _unread_time_exclusion(t: str, read: List[range]) -> bool:
 
     Checked **per occurrence**: a note-level flag would let one readable negation vouch for an
     unreadable one ("nothing from work after 3pm, not before 2pm" reads the 2pm and then answers
-    the 3pm backwards). And only out to the end of its own **clause**, and only when a time is in
-    it: otherwise a day phrase like "weekday evenings, nothing on Sundays" would veto the window
-    stated beside it — which is not a window exclusion at all, and would take the evening band with
-    it while `_parse_days` kept the note non-empty, so even the fallback lane never saw it."""
+    the 3pm backwards). A negator that excludes DAYS is skipped outright — "nothing on Fridays"
+    says nothing about the window, and vetoing on it would take a band the note states elsewhere
+    with it, while `_parse_days` kept the note non-empty so even the fallback lane never saw it.
+    Otherwise the occurrence must govern a time — a clock time or a named window — inside its own
+    clause. Both halves of "a time" matter: "nothing in the afternoon" carries no digits, and
+    reading it as a *selection* schedules exactly the band it rules out."""
     for m in _NEG_PLAIN_WORD.finditer(t):
         if any(m.start() in span for span in read):
             continue  # this one WAS read
+        if _NEG_DAY_AFTER.match(t, m.end()):
+            continue  # excludes days, not hours
         rest = t[m.start():]
         stop = _CLAUSE_END.search(rest)
-        if _TIME_RE.search(rest[: stop.start()] if stop else rest):
+        clause = rest[: stop.start()] if stop else rest
+        if _TIME_RE.search(clause) or _NAMED_RE.search(clause):
             return True
     return False
 

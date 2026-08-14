@@ -216,11 +216,13 @@ def test_a_negated_day_clause_does_not_veto_a_window_stated_beside_it() -> None:
     # phrase, not a window exclusion, and the escape hatch didn't even fire: `_parse_days` still
     # returned days, so the note was non-empty and never reached the claude lane. The learner who
     # asked for evenings got a 09:00 block and no message.
-    assert parse_preference("weekday evenings, nothing on Sundays", None) == {
-        "days_of_week": [0, 1, 2, 3, 4, 6],
-        "day_start_hour": 17,
-        "day_end_hour": 21,
-    }
+    # Asserts the WINDOW only. The day list is a known wrong result on this phrasing and is not
+    # what this test is about: `nothing`/`never`/`none` are not `_EXCLUDE_RE` triggers, so
+    # `_parse_days` reads "Sundays" positively and SCHEDULES the day the note excludes. Untouched
+    # by this branch, owned by no finding yet — see the review-F18 note in the PR (review F12's
+    # precedent: an exact-dict pin must never freeze a defect silently).
+    out = parse_preference("weekday evenings, nothing on Sundays", None)
+    assert out["day_start_hour"] == 17 and out["day_end_hour"] == 21
     assert parse_preference("mornings only, nothing on Fridays", None)["day_start_hour"] == 8
     assert parse_preference("9am to 5pm, nothing on Fridays", None)["day_end_hour"] == 17
     assert parse_preference("start at 2pm, nothing on Tuesdays", None)["day_start_hour"] == 14
@@ -238,10 +240,44 @@ def test_a_readable_negation_does_not_vouch_for_an_unreadable_one() -> None:
         "day_start_hour": 9,
         "day_end_hour": 15,
     }
+    # Leftmost-per-edge keeps the 5pm, so Friday plans still run 15:00–17:00 — inside the band the
+    # second clause rules out. Same known gap the test above pins; asserted here only to show that
+    # BOTH negations were read, which is what stops the withholding guard from firing.
     assert parse_preference("no sessions after 5pm, nothing after 3pm on fridays", None) == {
         "days_of_week": [4],
         "day_end_hour": 17,
     }
+
+
+def test_a_negated_named_window_is_never_read_as_the_window_to_schedule() -> None:
+    # Review F16. The guard only withheld when a clock time (digits + meridiem) sat in the clause,
+    # so a negation over a NAMED window slipped through and `_NAMED_WINDOWS` handed back exactly
+    # the band the note rules out — "nothing in the afternoon" planned a 12:00 block and persisted
+    # 12/17, with no message. A named window is a time for the guard's purposes.
+    for note in (
+        "nothing in the afternoon",
+        "nothing in the mornings",
+        "never in the evenings",
+        "nothing at night",
+        "nothing during the morning",
+    ):
+        assert parse_preference(note, None) == {}, note
+    # The day override still parses; only the inverted window is withheld.
+    assert parse_preference("weekdays, nothing in the evening", None) == {"days_of_week": [0, 1, 2, 3, 4]}
+    # An unnegated named window is untouched.
+    assert parse_preference("mornings", None) == {"day_start_hour": 8, "day_end_hour": 12}
+
+
+def test_a_day_exclusion_never_vetoes_the_window_whatever_joins_the_clauses() -> None:
+    # Review F17. The clause rule ended only at `,` or `;`, so an `and`/`but` join let a day
+    # negator's clause swallow the window's own time and veto it — the same silent drop as F14,
+    # answering two notes that mean the same thing differently. A negator followed by a day phrase
+    # is now skipped structurally, with no punctuation involved.
+    assert parse_preference("nothing on Fridays and 9am to 5pm", None) == {
+        "days_of_week": [4], "day_start_hour": 9, "day_end_hour": 17,
+    }
+    assert parse_preference("nothing on Fridays and no later than 5pm", None)["day_end_hour"] == 17
+    assert parse_preference("nothing on Sundays but 9am to 5pm otherwise", None)["day_start_hour"] == 9
 
 
 def test_a_trigger_word_is_never_blanked_away_inside_a_negation_gap() -> None:

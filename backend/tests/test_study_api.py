@@ -679,6 +679,42 @@ def test_one_readable_negation_does_not_license_an_unreadable_one(env):
         _teardown(app)
 
 
+def test_a_negated_named_window_never_becomes_the_window_to_schedule(env):
+    # Review F16, end to end — the headline inversion, re-opened for every phrasing without digits.
+    # "nothing in the afternoon" applied 12->17, planned a 12:00 block and persisted 12/17, with
+    # message: None to explain any of it.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing in the afternoon", "day_start_hour": 9, "day_end_hour": 21},
+        ).json()
+        assert "couldn't read that" in body["message"].lower()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21
+    finally:
+        _teardown(app)
+
+
+def test_a_conjunction_joined_day_exclusion_still_applies_the_window(env):
+    # Review F17, end to end: the same note the comma form handles, joined with "and" instead.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "nothing on Fridays and 9am to 5pm", "day_start_hour": 9, "day_end_hour": 21},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 17
+        assert _starts(body)
+        for s in _starts(body):
+            assert 9 <= s.hour < 17
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
