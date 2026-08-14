@@ -266,11 +266,7 @@ def _unread_time_exclusion(t: str, read: List[range]) -> bool:
 
     Checked **per occurrence**: a note-level flag would let one readable negation vouch for an
     unreadable one ("nothing from work after 3pm, not before 2pm" reads the 2pm and then answers
-    the 3pm backwards). A negator that excludes DAYS **and ends there** is skipped — "nothing on
-    Fridays" says nothing about the window, and vetoing on it would take a band the note states
-    elsewhere with it. The "ends there" half is load-bearing: "nothing on sat or sun after 3pm"
-    excludes hours *on* days, and skipping it hands that `after` to the forward scan, which then
-    schedules exactly the band the note rules out. Otherwise the occurrence must govern a time —
+    the 3pm backwards). Otherwise the occurrence must govern a time —
     a clock time or a named window — inside its own clause. Both halves of "a time" matter:
     "nothing in the afternoon" carries no digits, and reading it as a *selection* is the same
     inversion one more time."""
