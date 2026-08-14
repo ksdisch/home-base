@@ -210,6 +210,40 @@ def test_an_exclusion_the_parser_cannot_read_yields_nothing_not_the_opposite() -
     assert parse_preference("no weekends after 3pm", None)["day_start_hour"] == 15
 
 
+def test_a_negated_day_clause_does_not_veto_a_window_stated_beside_it() -> None:
+    # Review F14. The withholding guard was note-level, so any `nothing` anywhere threw the WHOLE
+    # window away — including one stated plainly in another clause. "nothing on Sundays" is a day
+    # phrase, not a window exclusion, and the escape hatch didn't even fire: `_parse_days` still
+    # returned days, so the note was non-empty and never reached the claude lane. The learner who
+    # asked for evenings got a 09:00 block and no message.
+    assert parse_preference("weekday evenings, nothing on Sundays", None) == {
+        "days_of_week": [0, 1, 2, 3, 4, 6],
+        "day_start_hour": 17,
+        "day_end_hour": 21,
+    }
+    assert parse_preference("mornings only, nothing on Fridays", None)["day_start_hour"] == 8
+    assert parse_preference("9am to 5pm, nothing on Fridays", None)["day_end_hour"] == 17
+    assert parse_preference("start at 2pm, nothing on Tuesdays", None)["day_start_hour"] == 14
+    assert parse_preference("1 hour blocks in the mornings, none on the weekend", None)["day_end_hour"] == 12
+
+
+def test_a_readable_negation_does_not_vouch_for_an_unreadable_one() -> None:
+    # Review F15. The guard was one boolean set by ANY negated match, so a readable clause
+    # re-enabled the backwards reading of an unreadable one — the plan landed after 3pm, the band
+    # the note excludes, and the stated 2pm start was dropped. The check is per occurrence now.
+    assert parse_preference("nothing from work after 3pm, not before 2pm", None) == {}
+    assert parse_preference("no more before 2pm, nothing between meetings after 6pm", None) == {}
+    # Two readable negations in one note still read normally — being unread is what withholds.
+    assert parse_preference("nothing before 9am and nothing after 3pm", None) == {
+        "day_start_hour": 9,
+        "day_end_hour": 15,
+    }
+    assert parse_preference("no sessions after 5pm, nothing after 3pm on fridays", None) == {
+        "days_of_week": [4],
+        "day_end_hour": 17,
+    }
+
+
 def test_a_trigger_word_is_never_blanked_away_inside_a_negation_gap() -> None:
     # Review F8's other half: the gap must not consume a bound that the note actually states.
     # The second bound in each of these is dropped — that is #192-F1 (distributed negation), a

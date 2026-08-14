@@ -97,14 +97,16 @@ _WINDOW_SCANS = (
     ("day_end_hour", _END_TRIG, False),
 )
 
-# `nothing`/`never`/`none` have exactly ONE sense — exclusion. So if one is present and no negated
-# scan matched it, the note states an exclusion this parser could not read, and the plain scan's
+# `nothing`/`never`/`none` have exactly ONE sense — exclusion. So one that no negated scan could
+# read means the note states an exclusion this parser did not understand, and the plain scan's
 # answer is the worst outcome available: it is the BACKWARDS one, delivered confidently, and a
 # non-empty parse short-circuits the ``claude -p`` lane that might have read it (`api/study.py`).
 # Withholding the window instead leaves the controls untouched and lets the fallback lane see the
-# note. `no`/`not` are excluded from this rule — they genuinely carry other senses (a day
-# exclusion, an availability statement), so a non-match there is meaningful, not a failure to read.
+# note. `no`/`not` are excluded — they genuinely carry other senses (a day exclusion, an
+# availability statement), so a non-match there is meaningful, not a failure to read.
 _NEG_PLAIN_WORD = re.compile(r"\b(?:nothing|never|none)\b", re.I)
+_CLAUSE_END = re.compile(r"[,;]")  # not `.` — "2:00 p.m." would split inside the meridiem
+_TIME_RE = re.compile(_TIME, re.I)
 
 _NAMED_WINDOWS = [
     (r"mornings?", (8, 12)),
@@ -230,21 +232,42 @@ def _parse_window(t: str) -> Dict[str, int]:
     # the leftmost match in the note wins, which is what the single searches this replaces did.
     work = t
     seen: Dict[str, int] = {}
-    read_a_negation = False
+    read: List[range] = []  # spans a NEGATED scan consumed (offsets stay valid — blanking keeps length)
     for key, trig, negated in _WINDOW_SCANS:
         pat = re.compile(trig + r"\s+" + _TIME, re.I)
         while True:
             m = pat.search(work)
             if m is None:
                 break
-            read_a_negation = read_a_negation or negated
+            if negated:
+                read.append(range(m.start(), m.end()))
             if key not in seen or m.start() < seen[key]:
                 seen[key] = m.start()
                 out[key] = _hour(m.group(1), m.group(3))
             work = work[: m.start()] + " " * (m.end() - m.start()) + work[m.end() :]
-    if not read_a_negation and _NEG_PLAIN_WORD.search(t):
-        return {}  # an exclusion we couldn't read — say nothing rather than say the opposite
+    if _unread_time_exclusion(t, read):
+        return {}
     return out
+
+
+def _unread_time_exclusion(t: str, read: List[range]) -> bool:
+    """True when a ``nothing``/``never``/``none`` that no negated scan consumed still governs a
+    TIME — i.e. the note states a window exclusion this parser could not read.
+
+    Checked **per occurrence**: a note-level flag would let one readable negation vouch for an
+    unreadable one ("nothing from work after 3pm, not before 2pm" reads the 2pm and then answers
+    the 3pm backwards). And only out to the end of its own **clause**, and only when a time is in
+    it: otherwise a day phrase like "weekday evenings, nothing on Sundays" would veto the window
+    stated beside it — which is not a window exclusion at all, and would take the evening band with
+    it while `_parse_days` kept the note non-empty, so even the fallback lane never saw it."""
+    for m in _NEG_PLAIN_WORD.finditer(t):
+        if any(m.start() in span for span in read):
+            continue  # this one WAS read
+        rest = t[m.start():]
+        stop = _CLAUSE_END.search(rest)
+        if _TIME_RE.search(rest[: stop.start()] if stop else rest):
+            return True
+    return False
 
 
 def _parse_max_blocks(t: str) -> Optional[int]:

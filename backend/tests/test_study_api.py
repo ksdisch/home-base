@@ -638,6 +638,47 @@ def test_a_prepositional_exclusion_never_plans_inside_the_band_it_rules_out(env)
         _teardown(app)
 
 
+def test_a_window_plus_a_negated_day_clause_still_applies_the_window(env):
+    # Review F14, end to end — and the reason it was invisible: the note is non-empty (the days
+    # parse), so the "couldn't read that" degrade never fires. The learner got a 09:00 block from
+    # a note that said evenings, with no message to explain it.
+    client, app = _client(_fake())
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={"preference": "weekday evenings, nothing on Sundays", "day_start_hour": 9, "day_end_hour": 21},
+        ).json()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 17 and applied["day_end_hour"] == 21
+        assert _starts(body)
+        for s in _starts(body):
+            assert s.hour >= 17
+    finally:
+        _teardown(app)
+
+
+def test_one_readable_negation_does_not_license_an_unreadable_one(env):
+    # Review F15, end to end. The two-clause note read the 2pm start and then answered the 3pm
+    # exclusion backwards: blocks at 15:00 and 19:00 — all inside the excluded band — and the
+    # inverted 15/21 window persisted over the learner's 9/21.
+    client, app = _client(_fake(), negotiate_answer="boom", code=1)
+    try:
+        body = client.post(
+            f"/api/paths/{JACOBIAN}/schedule/propose",
+            json={
+                "preference": "nothing from work after 3pm, not before 2pm",
+                "day_start_hour": 9, "day_end_hour": 21,
+            },
+        ).json()
+        assert "couldn't read that" in body["message"].lower()
+        applied = body["applied"]
+        assert applied["day_start_hour"] == 9 and applied["day_end_hour"] == 21
+        state = client.get(f"/api/paths/{JACOBIAN}/schedule").json()
+        assert state["day_start_hour"] == 9 and state["day_end_hour"] == 21
+    finally:
+        _teardown(app)
+
+
 def test_exclusion_note_refines_current_days(env):
     # "not Mondays" drops Monday from the weekday control the user already has.
     client, app = _client(_fake())
