@@ -3,7 +3,9 @@
 
 Reads the validated data/sweeps/<date>/<topic>.json files (roster order first, same as the
 page) and builds a deterministic "morning drive" script — per topic: a speakable title, the
-top line, and the top story's headline + first digest sentence — targeting ~600–700 words
+top line, and one top-story digest sentence the top line didn't already cover (the digest's
+first sentence is the headline in fuller prose, so the headline itself is never read on top
+of it; a fully covered story narrates nothing) — targeting ~600–700 words
 (≈4–5 minutes, under Kokoro's single-request comfort zone). POSTs it to the OpenAI-compatible
 /v1/audio/speech endpoint the com.voicemode.kokoro LaunchAgent keeps running locally and
 writes data/sweeps/<date>/brief.mp3 atomically.
@@ -93,14 +95,61 @@ _ABBREV_END = re.compile(
 )
 
 
-def first_sentence(text: str) -> str:
-    """First sentence for the ear — merges past abbreviation false-splits, never returns a stub."""
+def split_sentences(text: str) -> list[str]:
+    """Sentences for the ear — merges abbreviation false-splits, never yields a stub."""
+    sentences: list[str] = []
     out = ""
     for part in re.split(r"(?<=[.!?])\s+", text.strip()):
         out = f"{out} {part}".strip()
         if len(out) >= 20 and not _ABBREV_END.search(out):
-            break
-    return out
+            sentences.append(out)
+            out = ""
+    if out:
+        sentences.append(out)
+    return sentences
+
+
+# Coverage compares only words that carry meaning; these plus anything under 3 letters
+# would otherwise let "the … and … with" count as overlap.
+_WORD = re.compile(r"[a-z0-9']+")
+_STOPWORDS = frozenset(
+    "the and for that with this from his her its was are were has have had "
+    "will not but into over after out under about their they them".split()
+)
+_COVERED_RATIO = 0.7
+
+
+def significant_words(text: str) -> set[str]:
+    return {w for w in _WORD.findall(text.lower()) if len(w) >= 3 and w not in _STOPWORDS}
+
+
+def top_story_sentence(top_line: str, item: dict) -> str:
+    """The one 'top story' sentence that adds facts the top line didn't already carry.
+
+    The digest's first sentence is virtually always the headline rewritten in fuller
+    prose, so the digest — never the headline — is what gets read; the headline only
+    fills in for a digest-less item. A sentence is "already covered" when ≥70% of its
+    significant words appear in the top line; a sentence too short to judge (under 3
+    significant words) always counts as new. A fully covered item narrates nothing —
+    silence beats an echo.
+    """
+    covered = significant_words(top_line)
+
+    def novel(sentence: str) -> bool:
+        words = significant_words(sentence)
+        if len(words) < 3:
+            return True
+        return len(words & covered) / len(words) < _COVERED_RATIO
+
+    digest = strip_markup(str(item.get("digest", "")))
+    for sentence in split_sentences(digest):
+        if novel(sentence):
+            return sentence
+    if not digest:
+        head = strip_markup(str(item.get("headline", "")))
+        if head and novel(head):
+            return head if head.endswith((".", "!", "?")) else f"{head}."
+    return ""
 
 
 def human_date(date_iso: str) -> str:
@@ -140,7 +189,7 @@ def load_topics(day_dir: Path, roster: list[dict]) -> list[dict]:
 def build_script(topics: list[dict], date_iso: str) -> tuple[str, list[dict]]:
     """The deterministic ear script: opener, one compact segment per topic, closer.
 
-    Trim ladder when over MAX_WORDS: drop the headline sentences from the last topic
+    Trim ladder when over MAX_WORDS: drop the top-story sentences from the last topic
     backwards (top lines always survive) — deterministic, never reorders or drops a topic.
 
     Also returns the FR4 chapter list [{slug, title, start_seconds}] — each topic's start
@@ -158,10 +207,9 @@ def build_script(topics: list[dict], date_iso: str) -> tuple[str, list[dict]]:
         intro = f"{lead} {speakable_title(topic['title'])}. {strip_markup(topic['top_line'])}"
         extra = ""
         if topic["items"] and isinstance(topic["items"][0], dict):
-            head = strip_markup(str(topic["items"][0].get("headline", "")))
-            digest = first_sentence(strip_markup(str(topic["items"][0].get("digest", ""))))
-            if head:
-                extra = f"The top story: {head}." + (f" {digest}" if digest else "")
+            sentence = top_story_sentence(strip_markup(topic["top_line"]), topic["items"][0])
+            if sentence:
+                extra = f"The top story: {sentence}"
         segments.append({"intro": intro, "extra": extra})
 
     def assemble() -> str:
