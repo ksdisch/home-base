@@ -96,7 +96,9 @@ _ABBREV_END = re.compile(
 
 
 def split_sentences(text: str) -> list[str]:
-    """Sentences for the ear — merges abbreviation false-splits, never yields a stub."""
+    """Sentences for the ear — merges abbreviation false-splits. A short trailing remainder
+    is yielded as-is; callers decide whether a stub is usable (top_story_sentence skips
+    anything too thin to narrate)."""
     sentences: list[str] = []
     out = ""
     for part in re.split(r"(?<=[.!?])\s+", text.strip()):
@@ -129,25 +131,25 @@ def top_story_sentence(top_line: str, item: dict) -> str:
     The digest's first sentence is virtually always the headline rewritten in fuller
     prose, so the digest — never the headline — is what gets read; the headline only
     fills in for a digest-less item. A sentence is "already covered" when ≥70% of its
-    significant words appear in the top line; a sentence too short to judge (under 3
-    significant words) always counts as new. A fully covered item narrates nothing —
-    silence beats an echo.
+    significant words appear in the top line; a sentence with under 3 significant words
+    is too thin to judge — or to stand alone as the story — so it is skipped, never
+    narrated. A fully covered item narrates nothing — silence beats an echo.
     """
     covered = significant_words(top_line)
 
-    def novel(sentence: str) -> bool:
+    def narratable(sentence: str) -> bool:
         words = significant_words(sentence)
         if len(words) < 3:
-            return True
+            return False
         return len(words & covered) / len(words) < _COVERED_RATIO
 
     digest = strip_markup(str(item.get("digest", "")))
     for sentence in split_sentences(digest):
-        if novel(sentence):
+        if narratable(sentence):
             return sentence
     if not digest:
         head = strip_markup(str(item.get("headline", "")))
-        if head and novel(head):
+        if head and narratable(head):
             return head if head.endswith((".", "!", "?")) else f"{head}."
     return ""
 

@@ -12,8 +12,9 @@ brief" was the #1 item on the kickoff's "would be amazing" list._
 
 ### 1. Deterministic ear script — not an LLM "radio host" pass
 `sweeps/audio_brief.py` assembles the spoken script mechanically from the day's validated
-`<topic>.json` files (per topic: a spoken title + the `top_line` + the top item's headline
-and first digest sentence), targeting **~600–700 words ≈ 4–5 minutes** — under local Kokoro's
+`<topic>.json` files (per topic: a spoken title + the `top_line` + one top-item digest
+sentence the top line didn't already cover; the headline is no longer narrated on top of the
+digest that restates it — PR #193, 2026-08-15), capped at **700 words ≈ 4–5 minutes** — under local Kokoro's
 ~750-word single-request comfort zone, so one render, no ffmpeg/concat. Rationale: zero new
 LLM cost, zero latency added to the pipeline, and **zero new un-graded prompt surface** while
 the M0 grading week is still validating the existing prompts. The premium "radio host" script

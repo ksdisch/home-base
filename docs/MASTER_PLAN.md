@@ -286,7 +286,7 @@ inline notes, learning riding along. Contract: [`KICKOFF-home-base.md`](KICKOFF-
   - [x] Read-time dedup: `developing`/`first_seen` labels on repeated stories (nothing dropped) + subtle Today chip
   - [x] Schedule installed 2026-07-15 at 06:00 CT; **first unattended fire verified 2026-07-16** — 8/8 topics, `rc=0` in 25½ min, fresh briefs + 8 ledger rows (~$10 equiv/day, subscription lane — not billed)
 - [x] **M4 — Audio brief** — ✅ shipped 2026-07-16, PR #45 ([plan](M4_PLAN.md); picked same day from the post-M3 menu — audio-first over one combined milestone)
-      _`sweeps/audio_brief.py`: deterministic ~650-word ear script → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
+      _`sweeps/audio_brief.py`: deterministic ≤700-word ear script (de-echoed 2026-08-15, PR #193: one novel digest sentence per topic, headline never re-read) → local Kokoro (`com.voicemode.kokoro`) → `data/sweeps/<date>/brief.mp3`, best-effort after every sweep (never fails it) · `GET /api/brief/audio` + `audio_available` · 🎧 player on Today · first real render 4:49 across 8 topics_
 - [x] **M5 — Chat with the brief** — ✅ shipped 2026-07-16, PR #47 ([plan](M5_PLAN.md); approach A from its own explore-plan — per-item Ask, no web tools)
       _`app/chat.py` (headless `claude -p` on the subscription lane, API key scrubbed, no tools) · `POST /api/brief/chat` · "Ask about this" on every item with save-as-note reuse · `brief-chat.jsonl` ledger under backend data · live e2e: grounded answer in 13s, ~$0.07 equiv_
 - [x] **M6 — Mobile** — ✅ shipped 2026-07-18, PRs #55 + #56 ([plan](M6_PLAN.md); promoted from the kickoff-deferred list, the M4/M5 path; fourth deliberate override of the M0-verdict gate — zero new prompt surface)
@@ -413,7 +413,14 @@ park hold until the verdict._
 
 ## Changelog (newest first)
 
-### 2026-08-13 (latest) — 08-12 hunt bug #5: negated time preferences parsed backwards (PR #192)
+### 2026-08-15 (latest) — audio brief de-echoed: each top story reaches the ear once (PR #193)
+Kyle's transcript of the 08-15 MP3 showed every topic narrating its top story up to 3× (top_line →
+headline → digest first sentence, the last two being the same fact twice). `build_script` now reads
+one top-story digest sentence per topic — the first whose significant words aren't ≥70% covered by
+the top line — and never the headline; sub-3-significant-word stubs are skipped (review F1). Real
+08-15 day: ~490 → 401 words, no facts lost. Deterministic, zero LLM (Kyle picked approach A).
+
+### 2026-08-13 — 08-12 hunt bug #5: negated time preferences parsed backwards (PR #192)
 
 - One defect in `_parse_window`, two confirmed findings. (a) The start trigger guarded `after` with two **literal lookbehinds** that see only the word immediately before it, so "nothing after 3pm" / "never after 3pm" / "no sessions after 3pm" became a 3pm **start** — the plan landed on exactly the band the note ruled out, and `set_study_prefs` persisted that window before the plan, so every later visit hydrated to it. (b) The end trigger's bare `before`/`until` was searched over the **untouched** text, so it fired inside the start phrase already consumed: "not before 2pm" → `{14, 14}`, "evenings but not before 7pm" → `{19, 19}`.
 - Fixed as the acceptance names it, then reshaped three times by the review. A negated bound sets the **opposite** edge; every scan blanks each match out of a working copy and **repeats until exhausted**, so no occurrence survives into a later opposite-direction scan. Blanking preserves length, so **leftmost-per-edge still wins** — the rule the two single searches had.

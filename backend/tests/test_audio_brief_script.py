@@ -191,6 +191,28 @@ def test_top_story_fully_covered_by_the_top_line_narrates_nothing_extra(tmp_path
     assert "The top story" not in r.stdout
 
 
+def test_top_story_never_narrates_a_short_stub(tmp_path):
+    """F1 (review): a trailing sub-3-significant-word fragment must not become the whole
+    top story when every substantive digest sentence is already covered by the top line —
+    'The top story: He is 56.' is worse than silence."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={
+            "st-louis-blues.json": _brief(
+                "Quiet day — the one real item is the Blues hiring Hall of Fame defenseman "
+                "Sergei Zubov as an advisor to hockey operations.",
+                "Blues hire Zubov",
+                "The Blues hired Hall of Fame defenseman Sergei Zubov as an advisor to "
+                "hockey operations. He is 56.",
+            )
+        },
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "He is 56" not in r.stdout
+    assert "The top story" not in r.stdout  # fully covered + stub → silence
+
+
 def test_top_story_falls_back_to_the_headline_when_the_digest_is_empty(tmp_path):
     brief = json.dumps(
         {
@@ -371,7 +393,9 @@ def test_print_script_writes_no_chapters(tmp_path):
 def test_trim_zeroed_topics_still_get_chapters(tmp_path):
     """The trim ladder only drops a late topic's 'top story' sentence — its intro line
     always survives, so every narrated topic keeps a real chapter offset."""
-    long_digest = ("word " * 70).strip() + "."
+    # Varied filler: a one-unique-word digest would be skipped as too thin to narrate,
+    # deflating the script below the budget and leaving the trim ladder unexercised.
+    long_digest = " ".join(f"word{j}" for j in range(70)) + "."
     files = {
         f"topic-{i}.json": _brief(f"Top line number {i} here.", f"Headline {i}", long_digest)
         for i in range(1, 9)
