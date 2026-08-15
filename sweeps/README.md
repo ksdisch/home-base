@@ -66,8 +66,9 @@ SWEEP_MODEL=sonnet make sweep   # try a cheaper/faster model and compare quality
 ## The audio brief (M4)
 
 After the topic loop, `sweep.sh` makes one **best-effort** call to
-[`audio_brief.py`](audio_brief.py): a deterministic ~650-word "morning drive" script (per
-topic: speakable title + top line + the top story's headline and first sentence) rendered to
+[`audio_brief.py`](audio_brief.py): a deterministic ~400–650-word "morning drive" script (per
+topic: speakable title + top line + one top-story digest sentence the top line didn't already
+cover — the headline is never read on top of the digest that restates it) rendered to
 `data/sweeps/<date>/brief.mp3` by the **local Kokoro TTS** the `com.voicemode.kokoro`
 LaunchAgent keeps running (port 8880 — free, offline, no quota). The hub serves it at
 `GET /api/brief/audio` and Today shows a 🎧 player. Kokoro down or missing? One loud log

@@ -6,7 +6,9 @@ dirs under tmp_path — never the real data/sweeps; the render-path tests point 
 unroutable Kokoro URL and assert the failure/skip contract instead of ever doing TTS.
 House rules under test: audio is a bonus (bad topics are skipped, empty days are a clean
 exit 0, a down Kokoro exits non-zero without leaving a file); the freshness check must
-short-circuit before any network I/O; the spoken script carries no markdown or URLs.
+short-circuit before any network I/O; the spoken script carries no markdown or URLs; the
+"top story" line reads the digest (never the headline it restates) and skips digest
+sentences the top line already covered — the ear hears each fact once.
 """
 
 from __future__ import annotations
@@ -106,8 +108,8 @@ def test_script_strips_markdown_and_urls(tmp_path):
         files={
             "ai-llms.json": _brief(
                 "A **bold** [linked](https://example.com/x) top line.",
-                "Headline with [TSMC](https://tsmc.example) inside",
-                "Digest cites https://raw.example.com/path directly. Second sentence.",
+                "Headline never narrated",
+                "Digest cites [TSMC](https://tsmc.example) and https://raw.example.com/path directly. Second sentence.",
             )
         },
     )
@@ -135,6 +137,95 @@ def test_script_survives_abbreviation_sentence_splits(tmp_path):
     assert "Unrelated second sentence" not in r.stdout
 
 
+# -- the dedup contract: each fact reaches the ear once -----------------------------
+
+
+def test_top_story_reads_the_digest_not_the_headline(tmp_path):
+    """The digest's first sentence is the headline in fuller prose — reading both back to
+    back is the repetition Kyle heard. The digest is the narration; the headline never is."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={"ai-llms.json": _brief("Quiet day.", "OpenAI lifts caps")},
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "The top story: First sentence of the digest." in r.stdout
+    assert "OpenAI lifts caps" not in r.stdout
+
+
+def test_top_story_skips_digest_sentences_the_top_line_already_covers(tmp_path):
+    """When the top line already told the top story, the narration starts at the first
+    digest sentence that adds something new instead of restating it a second time."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={
+            "chiefs.json": _brief(
+                "Mahomes ruled out of the preseason opener with the surgically repaired knee.",
+                "Mahomes out Saturday",
+                "Patrick Mahomes ruled out of the preseason opener, resting the surgically "
+                "repaired knee. Justin Fields takes the first-team snaps against the Rams instead.",
+            )
+        },
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "The top story: Justin Fields takes the first-team snaps" in r.stdout
+    assert "Patrick Mahomes ruled out" not in r.stdout
+
+
+def test_top_story_fully_covered_by_the_top_line_narrates_nothing_extra(tmp_path):
+    """A digest with no sentence beyond what the top line said adds silence, not an echo."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={
+            "indiana.json": _brief(
+                "The only news: trainer Garle filed a federal lawsuit against IU over his firing.",
+                "Garle sues IU",
+                "Trainer Garle filed a federal lawsuit against IU over his firing.",
+            )
+        },
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "The only news" in r.stdout  # the top line itself always narrates
+    assert "The top story" not in r.stdout
+
+
+def test_top_story_never_narrates_a_short_stub(tmp_path):
+    """F1 (review): a trailing sub-3-significant-word fragment must not become the whole
+    top story when every substantive digest sentence is already covered by the top line —
+    'The top story: He is 56.' is worse than silence."""
+    sweeps, roster_file = _setup(
+        tmp_path,
+        files={
+            "st-louis-blues.json": _brief(
+                "Quiet day — the one real item is the Blues hiring Hall of Fame defenseman "
+                "Sergei Zubov as an advisor to hockey operations.",
+                "Blues hire Zubov",
+                "The Blues hired Hall of Fame defenseman Sergei Zubov as an advisor to "
+                "hockey operations. He is 56.",
+            )
+        },
+    )
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "He is 56" not in r.stdout
+    assert "The top story" not in r.stdout  # fully covered + stub → silence
+
+
+def test_top_story_falls_back_to_the_headline_when_the_digest_is_empty(tmp_path):
+    brief = json.dumps(
+        {
+            "top_line": "Quiet day.",
+            "items": [{"headline": "Angle worth knowing", "digest": "", "sources": []}],
+        }
+    )
+    sweeps, roster_file = _setup(tmp_path, files={"ai-llms.json": brief})
+    r = _run(sweeps, roster_file, "--print-script")
+    assert r.returncode == 0, r.stderr
+    assert "The top story: Angle worth knowing." in r.stdout
+
+
 def test_script_skips_unparseable_topics_but_keeps_the_rest(tmp_path):
     sweeps, roster_file = _setup(
         tmp_path,
@@ -150,11 +241,15 @@ def test_script_skips_unparseable_topics_but_keeps_the_rest(tmp_path):
     assert "broken" not in r.stdout and "md-only" not in r.stdout
 
 
-def test_script_trims_headlines_from_the_end_to_fit_the_word_budget(tmp_path):
+def test_script_trims_top_stories_from_the_end_to_fit_the_word_budget(tmp_path):
     """Over budget: later topics lose their 'top story' sentence; every top line survives."""
-    long_digest = ("word " * 70).strip() + "."
+    long_digest = "Story number {i} runs long: " + ("word " * 75).strip() + "."
     files = {
-        f"topic-{i}.json": _brief(f"Top line number {i} with a few extra words in it.", f"Headline {i}", long_digest)
+        f"topic-{i}.json": _brief(
+            f"Top line number {i} with a few extra words in it.",
+            f"Headline {i}",
+            long_digest.format(i=i),
+        )
         for i in range(1, 9)
     }
     roster = [{"slug": f"topic-{i}", "title": f"Topic {i}", "paused": False} for i in range(1, 9)]
@@ -165,8 +260,8 @@ def test_script_trims_headlines_from_the_end_to_fit_the_word_budget(tmp_path):
     assert len(script.split()) <= 700
     for i in range(1, 9):  # no topic is ever dropped
         assert f"Top line number {i}" in script
-    assert "Headline 1" in script  # trimming starts from the END
-    assert "Headline 8" not in script
+    assert "Story number 1" in script  # trimming starts from the END
+    assert "Story number 8" not in script
 
 
 # -- empty / missing days ---------------------------------------------------------
@@ -298,7 +393,9 @@ def test_print_script_writes_no_chapters(tmp_path):
 def test_trim_zeroed_topics_still_get_chapters(tmp_path):
     """The trim ladder only drops a late topic's 'top story' sentence — its intro line
     always survives, so every narrated topic keeps a real chapter offset."""
-    long_digest = ("word " * 70).strip() + "."
+    # Varied filler: a one-unique-word digest would be skipped as too thin to narrate,
+    # deflating the script below the budget and leaving the trim ladder unexercised.
+    long_digest = " ".join(f"word{j}" for j in range(70)) + "."
     files = {
         f"topic-{i}.json": _brief(f"Top line number {i} here.", f"Headline {i}", long_digest)
         for i in range(1, 9)
