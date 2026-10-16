@@ -10,7 +10,6 @@ For notebooks that already exist. Three branching workflows; user picks one (or 
 ## When to use which sibling skill
 
 - [[notebook-init]] — create a brand-new notebook from scratch
-- [[interview-prep]] — create or extend an interview-prep notebook (specialized template)
 - [[audio-series]] — generate a whole episodic *audio* series/season (+ optional per-episode study aids) for an existing notebook
 - **notebook-assist** (this skill) — work *with* a notebook that already exists: refine an artifact idea, brainstorm new ones, manage sources
 
@@ -174,7 +173,7 @@ Common idea patterns → suggested mapping:
 - Studio status poll: 2s
 
 ## Notes
-- This skill complements [[notebook-init]] (creation) and [[interview-prep]] (specialized creation). All three share the same sidecar shape and INDEX.md convention
+- This skill complements [[notebook-init]] (creation). Both share the same sidecar shape and INDEX.md convention
 - Mode A is the most-used path; optimize that flow for speed (don't over-interview)
 - Mode B's value depends on reading the actual notebook state first — never propose without calling `notebook_describe`
 - Mode C's `Remove` is the only destructive action in any of the three sibling skills — confirm twice

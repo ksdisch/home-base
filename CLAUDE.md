@@ -64,23 +64,9 @@ TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + N
 
 | Command | What it does |
 |---|---|
-| ✅ `/begin` | Open a session — orient on branch, recent commits, open PRs, last `/wrap` recap. |
-| ✅ `/wrap` | End-of-session recap + active-recall quiz, saved to a dated log file. |
-| ✅ `/explore-plan` | Explore → plan → confirm before writing any code (2–3 ranked approaches). |
 | ✅ `/tdd` | Test-first loop: write failing tests, confirm, then code until green. |
 | ✅ `/handoff` | Generate a paste-ready handoff prompt for a fresh Claude Code session. |
-| ✅ `/trim-context` | Find/fix CLAUDE.md + memory "token bloat" in the repo. |
-| ✅ `/autonomous-milestone` | Autonomously plan/build/test a milestone, or triage the backlog (ultracode multi-agent). |
 | ✅ `/build-course` | Plan-then-autonomous course creation — propose a syllabus, then author lessons/diagrams/flashcards/quizzes into a hub course (thin entry to `course-builder`). |
-| ✅ `/brainstorm` | Multi-mode structured brainstorm (Moonshot default) → `docs/ideas/` vision docs + backlog stubs. |
-| ✅ `/claudify-repo` | Vendor global commands/skills into this repo and/or brainstorm repo-specific automations. |
-| ✅ `/prompt-optimize` | One-shot prompt rewrite: workflow archetype + model + effort + ready-to-paste prompt. Advisory only. |
-| ✅ `/reframe-orchestrator` | Reframe `.claude/orchestrator.md` into a mode-independent invariants & gates doc. |
-| 💻 `/boot_server` | Detect how the project is served, start the dev server, open it in Chrome. |
-| 💻 `/catchup` | Mid-session audio catch-up as an MP3 (local TTS); keeps working after. |
-| 💻 `/envsetup` | Open `.env` in the editor + the credential's generation page in Chrome, key stub pre-added. |
-| 💻 `/screenshot-iterate` | Visual loop: implement against a mock, screenshot the running app, compare, iterate. |
-| 💻 `/smoke-test` | Manual smoke test setup: opens pages in Chrome, checklist saved under `docs/smoke/`. |
 
 ### Skills (`.claude/skills/`)
 
@@ -121,8 +107,7 @@ TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + N
 |---|---|
 | 💻 `learning-hub-db` | SQLite MCP (`uvx mcp-server-sqlite`) over the hub's store at `backend/data/learning-hub.sqlite`, so Claude can inspect attempts/mastery/custom_topics. Requires `uv`/`uvx`; the DB file is created on first `make dev`. The store is local, so it won't connect in cloud sessions. |
 
-> Vendored / scaffolded via `/claudify-repo`. To refresh a vendored tool to its latest global
-> version, re-run that command and re-port it. The `custom_topics` CLI writer that
+> Vendored / scaffolded via `/claudify-repo` (since retired). The `custom_topics` CLI writer that
 > `youtube-breakdown` uses is built (`backend/app/topics/custom.py`); surfacing custom topics on
 > the hub home remains Phase-5 UI work (see `BACKLOG.md`).
 
