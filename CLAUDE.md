@@ -87,24 +87,10 @@ TTS/voice — won't run in cloud/web sessions) · ⚠️ needs the `nlm` CLI + N
 | Skill | What it does |
 |---|---|
 | ✅ `episode-review` | Post-episode review-and-quiz workflow for a Learning Hub audio overview; logs score + listened status. |
-| ✅ `artifacts-audit` | Audit the repo → plan canonical engineering artifacts (writes `docs/artifacts-plan.md`). |
-| ✅ `artifacts-generate` | Generate artifacts (READMEs, ADRs, runbooks, …) from the audit plan. |
-| 💻 `match-the-mock` | Implement a UI to match a mock and iterate via screenshots — needs a browser + running dev server. |
 | ⚠️ `nlm-skill` | Expert guide to the `nlm` CLI / NotebookLM MCP — the backend shells out to `nlm`. |
 | ⚠️ `notebook-init` | Initialize a new NotebookLM notebook end-to-end. |
 | ⚠️ `notebook-assist` | Refine / brainstorm / manage sources for an existing NotebookLM notebook. |
 | ⚠️ `audio-series` | Generate an episodic NotebookLM audio series for a notebook. |
-| ✅ `bug-hunt` | Proactive bug hunt: fan out finder agents, adversarially verify findings, ranked triage list. |
-| ✅ `kickoff` | Deep discovery interview → approved kickoff brief + phased plan → scaffold a new project + GitHub repo. |
-| ✅ `mini` | Kick off a new mini project under `~/Projects/mini/` (short interview + scaffold). |
-| ✅ `project-guide` | Comprehensive point-in-time guide to the project (architecture, history, interview lens); dated file. |
-| ✅ `research-paper` | End-of-project research paper + presenter pack from recorded results; opens a PR, never merges. |
-| ✅ `seed-hunt` | End-of-project seed hunt: verify closure, harvest lessons, sweep arXiv, decision brief. |
-| ✅ `ship-and-route` | Land outstanding git work behind a review gate, walk findings, route the next move. |
-| 💻 `narrate` | Turn a short brief into a single-voice MP3 narration (local Kokoro TTS). |
-| ⚠️ `interview-prep` | Init/maintain a NotebookLM interview-prep notebook from the local job-search dossier. |
-| ⚠️ `notebook-merge` | Merge 2+ overlapping NotebookLM notebooks into one unified notebook. |
-| ⚠️ `video-series` | Generate an episodic NotebookLM video series for a notebook. |
 
 #### Repo-specific skills (scaffolded via `/claudify-repo` brainstorm)
 
